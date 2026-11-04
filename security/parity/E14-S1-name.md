@@ -1,6 +1,8 @@
 # E14-S1: Larsal name and integration
 
-Verified 2026-11-04. The product, crates and imports, command, native project/package/targets, identifiers, environment variables and vault/key/share extensions use the current Larsal names. Platform and generic terms, vendor bytes, exact owner quotations and dated proof retain their recorded scope. The first-party licensing amendment is verified in [E14-S2](E14-S2-license.md#current-source-available-terms).
+Verified 2026-11-04, including the F-296 follow-up below. The product, crates and imports, command, native project/package/targets, identifiers, environment variables and vault/key/share extensions use the current Larsal names. Platform and generic terms, vendor bytes, exact owner quotations and dated proof retain their recorded scope. The first-party licensing amendment is verified in [E14-S2](E14-S2-license.md#current-source-available-terms).
+
+The following original-rename sections retain their original 11,612-file source, execution and integration scope. The current 11,613-file follow-up is separately bound at the end; no old hash or failed run is relabelled.
 
 ## Source and review binding
 
@@ -52,3 +54,29 @@ Cleanup removed only the obsolete Generated link itself, eight identity-checked 
 Fresh copied CLI license output matches the approved terms and credit. Strict app and bridge signature checks pass; generated and packaged bridge code matches after signature-only normalization. Names, intentional Debug identifier, version, license, fonts, credits, resource notice and BOM were rebound to the completed outputs.
 
 These are ad-hoc development signatures. Developer ID, notarization, document associations, public release, legal review, outside audit and visible Mac QA retain their own gates. No full official BOM-schema validation or legal certification is claimed.
+
+## F-296 current follow-up
+
+F-296 is closed after independent source review and current runtime, custody and artifact verification. Guard SHA-256: `59df2b27bc2797cefa963ffb8ef508da86dff0c68e5135b37bf49d527ff643a9`. The added command-family matcher retains the existing encoded naming policy and exclusions; 28 focused scans and the four matcher-removal regression controls were independently checked. The active planned command examples use the current executable.
+
+Current frozen candidate SHA-256: `44683372c19ca61fa12262036577fc1439b22a8f5fcfbc971c4b1d44b2ac7e17`; runtime source manifest: `26477543c388b0fcf642b27caf48e4709f0404bdff7e504df72f6cbbea5cc570`. Independent no-follow inventory, byte and full-mode checks bind all 11,613 files to runtime and actual main. No E11/E16/QR product change or proposed parent gate is included. Three bin-test fixture arguments use unique folders; all original actions and counts, including the two-item empty-bin expectation, remain unchanged.
+
+The actual current child command `bash scripts/check.sh` exits 0 in **2168.44 seconds**, under the approved 3590-second E14 cap (LD-350). CARGO_BUILD_JOBS is 2. All five gates and Overall pass; the existing unsafe policy remains 413 in 18 crates. The current default name scan reports 11,594 files scanned and 19 vaults checked by name, separately from full-source custody.
+
+| Current execution scope | Passed | Failed | Ignored |
+|---|---:|---:|---:|
+| Workspace, 134 printed harnesses | 3,170 | 0 | 72 |
+| Network, 3 printed harnesses | 66 | 0 | 7 |
+| Selected release, 6 printed harnesses | 275 | 0 | 0 |
+| Browser release | 45 | 0 | 0 |
+| APP-09, actually executed | 18 | 0 | 0 |
+
+These are per-configuration printed totals, not a unique-test total or a claim that ignored manual, child, slow or hardware cases ran. Swift reports **398 tests in 57 suites**, passed in 316.531 seconds. All 29 manifest fuzz targets retain exact default `-max_total_time=30`, private output and original seeds; each has positive Done at 31 seconds, without a fatal marker. Fifty-seven completed step logs are independently bound.
+
+Focused proof before the full writer: core build exits 0 in 202.8 seconds; the two selected Swift suites exit 0 in 54.73 seconds with 17 reported tests, all three original bin behavior tests and all eight share-frame cases. Thirty-two focused PNG/AX files were copied stably before the full run. The unchanged plus-or-minus-one assertion reads the light AX tree, whose y=575.5 in both focused/full outputs. The independently measured dark y=576.5 is also unchanged. The independent same-path reset/late-save control reproduces two items becoming one; separate paths retain two. It proves the fixture defect, not an invented exact timestamped interleaving in the failed run.
+
+Both previous follow-up commands remain **FAIL** with their own source/configuration/log pins: exit 1 in 2210.13 seconds (path-wrap frame plus omitted separate deny cache), and exit 1 in 2164.31 seconds (shared bin fixture). The short nominal root, complete preloaded public caches and isolated test callers correct those causes without changing policies, expectations, seed coverage or product autosave. The original shorter rename run above predates the later 60-minute owner approval; this follow-up uses that actual approval.
+
+Current fresh artifacts are independently copied with pre/copy/post equality. The actual copied CLI `--license` and strict app/bridge ad-hoc signature checks exit 0; canonical bridge code, resources/notices and the 119-component BOM (13 first-party choices, 106 retained external records) match their recorded input scope. All 292 historical snapshots remain unchanged; 328 fresh output files are bound to the current Swift window. This is artifact/output custody, not a new full visual audit, official schema validation, legal certification, public-release clearance or native signing/notarization proof.
+
+Independent current runtime/artifact report SHA-256: `71535b40328d717c78cfd342f5e1c93422122beffa4c285b8408451f2faefedc`; evidence pin index: `c2de73f5984e9b89df65930f328b1e6c3c89eff0240325ea2ca698d316635d4f`. Exact unchanged relevant crate/vendor/demo/corpus/format and closure-helper inputs retain the previous independent crypto/vector, 12-case demo interoperability, license and isolation proof within their original limits. No reference rerun or copy occurred. Final closure is a separately reviewed metadata-only delta; manual, hardware, legal/public release, Developer ID/notarization, document association and visible QA gates remain separate.

@@ -181,7 +181,7 @@ struct ParityEditorPagesTests {
 
     @Test("Parity dialogs-move-to-recycle-bin: Do not ask again turns the question off; the entry moves")
     func moveToBin() async throws {
-        let model = try ParityDemo.window("parity-editor-pages")
+        let model = try ParityDemo.window("parity-bin-move-" + UUID().uuidString)
         let main = try #require(model.main)
         main.askBeforeBin = true
         let screen = Screen(model)
@@ -196,7 +196,7 @@ struct ParityEditorPagesTests {
 
     @Test("Parity dialogs-delete-forever: Delete forever asks; Delete Forever removes the entry from the bin")
     func deleteForever() async throws {
-        let model = try ParityDemo.window("parity-editor-pages")
+        let model = try ParityDemo.window("parity-bin-delete-" + UUID().uuidString)
         let main = try #require(model.main)
         let screen = Screen(model)
         await screen.settle()
@@ -213,7 +213,7 @@ struct ParityEditorPagesTests {
 
     @Test("Parity dialogs-empty-recycle-bin: Empty Recycle Bin asks, then empties the bin")
     func emptyBin() async throws {
-        let model = try ParityDemo.window("parity-editor-pages")
+        let model = try ParityDemo.window("parity-bin-empty-" + UUID().uuidString)
         let main = try #require(model.main)
         let screen = Screen(model)
         await screen.settle()

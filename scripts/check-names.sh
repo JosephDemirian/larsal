@@ -307,6 +307,7 @@ def views(data):
 # Product identities are encoded too: test fixtures must not reintroduce them.
 OLD_FORMS = re.compile(bytes.fromhex('283f3c215b412d5a302d395d294150505f283f2153414e44424f585c62295b412d5a5d5b412d5a302d395f5d2a5c627c283f693a636f6d5c2e6170705c2e7c5c626170702d283f3a6175746f747970657c6272696467657c62726f777365727c636c697c636f72657c63727970746f7c6465736b746f707c6666697c666f726d61747c68776b65797c6d6f64656c7c706c6174666f726d7c70726f746f7c7365727665727c73686172657c7373686167656e747c73796e637c77656229283f3a5c627c5f297c5c626170705f283f3a6175746f747970657c6272696467657c62726f777365727c636c697c636f72657c63727970746f7c6465736b746f707c6666697c666f726d61747c68776b65797c6d6f64656c7c706c6174666f726d7c70726f746f7c7365727665727c73686172657c7373686167656e747c73796e637c776562295c627c5c62617070283f3a7661756c747c6b65797c7368617265295c62297c5c62417070283f3a436f72657c4646497c4572726f727c4576656e74737c4d61696e7c436f6d6d616e64737c53657474696e67737c53657474696e6756616c75657c53657474696e677c54657374737c55495465737473295c772a7c5c62617070283f3a53657474696e67734170706c6965647c53657474696e677352756c657c53657474696e677353616d706c657c46696e647c4d61726b295c627c60617070283f3a5b205c745d2b283f3a434f4d4d414e445c627c5c5b544f502d4c4556454c20464c41475c5d7c5c285b5e5c725c6e295d2a5c293e29297c5c7c5b205c745d2b6170703a5b205c745d7c5b22605d6170705b205c745d2b5c7b5b412d5a612d7a5f5d5b412d5a612d7a302d395f5d2a5c7d3a7c5c626170705b205c745d2b2d5b68765d5c627c5c626170705b205c745d2b3c636f6d6d616e643e3a').decode())
 OLD_PRODUCT = bytes.fromhex('417070').decode()
+OLD_FILE_COMMANDS = re.compile(r'\b' + OLD_PRODUCT.casefold() + r'[ \t]+(?:encrypt|decrypt)\b', re.I)
 OLD_WORD = re.compile(r'\b' + OLD_PRODUCT + r'\b')
 OLD_ENCODED_PATHS = tuple(bytes.fromhex(value).decode() for value in (
     '644756686253397a614746795a57517559584277646d46316248513d',
@@ -327,7 +328,7 @@ def old_product_hits(text, path, hits, what):
         text = ''.join(line.replace(approved, '').replace(approved.casefold(), '')
                        if re.match(r'^\|\s*w-18\s*\|', line, re.I) else line
                        for line in lines)
-    if OLD_FORMS.search(text) or any(value in text for value in OLD_ENCODED_PATHS):
+    if OLD_FORMS.search(text) or OLD_FILE_COMMANDS.search(text) or any(value in text for value in OLD_ENCODED_PATHS):
         hits.append((path, what + ' holds a retired product identity'))
         return
     text = re.sub(r'https?://[^\s<>`"\')]+', '', text)
@@ -761,6 +762,10 @@ def self_test():
             ('CLI vault prompt', '60617070202864656d6f293e2060'),
             ('CLI error prefix', '7c206170703a2063616e6e6f74206f70656e'),
             ('CLI formatted error prefix', '22617070207b636d647d3a2070726f626c656d'),
+            ('CLI file encryption', '6061707020656e637279707460'),
+            ('CLI file decryption', '60617070206465637279707460'),
+            ('CLI bare encryption', '61707020656e6372797074'),
+            ('CLI uppercase decryption', '4150502044454352595054'),
             ('CLI short help option', '617070202d68'),
             ('CLI short version option', '617070202d76'),
             ('CLI documented error prefix', '617070203c636f6d6d616e643e3a2070726f626c656d'),
@@ -786,7 +791,9 @@ def self_test():
             os.unlink(os.path.join(t, data.decode() + '.txt'))
         allowed = ('4170704b6974204e534170702041707044656c656761746520'
                    '454e41424c455f4150505f53414e44424f58204170702053746f726520'
-                   '6170702067726f7570202e617070204150502d3031202261707022')
+                   '6170702067726f7570202e617070204150502d3031202261707022'
+            '206c617273616c20656e6372797074206c617273616c2064656372797074'
+            '207468652061707020656e63727970747320616e64206465637279707473')
         put('platform.txt', bytes.fromhex(allowed + '202e61707053657474696e67732061707073657474696e67732e6a736f6e'))
         if scan(t)[0]:
             print('self-test: rename control rejected platform or generic names')
