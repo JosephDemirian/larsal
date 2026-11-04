@@ -16,12 +16,12 @@ All 6 items re-tested and fixed. No new finding. Notes for the lead are at the e
 
 ## Setup
 
-- **Private copy.** `rsync -a --exclude target --exclude app-shots --exclude fuzz/target` to `/tmp/e13s6i-verify-copy` at 10:19. Its own Cargo target was `/tmp/e13s6i-verify-target` and its DerivedData `/tmp/e13s6i-verify-dd`. Tests ran with `TEST_RUNNER_APP_TEST_INSTANCE_DIR=/tmp/e13s6i-verify-inst`, so test settings went to `/tmp`, never to `~/Library/Application Support/App`. AppTests is a logic bundle with no host app, and `WindowRules` uses its inert calls under XCTest, so nothing opened on screen.
-- **My probes:** `macos/AppTests/VerifyE13S6iTests.swift`, in the copy only. It has 4 tests: `verifyF122RowSteps`, `verifyLD228Timings`, `verifyInt0532` and `VerifyDiskWatchTests/verifyF125`. Each prints `VERIFY …` lines, which are quoted below.
-- **Build:** `scripts/build-core.sh`: 'build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift'.
-- **Run 1, part i suites plus probes.** `xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath /tmp/e13s6i-verify-dd test -only-testing:AppTests/{DataSafetyTests,ParitySavingTests,MenuBarIconTests,AutoTypeTests,DiskWatchTests,ProtectedUndoTests,WindowFixesMoreTests,VerifyDiskWatchTests} SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`, at load average 46: 92 tests in 8 suites, 91 passed.
+- **Private copy.** `rsync -a --exclude target --exclude larsal-shots --exclude fuzz/target` to `/tmp/e13s6i-verify-copy` at 10:19. Its own Cargo target was `/tmp/e13s6i-verify-target` and its DerivedData `/tmp/e13s6i-verify-dd`. Tests ran with `TEST_RUNNER_LARSAL_TEST_INSTANCE_DIR=/tmp/e13s6i-verify-inst`, so test settings went to `/tmp`, never to `~/Library/Application Support/Larsal`. LarsalTests is a logic bundle with no host app, and `WindowRules` uses its inert calls under XCTest, so nothing opened on screen.
+- **My probes:** `macos/LarsalTests/VerifyE13S6iTests.swift`, in the copy only. It has 4 tests: `verifyF122RowSteps`, `verifyLD228Timings`, `verifyInt0532` and `VerifyDiskWatchTests/verifyF125`. Each prints `VERIFY …` lines, which are quoted below.
+- **Build:** `scripts/build-core.sh`: 'build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift'.
+- **Run 1, part i suites plus probes.** `xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath /tmp/e13s6i-verify-dd test -only-testing:LarsalTests/{DataSafetyTests,ParitySavingTests,MenuBarIconTests,AutoTypeTests,DiskWatchTests,ProtectedUndoTests,WindowFixesMoreTests,VerifyDiskWatchTests} SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`, at load average 46: 92 tests in 8 suites, 91 passed.
   - The one failure was part g's "F-101: a FIFO at the vault's path …" (SavingWatchTests.swift:195, no recovery folder yet). Run alone with `test-without-building`, it passed in 0.290 s. Part i did not change `lockAll()`'s automatic path or `saveBeforeLock`.
-- **Full AppTests in the copy.** `… test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: 337 tests in 47 suites, 335 passed. The 2 failures are load timing tests, not part i's:
+- **Full LarsalTests in the copy.** `… test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: 337 tests in 47 suites, 335 passed. The 2 failures are load timing tests, not part i's:
   - "APP-01.27 c: a change of selected entry restarts …" took 33.3 s. Part g's Verify saw the same failure. It failed at log line 805, before the F-083 test started at line 999, so the F-083 test did not cause it.
   - "Parity editor-editor-entry: the Expires switch …" took 52.5 s.
   - Run alone, both passed (11.7 s and 8.8 s): 'Test run with 2 tests in 2 suites passed'.
@@ -30,7 +30,7 @@ All 6 items re-tested and fixed. No new finding. Notes for the lead are at the e
 - **Lints (the tree).**
   - `swift format lint --strict` on the 8 part i source files and 5 test files: exit 0.
   - `swiftlint 0.65.1 lint --strict --quiet` in macos: exit 0.
-  - `swift format lint --strict --recursive macos` fails only at macos/App/ContextMenus.swift:23:1 (Indentation). That file belongs to part m (LD-239 (2)).
+  - `swift format lint --strict --recursive macos` fails only at macos/Larsal/ContextMenus.swift:23:1 (Indentation). That file belongs to part m (LD-239 (2)).
 - **Mutants.** Made in the private copy only, each restored from a saved original. Independent mutants in separate areas were built together and run against their own tests: batch A (MA1 to MA4) and batch C (MA5, MA6). Each F-122 and LD-228 mutant (MB1 to MB6) ran alone.
 
 ## F-122: a manual lock, quit or close with editor edits or a changed copy asks first
@@ -73,11 +73,11 @@ All 6 items re-tested and fixed. No new finding. Notes for the lead are at the e
 The builder's and Checker 1's mutants on `lockNow`, `closeNow` and saveAll's Discard path were not repeated. MB1 covers the shared question that all of them reach.
 
 **Callers read:** every manual lock goes through `lock(_:)`, then `lockNow`:
-- the Lock button (VaultView.swift:116), the vault menu (Menus.swift:38) and the Lock menu item (AppCommandsVault.swift:12);
+- the Lock button (VaultView.swift:116), the vault menu (Menus.swift:38) and the Lock menu item (LarsalCommandsVault.swift:12);
 - the key change prompt;
 - the Auto-Type relock (AppDelegate.swift:60).
 
-Lock Everything (Menus.swift:41, AppCommandsVault.swift:15, MenuBarIcon.swift:179) calls `lockAll(asks: true)`. The automatic locks (LockSignals, the channel's WindowEvents) call `lockAll()`, which never asks.
+Lock Everything (Menus.swift:41, LarsalCommandsVault.swift:15, MenuBarIcon.swift:179) calls `lockAll(asks: true)`. The automatic locks (LockSignals, the channel's WindowEvents) call `lockAll()`, which never asks.
 
 ## LD-228 (1): Lock Everything and the quit save off the main thread
 
@@ -126,7 +126,7 @@ The window was frozen for the whole save. Part g measured 3.86 s for the origina
 
 ## F-125: DiskWatch opens without blocking
 
-**Steps (syscall level):** `mkfifo /tmp/e13s6i-verify-fifo/vault.appvault`, then `os.open(path, O_EVTONLY)` and `os.open(path, O_EVTONLY | O_NONBLOCK)` from `python3 -I`, using O_EVTONLY = 0x8000 from the SDK's sys/fcntl.h. Each runs as a child that is stopped by its own PID after 3 s.
+**Steps (syscall level):** `mkfifo /tmp/e13s6i-verify-fifo/vault.larsalvault`, then `os.open(path, O_EVTONLY)` and `os.open(path, O_EVTONLY | O_NONBLOCK)` from `python3 -I`, using O_EVTONLY = 0x8000 from the SDK's sys/fcntl.h. Each runs as a child that is stopped by its own PID after 3 s.
 
 - **Before:** 'block: open still blocked after 3.0 s (stopping my PID 2083)'.
 - **After:** 'nonblock: open returned fd>=0 after 0.000 s'. On a real file: 'nonblock: open returned fd>=0 after 0.000 s'.
@@ -170,6 +170,6 @@ The window was frozen for the whole save. Part g measured 3.86 s for the origina
 ## Notes for the lead (none blocks the sign-off)
 
 1. **INT-05.32 test gap.** No product test covers the relock after a failed run (MA6 survives the product suite). My probe proves the behaviour. T74 as written in the card has only the typed and Escape rows. Suggestion: add the probe's MI05-11 case and the stopped-run case to `t74LockAgainAfterAutoType` (fakes only, about 15 lines).
-2. **Shared test minute.** `SearchClearTimer.minute` is one static. WindowFixesMoreTests (F-083) and AppSettingsEffectsTests (APP-01.27 a to c) both set it, from suites that run side by side. In this run, APP-01.27 c failed before the F-083 test began, so it was load, not the shared static. An overlap could still make either test flaky. A `.serialized` parent suite or a per-timer minute would remove that.
+2. **Shared test minute.** `SearchClearTimer.minute` is one static. WindowFixesMoreTests (F-083) and LarsalSettingsEffectsTests (APP-01.27 a to c) both set it, from suites that run side by side. In this run, APP-01.27 c failed before the F-083 test began, so it was load, not the shared static. An overlap could still make either test flaky. A `.serialized` parent suite or a per-timer minute would remove that.
 3. **Close question.** Close keeps LD-199 (2)'s Save, Discard and Cancel question rather than MSG-LOCK-DISCARD-EDIT. It asks first and Cancel keeps the vault open, which meets LD-227 (2). I accepted it as built under LD-199 (2).
 4. **Cancel as default.** APP-02.15 step 7 says Cancel is the default button. In the sheet, Cancel has `.cancelAction` (Escape) and Discard has no key, so Return does nothing. That is data-safe; a Return key on Cancel would match the card's words exactly. Low; it is the house pattern of the other danger sheets.

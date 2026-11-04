@@ -1,4 +1,4 @@
-//! Fuzz target `browser_message` (E7-S1, INT-01.48, T65): App's side of the
+//! Fuzz target `browser_message` (E7-S1, INT-01.48, T65): Larsal's side of the
 //! browser bridge on arbitrary bytes, as a hostile extension or local
 //! process sends them. The bytes are a socket stream for the frame reader
 //! (INT-01.2, INT-01.3), and each frame it reads goes to the bridge on both
@@ -14,10 +14,10 @@
 //! mutation buffer doubles past 2 MiB.
 #![no_main]
 
-use app_browser::{Bridge, Handler, MAX_CONTENT, MAX_FRAME, Request, Route, read_frame};
-use app_crypto::base64::{self, Form};
-use app_crypto::bridge::{self, Secret};
-use app_model::json::{self, Map, Value};
+use larsal_browser::{Bridge, Handler, MAX_CONTENT, MAX_FRAME, Request, Route, read_frame};
+use larsal_crypto::base64::{self, Form};
+use larsal_crypto::bridge::{self, Secret};
+use larsal_model::json::{self, Map, Value};
 use libfuzzer_sys::fuzz_target;
 use std::time::Instant;
 
@@ -34,7 +34,7 @@ fn b64(bytes: &[u8]) -> String {
     base64::encode(Form::Padded, bytes)
 }
 
-/// A reply App sent: at most one frame, one JSON object.
+/// A reply Larsal sent: at most one frame, one JSON object.
 fn reply(bytes: &[u8]) -> Map {
     assert!(bytes.len() <= MAX_FRAME, "INT-01.3");
     match json::from_slice(bytes) {
@@ -81,7 +81,7 @@ fuzz_target!(|data: &[u8]| {
         .expect("base64")
         .try_into()
         .expect("32 bytes");
-    let z = client.agree(&app).expect("App's key is not low order");
+    let z = client.agree(&app).expect("Larsal's key is not low order");
     let request_key = bridge::request_key(&z, &key, &app).expect("a key");
     let reply_key = bridge::reply_key(&z, &key, &app).expect("a key");
     let nonce = [1u8; 12];

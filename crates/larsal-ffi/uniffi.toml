@@ -1,0 +1,5 @@
+# Swift names (scripts/build-core.sh): the bindings are the module LarsalCore,
+# the C layer under them is the module LarsalFFI.
+[bindings.swift]
+module_name = "LarsalCore"
+ffi_module_name = "LarsalFFI"

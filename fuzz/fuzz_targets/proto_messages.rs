@@ -1,5 +1,5 @@
 //! Fuzz target `proto_messages` (E16-S3, E16-S5, SYN-01.15, AT-L09):
-//! app-proto's readers on arbitrary bytes, as a hostile client or server
+//! larsal-proto's readers on arbitrary bytes, as a hostile client or server
 //! gives them: the record reader of SYN-01.8, the health record of
 //! SYN-01.14, the account and sign-in records of SYN-04 (E16-S5), the wrap
 //! record of CRY-04.6, and the route match of SYN-01.3 on a method and a
@@ -9,13 +9,13 @@
 //! reads is written back and reads back the same.
 #![no_main]
 
-use app_proto::Error;
-use app_proto::limits::{MAX_JSON, MAX_WRAP};
-use app_proto::messages::{
+use larsal_proto::Error;
+use larsal_proto::limits::{MAX_JSON, MAX_WRAP};
+use larsal_proto::messages::{
     AccountCreate, AccountCreated, Challenge, ChallengeRequest, Health, Session, SignIn,
     read_record,
 };
-use app_proto::{routes, wrap};
+use larsal_proto::{routes, wrap};
 use libfuzzer_sys::fuzz_target;
 
 /// A record that reads is a record, and reads back the same once written.

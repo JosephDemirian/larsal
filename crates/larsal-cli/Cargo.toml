@@ -1,0 +1,41 @@
+[package]
+name = "larsal-cli"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+[[bin]]
+name = "larsal"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+# Options are parsed by Larsal's own parser (args.rs); its problems are rendered
+# as INT-10's M10-02 with exit code 1. Prompts use larsal-platform's echo-off
+# guard, so no `rpassword`.
+[dependencies]
+larsal-core = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-format = { workspace = true }
+# F-107: the --hw-key slot over USB (INT-07, E10-S1).
+larsal-hwkey = { workspace = true }
+larsal-model = { workspace = true }
+larsal-platform = { workspace = true, features = ["appkit", "memory"] }
+
+[dev-dependencies]
+# The signal cases reset quit signals first (LD-180); the memory cases stack
+# probes around the zeroing allocator (E6-S6). Both features exist only for tests.
+larsal-platform = { workspace = true, features = ["test-signals", "test-memory"] }
+larsal-core = { workspace = true }
+larsal-crypto = { workspace = true }
+# F-107: unit tests answer --hw-key with the software key (OD-01,
+# INT-07.29); never in a product build.
+larsal-format = { workspace = true, features = ["software-key"] }
+larsal-model = { workspace = true }
+# The clip cases read and write the private named pasteboard of the `larsal`
+# process under test (AGENTS.md rule 10: never the general pasteboard).
+objc2 = { workspace = true }
+objc2-foundation = { workspace = true, features = ["std", "NSArray", "NSData", "NSString"] }
+objc2-app-kit = { workspace = true, features = ["std", "NSPasteboard", "NSPasteboardItem"] }

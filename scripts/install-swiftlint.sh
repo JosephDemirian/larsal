@@ -15,7 +15,7 @@ BIN="$DIR/swiftlint"
 if [ "${1:-}" = --path ]; then echo "$BIN"; exit 0; fi
 if [ -x "$BIN" ]; then echo "SwiftLint $VERSION is installed: $BIN"; exit 0; fi
 
-tmp=$(mktemp -d)
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/larsal-swiftlint.XXXXXX") || exit 1
 trap 'rm -rf "$tmp"' EXIT
 curl -fsSL -o "$tmp/swiftlint.zip" \
   "https://github.com/realm/SwiftLint/releases/download/$VERSION/portable_swiftlint.zip"

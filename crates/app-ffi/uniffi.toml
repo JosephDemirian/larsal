@@ -1,5 +1,0 @@
-# Swift names (scripts/build-core.sh): the bindings are the module AppCore,
-# the C layer under them is the module AppFFI.
-[bindings.swift]
-module_name = "AppCore"
-ffi_module_name = "AppFFI"

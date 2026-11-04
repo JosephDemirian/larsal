@@ -1,0 +1,37 @@
+[package]
+name = "larsal-hwkey"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E10-S1: hardware keys over USB (spec INT-07). The answer goes into
+# larsal-format's key flow (FMT-04); the random byte of the test challenge and
+# the simulated key's HMAC come from larsal-crypto (AGENTS rule 3).
+# deny, not forbid: the usb/ module allows unsafe (Rust rule 2).
+[lints.rust]
+unsafe_code = "deny"
+
+[dependencies]
+larsal-crypto = { workspace = true }
+larsal-format = { workspace = true }
+
+# D-INT07-1 (LD-173): the IOKit HID manager, used only in src/usb/.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-io-kit = { workspace = true, features = ["std", "hid"] }
+# CFArray, CFDictionary, CFRunLoop and CFDate (for the run loop's timeout) are
+# used by usb/watch.rs; objc2-io-kit's `hid` turns them on too (LD-188).
+objc2-core-foundation = { workspace = true, features = ["std", "CFArray", "CFDate", "CFDictionary", "CFNumber", "CFRunLoop", "CFSet", "CFString"] }
+
+[features]
+# Tests only (F-067): `usb::callbacks_for_tests` calls the IOKit callbacks as
+# IOKit does, with no device; turned on by the dev-dependency below. Never
+# in product builds.
+test-callbacks = []
+
+[dev-dependencies]
+larsal-hwkey = { workspace = true, features = ["test-callbacks"] }
+# The simulated device's slots answer through the software key (INT-07.29).
+larsal-format = { workspace = true, features = ["software-key"] }
+# The AT-H03 and AT-H04 tests save and open small vaults.
+larsal-model = { workspace = true }

@@ -8,7 +8,7 @@ Result: **E3-S10 signed. E3-S11 signed.** AT-A10 stands on the recorded runs the
 ## Setup
 
 - Reference: the installed app 2.7.11 and its command line tool, run with a throwaway home folder `/tmp/verify-diff/home`; the reference source at 09e34ba8 (read only). The reference app's window was not started and its settings folder was not read.
-- App's reader: a throwaway probe crate in `/tmp/verify-diff/probe/` (release build, its own target folder, the project's `Cargo.lock`) that depends on `app-format`, `app-core` and `app-crypto` by path. It calls `app_format::open` with the password and key file, and on success writes the vault with App's XML export (`export::xml::xml`). When App asks about the key derivation cost (CRY-02.14), the probe answers yes only if the reference finished the same file (so App runs the same work); `app-cli` has no open command yet.
+- Larsal's reader: a throwaway probe crate in `/tmp/verify-diff/probe/` (release build, its own target folder, the project's `Cargo.lock`) that depends on `larsal-format`, `larsal-core` and `larsal-crypto` by path. It calls `larsal_format::open` with the password and key file, and on success writes the vault with Larsal's XML export (`export::xml::xml`). When Larsal asks about the key derivation cost (CRY-02.14), the probe answers yes only if the reference finished the same file (so Larsal runs the same work); `larsal-cli` has no open command yet.
 - Harness scripts, seeds, mutants and results stay in `/tmp/verify-diff/` (they name the reference). No product code, test or fuzz target was changed. Files changed in this folder: this file, `plan/epics.md` (status lines), and `fuzz/target/differential/` (the two kept files and their index).
 - Before the runs: an orphaned test process from an old throwaway check (`/tmp/chk-e3doc/…/fea01-…`, parent process 1, 31 h 35 min at 100 % of one core) was stopped. It broke the owner's CPU rule and would have skewed the timings.
 
@@ -61,7 +61,7 @@ Before mutating, all 28 seeds were opened by both: same content in every one (bo
 
 ### Run
 
-`python3 -I /tmp/verify-diff/scripts/run.py`: 4 jobs. Each file goes to the reference CLI (`export -f xml`, password on stdin, `-k` and `--no-password` as needed, 10 s limit) and to App's probe (30 s limit). Pass: both reject, or both open with the same content. A guard kept files with extreme key derivation settings away from the reference (Argon2 memory over 512 MiB could fill this Mac's memory); it skipped 141 files in the first pass. Those 141 were run again through the reference with only the memory guard (`GUARD=mem REF_TIMEOUT=5`): the reference rejected every one within 1 s, and none needed more than 512 MiB. Final numbers are after that run.
+`python3 -I /tmp/verify-diff/scripts/run.py`: 4 jobs. Each file goes to the reference CLI (`export -f xml`, password on stdin, `-k` and `--no-password` as needed, 10 s limit) and to Larsal's probe (30 s limit). Pass: both reject, or both open with the same content. A guard kept files with extreme key derivation settings away from the reference (Argon2 memory over 512 MiB could fill this Mac's memory); it skipped 141 files in the first pass. Those 141 were run again through the reference with only the memory guard (`GUARD=mem REF_TIMEOUT=5`): the reference rejected every one within 1 s, and none needed more than 512 MiB. Final numbers are after that run.
 
 Content comparison, two levels:
 - Narrow (in the run): database name, every group (path, UUID), every entry (UUID, all string fields with values, tags, attachment names, history string fields).
@@ -77,7 +77,7 @@ Content comparison, two levels:
 | fuzzer units | 1,203 | 1,198 | 4 | 1 |
 | **all** | **3,655** | **3,550** | **103** | **2** |
 
-- App: 0 panics, 0 timeouts, 0 cost questions left open. App's reject kinds: Corrupt 2,407, Unsupported 660, WrongKey 224, TooLarge 138, NotAVault 121, OldFormat 1.
+- Larsal: 0 panics, 0 timeouts, 0 cost questions left open. Larsal's reject kinds: Corrupt 2,407, Unsupported 660, WrongKey 224, TooLarge 138, NotAVault 121, OldFormat 1.
 - Reference: 0 timeouts after the second pass. Its most common messages: the key derivation settings are unsupported or invalid, header SHA-256 mismatch, invalid inner header id size, no root group.
 - Files both opened: 84 with appended bytes (FMT-06.12, LD-01), 15 with a repeated chunk past the end, 4 fuzzer units. Broad comparison: 103 of 104 identical.
 - By operation, all passed except one bit flip and one fuzzer unit: flips 539, set 252, truncation 281, cut end 168, delete 268, insert 315, splice 278, repeat 266, append 84, fuzzer units 1,202.
@@ -86,8 +86,8 @@ Content comparison, two levels:
 
 Kept in `fuzz/target/differential/` with `index.tsv` (password `demo-pass` for both):
 
-1. `v3-stream-id-3.vault` (fuzz seed `keyfile-xml-v2` 3.1 without gzip, one bit flipped at offset 0xD3): version 3 header field 10, the inner stream id, is now 3. The reference opens it (its info command lists the vault normally); App gives `Unsupported`. FMT-02.20 (LD-10): the reference accepts 3 in a version 3 header but decrypts with Salsa20 anyway, so App refuses it; FMT-02 lists "version 3 inner stream id 3" among the intended AT-A11 differences.
-2. `v3-protected-value-zero-byte.vault` (a fuzzer unit, the 3.1 rich seed with two bytes of field 8, the protected stream key, changed): the vault opens in both, but every protected value decodes to random bytes. Field `otp` of "Full demo entry" then holds a `00` byte at character 14. The installed reference (toolkit 5.15) cuts the value there (`y}` U+FFFD U+FFFD `[5` U+FFFD `8` U+FFFD U+FFFD after its export drops the control characters); App keeps U+0000 and the 68 characters after it (App's decoded value dumped by code point). Every other value in the file is equal. FMT-09.15 says exactly this: App never cuts at a `00` byte; the reference source (toolkit 6) keeps the rest like App, and AT-A11 differs only from the installed version.
+1. `v3-stream-id-3.vault` (fuzz seed `keyfile-xml-v2` 3.1 without gzip, one bit flipped at offset 0xD3): version 3 header field 10, the inner stream id, is now 3. The reference opens it (its info command lists the vault normally); Larsal gives `Unsupported`. FMT-02.20 (LD-10): the reference accepts 3 in a version 3 header but decrypts with Salsa20 anyway, so Larsal refuses it; FMT-02 lists "version 3 inner stream id 3" among the intended AT-A11 differences.
+2. `v3-protected-value-zero-byte.vault` (a fuzzer unit, the 3.1 rich seed with two bytes of field 8, the protected stream key, changed): the vault opens in both, but every protected value decodes to random bytes. Field `otp` of "Full demo entry" then holds a `00` byte at character 14. The installed reference (toolkit 5.15) cuts the value there (`y}` U+FFFD U+FFFD `[5` U+FFFD `8` U+FFFD U+FFFD after its export drops the control characters); Larsal keeps U+0000 and the 68 characters after it (Larsal's decoded value dumped by code point). Every other value in the file is equal. FMT-09.15 says exactly this: Larsal never cuts at a `00` byte; the reference source (toolkit 6) keeps the rest like Larsal, and AT-A11 differs only from the installed version.
 
 Neither is a failure. Proposed for the lead (not blocking): add these two to AT-A11's list of known differences in `plan/attacks-and-checks.md`, next to LD-84.
 
@@ -95,10 +95,10 @@ The LD-84 cases (gzip trailer at a 16 KiB boundary, a 4.x file without its final
 
 ## 3. E3-S11: property test at 10,000 cases
 
-`crates/app-format/tests/property.rs`: `ten_thousand_random_vaults_round_trip` has `ProptestConfig { cases: 10_000 }` and is ignored in the normal suite; it runs the same `round_trip` as the 48-case `random_vaults_round_trip` (a random vault saved and opened must equal the original, and a second save and open must equal the first). No `PROPTEST_*` variable was set.
+`crates/larsal-format/tests/property.rs`: `ten_thousand_random_vaults_round_trip` has `ProptestConfig { cases: 10_000 }` and is ignored in the normal suite; it runs the same `round_trip` as the 48-case `random_vaults_round_trip` (a random vault saved and opened must equal the original, and a second save and open must equal the first). No `PROPTEST_*` variable was set.
 
 ```
-$ cargo test --release -p app-format --test property -- --ignored
+$ cargo test --release -p larsal-format --test property -- --ignored
     Finished `release` profile [optimized] target(s) in 12.64s
      Running tests/property.rs (target/release/deps/property-0d0050d77998d0d1)
 test ten_thousand_random_vaults_round_trip ... ok

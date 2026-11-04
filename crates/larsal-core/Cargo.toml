@@ -1,0 +1,39 @@
+[package]
+name = "larsal-core"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+larsal-model = { workspace = true }
+larsal-crypto = { workspace = true }
+# F-047: storage.rs checks and renames inside the vault's open folder
+# (`macos::is_file_in`, `rename_in`); no feature, so libc only.
+larsal-platform = { workspace = true }
+# E4-S13: the XML export writes the vault document (FEA-09.13).
+larsal-format = { workspace = true }
+# E4-S13: deflate members of the .1pux ZIP reader (LD-142 (2)).
+flate2 = { workspace = true }
+png = { workspace = true }
+regex-automata = { workspace = true }
+regex-syntax = { workspace = true }
+# FEA-05.1 strength estimate, health.rs only (LD-133).
+zxcvbn = { workspace = true }
+
+[features]
+# The storage test hook (LD-129 (6)): only larsal-core's own tests turn it on,
+# through the dev-dependency on itself below; a normal build has no way to
+# fake a save failure.
+test-faults = []
+
+[dev-dependencies]
+larsal-core = { workspace = true, features = ["test-faults"] }
+# E15-S2 (LD-283 (1)): the software hardware key, for a retired-key record
+# of a password plus hardware-key vault (tests/mod11_31.rs). Tests only.
+larsal-format = { workspace = true, features = ["software-key"] }
+# E4-S12: the 1,000-case merge property (MOD-11.30).
+proptest = { workspace = true }

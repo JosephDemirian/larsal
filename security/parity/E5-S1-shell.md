@@ -7,21 +7,21 @@ Date: 2026-10-27.
 Role: Verify (no reference access needed; none used).
 Result: **not signed.**
 - AT-E05 and AT-E08 are proven.
-- AT-E04 fails: F-054 (Medium). Tauri adds a nonce to every `<script src="http…">` in App's own HTML, so a remote script in `ui/` runs despite `script-src 'self'`.
+- AT-E04 fails: F-054 (Medium). Tauri adds a nonce to every `<script src="http…">` in Larsal's own HTML, so a remote script in `ui/` runs despite `script-src 'self'`.
 - F-055 (Low): `<link rel=preconnect>` opens a TCP connection that the policy cannot stop.
 - The fix for F-054 was tried in a /tmp copy and works (see F-054 below).
 - The screenshot is parked for the owner (macOS Screen Recording permission). It moves to E5-S12 Mac QA.
 
 ## Setup
 
-- Real build: `target/release/app-desktop` and `target/debug/app-desktop` in the project. `cargo build -p app-desktop --release` printed `Finished ... in 0.45s`, so the binary matched the sources. No file in `crates/app-desktop`, `ui`, `Cargo.toml` or `Cargo.lock` was newer than it.
-- Hostile and probe builds: a copy made with `rsync -a --exclude target` to `/tmp/verify-e5s1/ws`, with the build cache cloned in (`cp -c -R`). Only `app-desktop` recompiled.
+- Real build: `target/release/larsal-desktop` and `target/debug/larsal-desktop` in the project. `cargo build -p larsal-desktop --release` printed `Finished ... in 0.45s`, so the binary matched the sources. No file in `crates/larsal-desktop`, `ui`, `Cargo.toml` or `Cargo.lock` was newer than it.
+- Hostile and probe builds: a copy made with `rsync -a --exclude target` to `/tmp/verify-e5s1/ws`, with the build cache cloned in (`cp -c -R`). Only `larsal-desktop` recompiled.
 - The probe is a `setup` hook added to the copy's `src/main.rs`. It only reads, and it prints:
   - the served policy, from `app.asset_resolver().get("index.html").csp_header`;
   - the WKWebView's `isInspectable`;
   - the preference `_developerExtrasEnabled`;
   - `websiteDataStore.isPersistent`;
-  - after 4 s, the footer text, which `app.js` fills through the `app_info` command.
+  - after 4 s, the footer text, which `app.js` fills through the `larsal_info` command.
 - I chose the probe over a debugger because Developer mode is off on this Mac (`DevToolsSecurity -status`), so attaching a debugger would show an authorization prompt.
 - No product file was changed. Files written: this file and two rows in `security/findings.md`. All /tmp copies have been removed.
 
@@ -36,8 +36,8 @@ app pid 33713 alive: yes
 33781  1 Tue Oct 27 14:34:22 2026  .../com.apple.WebKit.Networking.xpc/Contents/MacOS/com.apple.WebKit.Networking
 33782  1 Tue Oct 27 14:34:22 2026  .../com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
 == lsof -nP -p <pid>, counted:
-pid 33713 (app-desktop): fds=54 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=1
-app-deskt 33713 josephilhan    4u  unix 0xa12bcaa28f0fedc5  0t0  ->0xa76f71f3e7a72a82
+pid 33713 (larsal-desktop): fds=54 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=1
+larsal-deskt 33713 josephilhan    4u  unix 0xa12bcaa28f0fedc5  0t0  ->0xa76f71f3e7a72a82
 pid 33780 (com.apple.WebKit.GPU): fds=22 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=0
 pid 33781 (com.apple.WebKit.Networking): fds=13 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=0
 pid 33782 (com.apple.WebKit.WebContent): fds=18 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=0
@@ -45,14 +45,14 @@ pid 33782 (com.apple.WebKit.WebContent): fds=18 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN
 (empty)
 == netstat -anv -p tcp | grep LISTEN: before 31 lines, after 31 lines
 == new TCP LISTEN addresses (diff before/after): (none)
-== netstat tcp LISTEN lines naming app-desktop or these pids: (none)
-== netstat -anv -p udp lines naming app-desktop or these pids: (none)
+== netstat tcp LISTEN lines naming larsal-desktop or these pids: (none)
+== netstat -anv -p udp lines naming larsal-desktop or these pids: (none)
 ```
 
 The only Unix socket is the app's fd 4. It is a datagram socket with no address of its own, connected to the system log socket. It does not listen:
 
 ```
-netstat -anv -f unix (app):  a12bcaa28f0fedc5 dgram ... conn a76f71f3e7a72a82 ... app-desktop:33713
+netstat -anv -f unix (app):  a12bcaa28f0fedc5 dgram ... conn a76f71f3e7a72a82 ... larsal-desktop:33713
 netstat -anv -f unix (peer): a76f71f3e7a72a82 dgram ... logd:334 ... /private//var/run/syslog
 ```
 
@@ -66,9 +66,9 @@ netstat -anv -f unix (peer): a76f71f3e7a72a82 dgram ... logd:334 ... /private//v
 1. No `devtools` feature anywhere in the build:
 
 ```
-cargo tree -p app-desktop -e features,normal --target aarch64-apple-darwin --prefix none | grep -c '"devtools"'   -> 0
-cargo tree -p app-desktop -e features,normal --target all --prefix none | grep -c '"devtools"'                   -> 0
-cargo tree -p app-desktop -e features --target all --prefix none | grep -c devtools                              -> 0
+cargo tree -p larsal-desktop -e features,normal --target aarch64-apple-darwin --prefix none | grep -c '"devtools"'   -> 0
+cargo tree -p larsal-desktop -e features,normal --target all --prefix none | grep -c '"devtools"'                   -> 0
+cargo tree -p larsal-desktop -e features --target all --prefix none | grep -c devtools                              -> 0
 tauri features on: custom-protocol, wry (plus the runtime crate links)
 ```
 
@@ -97,7 +97,7 @@ Safari's Develop menu lists only web views whose `isInspectable` is true, or app
 
 The probe binary itself contains the text `developerExtrasEnabled` twice. Those are the probe's own read-only selector names, not wry's.
 
-4. The inspector command is refused: `cargo test -p app-desktop` → `tests/shell.rs` `only_granted_commands_run ... ok` (it asserts that `plugin:webview|internal_toggle_devtools` is "not allowed"), and `unlisted_command_is_refused ... ok`.
+4. The inspector command is refused: `cargo test -p larsal-desktop` → `tests/shell.rs` `only_granted_commands_run ... ok` (it asserts that `plugin:webview|internal_toggle_devtools` is "not allowed"), and `unlisted_command_is_refused ... ok`.
 
 ## AT-E04 Remote content: fails (F-054); F-055 noted
 
@@ -152,15 +152,15 @@ Run 1 logger:
 14:38:37 127.0.0.1:8766 from 127.0.0.1:59572 <no data: timeout>
 ```
 
-Run 2 logger, and App's own code still working under the fixed policy:
+Run 2 logger, and Larsal's own code still working under the fixed policy:
 
 ```
 14:40:59 127.0.0.1:8767 from 127.0.0.1:59704 <no data: timeout>      (HTML <link rel=preconnect>)
 14:41:00 127.0.0.1:8768 from 127.0.0.1:59705 <no data: timeout>      (preconnect <link> made by app.js)
-PROBE page title after eval: FOOTER:App 0.1.0                        (app.js ran; app_info answered over IPC)
+PROBE page title after eval: FOOTER:Larsal 0.1.0                        (app.js ran; larsal_info answered over IPC)
 ```
 
-Control A logged each of these, so the zero in run 2 comes from the policy and not from WebKit or App Transport Security:
+Control A logged each of these, so the zero in run 2 comes from the policy and not from WebKit or Larsal Transport Security:
 - `html-script.js`, `html-module.js`, `html-preload-script.js`, `js-script.js`, `js-import.js`;
 - `html-stylesheet.css`, `html-stylesheet-2.css`, `html-inline-style-import.css`, `css-import.css`, `js-stylesheet.css`;
 - `html-img.png`, `base/html-img-via-base.png`, `html-srcset.png`, `html-svg-image.png`, `html-style-attr.png`, `html-poster.png`, `js-image.png`, `css-cursor.png`, `css-list.png`, `css-content.png`;
@@ -181,16 +181,16 @@ Control B (`curl`) logged `GET /html-script.js`, `GET /css-font.woff2` and `GET 
 ## Web data on disk (LD-152 (5), incognito)
 
 After the AT-E08 run of the real release build, these are all absent:
-- `~/Library/WebKit/app-desktop`, `~/Library/Caches/app-desktop`, `~/Library/HTTPStorages/app-desktop`;
-- `~/Library/WebKit/com.app.desktop`, `~/Library/Caches/com.app.desktop`.
+- `~/Library/WebKit/larsal-desktop`, `~/Library/Caches/larsal-desktop`, `~/Library/HTTPStorages/larsal-desktop`;
+- `~/Library/WebKit/app.larsal.desktop`, `~/Library/Caches/app.larsal.desktop`.
 
-A `find -maxdepth 2 -newer <marker>` over `~/Library/WebKit`, `Caches`, `HTTPStorages`, `Saved Application State`, `Preferences` and `Application Support` found nothing named for App.
+A `find -maxdepth 2 -newer <marker>` over `~/Library/WebKit`, `Caches`, `HTTPStorages`, `Saved Application State`, `Preferences` and `Application Support` found nothing named for Larsal.
 
-`~/Library/Application Support/App` holds only `instance.lock` (mode 0600, 0 bytes). The probe reads `websiteDataStore.isPersistent=false` in both release and debug.
+`~/Library/Application Support/Larsal` holds only `instance.lock` (mode 0600, 0 bytes). The probe reads `websiteDataStore.isPersistent=false` in both release and debug.
 
 ## Tests
 
-`cargo test -p app-desktop`: 10 passed, 0 failed.
+`cargo test -p larsal-desktop`: 10 passed, 0 failed.
 - `instance::tests::a_second_lock_is_refused_until_the_first_is_released`
 - the 7 tests in `tests/messages.rs`
 - `tests/shell.rs`: `only_granted_commands_run`, `unlisted_command_is_refused`
@@ -199,12 +199,12 @@ A `find -maxdepth 2 -newer <marker>` over `~/Library/WebKit`, `Caches`, `HTTPSto
 
 ## Findings and fixes
 
-**F-054 (Medium, blocks AT-E04): Tauri gives App's own remote script tags a nonce.**
-- tauri-codegen 2.7.4 (`context.rs` `map_core_assets`) calls tauri-utils 2.10.2 `html.rs` `inject_nonce_token`. That function adds `nonce` to every `script[src^='http']` and every `<style>` in App's HTML.
+**F-054 (Medium, blocks AT-E04): Tauri gives Larsal's own remote script tags a nonce.**
+- tauri-codegen 2.7.4 (`context.rs` `map_core_assets`) calls tauri-utils 2.10.2 `html.rs` `inject_nonce_token`. That function adds `nonce` to every `script[src^='http']` and every `<style>` in Larsal's HTML.
 - At serve time, tauri 2.12.5 `manager/mod.rs` `set_csp` replaces each token with a fresh random nonce and adds it to `script-src` or `style-src`.
 - So a `<script src="http://…">` written into `ui/*.html` (by mistake, or by a hostile change to `ui/`) runs, although the policy says `script-src 'self'`. Run 1 above shows it.
-- Fix (tried in the copy, run 2): add `"dangerousDisableAssetCspModification": true` to `app.security` in `crates/app-desktop/tauri.conf.json`.
-  - The served policy becomes exactly the configured string. App's scripts are external files under `'self'`, so they still run (footer `App 0.1.0`).
+- Fix (tried in the copy, run 2): add `"dangerousDisableAssetCspModification": true` to `app.security` in `crates/larsal-desktop/tauri.conf.json`.
+  - The served policy becomes exactly the configured string. Larsal's scripts are external files under `'self'`, so they still run (footer `Larsal 0.1.0`).
   - Tauri's own scripts are WebKit page scripts, which the policy does not cover, so nothing else changes.
 - After the fix:
   - COMMANDS.md: replace the sentence about the added `'sha256-…'` hashes with "no hash, no nonce: Tauri may not change the policy".
@@ -213,7 +213,7 @@ A `find -maxdepth 2 -newer <marker>` over `~/Library/WebKit`, `Caches`, `HTTPSto
 
 **F-055 (Low): `<link rel=preconnect>` opens a TCP connection; WebKit's policy has no directive for it.**
 - Both the HTML link and a link made by script connected to their host and sent nothing (run 2).
-- It needs App-authored markup or script, which `script-src` and App's text-only rule already restrict. Even so, it is a way to reach a remote host: an IP connection, and a DNS lookup for named hosts.
+- It needs Larsal-authored markup or script, which `script-src` and Larsal's text-only rule already restrict. Even so, it is a way to reach a remote host: an IP connection, and a DNS lookup for named hosts.
 - Fix: a check in `scripts/check.sh` that fails when a file in `ui/` contains:
   - `preconnect`, `dns-prefetch` or `prefetch`;
   - or a URL with `http:`, `https:`, `ws:`, `wss:` or `//host`. The SVG namespace string in `icons.js` is allowed by exact match.
@@ -224,5 +224,5 @@ A `find -maxdepth 2 -newer <marker>` over `~/Library/WebKit`, `Caches`, `HTTPSto
 About 8 minutes of CPU in total. No run kept the CPU busy for more than about 3 minutes.
 - Release builds of the copy: 4 × about 28 s (27.9, 28.1, 27.3, 29.4 s user).
 - Debug probe build: about 2 to 3 min. Not measured exactly: its timing line was cut from the output.
-- `cargo test -p app-desktop`: 179.8 s user and 7.0 s sys (the test build).
-- App runs: about 0.2 s CPU each (`ps -o time`).
+- `cargo test -p larsal-desktop`: 179.8 s user and 7.0 s sys (the test build).
+- Larsal runs: about 0.2 s CPU each (`ps -o time`).

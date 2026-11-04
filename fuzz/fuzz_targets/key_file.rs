@@ -2,8 +2,8 @@
 //! must never panic, hang or allocate from an unchecked length (AT-A10).
 #![no_main]
 
-use app_format::keyfile::read_key_file;
-use app_format::limits::Limits;
+use larsal_format::keyfile::read_key_file;
+use larsal_format::limits::Limits;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

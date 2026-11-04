@@ -13,17 +13,17 @@ Words used in this card: **live entry**, **history item**, **now**, **change bat
 ## Inputs and outputs
 
 - Standard icon: a 32-bit signed number stored on the item (FMT-11.10).
-- Custom icon (FMT-14.1): id (16 bytes), image bytes (PNG when App or the reference makes it), name (text, may be empty), time (optional). The vault's custom icons form one list in stored order.
+- Custom icon (FMT-14.1): id (16 bytes), image bytes (PNG when Larsal or the reference makes it), name (text, may be empty), time (optional). The vault's custom icons form one list in stored order.
 - Inputs to "add custom icon": image files the user picks, or an image returned by a website icon download (APP-01).
-- Outputs: PNG bytes of at most 128 × 128 pixels added to the vault list; messages with our IDs `msg.icons_added`, `msg.icons_exist`, `msg.icons_failed`, `msg.icon_in_use`, `msg.icons_all_in_use`, `msg.icons_purged` (texts are App's own).
+- Outputs: PNG bytes of at most 128 × 128 pixels added to the vault list; messages with our IDs `msg.icons_added`, `msg.icons_exist`, `msg.icons_failed`, `msg.icon_in_use`, `msg.icons_all_in_use`, `msg.icons_purged` (texts are Larsal's own).
 
-Limits: MOD-06.7 (App's input limits); FMT-14.25 (reading).
+Limits: MOD-06.7 (Larsal's input limits); FMT-14.25 (reading).
 
 ## Rules
 
 ### Standard icons
 
-MOD-06.1 **The standard set.** Standard icon numbers run from 0 to 68: 69 icons. Their meaning is fixed by the format family, so other apps show a matching picture for the same number. App ships its own drawing for each number, made in the style of design/mockup.html, never the reference's artwork. What each picture shows:
+MOD-06.1 **The standard set.** Standard icon numbers run from 0 to 68: 69 icons. Their meaning is fixed by the format family, so other apps show a matching picture for the same number. Larsal ships its own drawing for each number, made in the style of design/mockup.html, never the reference's artwork. What each picture shows:
 
 | # | Picture | # | Picture | # | Picture |
 |---|---|---|---|---|---|
@@ -53,7 +53,7 @@ MOD-06.1 **The standard set.** Standard icon numbers run from 0 to 68: 69 icons.
 
 The icon picker shows the 69 standard icons in number order.
 
-MOD-06.2 **Icons App sets by itself.**
+MOD-06.2 **Icons Larsal sets by itself.**
 
 | Item | Icon |
 |---|---|
@@ -67,7 +67,7 @@ MOD-06.2 **Icons App sets by itself.**
 
 MOD-06.3 **Group icon for new entries.** Setting `set.entry_group_icon` (our ID; APP-01 owns the final ID), default on. When it is on and the group the new entry is added to has a custom icon, or a standard icon other than 48 and 49, the new entry gets that icon (the same custom icon id, or the same number). Otherwise the new entry gets 0. The setting is read when the add screen opens; it only affects "Add entry" on the screen (MOD-01.22).
 
-MOD-06.4 **Numbers outside 0 to 68.** Any number read from a file is kept and written back (FMT-11.10). A number outside 0 to 68 is shown as icon 0. The reference's edit screen cannot select such a number, so saving the edit screen stores 0 even when the user did not touch the icon. App keeps the stored number until the user picks another icon (lead decision D-06-1, recommended).
+MOD-06.4 **Numbers outside 0 to 68.** Any number read from a file is kept and written back (FMT-11.10). A number outside 0 to 68 is shown as icon 0. The reference's edit screen cannot select such a number, so saving the edit screen stores 0 even when the user did not touch the icon. Larsal keeps the stored number until the user picks another icon (lead decision D-06-1, recommended).
 
 ### Custom icons
 
@@ -83,14 +83,14 @@ Afterwards one message reports: how many of the picked files were added (`msg.ic
 
 MOD-06.7 **Formats and input limits.**
 - Reference: it accepts every format its UI toolkit's decoders read on that system. The installed 2.7.11 on Mac bundles decoders for BMP, CUR, GIF, HEIC, HEIF, ICNS, ICO, JPEG 2000, JPEG, PBM, PGM, PNG, PPM, TGA, TIFF, WBMP, WebP, XBM and XPM, and none for SVG (seen in the app bundle's decoder folder, not run through the screen: check with Verify). It has no size limit.
-- App (decided: spec/decisions.md LD-65, replacing D-06-2): images are decoded in Rust, in app-core, with a Rust image crate, and only PNG, JPEG and ICO are accepted. Any other format, or a broken image, counts as failed. The crate needs an AT-J03 review and a line in the approved crate table of plan/architecture.md, in E4, before the story that builds this. macOS image services are not used.
-- App input limits, lead decision D-06-3 (the proposed numbers, decided by the default rule): input bytes of at most 16 MiB and a decoded image of at most 4,096 pixels on each side; input over either limit counts as failed. The pixel limit is checked from the image header before any pixel memory is taken. The same limits apply to every decode: picked files, downloads (MOD-06.11) and icon bytes read from a vault (MOD-06.19). Tests must be able to lower both.
+- Larsal (decided: spec/decisions.md LD-65, replacing D-06-2): images are decoded in Rust, in larsal-core, with a Rust image crate, and only PNG, JPEG and ICO are accepted. Any other format, or a broken image, counts as failed. The crate needs an AT-J03 review and a line in the approved crate table of plan/architecture.md, in E4, before the story that builds this. macOS image services are not used.
+- Larsal input limits, lead decision D-06-3 (the proposed numbers, decided by the default rule): input bytes of at most 16 MiB and a decoded image of at most 4,096 pixels on each side; input over either limit counts as failed. The pixel limit is checked from the image header before any pixel memory is taken. The same limits apply to every decode: picked files, downloads (MOD-06.11) and icon bytes read from a vault (MOD-06.19). Tests must be able to lower both.
 
-MOD-06.8 **Scaling.** When the image is wider or taller than 128 pixels it is resized to exactly 128 × 128 pixels; the aspect ratio is not kept, so a 256 × 64 image becomes 128 × 128. An image of at most 128 pixels on both sides keeps its size, 1 × 1 included. The result is encoded as PNG. The reference uses its toolkit's fast (nearest pixel) resizing; App uses a smooth filter. That only changes pixels, not the rule.
+MOD-06.8 **Scaling.** When the image is wider or taller than 128 pixels it is resized to exactly 128 × 128 pixels; the aspect ratio is not kept, so a 256 × 64 image becomes 128 × 128. An image of at most 128 pixels on both sides keeps its size, 1 × 1 included. The result is encoded as PNG. The reference uses its toolkit's fast (nearest pixel) resizing; Larsal uses a smooth filter. That only changes pixels, not the rule.
 
-MOD-06.9 **De-duplication.** Before adding, App compares the new PNG bytes with every icon in the list. When one has exactly the same bytes, no icon is added and that icon is used. When several have the same bytes, App uses the first in stored order. (The reference compares an MD5 hash of the bytes and uses the most recently added of the equal icons.) Equal pictures encoded differently are different icons. Reading a file never de-duplicates by bytes (FMT-14.7 only fixes repeated ids).
+MOD-06.9 **De-duplication.** Before adding, Larsal compares the new PNG bytes with every icon in the list. When one has exactly the same bytes, no icon is added and that icon is used. When several have the same bytes, Larsal uses the first in stored order. (The reference compares an MD5 hash of the bytes and uses the most recently added of the equal icons.) Equal pictures encoded differently are different icons. Reading a file never de-duplicates by bytes (FMT-14.7 only fixes repeated ids).
 
-MOD-06.10 **When the icon joins the vault.** An icon added on the edit screen joins the vault at once, as its own change, even when the user then cancels the edit screen; such an unused icon stays until the user removes or purges it (MOD-06.14, MOD-06.15). This is the reference's behavior; App does the same. An icon added on the edit screen has a time (and maybe a name), so the next save writes version 4.1 (FMT-14.4, FMT-16).
+MOD-06.10 **When the icon joins the vault.** An icon added on the edit screen joins the vault at once, as its own change, even when the user then cancels the edit screen; such an unused icon stays until the user removes or purges it (MOD-06.14, MOD-06.15). This is the reference's behavior; Larsal does the same. An icon added on the edit screen has a time (and maybe a name), so the next save writes version 4.1 (FMT-14.4, FMT-16).
 
 MOD-06.11 **Icons from a website download.** APP-01 owns whether downloads are allowed, where they go and their limits (SN-02). This card takes the returned image:
 - Edit screen download for one entry: decode, scale and de-duplicate as above; a new icon gets an empty name and the time now. When an equal icon exists the screen says the existing one was selected; when the download returns nothing it says the icon could not be fetched.
@@ -116,41 +116,41 @@ MOD-06.16 **Which item shows which icon.**
 - Entry: its custom icon when it has one, else its standard number. Shown in the entry list's title column, in the detail view and on the edit screen. The entry list's group column shows the group's icon.
 - Group: the same rule; shown in the sidebar tree and on the group edit screen. An expanded group keeps its own icon (no automatic open-folder picture).
 - An expired entry or group gets the expired badge on its icon (MOD-09). A shared group that is not expired gets the shared badge (INT-08).
-- A custom icon id that names no icon in the vault (FMT-14.8): the reference shows an empty picture and its edit screen then stores the default icon on save or cancel (0, for groups too). App shows the default icon of the item's kind (0 or 48) and keeps the id until the user picks another icon (lead decision D-06-1).
-- Custom icon bytes that cannot be decoded: App shows the default icon of the item's kind and keeps the bytes.
+- A custom icon id that names no icon in the vault (FMT-14.8): the reference shows an empty picture and its edit screen then stores the default icon on save or cancel (0, for groups too). Larsal shows the default icon of the item's kind (0 or 48) and keeps the id until the user picks another icon (lead decision D-06-1).
+- Custom icon bytes that cannot be decoded: Larsal shows the default icon of the item's kind and keeps the bytes.
 
-MOD-06.17 **Copies between vaults.** When a group is moved or copied into another open vault (MOD-02.22), every custom icon used by the group, its subtree, their live entries and those entries' history items is added to the target vault with its id, bytes, name and time, unless the target already has that id. When a single entry is moved or copied, its own custom icon is added the same way; the reference copies only id and bytes in that case (FMT-14.3), so name and time are lost there. App copies name and time in both cases (lead decision D-06-4, recommended). An icon whose id the target already has is not compared or replaced.
+MOD-06.17 **Copies between vaults.** When a group is moved or copied into another open vault (MOD-02.22), every custom icon used by the group, its subtree, their live entries and those entries' history items is added to the target vault with its id, bytes, name and time, unless the target already has that id. When a single entry is moved or copied, its own custom icon is added the same way; the reference copies only id and bytes in that case (FMT-14.3), so name and time are lost there. Larsal copies name and time in both cases (lead decision D-06-4, recommended). An icon whose id the target already has is not compared or replaced.
 
 MOD-06.18 **History items.** A history item keeps the icon its entry had at that time, standard or custom. Only MOD-06.14 and MOD-06.15 change a history item's icon.
 
-MOD-06.19 **Image data is untrusted.** Custom icon bytes come from files, vaults, imports, shared groups and downloads. App decodes them only to show them or to add them, in Rust with the limits of MOD-06.7, and never in the format layer (FMT-14.2). Before an icon reaches the screen layer, App re-encodes it as PNG; the screen never receives the stored or downloaded bytes themselves (decided: spec/decisions.md LD-65). Icon bytes read from a vault in a format other than PNG, JPEG or ICO, or bytes that fail to decode or break a limit, show the default icon of the item's kind (MOD-06.16) and are kept unchanged in the vault, byte for byte. A failed decode never stops the vault from opening.
+MOD-06.19 **Image data is untrusted.** Custom icon bytes come from files, vaults, imports, shared groups and downloads. Larsal decodes them only to show them or to add them, in Rust with the limits of MOD-06.7, and never in the format layer (FMT-14.2). Before an icon reaches the screen layer, Larsal re-encodes it as PNG; the screen never receives the stored or downloaded bytes themselves (decided: spec/decisions.md LD-65). Icon bytes read from a vault in a format other than PNG, JPEG or ICO, or bytes that fail to decode or break a limit, show the default icon of the item's kind (MOD-06.16) and are kept unchanged in the vault, byte for byte. A failed decode never stops the vault from opening.
 
 ## Edge cases and errors
 
 | Case | Expected behavior |
 |---|---|
-| Entry with icon number 99 | Shown as icon 0; App writes 99 back unless the user picks an icon (MOD-06.4). |
+| Entry with icon number 99 | Shown as icon 0; Larsal writes 99 back unless the user picks an icon (MOD-06.4). |
 | Entry with icon number -3 in the file | Read as 0 (FMT-11.10). |
 | Picked file is not an image | Counted as failed and named in `msg.icons_failed`; nothing added. |
 | 12 picked files fail | Only the first 8 names are listed. |
 | Same image picked twice in one action | First added, second counted in `msg.icons_exist`. |
-| Image of 4,097 × 10 pixels (App) | Failed by D-06-3. |
-| Picked GIF, BMP, TIFF, WebP or HEIC file (App) | Failed: App accepts only PNG, JPEG and ICO (LD-65). |
-| Vault icon stored as GIF (App) | Default icon shown; the GIF bytes are written back unchanged (MOD-06.19). |
+| Image of 4,097 × 10 pixels (Larsal) | Failed by D-06-3. |
+| Picked GIF, BMP, TIFF, WebP or HEIC file (Larsal) | Failed: Larsal accepts only PNG, JPEG and ICO (LD-65). |
+| Vault icon stored as GIF (Larsal) | Default icon shown; the GIF bytes are written back unchanged (MOD-06.19). |
 | Image of 1 × 1 pixel | Added at 1 × 1. |
 | Add custom icon, then cancel the edit screen | The icon stays in the vault, unused. |
 | "Custom" chosen with no custom icon selected on a group | Group gets 48. |
 | Remove an icon used by 2 entries, answer Skip | Icon kept; entries unchanged. |
 | Purge when every icon is in use | Nothing removed; `msg.icons_all_in_use`. |
-| Custom icon id with no icon in the vault | Default icon shown; id kept (App). |
+| Custom icon id with no icon in the vault | Default icon shown; id kept (Larsal). |
 | Icon bytes that are not a valid image | Default icon shown; bytes kept and written back. |
 | Apply to all children from the root | Every group (recycle bin included) and every live entry gets the root's icon. |
 
 ## Security notes
 
-- **Hostile images.** Custom icon bytes are attacker-controlled when a vault, shared group or import comes from someone else, and downloaded icons come from the network. Decoders are a classic attack surface. App decodes only in Rust, only PNG, JPEG and ICO (LD-65), enforces input limits before taking pixel memory (D-06-3), never decodes in app-format, re-encodes as PNG before the screen layer sees anything, and treats a decode failure as "show the default icon" (MOD-06.19). No untrusted image bytes reach the web view. Fuzz the add path and the vault-icon path with malformed images (AT-A10 style). The parity matrix in plan/security.md notes it (LD-65).
+- **Hostile images.** Custom icon bytes are attacker-controlled when a vault, shared group or import comes from someone else, and downloaded icons come from the network. Decoders are a classic attack surface. Larsal decodes only in Rust, only PNG, JPEG and ICO (LD-65), enforces input limits before taking pixel memory (D-06-3), never decodes in larsal-format, re-encodes as PNG before the screen layer sees anything, and treats a decode failure as "show the default icon" (MOD-06.19). No untrusted image bytes reach the web view. Fuzz the add path and the vault-icon path with malformed images (AT-A10 style). The parity matrix in plan/security.md notes it (LD-65).
 - **Network (SN-01, SN-02).** No icon is fetched unless the user turned website icons on (APP-01). This card never starts a download.
-- **Screen layer (AT-E01, AT-E04).** The screen shows custom icons only from PNG bytes App hands it (for example as an inline image), never from a remote URL; the content security policy blocks remote images.
+- **Screen layer (AT-E01, AT-E04).** The screen shows custom icons only from PNG bytes Larsal hands it (for example as an inline image), never from a remote URL; the content security policy blocks remote images.
 - **Deletion records.** Removing an icon records a deleted object (MOD-06.14) so a merge does not bring it back (MOD-11).
 - **Keep data (SD-06).** Unknown icon numbers, dangling icon ids and undecodable bytes are kept, not dropped (MOD-06.4, MOD-06.16).
 
@@ -193,7 +193,7 @@ Notation: t0 = 2026-10-25T10:00:00Z, t1 = 2026-10-25T10:05:00Z. Vault V: root R 
 | MOD-06.16 dangling id | File entry with custom icon id(77) and no icon id(77) in the vault | Open, view, edit Title, save | Icon 0 shown; file still holds id(77). |
 | MOD-06.16 badge | E expires at t0, clock t1 | Show the entry list | E's icon has the expired badge. |
 | MOD-06.17 group copy | Vault V with G using icon X (name `bank`, time t0); vault W open without X | Copy G into W | W has icon X with the same id, bytes, name `bank`, time t0. |
-| MOD-06.17 entry copy | E uses icon Y (name `mail`) | Copy E into W | W has Y with name `mail` (App; reference: empty name, no time). |
+| MOD-06.17 entry copy | E uses icon Y (name `mail`) | Copy E into W | W has Y with name `mail` (Larsal; reference: empty name, no time). |
 | MOD-06.18 history keeps icon | E icon 0 at t0 | Change E's icon to 9 on the edit screen | E icon 9; new history item icon 0. |
 | MOD-06.19 bad bytes | File with custom icon X whose bytes are `00 01 02`, used by E | Open the vault | Opens; E shows icon 0; save writes X's bytes back unchanged. |
 | MOD-06.19 oversize header | Vault with custom icon X: a 60-byte PNG whose header claims 100,000 × 100,000 pixels, used by E | Open the vault, show E | Opens; E shows icon 0; no pixel memory taken (the header check fails first); save writes X's bytes back unchanged. |

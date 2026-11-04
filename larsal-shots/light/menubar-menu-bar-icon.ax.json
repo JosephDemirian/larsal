@@ -1,0 +1,124 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            328,
+            46.5,
+            35,
+            15
+          ],
+          "label" : "Vaults",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            318,
+            68,
+            278,
+            30
+          ],
+          "label" : "Personal, Unlocked",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            98,
+            278,
+            30
+          ],
+          "label" : "Work",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            128,
+            278,
+            30
+          ],
+          "label" : "Family",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            171,
+            278,
+            30
+          ],
+          "label" : "Search Entries…, ⌥⌘Space",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            201,
+            278,
+            30
+          ],
+          "label" : "Password Generator, ⌥⌘G",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            231,
+            278,
+            30
+          ],
+          "label" : "Lock Everything, ⇧⌘L",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            274,
+            278,
+            30
+          ],
+          "label" : "Show Window",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            304,
+            278,
+            30
+          ],
+          "label" : "Settings…, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            318,
+            334,
+            278,
+            30
+          ],
+          "label" : "Quit Larsal, ⌘Q",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        312,
+        32,
+        290,
+        338
+      ],
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    720,
+    420
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

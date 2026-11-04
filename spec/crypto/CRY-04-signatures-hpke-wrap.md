@@ -1,12 +1,12 @@
 # CRY-04 Signatures, HPKE and key wrap
 
 Status: reviewed
-Epics: E16-S2 (app-crypto `sign.rs`, `hpke.rs`, `wrap.rs`); used by E16-S5, E16-S6, E17-S1, E17-S2, E18-S2 to E18-S5
-Parity rows: none in the reference app (it has no server or accounts); AT-B01 (known answers) applies. App's own rows: SV-03 (plan/security.md); AT-L12 (plan/attacks-and-checks.md)
+Epics: E16-S2 (larsal-crypto `sign.rs`, `hpke.rs`, `wrap.rs`); used by E16-S5, E16-S6, E17-S1, E17-S2, E18-S2 to E18-S5
+Parity rows: none in the reference app (it has no server or accounts); AT-B01 (known answers) applies. Larsal's own rows: SV-03 (plan/security.md); AT-L12 (plan/attacks-and-checks.md)
 
 ## What it does
 
-This card fixes the crypto that sync, accounts and sharing use, all in app-crypto (AGENTS.md rule 3): Ed25519 signatures, ECDSA P-256 signature checks, HPKE base mode for one suite, a signed record for a wrapped key, AES-256-GCM key wrap, HKDF-SHA256 and the two-secret key of the account. It also fixes one way to put several fields into bytes for signing and binding, and the labels each use carries. Our code only arranges the approved crates; nothing here is home-made crypto.
+This card fixes the crypto that sync, accounts and sharing use, all in larsal-crypto (AGENTS.md rule 3): Ed25519 signatures, ECDSA P-256 signature checks, HPKE base mode for one suite, a signed record for a wrapped key, AES-256-GCM key wrap, HKDF-SHA256 and the two-secret key of the account. It also fixes one way to put several fields into bytes for signing and binding, and the labels each use carries. Our code only arranges the approved crates; nothing here is home-made crypto.
 
 Design and sources: spec/research/sync-server.md P5, P6, P8, sections 7 and 11 (decided: spec/decisions.md LD-263 (4), (5), (7), (19), LD-266 (5)).
 
@@ -18,7 +18,7 @@ Design and sources: spec/research/sync-server.md P5, P6, P8, sections 7 and 11 (
 | Ed25519 sign | signing key, message | 64-byte signature |
 | Ed25519 verify | 32-byte public key, message, 64-byte signature | ok, or `SignatureInvalid` |
 | P-256 verify | 65-byte SEC1 public key, message, DER signature (at most 72 bytes) | ok, or `SignatureInvalid` |
-| X25519 key pair | app-crypto's random source | 32-byte private key (secret), 32-byte public key |
+| X25519 key pair | larsal-crypto's random source | 32-byte private key (secret), 32-byte public key |
 | HPKE seal | recipient public key, info (at most 512 bytes), plaintext (at most 1 KiB) | enc (32 bytes), ct (plaintext + 16 bytes) |
 | HPKE open | recipient private key, enc, info, ct | plaintext (secret), or `WrapInvalid` |
 | Signed wrap: make | recipient public key, info, plaintext, signer id, signer's Ed25519 key | wrap record (CRY-04.6) |
@@ -30,16 +30,16 @@ Design and sources: spec/research/sync-server.md P5, P6, P8, sections 7 and 11 (
 
 ## Rules
 
-CRY-04.1 **Crates** (LD-263 (7), (19); LD-221; plan/architecture.md, "Approved crates to add"). Only app-crypto imports them:
+CRY-04.1 **Crates** (LD-263 (7), (19); LD-221; plan/architecture.md, "Approved crates to add"). Only larsal-crypto imports them:
 - Ed25519: `ed25519-dalek` (=3.0.0, approved, with `curve25519-dalek` 5.0.0);
 - P-256: `p256` (=0.14.0, feature `ecdsa`, approved);
-- HPKE: `hpke`, no default features, features `x25519`, `aes`, `alloc` (no ML-KEM), with `x25519-dalek` and `zeroize_derive`; new in the tree, each after its AT-J03 review, at the newest release at least 14 days old on the day E16-S2 starts (LD-266 (5); on 2026-10-31 that is hpke 0.14.1 and x25519-dalek 3.0.0), as App's own copy in `vendor/` (LD-221);
+- HPKE: `hpke`, no default features, features `x25519`, `aes`, `alloc` (no ML-KEM), with `x25519-dalek` and `zeroize_derive`; new in the tree, each after its AT-J03 review, at the newest release at least 14 days old on the day E16-S2 starts (LD-266 (5); on 2026-10-31 that is hpke 0.14.1 and x25519-dalek 3.0.0), as Larsal's own copy in `vendor/` (LD-221);
 - AES-256-GCM: `aes-gcm` (0.11.1, in the tree through ssh-key; it gets its own approved-table line, LD-263 (19), sync-server.md section 11);
 - HKDF and SHA-256: `hkdf` and `sha2` (approved); Argon2id: `argon2` (approved, CRY-02.2);
-- constant-time compares: `subtle`; wiping: `zeroize`; randoms: `app-crypto::random` (CRY-03.9).
-No other crate does any of this, and no other App crate imports them.
+- constant-time compares: `subtle`; wiping: `zeroize`; randoms: `larsal-crypto::random` (CRY-03.9).
+No other crate does any of this, and no other Larsal crate imports them.
 
-CRY-04.2 **Field lists** (App's own arrangement). Where a card says "the field list (f1, f2, …)", the bytes are, for each field in order, its length as a u32 big endian, then its bytes. The first field is always an ASCII label from the table below; integers are written as fixed-size big-endian bytes (u16 for suite ids and blob versions, u64 for vault versions); ids are their 16 raw bytes; public keys are their raw encodings. Why: no two different field lists give the same bytes, so a signature or a binding made for one use can never be read as another.
+CRY-04.2 **Field lists** (Larsal's own arrangement). Where a card says "the field list (f1, f2, …)", the bytes are, for each field in order, its length as a u32 big endian, then its bytes. The first field is always an ASCII label from the table below; integers are written as fixed-size big-endian bytes (u16 for suite ids and blob versions, u64 for vault versions); ids are their 16 raw bytes; public keys are their raw encodings. Why: no two different field lists give the same bytes, so a signature or a binding made for one use can never be read as another.
 
 | Label | Use | Card |
 |---|---|---|
@@ -65,9 +65,9 @@ CRY-04.2 **Field lists** (App's own arrangement). Where a card says "the field l
 
 CRY-04.3 **Ed25519** (RFC 8032 section 5.1). Pure Ed25519: no prehash, no context. The private key is a 32-byte seed (section 5.1.5), the public key 32 bytes, a signature 64 bytes (section 5.1.6). Verification is strict (ed25519-dalek `verify_strict`): it refuses a signature whose S is not below the group order L (section 5.1.7), and refuses small-order public keys and R values. A public key that does not decode is `SignatureInvalid`.
 
-CRY-04.4 **ECDSA P-256, verify only** (FIPS 186-5 section 6.4.2; SEC1 v2 sections 2.3.4, 3.2.2.1 and 4.1.4). The message is hashed with SHA-256 (the Secure Enclave's message algorithm does the same, SYN-04.1). The public key is the 65-byte SEC1 uncompressed form `04 ‖ X ‖ Y`, checked to be a point on the curve and not the point at infinity; the compressed and hybrid forms are refused. The signature is the DER `ECDSA-Sig-Value` (SEC1 v2 appendix C.5): strict DER, no trailing bytes, r and s from 1 to n − 1. A high s is accepted, because the Secure Enclave does not normalize it, and every message App checks this way holds a one-time nonce (SYN-04.3), so a second valid form of one signature gains nothing. In sync, app-crypto never signs with P-256 (E9-S2's `ssh.rs` signs with it for App's own SSH agent): the Secure Enclave or the keychain key signs (SYN-04.1).
+CRY-04.4 **ECDSA P-256, verify only** (FIPS 186-5 section 6.4.2; SEC1 v2 sections 2.3.4, 3.2.2.1 and 4.1.4). The message is hashed with SHA-256 (the Secure Enclave's message algorithm does the same, SYN-04.1). The public key is the 65-byte SEC1 uncompressed form `04 ‖ X ‖ Y`, checked to be a point on the curve and not the point at infinity; the compressed and hybrid forms are refused. The signature is the DER `ECDSA-Sig-Value` (SEC1 v2 appendix C.5): strict DER, no trailing bytes, r and s from 1 to n − 1. A high s is accepted, because the Secure Enclave does not normalize it, and every message Larsal checks this way holds a one-time nonce (SYN-04.3), so a second valid form of one signature gains nothing. In sync, larsal-crypto never signs with P-256 (E9-S2's `ssh.rs` signs with it for Larsal's own SSH agent): the Secure Enclave or the keychain key signs (SYN-04.1).
 
-CRY-04.5 **HPKE** (RFC 9180; P8). Base mode only, single shot (`SealBase`, `OpenBase`, sections 5.1.1 and 6.1), with one suite: KEM 0x0020 DHKEM(X25519, HKDF-SHA256), KDF 0x0001 HKDF-SHA256, AEAD 0x0002 AES-256-GCM (section 7; Nk 32, Nn 12, Nt 16; Npk, Nsk and Nenc 32). The associated data is empty; every context goes into `info`, which each use builds as a field list (CRY-04.2), with the identities in it (section 5.1.3). Key pairs come from app-crypto's random source. Open fails, with one error `WrapInvalid`, on a tag that does not verify, an enc of the wrong length, or an X25519 result of all zero bytes (RFC 9180 section 7.1.4; RFC 7748 section 6.1). No psk, auth or export modes, and no other suite: base mode does not say who sent the wrap (RFC 9180 section 9.8: "in the Base mode, there is no authentication of the remote party at all"), so CRY-04.6 signs it (section 9.1.1: a signature over (enc, ct) with the sender's private key). Private key bytes are whatever the vendored release writes; from hpke 0.15 X25519 keys are clamped when written (sync-server.md section 7), so App never compares private key bytes across releases.
+CRY-04.5 **HPKE** (RFC 9180; P8). Base mode only, single shot (`SealBase`, `OpenBase`, sections 5.1.1 and 6.1), with one suite: KEM 0x0020 DHKEM(X25519, HKDF-SHA256), KDF 0x0001 HKDF-SHA256, AEAD 0x0002 AES-256-GCM (section 7; Nk 32, Nn 12, Nt 16; Npk, Nsk and Nenc 32). The associated data is empty; every context goes into `info`, which each use builds as a field list (CRY-04.2), with the identities in it (section 5.1.3). Key pairs come from larsal-crypto's random source. Open fails, with one error `WrapInvalid`, on a tag that does not verify, an enc of the wrong length, or an X25519 result of all zero bytes (RFC 9180 section 7.1.4; RFC 7748 section 6.1). No psk, auth or export modes, and no other suite: base mode does not say who sent the wrap (RFC 9180 section 9.8: "in the Base mode, there is no authentication of the remote party at all"), so CRY-04.6 signs it (section 9.1.1: a signature over (enc, ct) with the sender's private key). Private key bytes are whatever the vendored release writes; from hpke 0.15 X25519 keys are clamped when written (sync-server.md section 7), so Larsal never compares private key bytes across releases.
 
 CRY-04.6 **The signed wrap record** (P8; RFC 9180 section 9.1.1; the ETH paper's ciphertext authentication). A record holds: the suite (0x0020, 0x0001, 0x0002), enc, ct, info, the signer's id (16 bytes) and an Ed25519 signature over the field list (`sync-wrap-v1`, the suite as three u16, enc, ct, info, signer id). Opening runs in this order, and any failure is `WrapInvalid` with no detail:
 1. the suite is the one suite above;
@@ -76,7 +76,7 @@ CRY-04.6 **The signed wrap record** (P8; RFC 9180 section 9.1.1; the ETH paper's
 4. HPKE open (CRY-04.5).
 Records are at most 4 KiB (SYN-01.10). On the wire (SYN-01.8) a record is the JSON object `{"suite":[32,1,2],"enc":…,"ct":…,"info":…,"signer":…,"signature":…}`: the suite as three numbers, `enc`, `ct`, `info` and `signature` as base64url without padding, and `signer` as 32 lowercase hex digits (LD-327 (4)).
 
-CRY-04.7 **AES-256-GCM key wrap** (NIST SP 800-38D). A 32-byte key, a fresh 12-byte nonce from app-crypto's random source for every wrap (the random IV construction, section 8.2.2), a 16-byte tag, associated data given by the caller (SYN-06.4). Output: nonce ‖ ciphertext ‖ tag. A key wraps only a few blobs in its life, far below the 2^32 limit for random nonces (section 8.3). Unwrap fails with `WrapInvalid` on any change of the key, the nonce, the ciphertext, the tag or the associated data.
+CRY-04.7 **AES-256-GCM key wrap** (NIST SP 800-38D). A 32-byte key, a fresh 12-byte nonce from larsal-crypto's random source for every wrap (the random IV construction, section 8.2.2), a 16-byte tag, associated data given by the caller (SYN-06.4). Output: nonce ‖ ciphertext ‖ tag. A key wraps only a few blobs in its life, far below the 2^32 limit for random nonces (section 8.3). Unwrap fails with `WrapInvalid` on any change of the key, the nonce, the ciphertext, the tag or the associated data.
 
 CRY-04.8 **HKDF-SHA256** (RFC 5869): extract with the given salt, then expand with the given info, to 32 bytes. Its uses are SYN-06.3 and SYN-06.5.
 
@@ -86,11 +86,11 @@ CRY-04.10 **Secrets** (AGENTS.md rule 4). Every private key, seed, account secre
 
 CRY-04.11 **Constant-time compares.** Commitments (SYN-05.3), pinned public keys and any hash compared for trust are compared with `subtle`, in constant time.
 
-CRY-04.12 **Random values** (CRY-03.9, CRY-03.15). Every key, seed, nonce, salt and secret comes from `app-crypto::random`; a failed draw fails the operation and nothing is written; nothing is derived from time, a counter or a non-cryptographic generator.
+CRY-04.12 **Random values** (CRY-03.9, CRY-03.15). Every key, seed, nonce, salt and secret comes from `larsal-crypto::random`; a failed draw fails the operation and nothing is written; nothing is derived from time, a counter or a non-cryptographic generator.
 
 CRY-04.13 **Known answers** (gate G3, AT-B01; E16-S2). Kept as test data in the tree, each file with its source link:
 - Ed25519: RFC 8032 section 7.1, TEST 1, TEST 2, TEST 3 and TEST SHA(abc); and Wycheproof `ed25519_test.json`: every case marked valid verifies, every case marked invalid fails.
-- P-256: RFC 6979 appendix A.2.5, the SHA-256 signatures of "sample" and "test", written as DER, verify with its key; Wycheproof `ecdsa_secp256r1_sha256_test.json` (DER signatures): every valid case verifies, every invalid case fails, and every case marked acceptable fails (App's DER is strict).
+- P-256: RFC 6979 appendix A.2.5, the SHA-256 signatures of "sample" and "test", written as DER, verify with its key; Wycheproof `ecdsa_secp256r1_sha256_test.json` (DER signatures): every valid case verifies, every invalid case fails, and every case marked acceptable fails (Larsal's DER is strict).
 - HPKE: every base-mode (mode 0) record with kem_id 32, kdf_id 1, aead_id 2 in the RFC 9180 [TestVectors] JSON file, cfrg/draft-irtf-cfrg-hpke at commit 5f503c564da00b0687b3de75f1dfbdfc4079ad31 (RFC 9180 Appendix A has no vector for this suite): each listed encryption opens to its plaintext with the record's skRm, enc and info; and with the record's ephemeral key put in through a test seam (tests only), seal gives the record's enc and ct.
 - AES-256-GCM: the NIST CAVP GCM vectors of `gcmEncryptExtIV256.rsp` with 96-bit IVs and 128-bit tags, and the 256-bit-key, 96-bit-IV cases of Wycheproof `aes_gcm_test.json`.
 - HKDF-SHA256: RFC 5869 appendix A, test cases 1 to 3.
@@ -138,7 +138,7 @@ CRY-04.14 **One changed byte fails.** One changed byte of enc, ct, info, the sig
 | T15 CRY-04.10 no output | Every secret type of this card | Format with `{:?}` (prints `[hidden]`, plan/architecture.md's secret types) and search the logs of a full E17-S1 test run | No secret bytes anywhere |
 | T16 CRY-04.2 field lists | Field lists ("a", "bc") and ("ab", "c") | Encode | Different bytes: `00000001 61 00000002 6263` and `00000002 6162 00000001 63` |
 | T17 CRY-04.12 random failure | A test seam that makes the random source fail | Make a key pair, seal, wrap | Each fails with the random error; nothing returned |
-| T18 CRY-04.1 crates | The tree after E16-S2 | `cargo tree -i hpke`, `-i x25519-dalek`, `-i aes-gcm`, `-i ed25519-dalek`, `-i p256`; search every App crate's `use` lines | Each is reached from App crates only through app-crypto; no other App crate imports them; gate G1 passes offline with the vendored copies |
+| T18 CRY-04.1 crates | The tree after E16-S2 | `cargo tree -i hpke`, `-i x25519-dalek`, `-i aes-gcm`, `-i ed25519-dalek`, `-i p256`; search every Larsal crate's `use` lines | Each is reached from Larsal crates only through larsal-crypto; no other Larsal crate imports them; gate G1 passes offline with the vendored copies |
 | T19 CRY-04.11 constant time | The code of SYN-05.3 and of every pinned-key compare | Checker reads each compare (gate G6) | Each uses `subtle`'s constant-time equality; none uses `==` on the bytes |
 
 ## How this was learned

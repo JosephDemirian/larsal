@@ -9,13 +9,13 @@
 //! a window rule, an entry title, a URL, a sequence. Demo data only.
 #![no_main]
 
-use app_autotype::matching::{MAX_TEXT, MAX_TITLE};
-use app_autotype::{Open, Picker, Scope, Settings};
-use app_core::pattern;
-use app_core::time::Utc;
-use app_crypto::secret::SecretString;
-use app_model::autotype::Association;
-use app_model::{Entry, Field, Group, Time, Uuid, Vault};
+use larsal_autotype::matching::{MAX_TEXT, MAX_TITLE};
+use larsal_autotype::{Open, Picker, Scope, Settings};
+use larsal_core::pattern;
+use larsal_core::time::Utc;
+use larsal_crypto::secret::SecretString;
+use larsal_model::autotype::Association;
+use larsal_model::{Entry, Field, Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 
 const SEPARATOR: u8 = 0x1E;

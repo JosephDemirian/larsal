@@ -15,15 +15,15 @@
 //!   `@R` stands for the document root element name (see `expand`).
 #![no_main]
 
-use app_crypto::cipher::{self, Cipher};
-use app_crypto::hash::sha256;
-use app_crypto::kdf::{self, Host, KdfParams, SpeedRecord, Verdict};
-use app_crypto::secret::{SecretBytes, SecretString};
-use app_format::header::{Compression, write_header};
-use app_format::integrity::{header_hmac, write_blocks};
-use app_format::keys::{Credentials, cipher_key_v3, composite_key, final_keys, password_part};
-use app_format::limits::Limits;
-use app_format::{Opened, open};
+use larsal_crypto::cipher::{self, Cipher};
+use larsal_crypto::hash::sha256;
+use larsal_crypto::kdf::{self, Host, KdfParams, SpeedRecord, Verdict};
+use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_format::header::{Compression, write_header};
+use larsal_format::integrity::{header_hmac, write_blocks};
+use larsal_format::keys::{Credentials, cipher_key_v3, composite_key, final_keys, password_part};
+use larsal_format::limits::Limits;
+use larsal_format::{Opened, open};
 use libfuzzer_sys::fuzz_target;
 use std::sync::OnceLock;
 
@@ -129,7 +129,7 @@ fn seal_v3(plain: &[u8], gzip: bool) -> Vec<u8> {
     field3(
         &mut head,
         2,
-        &app_format::header::cipher_id(Cipher::Aes256Cbc),
+        &larsal_format::header::cipher_id(Cipher::Aes256Cbc),
     );
     field3(&mut head, 3, &u32::from(gzip).to_le_bytes());
     field3(&mut head, 4, &SEED);
@@ -179,6 +179,6 @@ fuzz_target!(|data: &[u8]| {
         ..Default::default()
     };
     if let Ok(Opened::Vault(v)) = open(&file, &creds, &mut host(), &lim, None) {
-        assert_eq!(app_model::invariants::check(&v.vault), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&v.vault), Ok(()));
     }
 });

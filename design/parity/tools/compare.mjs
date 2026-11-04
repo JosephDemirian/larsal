@@ -1,7 +1,7 @@
 // Design parity (Verify): compares one section of design/option-a/mockup.html
 // with the app's offscreen snapshots, frame by frame, light and dark.
 // Inputs: manifest.json, reference/<theme>/<id>.png, target/parity/dom-<theme>.json
-// (mockup-dom.mjs), app-shots/<theme>/<id>.png and .ax.json (SnapshotTests),
+// (mockup-dom.mjs), target/larsal-shots/<theme>/<id>.png and .ax.json (SnapshotTests),
 // target/parity/ocr/<theme>/<id>.json (ocr.swift), target/parity/behaviour.log
 // (xcodebuild output of ParityTests) and the lead's decisions in notes.mjs.
 // Writes design/parity/<section>/: findings.json, report.md, report.html,
@@ -85,7 +85,7 @@ function tokenOf(rgb, theme) {
 }
 const dist = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
 function colorsets() {
-  const base = 'macos/App/Resources/Assets.xcassets/Colors';
+  const base = 'macos/Larsal/Resources/Assets.xcassets/Colors';
   const rows = [];
   for (const name of Object.keys({ ...TOK.light, ...TOK.root })) {
     const p = `${base}/${name}.colorset/Contents.json`;
@@ -231,10 +231,10 @@ function textRuns(f, nodes) {
 }
 
 // ---------- icons and logos ----------
-const glyphs = new Set([...read('macos/App/Glyphs.swift').matchAll(/"([a-z0-9-]+)": 0x/g)].map((m) => m[1]));
-const swift = ['Controls', 'DetailFields', 'EntryListView', 'MainWindow', 'Menus', 'PopMenu', 'RailView', 'SidebarView', 'Theme', 'UnlockView', 'VaultView', 'WelcomeView', 'Logos', 'Formats', 'VaultModel', 'EditorModel', 'EditorScreen', 'EditorEntryPage', 'EditorPages', 'EditorMorePages', 'Dialogs', 'DialogSheets', 'Forms', 'FormParts', 'Generator', 'GeneratorPanel', 'NewVaultView', 'VaultSettingsView', 'AppSettingsView', 'AppSettingsPages', 'AppSettingsMorePages', 'AppSettingsParts', 'MenuBarIcon'].map((n) => read(`macos/App/${n}.swift`)).join('\n');
-const brands = new Set([...read('macos/App/Logos.swift').matchAll(/"brand-([a-z0-9]+)"/g)].map((m) => m[1]).concat(
-  ['apple', 'github', 'google', 'hetzner', 'protonmail', 'paypal', 'instagram', 'wise', 'figma', 'mastodon', 'linear', 'zalando', 'deutschebahn', 'ebay', 'netflix', 'reddit', 'visa', 'x', 'jira', 'yubico', 'postgresql'].filter((b) => existsSync(join(root, `macos/App/Resources/Assets.xcassets/Brands/brand-${b}.imageset`)))));
+const glyphs = new Set([...read('macos/Larsal/Glyphs.swift').matchAll(/"([a-z0-9-]+)": 0x/g)].map((m) => m[1]));
+const swift = ['Controls', 'DetailFields', 'EntryListView', 'MainWindow', 'Menus', 'PopMenu', 'RailView', 'SidebarView', 'Theme', 'UnlockView', 'VaultView', 'WelcomeView', 'Logos', 'Formats', 'VaultModel', 'EditorModel', 'EditorScreen', 'EditorEntryPage', 'EditorPages', 'EditorMorePages', 'Dialogs', 'DialogSheets', 'Forms', 'FormParts', 'Generator', 'GeneratorPanel', 'NewVaultView', 'VaultSettingsView', 'LarsalSettingsView', 'LarsalSettingsPages', 'LarsalSettingsMorePages', 'LarsalSettingsParts', 'MenuBarIcon'].map((n) => read(`macos/Larsal/${n}.swift`)).join('\n');
+const brands = new Set([...read('macos/Larsal/Logos.swift').matchAll(/"brand-([a-z0-9]+)"/g)].map((m) => m[1]).concat(
+  ['apple', 'github', 'google', 'hetzner', 'protonmail', 'paypal', 'instagram', 'wise', 'figma', 'mastodon', 'linear', 'zalando', 'deutschebahn', 'ebay', 'netflix', 'reddit', 'visa', 'x', 'jira', 'yubico', 'postgresql'].filter((b) => existsSync(join(root, `macos/Larsal/Resources/Assets.xcassets/Brands/brand-${b}.imageset`)))));
 function iconCheck(f) {
   const used = [...new Set(f.icons.filter((i) => i.visible).map((i) => `${i.fill ? 'fill ' : ''}${i.name.slice(3)}`))];
   const missing = used.filter((u) => { const n = u.replace(/^fill /, ''); return !glyphs.has(n) || !swift.includes(`"${n}"`); });
@@ -266,7 +266,7 @@ for (const f of manifest) {
     const t = { theme };
     r.themes[theme] = t;
     const refPath = join(root, `design/option-a/reference/${theme}/${f.id}.png`);
-    const appPath = join(root, `app-shots/${theme}/${f.id}.png`);
+    const appPath = join(root, `target/larsal-shots/${theme}/${f.id}.png`);
     t.refImg = relative(out, refPath);
     t.present = existsSync(appPath);
     if (!t.present) continue;
@@ -278,7 +278,7 @@ for (const f of manifest) {
     const nodes = flat(JSON.parse(readFileSync(appPath.replace(/\.png$/, '.ax.json'), 'utf8')));
     const strings = axStrings(nodes);
     // The view behind an open modal menu, from the same view without the menu.
-    const behindNodes = (NOTES[f.id]?.behind || []).flatMap((id) => flat(JSON.parse(readFileSync(join(root, `app-shots/${theme}/${id}.ax.json`), 'utf8'))));
+    const behindNodes = (NOTES[f.id]?.behind || []).flatMap((id) => flat(JSON.parse(readFileSync(join(root, `target/larsal-shots/${theme}/${id}.ax.json`), 'utf8'))));
     const behindStrings = axStrings(behindNodes);
     const ocrPath = join(root, `target/parity/ocr/${theme}/${f.id}.json`);
     const ocr = existsSync(ocrPath) ? JSON.parse(readFileSync(ocrPath, 'utf8')) : [];
@@ -424,7 +424,7 @@ writeFileSync(join(out, 'findings.json'), JSON.stringify({ section, versions, to
 // ---------- report.md ----------
 const passed = results.filter((r) => r.verdict === 'PASS').length;
 const built = results.filter((r) => !r.later).length;
-let md = `# Design parity: section \`${section}\`\n\nDate 2026-10-28. Reference: design/option-a/mockup.html (reference images exported again this run). App: offscreen snapshots of SnapshotTests.\n\n`;
+let md = `# Design parity: section \`${section}\`\n\nDate 2026-10-28. Reference: design/option-a/mockup.html (reference images exported again this run). Larsal: offscreen snapshots of SnapshotTests.\n\n`;
 md += `**Result: ${passed} of ${built} built frames PASS** (${results.length} frames in the section; ${results.length - built} belong to later stories).\n\nCheck tools: ${versions.join(', ')} (installed under /tmp/parity-tools, not in the project). Pixel diff: threshold 0.1, anti-aliasing ignored. "Outside accepted" = changed pixels left after masking the areas of accepted differences and live values (window buttons, strength words and meters, counts, codes, countdowns, times, paths).\n\n`;
 md += `| Frame | Light | Dark | Pixels light / dark (outside accepted) | Missing strings | Token mismatches | Boxes / text runs > 2 pt (light, dark) | Verdict |\n|---|---|---|---|---|---|---|---|\n`;
 for (const r of results) {
@@ -435,7 +435,7 @@ for (const r of results) {
   const tok = (t) => (t.colours ? t.colours.issues.length + t.icons.missing.length : 0);
   md += `| ${r.id} | ${L.present ? 'present' : 'MISSING'} | ${D.present ? 'present' : 'MISSING'} | ${px(L)} / ${px(D)} | ${[...new Set([...miss(L), ...miss(D)])].map((s) => '"' + s + '"').join(', ') || '0'} | ${tok(L)} / ${tok(D)} | ${L.geoFails ?? '–'} + ${L.runFails ?? '–'} / ${D.geoFails ?? '–'} + ${D.runFails ?? '–'} | ${r.verdict} |\n`;
 }
-md += `\nToken mismatches = colours whose share of the frame differs (missing or extra, at least 0.5 % of the pixels) plus Phosphor glyphs the app does not draw. Static token check (every colour asset against app.css): ${tokensStatic.filter((x) => x.ok).length} of ${tokensStatic.length} equal${tokensStatic.some((x) => !x.ok) ? '; differing: ' + tokensStatic.filter((x) => !x.ok).map((x) => `${x.name} (css ${x.light}/${x.dark}, app ${x.app_light}/${x.app_dark})`).join('; ') : ''}.\n\n`;
+md += `\nToken mismatches = colours whose share of the frame differs (missing or extra, at least 0.5 % of the pixels) plus Phosphor glyphs the app does not draw. Static token check (every colour asset against app.css): ${tokensStatic.filter((x) => x.ok).length} of ${tokensStatic.length} equal${tokensStatic.some((x) => !x.ok) ? '; differing: ' + tokensStatic.filter((x) => !x.ok).map((x) => `${x.name} (css ${x.light}/${x.dark}, app ${x.larsal_light}/${x.larsal_dark})`).join('; ') : ''}.\n\n`;
 md += `## Findings per frame\n\n`;
 for (const r of results) {
   md += `### ${r.id}: ${r.verdict}\n\n`;
@@ -477,7 +477,7 @@ for (const r of results) {
     const t = r.themes[theme];
     html += `<h3>${theme}</h3>`;
     if (!t.present) { html += `<p class="FAIL">1. Present: FAIL, no app snapshot.</p>`; continue; }
-    html += `<div class="trio"><figure><img loading="lazy" src="${t.refImg}" alt="mockup ${theme}"><figcaption>Mockup</figcaption></figure><figure><img loading="lazy" src="${t.appImg}" alt="app ${theme}"><figcaption>App</figcaption></figure><figure><img loading="lazy" src="${t.diffImg}" alt="diff ${theme}"><figcaption>Diff: ${t.sizeOk ? `${t.pixels} % changed, ${t.residual} % outside accepted areas` : pixelText(t)}</figcaption></figure></div>`;
+    html += `<div class="trio"><figure><img loading="lazy" src="${t.refImg}" alt="mockup ${theme}"><figcaption>Mockup</figcaption></figure><figure><img loading="lazy" src="${t.appImg}" alt="app ${theme}"><figcaption>Larsal</figcaption></figure><figure><img loading="lazy" src="${t.diffImg}" alt="diff ${theme}"><figcaption>Diff: ${t.sizeOk ? `${t.pixels} % changed, ${t.residual} % outside accepted areas` : pixelText(t)}</figcaption></figure></div>`;
     const tx = t.text;
     html += `<p><b>1. Present:</b> yes (${theme}, ${r.size.join(' × ')} pt, image size ${t.sizeOk ? 'equal' : 'DIFFERENT'}).</p>`;
     html += `<p><b>2. Text:</b> ${tx.found.length} found in the accessibility tree, ${tx.accepted.length} accepted differences, ${tx.live.length} live values (format), ${tx.clipped.length} clipped in the mockup, ${tx.drawnOnly.length} drawn but not in the tree, ${tx.behind.length} behind an open menu, <b>${tx.missing.length} missing</b>.</p>`;
@@ -494,9 +494,9 @@ for (const r of results) {
     const geo = t.geometry.filter((g) => g.d);
     const off = geo.filter((g) => worst(g.d) > 2);
     html += `<p><b>4. Geometry:</b> ${geo.length} boxes compared, ${off.length ? `<span class="FAIL">${off.length} off by more than 2 pt</span>` : 'all within 2 pt'}${t.sheet ? `; sheet edges mockup ${esc(JSON.stringify(t.sheet.ref))}, app ${esc(JSON.stringify(t.sheet.app))}` : ''}.</p>`;
-    html += `<details><summary>Boxes (x, y, w, h in pt; Δ = app − mockup)</summary><table><tr><th>Kind</th><th>Text</th><th>Mockup</th><th>App</th><th>Δ</th></tr>${t.geometry.map((g) => `<tr><td>${g.kind}</td><td>${esc(g.text)}</td><td>${g.dom.join(', ')}</td><td>${g.app ? g.app.join(', ') : esc(g.note || 'no counterpart')}</td><td class="${g.d && worst(g.d) > 2 ? 'FAIL' : ''}">${g.d ? g.d.join(', ') : ''}</td></tr>`).join('')}</table></details>`;
+    html += `<details><summary>Boxes (x, y, w, h in pt; Δ = app − mockup)</summary><table><tr><th>Kind</th><th>Text</th><th>Mockup</th><th>Larsal</th><th>Δ</th></tr>${t.geometry.map((g) => `<tr><td>${g.kind}</td><td>${esc(g.text)}</td><td>${g.dom.join(', ')}</td><td>${g.app ? g.app.join(', ') : esc(g.note || 'no counterpart')}</td><td class="${g.d && worst(g.d) > 2 ? 'FAIL' : ''}">${g.d ? g.d.join(', ') : ''}</td></tr>`).join('')}</table></details>`;
     const runsOff = t.runs.filter((x) => Math.max(Math.abs(x.d[0]), Math.abs(x.d[1])) > 2);
-    html += `<details><summary>Text runs (${t.runs.length} matched by their words, ${runsOff.length} placed more than 2 pt off; widths and heights differ by the text engines and are not judged)</summary><table><tr><th>Text</th><th>Mockup font</th><th>Mockup</th><th>App</th><th>Δ</th></tr>${runsOff.map((x) => `<tr><td>${esc(x.text)}</td><td>${esc(x.font)}</td><td>${x.dom.join(', ')}</td><td>${x.app.join(', ')}</td><td>${x.d.join(', ')}</td></tr>`).join('')}</table></details>`;
+    html += `<details><summary>Text runs (${t.runs.length} matched by their words, ${runsOff.length} placed more than 2 pt off; widths and heights differ by the text engines and are not judged)</summary><table><tr><th>Text</th><th>Mockup font</th><th>Mockup</th><th>Larsal</th><th>Δ</th></tr>${runsOff.map((x) => `<tr><td>${esc(x.text)}</td><td>${esc(x.font)}</td><td>${x.dom.join(', ')}</td><td>${x.app.join(', ')}</td><td>${x.d.join(', ')}</td></tr>`).join('')}</table></details>`;
     if (!t.sizeOk) html += `<p><b>5. Pixels:</b> ${pixelText(t)}.</p>`;
     else html += `<p><b>5. Pixels:</b> ${t.pixels} % changed (${t.residual} % outside accepted areas): ${t.pixels <= 3 ? 'within 3 %' : t.residual <= 3 ? 'over 3 %, all but ' + t.residual + ' % in accepted areas' : '<span class="FAIL">over 3 %</span>'}.</p>`;
     html += `<p><b>7. Accessibility:</b> ${t.unnamed.length ? `<span class="FAIL">${t.unnamed.length} unnamed controls</span>` : 'every control has a name'}; disabled (later stories): ${t.disabled.length}.</p>`;
@@ -504,7 +504,7 @@ for (const r of results) {
   html += `<h3>6. Behaviour</h3><p>Mockup controls in this frame: ${r.controls.length}.</p>${list(r.controls)}<p>Tests (ParityTests, offscreen, pressed through the accessibility tree):</p>${list(r.behaviour, (b) => `<span class="${b.ok ? 'PASS' : 'FAIL'}">${b.ok ? 'pass' : 'FAIL'}</span> ${esc(b.name)}`)}</section>`;
 }
 html += `<h2>Contrast (check 7)</h2><table><tr><th>Theme</th><th>Pair</th><th>Ratio</th></tr>${contrast.map((c) => `<tr><td>${c.theme}</td><td>${c.pair}</td><td class="${c.ratio < 4.5 ? 'FAIL' : 'PASS'}">${c.ratio}:1</td></tr>`).join('')}</table>`;
-html += `<h2>Static token check</h2><table><tr><th>Token</th><th>css light</th><th>app light</th><th>css dark</th><th>app dark</th><th></th></tr>${tokensStatic.map((x) => `<tr><td>${x.name}</td><td>${x.light}</td><td>${x.app_light ?? x.app}</td><td>${x.dark}</td><td>${x.app_dark ?? ''}</td><td class="${x.ok ? 'PASS' : 'FAIL'}">${x.ok ? 'equal' : 'differs'}</td></tr>`).join('')}</table></body></html>`;
+html += `<h2>Static token check</h2><table><tr><th>Token</th><th>css light</th><th>app light</th><th>css dark</th><th>app dark</th><th></th></tr>${tokensStatic.map((x) => `<tr><td>${x.name}</td><td>${x.light}</td><td>${x.larsal_light ?? x.app}</td><td>${x.dark}</td><td>${x.larsal_dark ?? ''}</td><td class="${x.ok ? 'PASS' : 'FAIL'}">${x.ok ? 'equal' : 'differs'}</td></tr>`).join('')}</table></body></html>`;
 writeFileSync(join(out, 'report.html'), html);
 console.log(`${section}: ${passed}/${built} PASS`);
 for (const r of results) console.log(`${r.id.padEnd(46)} ${r.verdict.padEnd(22)} L ${pixelText(r.themes.light)} D ${pixelText(r.themes.dark)} ${r.fails?.join(' | ') ?? ''}`);

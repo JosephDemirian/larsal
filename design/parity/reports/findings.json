@@ -8,361 +8,361 @@
   {
    "name": "ground",
    "light": "#f0f2f2",
-   "app_light": "#f0f2f2",
+   "larsal_light": "#f0f2f2",
    "dark": "#0b0b0d",
-   "app_dark": "#0b0b0d",
+   "larsal_dark": "#0b0b0d",
    "ok": true
   },
   {
    "name": "surface",
    "light": "#ffffff",
-   "app_light": "#ffffff",
+   "larsal_light": "#ffffff",
    "dark": "#131315",
-   "app_dark": "#131315",
+   "larsal_dark": "#131315",
    "ok": true
   },
   {
    "name": "raised",
    "light": "#f5f7f7",
-   "app_light": "#f5f7f7",
+   "larsal_light": "#f5f7f7",
    "dark": "#19191c",
-   "app_dark": "#19191c",
+   "larsal_dark": "#19191c",
    "ok": true
   },
   {
    "name": "active",
    "light": "#e7eaeb",
-   "app_light": "#e7eaeb",
+   "larsal_light": "#e7eaeb",
    "dark": "#232327",
-   "app_dark": "#232327",
+   "larsal_dark": "#232327",
    "ok": true
   },
   {
    "name": "hover",
    "light": "#f3f5f5",
-   "app_light": "#f3f5f5",
+   "larsal_light": "#f3f5f5",
    "dark": "#1a1a1d",
-   "app_dark": "#1a1a1d",
+   "larsal_dark": "#1a1a1d",
    "ok": true
   },
   {
    "name": "border",
    "light": "#e2e5e6",
-   "app_light": "#e2e5e6",
+   "larsal_light": "#e2e5e6",
    "dark": "#222226",
-   "app_dark": "#222226",
+   "larsal_dark": "#222226",
    "ok": true
   },
   {
    "name": "rule",
    "light": "#edeff0",
-   "app_light": "#edeff0",
+   "larsal_light": "#edeff0",
    "dark": "#1c1c1f",
-   "app_dark": "#1c1c1f",
+   "larsal_dark": "#1c1c1f",
    "ok": true
   },
   {
    "name": "control",
    "light": "#cdd0d3",
-   "app_light": "#cdd0d3",
+   "larsal_light": "#cdd0d3",
    "dark": "#3a3a40",
-   "app_dark": "#3a3a40",
+   "larsal_dark": "#3a3a40",
    "ok": true
   },
   {
    "name": "field",
    "light": "#ffffff",
-   "app_light": "#ffffff",
+   "larsal_light": "#ffffff",
    "dark": "#19191c",
-   "app_dark": "#19191c",
+   "larsal_dark": "#19191c",
    "ok": true
   },
   {
    "name": "tile",
    "light": "#ffffff",
-   "app_light": "#ffffff",
+   "larsal_light": "#ffffff",
    "dark": "#1c1c1f",
-   "app_dark": "#1c1c1f",
+   "larsal_dark": "#1c1c1f",
    "ok": true
   },
   {
    "name": "text",
    "light": "#131416",
-   "app_light": "#131416",
+   "larsal_light": "#131416",
    "dark": "#ededef",
-   "app_dark": "#ededef",
+   "larsal_dark": "#ededef",
    "ok": true
   },
   {
    "name": "muted",
    "light": "#5d6062",
-   "app_light": "#5d6062",
+   "larsal_light": "#5d6062",
    "dark": "#9b9ba2",
-   "app_dark": "#9b9ba2",
+   "larsal_dark": "#9b9ba2",
    "ok": true
   },
   {
    "name": "primary",
    "light": "#1d1f20",
-   "app_light": "#1d1f20",
+   "larsal_light": "#1d1f20",
    "dark": "#ededef",
-   "app_dark": "#ededef",
+   "larsal_dark": "#ededef",
    "ok": true
   },
   {
    "name": "on-primary",
    "light": "#ffffff",
-   "app_light": "#ffffff",
+   "larsal_light": "#ffffff",
    "dark": "#0b0b0d",
-   "app_dark": "#0b0b0d",
+   "larsal_dark": "#0b0b0d",
    "ok": true
   },
   {
    "name": "primary-hover",
    "light": "#34373a",
-   "app_light": "#34373a",
+   "larsal_light": "#34373a",
    "dark": "#ffffff",
-   "app_dark": "#ffffff",
+   "larsal_dark": "#ffffff",
    "ok": true
   },
   {
    "name": "accent",
    "light": "#1b6c80",
-   "app_light": "#1b6c80",
+   "larsal_light": "#1b6c80",
    "dark": "#52b6c9",
-   "app_dark": "#52b6c9",
+   "larsal_dark": "#52b6c9",
    "ok": true
   },
   {
    "name": "accent-soft",
    "light": "#e2eff2",
-   "app_light": "#e2eff2",
+   "larsal_light": "#e2eff2",
    "dark": "#10303a",
-   "app_dark": "#10303a",
+   "larsal_dark": "#10303a",
    "ok": true
   },
   {
    "name": "digit",
    "light": "#1b6c80",
-   "app_light": "#1b6c80",
+   "larsal_light": "#1b6c80",
    "dark": "#6ccadb",
-   "app_dark": "#6ccadb",
+   "larsal_dark": "#6ccadb",
    "ok": true
   },
   {
    "name": "symbol",
    "light": "#a3620a",
-   "app_light": "#a3620a",
+   "larsal_light": "#a3620a",
    "dark": "#f2ab4f",
-   "app_dark": "#f2ab4f",
+   "larsal_dark": "#f2ab4f",
    "ok": true
   },
   {
    "name": "positive",
    "light": "#1e7b4f",
-   "app_light": "#1e7b4f",
+   "larsal_light": "#1e7b4f",
    "dark": "#3dd68c",
-   "app_dark": "#3dd68c",
+   "larsal_dark": "#3dd68c",
    "ok": true
   },
   {
    "name": "negative",
    "light": "#c4242a",
-   "app_light": "#c4242a",
+   "larsal_light": "#c4242a",
    "dark": "#ff6b70",
-   "app_dark": "#ff6b70",
+   "larsal_dark": "#ff6b70",
    "ok": true
   },
   {
    "name": "warning",
    "light": "#8a4a06",
-   "app_light": "#8a4a06",
+   "larsal_light": "#8a4a06",
    "dark": "#f5b14c",
-   "app_dark": "#f5b14c",
+   "larsal_dark": "#f5b14c",
    "ok": true
   },
   {
    "name": "neg-bg",
    "light": "#ffedea",
-   "app_light": "#ffedea",
+   "larsal_light": "#ffedea",
    "dark": "#2c1517",
-   "app_dark": "#2c1517",
+   "larsal_dark": "#2c1517",
    "ok": true
   },
   {
    "name": "neg-ink",
    "light": "#831c1e",
-   "app_light": "#831c1e",
+   "larsal_light": "#831c1e",
    "dark": "#ffa3a5",
-   "app_dark": "#ffa3a5",
+   "larsal_dark": "#ffa3a5",
    "ok": true
   },
   {
    "name": "warn-bg",
    "light": "#fff4e0",
-   "app_light": "#fff4e0",
+   "larsal_light": "#fff4e0",
    "dark": "#2a1f0f",
-   "app_dark": "#2a1f0f",
+   "larsal_dark": "#2a1f0f",
    "ok": true
   },
   {
    "name": "warn-ink",
    "light": "#7a4105",
-   "app_light": "#7a4105",
+   "larsal_light": "#7a4105",
    "dark": "#f6c47f",
-   "app_dark": "#f6c47f",
+   "larsal_dark": "#f6c47f",
    "ok": true
   },
   {
    "name": "pos-bg",
    "light": "#dcfae5",
-   "app_light": "#dcfae5",
+   "larsal_light": "#dcfae5",
    "dark": "#0f2a1b",
-   "app_dark": "#0f2a1b",
+   "larsal_dark": "#0f2a1b",
    "ok": true
   },
   {
    "name": "pos-ink",
    "light": "#0b4a26",
-   "app_light": "#0b4a26",
+   "larsal_light": "#0b4a26",
    "dark": "#74e4a9",
-   "app_dark": "#74e4a9",
+   "larsal_dark": "#74e4a9",
    "ok": true
   },
   {
    "name": "chip-bg",
    "light": "#eceeef",
-   "app_light": "#eceeef",
+   "larsal_light": "#eceeef",
    "dark": "#232327",
-   "app_dark": "#232327",
+   "larsal_dark": "#232327",
    "ok": true
   },
   {
    "name": "chip-ink",
    "light": "#353736",
-   "app_light": "#353736",
+   "larsal_light": "#353736",
    "dark": "#d0d0d5",
-   "app_dark": "#d0d0d5",
+   "larsal_dark": "#d0d0d5",
    "ok": true
   },
   {
    "name": "scrim",
    "light": "rgba(24, 26, 28, .26)",
-   "app_light": "#181a1c α0.26",
+   "larsal_light": "#181a1c α0.26",
    "dark": "rgba(0, 0, 0, .55)",
-   "app_dark": "#000000 α0.55",
+   "larsal_dark": "#000000 α0.55",
    "ok": true
   },
   {
    "name": "blue",
    "light": "#007aff",
-   "app_light": "#007aff",
+   "larsal_light": "#007aff",
    "dark": "#007aff",
-   "app_dark": "#007aff",
+   "larsal_dark": "#007aff",
    "ok": true
   },
   {
    "name": "orange",
    "light": "#ff9500",
-   "app_light": "#ff9500",
+   "larsal_light": "#ff9500",
    "dark": "#ff9500",
-   "app_dark": "#ff9500",
+   "larsal_dark": "#ff9500",
    "ok": true
   },
   {
    "name": "green",
    "light": "#28b14c",
-   "app_light": "#28b14c",
+   "larsal_light": "#28b14c",
    "dark": "#28b14c",
-   "app_dark": "#28b14c",
+   "larsal_dark": "#28b14c",
    "ok": true
   },
   {
    "name": "teal",
    "light": "#22a6bd",
-   "app_light": "#22a6bd",
+   "larsal_light": "#22a6bd",
    "dark": "#22a6bd",
-   "app_dark": "#22a6bd",
+   "larsal_dark": "#22a6bd",
    "ok": true
   },
   {
    "name": "purple",
    "light": "#a550d6",
-   "app_light": "#a550d6",
+   "larsal_light": "#a550d6",
    "dark": "#a550d6",
-   "app_dark": "#a550d6",
+   "larsal_dark": "#a550d6",
    "ok": true
   },
   {
    "name": "pink",
    "light": "#f2385a",
-   "app_light": "#f2385a",
+   "larsal_light": "#f2385a",
    "dark": "#f2385a",
-   "app_dark": "#f2385a",
+   "larsal_dark": "#f2385a",
    "ok": true
   },
   {
    "name": "red",
    "light": "#f04438",
-   "app_light": "#f04438",
+   "larsal_light": "#f04438",
    "dark": "#f04438",
-   "app_dark": "#f04438",
+   "larsal_dark": "#f04438",
    "ok": true
   },
   {
    "name": "brown",
    "light": "#a2845e",
-   "app_light": "#a2845e",
+   "larsal_light": "#a2845e",
    "dark": "#a2845e",
-   "app_dark": "#a2845e",
+   "larsal_dark": "#a2845e",
    "ok": true
   },
   {
    "name": "gray",
    "light": "#8e8e93",
-   "app_light": "#8e8e93",
+   "larsal_light": "#8e8e93",
    "dark": "#8e8e93",
-   "app_dark": "#8e8e93",
+   "larsal_dark": "#8e8e93",
    "ok": true
   },
   {
    "name": "slate",
    "light": "#5a6b7d",
-   "app_light": "#5a6b7d",
+   "larsal_light": "#5a6b7d",
    "dark": "#5a6b7d",
-   "app_dark": "#5a6b7d",
+   "larsal_dark": "#5a6b7d",
    "ok": true
   },
   {
    "name": "mint",
    "light": "#00b5ad",
-   "app_light": "#00b5ad",
+   "larsal_light": "#00b5ad",
    "dark": "#00b5ad",
-   "app_dark": "#00b5ad",
+   "larsal_dark": "#00b5ad",
    "ok": true
   },
   {
    "name": "cyan",
    "light": "#2f9fd8",
-   "app_light": "#2f9fd8",
+   "larsal_light": "#2f9fd8",
    "dark": "#2f9fd8",
-   "app_dark": "#2f9fd8",
+   "larsal_dark": "#2f9fd8",
    "ok": true
   },
   {
    "name": "yellow",
    "light": "#f5b800",
-   "app_light": "#f5b800",
+   "larsal_light": "#f5b800",
    "dark": "#f5b800",
-   "app_dark": "#f5b800",
+   "larsal_dark": "#f5b800",
    "ok": true
   },
   {
    "name": "graphite",
    "light": "#4b5057",
-   "app_light": "#4b5057",
+   "larsal_light": "#4b5057",
    "dark": "#4b5057",
-   "app_dark": "#4b5057",
+   "larsal_dark": "#4b5057",
    "ok": true
   }
  ],
@@ -1017,9 +1017,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        },
        {
         "m": "1",
@@ -1111,7 +1111,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -1903,7 +1903,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -2664,9 +2664,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        },
        {
         "m": "1",
@@ -2758,7 +2758,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -3550,7 +3550,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -4118,7 +4118,7 @@
         "how": "exact"
        },
        {
-        "m": "Checked online at 10:28. App sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username.",
+        "m": "Checked online at 10:28. Larsal sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username.",
         "kind": "text",
         "how": "exact"
        },
@@ -4281,9 +4281,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        },
        {
         "m": "17",
@@ -4293,7 +4293,7 @@
        {
         "m": "A",
         "kind": "text",
-        "ocr": "Checked online at 10:28. App sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username."
+        "ocr": "Checked online at 10:28. Larsal sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username."
        }
       ],
       "behind": [],
@@ -4306,7 +4306,7 @@
        "Seen 1,001 to 10,000 times"
       ],
       "help": [
-       "Checking with a downloaded list is in the command line tool: app analyze.",
+       "Checking with a downloaded list is in the command line tool: larsal analyze.",
        "214,876 times",
        "18,442 times",
        "3,107 times"
@@ -4373,7 +4373,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -4989,7 +4989,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -5162,7 +5162,7 @@
      "residual": 1.46,
      "unnamed": [],
      "disabled": [
-      "Check with a downloaded list instead (Checking with a downloaded list is in the command line tool: app analyze.)"
+      "Check with a downloaded list instead (Checking with a downloaded list is in the command line tool: larsal analyze.)"
      ],
      "shifted": [],
      "geoFails": 0,
@@ -5353,7 +5353,7 @@
         "how": "exact"
        },
        {
-        "m": "Checked online at 10:28. App sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username.",
+        "m": "Checked online at 10:28. Larsal sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username.",
         "kind": "text",
         "how": "exact"
        },
@@ -5516,9 +5516,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        },
        {
         "m": "17",
@@ -5528,7 +5528,7 @@
        {
         "m": "A",
         "kind": "text",
-        "ocr": "Checked online at 10:28. App sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username."
+        "ocr": "Checked online at 10:28. Larsal sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username."
        }
       ],
       "behind": [],
@@ -5541,7 +5541,7 @@
        "Seen 1,001 to 10,000 times"
       ],
       "help": [
-       "Checking with a downloaded list is in the command line tool: app analyze.",
+       "Checking with a downloaded list is in the command line tool: larsal analyze.",
        "214,876 times",
        "18,442 times",
        "3,107 times"
@@ -5608,7 +5608,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -6224,7 +6224,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -6397,7 +6397,7 @@
      "residual": 1.51,
      "unnamed": [],
      "disabled": [
-      "Check with a downloaded list instead (Checking with a downloaded list is in the command line tool: app analyze.)"
+      "Check with a downloaded list instead (Checking with a downloaded list is in the command line tool: larsal analyze.)"
      ],
      "shifted": [],
      "geoFails": 0,
@@ -6485,7 +6485,7 @@
         "how": "exact"
        },
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
         "how": "inside"
        },
@@ -6901,7 +6901,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -7429,7 +7429,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -7658,7 +7658,7 @@
         "how": "exact"
        },
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
         "how": "inside"
        },
@@ -8074,7 +8074,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -8602,7 +8602,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -9164,9 +9164,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        }
       ],
       "behind": [],
@@ -9233,7 +9233,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -9849,7 +9849,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -10693,9 +10693,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        }
       ],
       "behind": [],
@@ -10762,7 +10762,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -11378,7 +11378,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -12274,9 +12274,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        },
        {
         "m": "A",
@@ -12347,7 +12347,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -12875,7 +12875,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,
@@ -13609,9 +13609,9 @@
       "clipped": [],
       "drawnOnly": [
        {
-        "m": "Personal.appvault",
+        "m": "Personal.larsalvault",
         "kind": "text",
-        "ocr": "Personal.appvault"
+        "ocr": "Personal.larsalvault"
        },
        {
         "m": "A",
@@ -13682,7 +13682,7 @@
      "geometry": [
       {
        "kind": "vaultswitch",
-       "text": "Personal Personal.appvault",
+       "text": "Personal Personal.larsalvault",
        "dom": [
         12,
         52,
@@ -14210,7 +14210,7 @@
       },
       {
        "kind": "sidebar",
-       "text": "Personal Personal.appvault All",
+       "text": "Personal Personal.larsalvault All",
        "dom": [
         0,
         52,

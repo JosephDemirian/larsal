@@ -10,7 +10,7 @@
   (mockup.js `brandSvg`).
 - Fonts: IBM Plex Sans and Mono, Phosphor regular and fill, copied as they
   are (Core Text reads WOFF2), and their license texts (Resources/Licenses).
-- macos/App/Glyphs.swift: the Phosphor code points of the glyph names App
+- macos/Larsal/Glyphs.swift: the Phosphor code points of the glyph names Larsal
   uses.
 
 Run from anywhere: scripts/make-option-a-assets.py
@@ -22,7 +22,7 @@ import shutil
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "design/option-a"
-OUT = ROOT / "macos/App/Resources"
+OUT = ROOT / "macos/Larsal/Resources"
 CATALOG = OUT / "Assets.xcassets"
 
 # Literal colours of the mockup's rules, as (light, dark) hex.
@@ -175,7 +175,7 @@ def main():
     for name in sorted(set(GLYPHS)):
         lines.append(f'        "{name}": 0x{points[name].upper()},')
     lines += ["    ]", "}", ""]
-    (ROOT / "macos/App/Glyphs.swift").write_text("\n".join(lines))
+    (ROOT / "macos/Larsal/Glyphs.swift").write_text("\n".join(lines))
 
 
 if __name__ == "__main__":

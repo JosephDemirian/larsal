@@ -14,13 +14,13 @@
 //! with those blobs; their markers live here as hex only (name rule).
 #![no_main]
 
-use app_core::import::{Context, v1};
-use app_core::time::Utc;
-use app_crypto::cipher::{self, Cipher};
-use app_crypto::hash::sha256;
-use app_crypto::kdf::{self, Ceilings, Host, KdfParams, SpeedRecord, Verdict};
-use app_crypto::secret::{SecretBytes, SecretString};
-use app_model::Time;
+use larsal_core::import::{Context, v1};
+use larsal_core::time::Utc;
+use larsal_crypto::cipher::{self, Cipher};
+use larsal_crypto::hash::sha256;
+use larsal_crypto::kdf::{self, Ceilings, Host, KdfParams, SpeedRecord, Verdict};
+use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_model::Time;
 use libfuzzer_sys::fuzz_target;
 use std::sync::atomic::AtomicBool;
 
@@ -142,7 +142,7 @@ fuzz_target!(|data: &[u8]| {
     file.extend(cipher::encrypt(cipher, &key, &iv, plain).unwrap());
     let started = std::time::Instant::now();
     if let Ok(v1::Outcome::Imported(r)) = v1::read(&file, &keys, &mut fast, &CEILINGS, None, &ctx) {
-        assert_eq!(app_model::invariants::check(&r.vault), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&r.vault), Ok(()));
     }
     assert!(started.elapsed().as_secs() < 2, "too slow");
 });

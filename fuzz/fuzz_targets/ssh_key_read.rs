@@ -4,8 +4,8 @@
 //! not, so no key derivation runs.
 #![no_main]
 
-use app_crypto::secret::SecretString;
-use app_sshagent::SshKey;
+use larsal_crypto::secret::SecretString;
+use larsal_sshagent::SshKey;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

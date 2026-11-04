@@ -2,39 +2,39 @@
 # root: cargo +nightly fuzz run <target>. Not a member of the main
 # workspace: it has its own, so the pinned stable toolchain never builds it.
 [package]
-name = "app-fuzz"
+name = "larsal-fuzz"
 version = "0.0.0"
 edition = "2024"
 publish = false
-license = "GPL-3.0-or-later"
+license-file = "../LICENSE"
 
 [package.metadata]
 cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "=0.4.13"
-app-format = { path = "../crates/app-format" }
-app-model = { path = "../crates/app-model" }
-app-crypto = { path = "../crates/app-crypto" }
-app-core = { path = "../crates/app-core" }
-app-autotype = { path = "../crates/app-autotype" }
-app-sshagent = { path = "../crates/app-sshagent" }
-app-share = { path = "../crates/app-share" }
+larsal-format = { path = "../crates/larsal-format" }
+larsal-model = { path = "../crates/larsal-model" }
+larsal-crypto = { path = "../crates/larsal-crypto" }
+larsal-core = { path = "../crates/larsal-core" }
+larsal-autotype = { path = "../crates/larsal-autotype" }
+larsal-sshagent = { path = "../crates/larsal-sshagent" }
+larsal-share = { path = "../crates/larsal-share" }
 # E16-S3: the sync wire format (SYN-01.15).
-app-proto = { path = "../crates/app-proto" }
-# E7-S1: App's side of the browser bridge (INT-01.48).
-app-browser = { path = "../crates/app-browser" }
+larsal-proto = { path = "../crates/larsal-proto" }
+# E7-S1: Larsal's side of the browser bridge (INT-01.48).
+larsal-browser = { path = "../crates/larsal-browser" }
 png = { version = "=0.18.1", default-features = false }
-# E4-S13: the import targets build ZIP files from fuzz input (base64 from app-crypto).
+# E4-S13: the import targets build ZIP files from fuzz input (base64 from larsal-crypto).
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 
 [workspace]
 members = ["."]
 
-# LD-136: App's patched copy of zxcvbn, as in the root workspace.
+# LD-136: Larsal's patched copy of zxcvbn, as in the root workspace.
 [patch.crates-io]
 zxcvbn = { path = "../vendor/zxcvbn" }
-# LD-209: App's patched copy of ssh-key, as in the root workspace.
+# LD-209: Larsal's patched copy of ssh-key, as in the root workspace.
 ssh-key = { path = "../vendor/ssh-key" }
 
 # Outer header, KDF map and public custom data map (FMT-02, FMT-03; E3-S2).
@@ -93,7 +93,7 @@ test = false
 doc = false
 bench = false
 
-# App's icon decoder on arbitrary bytes (MOD-06.7, LD-109, LD-115; E4-S5).
+# Larsal's icon decoder on arbitrary bytes (MOD-06.7, LD-109, LD-115; E4-S5).
 [[bin]]
 name = "icon_decode"
 path = "fuzz_targets/icon_decode.rs"
@@ -157,7 +157,7 @@ test = false
 doc = false
 bench = false
 
-# The .1pux import: App's ZIP reader and the export.data mapping (FEA-08 section C; E4-S13).
+# The .1pux import: Larsal's ZIP reader and the export.data mapping (FEA-08 section C; E4-S13).
 [[bin]]
 name = "onepux_import"
 path = "fuzz_targets/onepux_import.rs"
@@ -213,7 +213,7 @@ test = false
 doc = false
 bench = false
 
-# App's own JSON reader and writer on arbitrary bytes (settings, saved searches, the instance line; E0-S7 R12).
+# Larsal's own JSON reader and writer on arbitrary bytes (settings, saved searches, the instance line; E0-S7 R12).
 [[bin]]
 name = "json_reader"
 path = "fuzz_targets/json_reader.rs"
@@ -229,7 +229,7 @@ test = false
 doc = false
 bench = false
 
-# A share container by its first bytes: unsigned, or zip through app-core's ZIP reader (INT-08.9, INT-08.36; E11-S2).
+# A share container by its first bytes: unsigned, or zip through larsal-core's ZIP reader (INT-08.9, INT-08.36; E11-S2).
 [[bin]]
 name = "share_container"
 path = "fuzz_targets/share_container.rs"
@@ -237,7 +237,7 @@ test = false
 doc = false
 bench = false
 
-# app-proto's record reader, the health record and the route match on arbitrary bytes (SYN-01.15; E16-S3).
+# larsal-proto's record reader, the health record and the route match on arbitrary bytes (SYN-01.15; E16-S3).
 [[bin]]
 name = "proto_messages"
 path = "fuzz_targets/proto_messages.rs"
@@ -245,7 +245,7 @@ test = false
 doc = false
 bench = false
 
-# app-proto's route match and the If-Match and If-None-Match readers on arbitrary bytes (SYN-01.6, SYN-01.15; E16-S4).
+# larsal-proto's route match and the If-Match and If-None-Match readers on arbitrary bytes (SYN-01.6, SYN-01.15; E16-S4).
 [[bin]]
 name = "proto_routes"
 path = "fuzz_targets/proto_routes.rs"

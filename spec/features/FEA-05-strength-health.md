@@ -6,7 +6,7 @@ Parity rows: SC-06, SG-03, SG-04, SF-16 (weak master password warning and minimu
 
 ## What it does
 
-App estimates how hard a password is to guess, in bits, and turns the estimate into one of five levels. The estimate drives:
+Larsal estimates how hard a password is to guess, in bits, and turns the estimate into one of five levels. The estimate drives:
 - the meter under password fields while the user types (entry editor, master password),
 - the strength shown in the generator,
 - the strength indicator in the entry list and the "weak" search (FEA-01),
@@ -24,8 +24,8 @@ Words used here:
 - **Level**: Bad, Poor, Weak, Good, Excellent (FEA-05.4).
 - **Live entry**: an entry that is not a history item.
 - **Tree order**: visit the root group; visiting a group means first its entries in stored order, then each child group in stored order, visited the same way.
-- "Excluded": the entry's flag that keeps it out of reports is set (FMT-11.29, including the legacy custom data form of FMT-14.19). On screen App calls this "Skip in reports" (`ACT-HC-EXCLUDE`, FEA-05.18).
-- Message texts in this card are App's own wording, not the reference's. Placeholders in angle brackets stay placeholders.
+- "Excluded": the entry's flag that keeps it out of reports is set (FMT-11.29, including the legacy custom data form of FMT-14.19). On screen Larsal calls this "Skip in reports" (`ACT-HC-EXCLUDE`, FEA-05.18).
+- Message texts in this card are Larsal's own wording, not the reference's. Placeholders in angle brackets stay placeholders.
 
 ## Inputs and outputs
 
@@ -46,9 +46,9 @@ The strength estimate works on a password the user typed or one entry's password
 
 ## Rules
 
-FEA-05.1 **Estimator.** E comes from the zxcvbn estimate of the password. The reference gives it no user inputs. App passes the entry's title, user name and URL host as user inputs (decided: spec/decisions.md LD-44), so a password equal to one of them rates low; this only makes ratings stricter. The reference uses a C port of zxcvbn that returns bits directly; App uses the `zxcvbn` crate (plan/architecture.md), which returns a guess count and a match sequence. How App turns that into E is lead decision D-05-1 (FEA-05.19 is the parity sample both must meet).
+FEA-05.1 **Estimator.** E comes from the zxcvbn estimate of the password. The reference gives it no user inputs. Larsal passes the entry's title, user name and URL host as user inputs (decided: spec/decisions.md LD-44), so a password equal to one of them rates low; this only makes ratings stricter. The reference uses a C port of zxcvbn that returns bits directly; Larsal uses the `zxcvbn` crate (plan/architecture.md), which returns a guess count and a match sequence. How Larsal turns that into E is lead decision D-05-1 (FEA-05.19 is the parity sample both must meet).
 
-FEA-05.2 **Long passwords.** Only the first 256 characters go to the estimator. For a longer password of length n, E = E256 × n / 256 (E256 plus E256 / 256 for every character after the 256th). The reference counts length in UTF-16 code units; App counts characters (D-05-2). Observed with 2.7.11: a 256-character text gave 109.118 bits and the same pattern at 300 characters gave 127.872 = 109.118 × 300 / 256. The `zxcvbn` crate reads only the first 100 characters (E4-S11 finding), so in App E256 is the estimate of those 100 (LD-135). Verify (E4-S11, after LD-140): such a password rated lower or the same in every measured case. Against the reference, 0 of 60 passwords of 101 to 300 characters rated higher and 7 lower; against the same code reading 256 characters, 357 of 361 rated lower and 4 the same.
+FEA-05.2 **Long passwords.** Only the first 256 characters go to the estimator. For a longer password of length n, E = E256 × n / 256 (E256 plus E256 / 256 for every character after the 256th). The reference counts length in UTF-16 code units; Larsal counts characters (D-05-2). Observed with 2.7.11: a 256-character text gave 109.118 bits and the same pattern at 300 characters gave 127.872 = 109.118 × 300 / 256. The `zxcvbn` crate reads only the first 100 characters (E4-S11 finding), so in Larsal E256 is the estimate of those 100 (LD-135). Verify (E4-S11, after LD-140): such a password rated lower or the same in every measured case. Against the reference, 0 of 60 passwords of 101 to 300 characters rated higher and 7 lower; against the same code reading 256 characters, 357 of 361 rated lower and 4 the same.
 
 FEA-05.3 **Empty password.** E = 0. The estimator is not called.
 
@@ -62,11 +62,11 @@ FEA-05.4 **Score and level.** Strength score = floor(E) for E ≥ 0. The level o
 | 75 to 99 | Good |
 | ≥ 100 | Excellent |
 
-FEA-05.5 **Colors.** App takes colors from the mockup's design tokens (design/mockup.html): Bad `danger`, Poor `poor`, Weak `warn`, Good and Excellent `ok`. One mapping for every place (meter, list, report). For information, the reference uses: report icons Bad `#C43F31`, Poor `#E07F16`, Weak `#FFD30F`, Good and Excellent `#5EA10E` (dark theme `#C43F31`, `#DB9837`, `#F0C400`, `#608A22`); its meters and list column use red for Bad and Poor, orange for Weak, and green shades for Good and Excellent.
+FEA-05.5 **Colors.** Larsal takes colors from the mockup's design tokens (design/mockup.html): Bad `danger`, Poor `poor`, Weak `warn`, Good and Excellent `ok`. One mapping for every place (meter, list, report). For information, the reference uses: report icons Bad `#C43F31`, Poor `#E07F16`, Weak `#FFD30F`, Good and Excellent `#5EA10E` (dark theme `#C43F31`, `#DB9837`, `#F0C400`, `#608A22`); its meters and list column use red for Bad and Poor, orange for Weak, and green shades for Good and Excellent.
 
 FEA-05.6 **Strength reasons.** From the strength score alone:
 
-| Level | Reason line (our ID, App text) | Detail line |
+| Level | Reason line (our ID, Larsal text) | Detail line |
 |---|---|---|
 | Bad or Poor | `MSG-HC-VERY-WEAK` "Very easy to guess" | `MSG-HC-ENTROPY` "Estimated strength: E bits", E with 2 decimals |
 | Weak | `MSG-HC-WEAK` "Somewhat easy to guess" | same |
@@ -87,7 +87,7 @@ FEA-05.10 **Weak predicate.** An entry is "weak" when all of these hold: not exc
 FEA-05.11 **Health Check: which entries.** Go through the live entries in tree order. Skip:
 - the recycle bin group, every group inside it, and every entry in them (MOD-04);
 - entries whose password (as stored) is empty;
-- App only: entries whose password contains a field reference (MOD-08 pattern) (D-05-3).
+- Larsal only: entries whose password contains a field reference (MOD-08 pattern) (D-05-3).
 
 Excluded entries are evaluated; FEA-05.15 hides them by default. History items are never evaluated.
 
@@ -101,7 +101,7 @@ FEA-05.14 **Health score: expiry.** Then:
 - If the entry is expired (MOD-09): set the score to 0; add reason `MSG-HC-EXPIRED` "Past its expiry date" and detail `MSG-HC-EXPIRY-WAS` "Expiry date <expiry date and time> has passed".
 - Else if the entry expires (flag on) and d ≤ 30, where d = calendar days from today to the expiry date: if the score is above 70, set it to 70; subtract 2 × (30 − d); add detail `MSG-HC-EXPIRES-ON` "Expiry date: <expiry date and time>"; add one reason: d ≤ 2 `MSG-HC-EXPIRES-NOW` "Expires in 2 days or less"; 3 ≤ d ≤ 10 `MSG-HC-EXPIRES-IN` "d days until it expires"; 11 ≤ d ≤ 30 `MSG-HC-EXPIRES-SOON` "Expires within 30 days".
 - Dates and times are shown in the short local format of the system.
-- d: the reference subtracts today's local date from the expiry's UTC date (confirmed by Verify in E4-S11 through the reference command line tool's weak count at UTC+14 and UTC−8). App uses the local date of both (D-05-4). d = 0 means the expiry is later today.
+- d: the reference subtracts today's local date from the expiry's UTC date (confirmed by Verify in E4-S11 through the reference command line tool's weak count at UTC+14 and UTC−8). Larsal uses the local date of both (D-05-4). d = 0 means the expiry is later today.
 
 Reasons and details keep the order they were added: strength, reuse, expiry. On screen they are one per line.
 
@@ -133,7 +133,7 @@ FEA-05.18 **Report states and actions.**
 - `ACT-HC-DELETE` (one or more rows, also the Delete key): delete with the usual confirmation, to the recycle bin or for good per MOD-04, recompute.
 - `ACT-HC-EXCLUDE` "Skip in reports" (one or more rows): a check item that is checked when any selected entry is excluded; choosing it sets every selected entry to the opposite of that check state; recompute. Each changed entry is one change (MOD-03 decides history).
 
-FEA-05.19 **Parity sample for the estimator.** Values from the installed reference (`estimate`, 2.7.11). App must give the same level for every row not marked "may differ"; Verify runs App's estimator on this list (D-05-1). E4-S11, after LD-140: same level for all 20 rows.
+FEA-05.19 **Parity sample for the estimator.** Values from the installed reference (`estimate`, 2.7.11). Larsal must give the same level for every row not marked "may differ"; Verify runs Larsal's estimator on this list (D-05-1). E4-S11, after LD-140: same level for all 20 rows.
 
 | Password | Reference E | Level | Note |
 |---|---|---|---|
@@ -159,7 +159,7 @@ FEA-05.19 **Parity sample for the estimator.** Values from the installed referen
 | `kT7#pQ2vZ9mW4xR8` repeated to 300 characters | 127.872 | Excellent | FEA-05.2 |
 
 FEA-05.20 **Master password gate.** When the user sets or changes the master password (APP-07, MOD-12), with a non-empty new password, using the level of its strength score:
-1. If the level is below the minimum level `SET-MK-MIN-LEVEL` (APP-01 S-CFG-02 `security.min_master_quality`; 0 to 4 for Bad to Excellent; values outside are clamped; default 0; APP-01 owns it; the reference keeps it in its settings file with no control on screen): refuse with `MSG-MK-TOO-WEAK` "This password is weaker than App allows. Choose a stronger one." The key is not changed.
+1. If the level is below the minimum level `SET-MK-MIN-LEVEL` (APP-01 S-CFG-02 `security.min_master_quality`; 0 to 4 for Bad to Excellent; values outside are clamped; default 0; APP-01 owns it; the reference keeps it in its settings file with no control on screen): refuse with `MSG-MK-TOO-WEAK` "This password is weaker than Larsal allows. Choose a stronger one." The key is not changed.
 2. Else if the level is below Good: warn `MSG-MK-WEAK` "This password is easy to guess, so your vault is less safe. Use it anyway?" with the buttons `ACT-MK-USE-WEAK` "Use this password" and Cancel (default Cancel). Cancel returns to the screen with nothing changed.
 
 ## Edge cases and errors
@@ -171,7 +171,7 @@ FEA-05.20 **Master password gate.** When the user sets or changes the master pas
 | Entry reused with an excluded entry | counted as reused (c = 2); only the non-excluded one is shown by default |
 | Entry reused with an entry in the recycle bin | not counted |
 | Entry reused with a history item | not counted (history is never counted) |
-| Entry whose password is `{REF:P@I:…}` pointing at entry X | reference: not in the reuse count, and evaluated on the raw reference text (usually high, so not listed). App: skipped (D-05-3). X is evaluated normally |
+| Entry whose password is `{REF:P@I:…}` pointing at entry X | reference: not in the reuse count, and evaluated on the raw reference text (usually high, so not listed). Larsal: skipped (D-05-3). X is evaluated normally |
 | More than 20 entries share a password | 20 path details (`MSG-HC-USED-IN`), then `…` |
 | Score below 0 | shown as is (for example −25); level Bad |
 | Expiry flag on, expiry later today | d = 0: score capped at 70, then −60; reason `MSG-HC-EXPIRES-NOW` |
@@ -185,7 +185,7 @@ FEA-05.20 **Master password gate.** When the user sets or changes the master pas
 
 | ID | Question | Options | Recommended |
 |---|---|---|---|
-| D-05-1 | How App gets E from the `zxcvbn` crate | (a) E = log2 of the crate's guess count. The crate scores unmatched (brute force) text at 10 guesses per character, about 3.32 bits, while the reference scores it by the character classes used, about 6.5 bits per character for mixed text: a random 20-character password gets about 66 bits (Weak) instead of 113 (Excellent). The published crate does cap its guess count at the 64-bit maximum (Verify, E4-S11; App's patched copy uses f64, LD-136), so under (a) no password could pass 64 bits and nothing would ever be Good. (b) E = the sum over the crate's match sequence: for a brute force match, its length × log2(N), where N = 26 if it has a lowercase letter + 26 if an uppercase letter + 10 if a digit + 33 if any other printable ASCII character (space included) + 100 if any non-ASCII character (control characters add nothing; a brute force match with N below 2 counts 0, LD-135); for a repeat match, its base by these same rules plus log2 of the repeat count (a copy cut short counts as one more, LD-139); for every other match, log2 of that match's guess count. App chooses the matches itself: E is the smallest such sum over every way to cover the password with the crate's matches and single characters, with N from the classes of the whole password and no penalty per match (LD-140). (c) Map the crate's 0 to 4 score to fixed E values | (b), accepted when it meets FEA-05.19. The constants of (b) are ours; Verify tunes them only if a sample row fails |
+| D-05-1 | How Larsal gets E from the `zxcvbn` crate | (a) E = log2 of the crate's guess count. The crate scores unmatched (brute force) text at 10 guesses per character, about 3.32 bits, while the reference scores it by the character classes used, about 6.5 bits per character for mixed text: a random 20-character password gets about 66 bits (Weak) instead of 113 (Excellent). The published crate does cap its guess count at the 64-bit maximum (Verify, E4-S11; Larsal's patched copy uses f64, LD-136), so under (a) no password could pass 64 bits and nothing would ever be Good. (b) E = the sum over the crate's match sequence: for a brute force match, its length × log2(N), where N = 26 if it has a lowercase letter + 26 if an uppercase letter + 10 if a digit + 33 if any other printable ASCII character (space included) + 100 if any non-ASCII character (control characters add nothing; a brute force match with N below 2 counts 0, LD-135); for a repeat match, its base by these same rules plus log2 of the repeat count (a copy cut short counts as one more, LD-139); for every other match, log2 of that match's guess count. Larsal chooses the matches itself: E is the smallest such sum over every way to cover the password with the crate's matches and single characters, with N from the classes of the whole password and no penalty per match (LD-140). (c) Map the crate's 0 to 4 score to fixed E values | (b), accepted when it meets FEA-05.19. The constants of (b) are ours; Verify tunes them only if a sample row fails |
 | D-05-2 | Length unit for the 256 cap | (a) UTF-16 code units, as the reference; (b) characters | (b): only text outside the Basic Multilingual Plane differs |
 | D-05-3 | Passwords that contain a field reference, in the Health Check | (a) evaluate the raw reference text, as the reference; (b) skip them | (b): the target entry is checked itself; same visible result in practice |
 | D-05-4 | Days to expiry | (a) as the reference (local today against the UTC expiry date); (b) local dates for both | (b) |
@@ -226,16 +226,16 @@ Where a case gives "E = …", the test replaces the estimator with a stub that r
 | 05-18 expiring | E = 113.306, expires; expiry dates 2026-10-26, 2026-11-01, 2026-11-14, 2026-11-24, 2026-11-25 | Health Check | d = 1: 70 − 58 = 12, "Expires in 2 days or less"; d = 7: 70 − 46 = 24, "7 days until it expires"; d = 20: 70 − 20 = 50, "Expires within 30 days"; d = 30: 70, "Expires within 30 days"; d = 31: 113, not listed. Each listed one has detail "Expiry date: <date>". FEA-05.14 |
 | 05-19 expiring and weak | E = 20.0, expires in 5 days, reused once (c = 2) | Health Check | 20 − 15 = 5 (no cap needed), then 5 − 50 = −45: Bad, score shown −45; reasons in order "Very easy to guess", "Same password on 2 entries", "5 days until it expires". FEA-05.13, 05.14, 05.17 |
 | 05-20 expiry later today | E = 90, expires 2026-10-25 23:00 | Health Check | not expired, d = 0: 70 − 60 = 10, Poor, "Expires in 2 days or less". FEA-05.14 |
-| 05-21 time zone | Mac time zone UTC+2, now 2026-10-25 23:30 local; E = 90, expires 2026-10-26 23:30 UTC (2026-10-27 01:30 local) | d | App: 2 (local dates), score 70 − 56 = 14, "Expires in 2 days or less". The reference by its rule: 1 (local today against the UTC date), score 12; rule confirmed by Verify (E4-S11). FEA-05.14 |
+| 05-21 time zone | Mac time zone UTC+2, now 2026-10-25 23:30 local; E = 90, expires 2026-10-26 23:30 UTC (2026-10-27 01:30 local) | d | Larsal: 2 (local dates), score 70 − 56 = 14, "Expires in 2 days or less". The reference by its rule: 1 (local today against the UTC date), score 12; rule confirmed by Verify (E4-S11). FEA-05.14 |
 | 05-22 order | listed scores: Root/B 30, Root/A 30, Root/C −10, Root/D 74 (tree order A, B, C, D) | report order | C (−10), A (30), B (30), D (74). FEA-05.16 |
 | 05-23 row content | Root/Work/Gamma, excluded and expired, E 10, toggles on | row | title `Gamma (Excluded) (Expired)`; path `Root/Work`; score `0`; tooltips set; level Bad. FEA-05.15, 05.17 |
 | 05-24 healthy | every evaluated entry Good or better | report | `MSG-HC-ALL-HEALTHY` "No password needs attention right now.", no table. FEA-05.18 |
 | 05-25 exclude action | two rows selected, one excluded | open the row menu | "Skip in reports" is checked; choosing it clears the flag on both; recompute. With neither excluded: unchecked, choosing sets both. FEA-05.18 |
 | 05-26 expire and delete actions | row X selected; recycle bin on | expire now; then delete and confirm | X expired now, so it moves under the show-expired rule; then X moves to the recycle bin and leaves the report. FEA-05.18 |
-| 05-27 parity sample | every row of FEA-05.19 | App's estimator (D-05-1) | same level as the table, except rows marked "may differ". FEA-05.19, 05.1 |
+| 05-27 parity sample | every row of FEA-05.19 | Larsal's estimator (D-05-1) | same level as the table, except rows marked "may differ". FEA-05.19, 05.1 |
 | 05-28 master password minimum | `SET-MK-MIN-LEVEL` = 3 (Good); new master password `Zm4#Lp9` (Weak) | set master password | refused with `MSG-MK-TOO-WEAK`; key unchanged. FEA-05.20 |
 | 05-29 master password warning | minimum 0; new password `password` (Poor) | set master password | `MSG-MK-WEAK`; Cancel keeps the screen; "Use this password" (`ACT-MK-USE-WEAK`) goes on. With `4v8Nq2LmZ7rT1xKc9WbP` (Excellent): no warning. FEA-05.20 |
-| 05-30 reference skipped | Root/X `abc` (E 3), Root/Y `{REF:P@I:<X id>}` | Health Check | App: X listed, reuse count 1; Y not evaluated (D-05-3). FEA-05.11 |
+| 05-30 reference skipped | Root/X `abc` (E 3), Root/Y `{REF:P@I:<X id>}` | Health Check | Larsal: X listed, reuse count 1; Y not evaluated (D-05-3). FEA-05.11 |
 | 05-31 colors | levels Bad, Poor, Weak, Good, Excellent in the report | icon colors | `danger`, `poor`, `warn`, `ok`, `ok`. FEA-05.5 |
 
 ## How this was learned

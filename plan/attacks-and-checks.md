@@ -18,7 +18,7 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-A08 | Hostile document inside valid encryption | Made with a demo key: duplicate ids, group cycles, missing fields, bad attachment refs, huge counts | Handled safely; the user sees a clear message; nothing crashes |
 | AT-A09 | Downgrade | A file that claims an old version or weak KDF settings | A save keeps or raises the security level, never lowers it without the user's choice |
 | AT-A10 | Fuzzing | cargo-fuzz on every parser, 24 hours per target | Zero crashes, zero hangs over 10 seconds, memory under the limit |
-| AT-A11 | Differential fuzzing | The same mutated files go to our reader and the reference CLI | Both reject, or both accept with the same content. Known differences where App is stricter (LD-84): a broken gzip trailer at a 16 KiB boundary, and a version 4 file with its final block removed; a version 3 header with inner stream id 3 (FMT-02.20) and a protected value holding a `00` byte, which App keeps whole (FMT-09.15; LD-149) |
+| AT-A11 | Differential fuzzing | The same mutated files go to our reader and the reference CLI | Both reject, or both accept with the same content. Known differences where Larsal is stricter (LD-84): a broken gzip trailer at a 16 KiB boundary, and a version 4 file with its final block removed; a version 3 header with inner stream id 3 (FMT-02.20) and a protected value holding a `00` byte, which Larsal keeps whole (FMT-09.15; LD-149) |
 | AT-A12 | Key file attacks | 1 GB key file, malformed structured key file, wrong check value | Safe, clear errors |
 
 ### AT-B: Crypto checks
@@ -28,7 +28,7 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-B01 | Known answers for primitives | RFC and NIST test vectors | All pass |
 | AT-B02 | Known answers for whole files | Demo vaults made by the reference CLI | Every one opens with the expected content |
 | AT-B03 | Fresh randomness | Save 10,000 times | No master seed, IV, nonce, salt or field stream key repeats |
-| AT-B04 | One random source | Code search plus review | Only `app-crypto::random` produces random values |
+| AT-B04 | One random source | Code search plus review | Only `larsal-crypto::random` produces random values |
 | AT-B05 | Constant time | Review plus a timing test on MAC checks | No timing difference beyond noise |
 | AT-B06 | KDF cost is real | Time an unlock with default settings on this Mac | At least the target time; stored settings equal the ones used |
 | AT-B07 | No padding oracle | Bad padding versus wrong key | The cipher API gives one error for any decrypt failure; in files, padding is checked only after integrity passes (spec/decisions.md LD-04); no timing difference beyond noise |
@@ -60,12 +60,12 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 |---|---|---|---|
 | AT-E01 | Text injection | Markdown, link and control-character text in every text field: title, username, URL, notes, tags, attribute names and values, attachment names, group names, vault name | Shown as plain text: no link, no formatting, nothing runs |
 | AT-E02 | Dangerous links | `javascript:`, `file:`, `data:` and unknown schemes in URL fields | The URL opener refuses them; the app never opens them |
-| AT-E03 | Boundary abuse | Call every `app-ffi` export with hostile arguments (huge strings, ids from another vault), after lock, and from two threads at once | A typed error comes back; no panic; no secret in the error |
+| AT-E03 | Boundary abuse | Call every `larsal-ffi` export with hostile arguments (huge strings, ids from another vault), after lock, and from two threads at once | A typed error comes back; no panic; no secret in the error |
 | AT-E04 | Retired | There is no web engine (LD-156) | Replaced by: `otool -L` lists no WebKit, plus E6-S7's network capture |
 | AT-E05 | Retired | There are no developer tools to open (LD-156) | Covered by AT-C03 and AT-J05 |
 | AT-E06 | Drag and drop | Drop files and links on the window | Nothing opens or runs, except our attachment drop target and a vault-file drop, which only shows an unlock screen (APP-09.26, LD-153) |
 | AT-E07 | Secrets in the screen | Check the Swift view state and the process memory after Hide and after lock (one process now) | No secret remains |
-| AT-E08 | Local listeners | List open ports and sockets of the app | No local web server, no open port; the listeners are the instance socket of APP-09.14, with the SSH agent on (S-SSH-01) App's own agent socket of INT-06.32, and, with the browser bridge on, the bridge sockets of INT-01 (the host socket and the Safari app-group socket), each Unix, owner-only, same user (LD-191) |
+| AT-E08 | Local listeners | List open ports and sockets of the app | No local web server, no open port; the listeners are the instance socket of APP-09.14, with the SSH agent on (S-SSH-01) Larsal's own agent socket of INT-06.32, and, with the browser bridge on, the bridge sockets of INT-01 (the host socket and the Safari app-group socket), each Unix, owner-only, same user (LD-191) |
 
 ### AT-F: Browser bridge
 
@@ -79,7 +79,7 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-F06 | Foreign frames | A credential request from a frame of another site | Handled per spec INT-02; no silent fill |
 | AT-F07 | Flood | Thousands of requests per second | The app stays responsive; no secret in any error |
 | AT-F08 | Wrong passkey | Ask for another site's passkey | Refused |
-| AT-F09 | Invisible extension UI | A test page hides or covers the in-page menu while it asks for a click: opacity 0 on the host, `html` or `body`; `filter:opacity(0)`; a full-page overlay with `pointer-events:none`; its own popover; an element added after the host (Toth's methods, spec/research/browser-and-web.md B10; INT-11.18, INT-11 T38 and T67) | No fill and no request to App; the menu closes, the badge shows `!` and the next popup shows MI11-63 (INT-11.18, LD-274) |
+| AT-F09 | Invisible extension UI | A test page hides or covers the in-page menu while it asks for a click: opacity 0 on the host, `html` or `body`; `filter:opacity(0)`; a full-page overlay with `pointer-events:none`; its own popover; an element added after the host (Toth's methods, spec/research/browser-and-web.md B10; INT-11.18, INT-11 T38 and T67) | No fill and no request to Larsal; the menu closes, the badge shows `!` and the next popup shows MI11-63 (INT-11.18, LD-274) |
 
 ### AT-G: Auto-Type
 
@@ -109,7 +109,7 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-I05 | Two writers | Two windows edit one vault; cloud conflict copies | A merge keeps every entry of both sides, except an entry that the same vault's deleted-objects list removed after its last change (FMT-15.11, LD-265) |
 | AT-I06 | File permissions | Create new vaults, backups and exports | Owner-only permissions (0600) |
 | AT-I07 | Planted sync commands | A demo vault, and a merge source whose custom data wins, carry remote sync commands that create a marker file; open, merge, save, then pick the sync (INT-09) | Nothing runs on open, merge or save; picking the sync first shows the full commands (INT-09.20); Cancel runs nothing and leaves no marker or temp folder; the settings page's Test shows the commands first too, and an Apply that changed only the name or a timeout approves nothing (INT-09.5 to INT-09.7) |
-| AT-I08 | Hostile sync commands and downloads | Commands that never end, start children, ignore SIGTERM, flood output, wait for input, or write a non-vault file, a KDF cost bomb, a decompression bomb or another vault (INT-09) | Each run ends within its timeout plus 2 s with every process of its group gone; App's memory stays flat; the vault is unchanged; no temp folder is left |
+| AT-I08 | Hostile sync commands and downloads | Commands that never end, start children, ignore SIGTERM, flood output, wait for input, or write a non-vault file, a KDF cost bomb, a decompression bomb or another vault (INT-09) | Each run ends within its timeout plus 2 s with every process of its group gone; Larsal's memory stays flat; the vault is unchanged; no temp folder is left |
 
 ### AT-J: Supply chain and build
 
@@ -147,7 +147,7 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-L08 | Password leaves the Mac | A test proxy records every request of a full sign-up, sync and approval run (SYN-03.14, SYN-04.10) | No password, no value made from one other than the account blob of SYN-06.4, no key-file part, no approval code before the claim, no plain vault content |
 | AT-L09 | Hostile replies and parsers | Fuzz every request and reply parser; replies over the limits; malformed JSON; an account blob of version 2 (SYN-01.10, SYN-01.15, SYN-06.4) | No crash, hang or allocation over the limits; the blob is refused before any KDF runs |
 | AT-L10 | Relay in the middle of the code compare | A test relay swaps keys at each step, or sends a second commitment (SYN-05) | The codes differ and nothing is sealed or pinned; a second commitment is refused |
-| AT-L11 | Server text on screen | Error bodies with markup and long text (SYN-01.9) | App shows only its own words |
+| AT-L11 | Server text on screen | Error bodies with markup and long text (SYN-01.9) | Larsal shows only its own words |
 | AT-L12 | Swapped account keys, seal or device | A test server returns other account keys, replaces the sealed account secret, or registers a device without the identity signature (SYN-06.6, SYN-06.11) | `MSG-ACCOUNT-KEYS-CHANGED`; the seal is refused; the device gets no account secret |
 | AT-L13 | BW01, forced enrolment | When a member accepts an invite, a test server swaps the inviter's identity key in the compare and adds its own enrolment key to every reply (SHR-03.7, SHR-03.8) | The codes differ and nothing is signed, wrapped or pinned; no request from the invitee holds a wrap, anything sealed, or a private key or secret of the invitee's, wrapped or plain; unknown reply fields are ignored |
 | AT-L14 | BW02, rotation to a server key | During a removal, a test server lists an extra recipient, serves another X25519 key for a remaining member, and serves a wrap of its own key for the new epoch (SHR-01.9 to SHR-01.11, SHR-04.4) | The rotating Mac wraps only to keys of its verified list; the injected recipient gets nothing; the server's wrap fails the signer check (a manager of the vault) or the key check and is deleted by its recipient; every member's new key matches the remove entry's key check |
@@ -165,13 +165,13 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | Gate | What | Tools | When | Who |
 |---|---|---|---|---|
 | G1 Static | Format, lints, name guard, `unsafe` count | `rustfmt`, `clippy`, `scripts/check-names.sh`, `cargo-geiger`; `swift format lint --strict`, `swiftlint lint --strict` | Every build | Builder runs, Checker confirms |
-| G2 Tests | Unit and property tests | `cargo test`, `proptest`; `scripts/build-core.sh`, then `xcodebuild test` without `AppUITests`, warnings as errors | Every story | Builder |
+| G2 Tests | Unit and property tests | `cargo test`, `proptest`; `scripts/build-core.sh`, then `xcodebuild test` without `LarsalUITests`, warnings as errors | Every story | Builder |
 | G3 Known answers | Standard vectors and reference-made demo vaults | `cargo test` | Every E2 and E3 story, and nightly | Verify |
 | G4 Interop | Our saves open in the reference CLI with the same export; reference vaults open in ours | `scripts/interop.sh` with `REF_CLI` | From E3 on | Verify |
 | G5 Fuzzing | 10 minutes per target per story; 24 hours per target per sprint | `cargo fuzz` | Every parser story; each sprint | Red team |
 | G6 Review | Line-by-line review against the Rust rules and security rules. Two Checkers for crypto, format, `unsafe` and secret handling. | Reading | Every story | Checker |
 | G7 Attacks | The attack groups for the area | This catalog | Security-relevant stories | Red team |
-| G8 Mac QA | Scripted walk through the real app with demo vaults; screenshots | The `AppUITests` suite (XCTest UI testing), computer use or UI scripting on this Mac; needs a logged-in screen, so not in `check.sh` | Every screen story | Mac QA |
+| G8 Mac QA | Scripted walk through the real app with demo vaults; screenshots | The `LarsalUITests` suite (XCTest UI testing), computer use or UI scripting on this Mac; needs a logged-in screen, so not in `check.sh` | Every screen story | Mac QA |
 | G9 Parity | Every parity row has proof | [security.md](security.md) | End of each epic, and E13 | Verify |
 | G10 Release | AT-J01 to AT-J06, zero open Critical or High findings, owner sign-off | All | E14 | Lead |
 

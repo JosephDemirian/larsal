@@ -14,15 +14,15 @@
 //! the category, bit 4 trashes the item, bit 5 makes the folder smart.
 #![no_main]
 
-use app_core::import::opvault::{self, Folder};
-use app_core::import::{self, Context, ImportError, Limit};
-use app_core::time::Utc;
-use app_crypto::cipher::{Cipher, Encryptor};
-use app_crypto::hash::sha512;
-use app_crypto::kdf::{self, Prf};
-use app_crypto::mac::hmac_sha256;
-use app_crypto::secret::{SecretBytes, SecretString};
-use app_model::{Group, Time, Uuid, Vault};
+use larsal_core::import::opvault::{self, Folder};
+use larsal_core::import::{self, Context, ImportError, Limit};
+use larsal_core::time::Utc;
+use larsal_crypto::cipher::{Cipher, Encryptor};
+use larsal_crypto::hash::sha512;
+use larsal_crypto::kdf::{self, Prf};
+use larsal_crypto::mac::hmac_sha256;
+use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_model::{Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 use std::sync::atomic::AtomicBool;
 
@@ -54,7 +54,7 @@ fn split(b: &[u8]) -> Keys {
 }
 
 fn b64(b: &[u8]) -> String {
-    app_crypto::base64::encode(app_crypto::base64::Form::Padded, b)
+    larsal_crypto::base64::encode(larsal_crypto::base64::Form::Padded, b)
 }
 
 fn cbc(key: &SecretBytes, iv: &[u8], data: &[u8]) -> Vec<u8> {
@@ -98,14 +98,14 @@ fn ctx_run(mem: &Mem, pw: Option<&SecretString>) {
     let Ok(r) = opvault::read(mem, "fuzz.opvault", pw, &ctx) else {
         return;
     };
-    assert_eq!(app_model::invariants::check(&r.vault), Ok(()));
+    assert_eq!(larsal_model::invariants::check(&r.vault), Ok(()));
     let _ = import::preview(&r);
     let mut root = Group::new(Uuid([1; 16]), "Root".into(), now);
     root.groups
         .push(Group::new(Uuid([2; 16]), "Work".into(), now));
     let mut target = Vault::new(root, now);
     if import::into_group(&mut target, Uuid([2; 16]), r, now).is_ok() {
-        assert_eq!(app_model::invariants::check(&target), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&target), Ok(()));
     }
 }
 

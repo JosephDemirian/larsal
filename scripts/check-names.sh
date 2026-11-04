@@ -30,9 +30,9 @@
 # Skips only the root build and git folders (real folders, not files or
 # links): ./target, ./fuzz/target, ./.git.
 # Random bytes give false hits (a 4-letter word about once per 25 MB), so:
-#  - a *.appvault file that starts with the vault signature (03 D9 A2 9A
+#  - a *.larsalvault file that starts with the vault signature (03 D9 A2 9A
 #    67 FB 4B B5, spec FMT-01) is encrypted: its name is checked, its bytes
-#    are not, and the summary counts it as name-only. Any other *.appvault
+#    are not, and the summary counts it as name-only. Any other *.larsalvault
 #    file is matched like every other file.
 #  - a PNG is matched chunk by chunk (type and data; zTXt, iCCP and
 #    compressed iTXt also inflated), except the pixel data (IDAT), which must
@@ -58,7 +58,7 @@
 # above are not mapped;
 # words drawn as pixels or hidden in PNG pixel data or JPEG entropy-coded data
 # are not found; APNG frame data (fdAT) is matched raw; whatever follows the
-# vault signature in a *.appvault file is not matched.
+# vault signature in a *.larsalvault file is not matched.
 # Known limits of the terminal view (LD-229): a raw single C1 byte in non-UTF-8
 # text, a C1 code point inside a 7-bit code (terminals disagree on it), a tab
 # (one column) and a carriage return inside a file name are not followed as a
@@ -135,7 +135,7 @@ B64 = re.compile(rb';\s*(?i:b\s*a\s*s\s*e\s*6\s*4)\s*,([A-Za-z0-9+/\s]+={0,2})'
                  rb'|[A-Za-z0-9+/]{40,}={0,2}')
 # WOFF2 fonts are Brotli inside, which python3 cannot unpack, so a WOFF2 font
 # fails the guard unless its SHA-256 is here (F-115). These are the fonts in
-# design/option-a/vendor (copied to macos/App/Resources/Fonts), each unpacked
+# design/option-a/vendor (copied to macos/Larsal/Resources/Fonts), each unpacked
 # and found clean by the E13-S2 red team (security/parity/E13-S2-AT-J.md).
 WOFF2_OK = {
     'c2ea45ea05ff5c7df1936770c104725f2a68f43fd343f35f3da23a30b27de32a': 'Phosphor.woff2',
@@ -300,13 +300,53 @@ def views(data):
         codecs += [('utf-32-le', 4), ('utf-32-be', 4)]
     texts = [data.decode('utf-8', 'replace')] + [data[i:].decode(e, 'ignore') for e, n in codecs for i in range(n)]
     for t in texts:
-        yield norm(t)
-        yield from map(norm, shown(t))
+        yield t
+        yield from shown(t)
+
+
+# Product identities are encoded too: test fixtures must not reintroduce them.
+OLD_FORMS = re.compile(bytes.fromhex('283f3c215b412d5a302d395d294150505f283f2153414e44424f585c62295b412d5a5d5b412d5a302d395f5d2a5c627c283f693a636f6d5c2e6170705c2e7c5c626170702d283f3a6175746f747970657c6272696467657c62726f777365727c636c697c636f72657c63727970746f7c6465736b746f707c6666697c666f726d61747c68776b65797c6d6f64656c7c706c6174666f726d7c70726f746f7c7365727665727c73686172657c7373686167656e747c73796e637c77656229283f3a5c627c5f297c5c626170705f283f3a6175746f747970657c6272696467657c62726f777365727c636c697c636f72657c63727970746f7c6465736b746f707c6666697c666f726d61747c68776b65797c6d6f64656c7c706c6174666f726d7c70726f746f7c7365727665727c73686172657c7373686167656e747c73796e637c776562295c627c5c62617070283f3a7661756c747c6b65797c7368617265295c62297c5c62417070283f3a436f72657c4646497c4572726f727c4576656e74737c4d61696e7c436f6d6d616e64737c53657474696e67737c53657474696e6756616c75657c53657474696e677c54657374737c55495465737473295c772a7c5c62617070283f3a53657474696e67734170706c6965647c53657474696e677352756c657c53657474696e677353616d706c657c46696e647c4d61726b295c627c60617070283f3a5b205c745d2b283f3a434f4d4d414e445c627c5c5b544f502d4c4556454c20464c41475c5d7c5c285b5e5c725c6e295d2a5c293e29297c5c7c5b205c745d2b6170703a5b205c745d7c5b22605d6170705b205c745d2b5c7b5b412d5a612d7a5f5d5b412d5a612d7a302d395f5d2a5c7d3a7c5c626170705b205c745d2b2d5b68765d5c627c5c626170705b205c745d2b3c636f6d6d616e643e3a').decode())
+OLD_PRODUCT = bytes.fromhex('417070').decode()
+OLD_WORD = re.compile(r'\b' + OLD_PRODUCT + r'\b')
+OLD_ENCODED_PATHS = tuple(bytes.fromhex(value).decode() for value in (
+    '644756686253397a614746795a57517559584277646d46316248513d',
+    '4c6934766157347559584277646d46316248513d',
+    '6447566862533568634842325958567364413d3d',
+    '625335682d634842325f5958567364413d3d',
+))
+
+
+def old_product_hits(text, path, hits, what):
+    # Vendor bytes and verbatim owner quotations keep their original identities.
+    if 'vendor' in path.replace('\\', '/').split('/'):
+        return
+    # Only this exact historical owner-rule citation has a retired identity.
+    if path.replace('\\', '/') in ('./spec/decisions.md', 'spec/decisions.md'):
+        approved = bytes.fromhex('224f6e6c79206170702d63727970746f20696d706f727473207468656d22').decode()
+        lines = text.splitlines(keepends=True)
+        text = ''.join(line.replace(approved, '').replace(approved.casefold(), '')
+                       if re.match(r'^\|\s*w-18\s*\|', line, re.I) else line
+                       for line in lines)
+    if OLD_FORMS.search(text) or any(value in text for value in OLD_ENCODED_PATHS):
+        hits.append((path, what + ' holds a retired product identity'))
+        return
+    text = re.sub(r'https?://[^\s<>`"\')]+', '', text)
+    text = re.sub(r'\b' + OLD_PRODUCT + r' (?:Store|Sandbox)\b', '', text)
+    text = re.sub(r"SwiftUI(?:'s|’s)?[ .`]*" + OLD_PRODUCT + r'\b', '', text)
+    text = re.sub(r'(?m)^\s*(?:struct|class|enum) \w+:\s*' + OLD_PRODUCT + r'\b', '', text)
+    for pattern in (OLD_WORD,):
+        if pattern.search(text):
+            hits.append((path, what + ' holds a retired product identity'))
+            break
 
 
 def name_hits(name, path, hits, what='name'):
+    old_product_hits(name, path, hits, what)
     name = name.translate({9: None, 10: None, 13: None})
-    v = '\0'.join(map(norm, [name] + shown(name)))
+    alternatives = [name] + shown(name)
+    old_product_hits('\0'.join(alternatives), path, hits, what)
+    v = '\0'.join(map(norm, alternatives))
+    old_product_hits(v, path, hits, what)
     hits += [(path, '%s holds word %d' % (what, i + 1)) for i, w in enumerate(WORDS) if w in v]
 
 
@@ -323,6 +363,9 @@ def content_hits(data, path, hits, inside='', depth=0):
         return
     found = set()
     for v in views(data):
+        old_product_hits(v, path, hits, inside + 'content')
+        v = norm(v)
+        old_product_hits(v, path, hits, inside + 'content')
         for i, w in enumerate(WORDS):
             p = v.find(w)
             if p >= 0 and i not in found:
@@ -415,7 +458,7 @@ def scan(root):
                 elif stat.S_ISREG(mode):
                     with open(p, 'rb') as f:
                         data = f.read()
-                    if x.endswith('.appvault') and data.startswith(VAULT_SIG):
+                    if x.endswith('.larsalvault') and data.startswith(VAULT_SIG):
                         v += 1
                     else:
                         n += 1
@@ -498,8 +541,8 @@ def self_test():
         ('F-005 Hangul filler in a name', k[:3] + '\u115f' + k[3:] + '.md', 'clean'),
         ('F-006 root file named target', 'target', k),
         ('F-006 file fuzz/target', 'fuzz/target', k),
-        ('vault name still checked', w[2] + '.appvault', VAULT_SIG + b'\0'),
-        ('F-011 text file named *.appvault', 'notes.appvault', 'see %s\n' % k),
+        ('vault name still checked', w[2] + '.larsalvault', VAULT_SIG + b'\0'),
+        ('F-011 text file named *.larsalvault', 'notes.larsalvault', 'see %s\n' % k),
         ('F-007 Kelvin sign', 'kelvin.md', '\u212a' + k[1:]),
         ('F-007 Cyrillic letters', 'cyr.md', k.replace('e', '\u0435').replace('a', '\u0430')),
         ('F-007 fullwidth letters', 'full.md', ''.join(chr(ord(c) + 0xfee0) for c in k)),
@@ -606,7 +649,7 @@ def self_test():
              'clean16.txt': 'clean text\n'.encode('utf-16'), 'clean.gz': gzip.compress(b'clean'),
              'clean.b64': re.sub('(.{76})', '\\1\n', b64('clean ' * 30)),  # wrapped base64 decodes cleanly
              '.git/HEAD': k,  # .git is skipped
-             'v.appvault': VAULT_SIG + ('see %s\n' % k).encode(),  # vault signature first: content skipped
+             'v.larsalvault': VAULT_SIG + ('see %s\n' % k).encode(),  # vault signature first: content skipped
              'pixels.png': png((b'tEXt', b'Comment\0clean'), pixels(k.encode())),  # IDAT is skipped
              'photo.jpg': jpeg((0xe0, b'JFIF\0\1\1\0\0\1\0\1\0\0'),  # entropy-coded data is skipped
                                data=rnd.randbytes(4096) + k.encode() + rnd.randbytes(4096))}
@@ -699,6 +742,71 @@ def self_test():
             ok = False
         shutil.rmtree(t)
         os.mkdir(t)
+        # Rename controls use fresh roots, independent of the reference-word cases.
+        for label, payload in (
+            ('bundle', '636f6d2e6170702e6465736b746f70'),
+            ('environment', '4150505f54455354'),
+            ('test runner environment', '544553545f52554e4e45525f4150505f544553545f48494444454e'),
+            ('crate', '6170702d636f7265'),
+            ('uppercase crate', '4150502d434f5245'),
+            ('escaped crate', '5c78363170702d636f7265'),
+            ('uppercase vault extension', '782e4150505641554c54'),
+            ('import', '6170705f636f7265'),
+            ('Swift module', '417070436f7265'),
+            ('product Swift symbol', '61707053657474696e677352756c65'),
+            ('product text', '5175697420417070'),
+            ('vault extension', '782e6170707661756c74'),
+            ('CLI command placeholder', '6061707020434f4d4d414e44202d6860'),
+            ('CLI usage placeholder', '60617070205b544f502d4c4556454c20464c41475d60'),
+            ('CLI vault prompt', '60617070202864656d6f293e2060'),
+            ('CLI error prefix', '7c206170703a2063616e6e6f74206f70656e'),
+            ('CLI formatted error prefix', '22617070207b636d647d3a2070726f626c656d'),
+            ('CLI short help option', '617070202d68'),
+            ('CLI short version option', '617070202d76'),
+            ('CLI documented error prefix', '617070203c636f6d6d616e643e3a2070726f626c656d'),
+            ('escaped environment', '5c78343150505f54455354'),
+            ('escaped product text', '51756974205c75303034317070'),
+            ('encoded path 1', '644756686253397a614746795a57517559584277646d46316248513d'),
+            ('encoded path 2', '4c6934766157347559584277646d46316248513d'),
+            ('encoded path 3', '6447566862533568634842325958567364413d3d'),
+            ('encoded path 4', '625335682d634842325f5958567364413d3d'),
+        ):
+            data = bytes.fromhex(payload)
+            for root, dirs, files in os.walk(t):
+                for file in files:
+                    os.unlink(os.path.join(root, file))
+            put('retired.txt', data)
+            put(data.decode() + '.txt', b'clean')
+            found, _, _ = scan(t)
+            if any(not any(p == './' + rel and 'retired product identity' in msg for p, msg in found)
+                   for rel in ('retired.txt', data.decode() + '.txt')):
+                print('self-test: missed rename control: ' + label)
+                ok = False
+            os.unlink(os.path.join(t, 'retired.txt'))
+            os.unlink(os.path.join(t, data.decode() + '.txt'))
+        allowed = ('4170704b6974204e534170702041707044656c656761746520'
+                   '454e41424c455f4150505f53414e44424f58204170702053746f726520'
+                   '6170702067726f7570202e617070204150502d3031202261707022')
+        put('platform.txt', bytes.fromhex(allowed + '202e61707053657474696e67732061707073657474696e67732e6a736f6e'))
+        if scan(t)[0]:
+            print('self-test: rename control rejected platform or generic names')
+            ok = False
+        os.unlink(os.path.join(t, 'platform.txt'))
+        put('encoded-target.txt', bytes.fromhex('644756686253397a614746795a5751756247467963324673646d46316248513d0a4c693476615734756247467963324673646d46316248513d0a644756686253357359584a7a595778325958567364413d3d0a625335732d59584a7a5f595778325958567364413d3d'))
+        if scan(t)[0]:
+            print('self-test: renamed encoded paths were rejected')
+            ok = False
+        os.unlink(os.path.join(t, 'encoded-target.txt'))
+        approved = bytes.fromhex('7c20572d3138207c204f726967696e616c206f776e65722072756c653a20224f6e6c79206170702d63727970746f20696d706f727473207468656d222e2043757272656e742070726f706f73616c2075736573206c617273616c2d706c6174666f726d2e207c0a')
+        put('spec/decisions.md', approved)
+        if scan(t)[0]:
+            print('self-test: exact owner-rule citation was rejected')
+            ok = False
+        put('spec/decisions.md', bytes.fromhex('7c20572d3138207c20546865206f776e6572207361696420796573202822636865636b2079657322292e206372617465732f6170702d7365727665722f4c4943454e53453b20746865206f776e657220616c736f20736169643a20226b65657020697422207c0a'))
+        if not scan(t)[0]:
+            print('self-test: owner phrase hid an unrelated retired identity')
+            ok = False
+        os.unlink(os.path.join(t, 'spec/decisions.md'))
         if report(t) != 1:
             print('self-test: expected FAIL on a folder with 0 files')
             ok = False

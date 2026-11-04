@@ -180,13 +180,13 @@ No other row was checked against the installed app, because its window may not b
 ## Open points for the lead
 
 1. SR-16: may an automatic lock (idle, screen lock) wait on a save-or-discard question, as in the reference? The proposal is no: save when auto-save is on, otherwise lock and keep the unsaved changes in an encrypted recovery copy, or ask after the next unlock.
-2. SI-09: should App check shared groups signatures with trust per signer, which the reference stopped doing in 2.7.0? The matrix proposes yes. Files from the reference would then need a trust step.
-3. SI-11: should App limit one-time codes over the bridge to entries the site may access? The proposal is yes.
-4. SR-04: should App accept the Mac login password and Apple Watch for quick unlock, as the reference does? This choice belongs to card APP-04.
+2. SI-09: should Larsal check shared groups signatures with trust per signer, which the reference stopped doing in 2.7.0? The matrix proposes yes. Files from the reference would then need a trust step.
+3. SI-11: should Larsal limit one-time codes over the bridge to entries the site may access? The proposal is yes.
+4. SR-04: should Larsal accept the Mac login password and Apple Watch for quick unlock, as the reference does? This choice belongs to card APP-04.
 
 ## Second review (Spec reviewer, 2026-10-25)
 
-Read the source again for each row, checked the installed bundle's crypto library imports, and read the source's change log. Rows corrected in place (facts only; App's target unchanged):
+Read the source again for each row, checked the installed bundle's crypto library imports, and read the source's change log. Rows corrected in place (facts only; Larsal's target unchanged):
 
 | Row | Correction | Where seen |
 |---|---|---|

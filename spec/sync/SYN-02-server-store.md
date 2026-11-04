@@ -2,7 +2,7 @@
 
 Status: reviewed
 Epics: E16-S3 (data folder, certificate files), E16-S4 (store, vault files, compare-and-swap, old versions, sweep), E16-S5 (account, device, challenge and session rows); E17 and E18 add rows
-Parity rows: none in the reference app (it has no server). App's own rows: SV-01 and SV-03 (plan/security.md); AT-L02 and AT-L09 (plan/attacks-and-checks.md)
+Parity rows: none in the reference app (it has no server). Larsal's own rows: SV-01 and SV-03 (plan/security.md); AT-L02 and AT-L09 (plan/attacks-and-checks.md)
 
 ## What it does
 
@@ -29,7 +29,7 @@ The folder and its subfolders have mode 0700, every file 0600. The server refuse
 
 SYN-02.2 **SQLite settings** (P15; sqlite.org "Write-Ahead Logging"). At open: `journal_mode=WAL`, `synchronous=FULL` (each commit syncs the log, so a power cut never rolls back a commit the server answered), `fullfsync=ON` (on macOS, commits and checkpoints sync with `F_FULLFSYNC`, which SQLite does only when this is on; sqlite.org "Pragma statements", F-222), `foreign_keys=ON`, `busy_timeout=5000` (5 s, the value Litestream's tips advise). `user_version` holds the schema version, 1 in this build. A store with a higher `user_version` than the server knows is refused at start; a store with none gets the schema of SYN-02.3. SQLite is built from its bundled source (`libsqlite3-sys` `bundled`, P22).
 
-SYN-02.3 **Rows.** Ids are 16-byte blobs drawn from app-crypto's random source (P20); times are whole seconds UTC.
+SYN-02.3 **Rows.** Ids are 16-byte blobs drawn from larsal-crypto's random source (P20); times are whole seconds UTC.
 - `accounts`: id; created; from E17-S1 the identity public key, the X25519 public key and its signature, the recovery public key and the account blob (SYN-06.6), empty before.
 - `devices`: id; account id; P-256 public key (65 bytes, unique over the store); name (1 to 64 Unicode scalar values, none in the Unicode category Cc, SYN-04.2); added; last seen.
 - `challenges`: nonce (32 bytes); device id, or the account id for a recovery challenge (SYN-06.12); expires. Deleted when used or expired.
@@ -42,7 +42,7 @@ E18 adds (SHR-01 to SHR-04): `groups` (id; kind; head seq and hash; created); `m
 
 SYN-02.4 **Writing a new version** (P15). In this order:
 1. Stream the body into a new file in `tmp/` (its name holds 16 random bytes in hex), counting bytes and computing the SHA-256 as the bytes arrive. Over the limit, a timeout or a closed connection: delete the file, store nothing.
-2. Flush it with `F_FULLFSYNC` (`fcntl`), as App's safe save does (APP-05.11).
+2. Flush it with `F_FULLFSYNC` (`fcntl`), as Larsal's safe save does (APP-05.11).
 3. Rename it to `blobs/<h[0..2]>/<h>`; when that name already exists (the same bytes), delete the temp file instead. Sync the folder.
 4. One transaction: for an update, first copy the current row into `vault_versions` (`INSERT INTO vault_versions SELECT … FROM vaults WHERE id = ? AND version = ?`, with the `If-Match` version), then `UPDATE vaults SET version = version + 1, size, hash, uploader, signature, updated WHERE id = ? AND version = ?`; for a new vault, `INSERT` (an existing id is a conflict). No row copied or changed, or a conflict: roll back and answer 412. Otherwise prune `vault_versions` to SYN-02.5's count, and commit.
 5. After the commit, delete each blob file that no `vaults` or `vault_versions` row names any more.
@@ -56,7 +56,7 @@ SYN-02.7 **Reads.** A GET reads the current row in a read transaction and opens 
 
 SYN-02.8 **One writer** (P14; sqlite.org "Appropriate Uses"). Every write runs on one blocking task with one database connection (tokio `spawn_blocking`); reads may use their own connections. SQLite has one writer at a time anyway.
 
-SYN-02.9 **The store is blind** (P16). The server never parses vault bytes: the only checks are the length and the hash. `cargo tree -p app-server` holds none of `app-format`, `app-core`, `app-platform`, `app-ffi`, `app-sync` (the "server blind" line in `scripts/check.sh`); `app-model` `json.rs` and `app-crypto` are allowed (LD-263 (14)).
+SYN-02.9 **The store is blind** (P16). The server never parses vault bytes: the only checks are the length and the hash. `cargo tree -p larsal-server` holds none of `larsal-format`, `larsal-core`, `larsal-platform`, `larsal-ffi`, `larsal-sync` (the "server blind" line in `scripts/check.sh`); `larsal-model` `json.rs` and `larsal-crypto` are allowed (LD-263 (14)).
 
 SYN-02.10 **What the store never holds.** No password and no value made from one, except the account blob of SYN-06.4, which also needs the 256-bit account secret (P6); no session token, only its SHA-256; no private key, key-file part or vault key, except inside a wrap record or the account blob.
 
@@ -92,7 +92,7 @@ SYN-02.10 **What the store never holds.** No password and no value made from one
 | T10 SYN-02.5 old versions | Vault X | 7 uploads with different bytes | Row version 7; `vault_versions` holds 2 to 6; version 1's file is gone |
 | T11 SYN-02.6 sweep | Data folder with a file in `tmp/`, an unnamed blob file and a file `blobs/zz/notahash` | Start | The first two are deleted; the third stays; the log names one unknown file by count |
 | T12 SYN-02.7 read during a commit | A GET of version 6 streaming slowly; a PUT makes version 7 and prunes | Finish the GET | The GET gives version 6's bytes complete |
-| T13 SYN-02.9 server blind | The tree; a scratch copy where app-server names app-format | Run the "server blind" line | Passes on the tree; fails on the copy |
+| T13 SYN-02.9 server blind | The tree; a scratch copy where larsal-server names larsal-format | Run the "server blind" line | Passes on the tree; fails on the copy |
 | T14 SYN-02.10 no secrets | A full demo run: sign-up (E17-S1), sync, a key-file part wrap | Search every row and file for the demo master password, the account password, the key-file part and the account secret (and their SHA-256) | None found |
 | T15 SYN-02.8 one writer | Server with 50 vaults; test rate limit raised to 200 POST, PUT and DELETE requests a minute (SYN-01.12) | 50 PUTs to different vaults at once | All succeed with no busy error; a test counter shows every write ran on the one writer connection |
 | T16 SYN-02.1 key others can read | Data folder whose `tls/key.der` has mode 0644 | Start | Refused with a plain error that names the file; nothing written |
@@ -104,7 +104,7 @@ SYN-02.10 **What the store never holds.** No password and no value made from one
 - SQLite: <https://www.sqlite.org/wal.html> (WAL, `synchronous=FULL`), <https://www.sqlite.org/pragma.html#pragma_fullfsync> (`fullfsync`, off by default; only macOS has `F_FULLFSYNC`), <https://www.sqlite.org/whentouse.html> (one writer), <https://www.sqlite.org/limits.html>, <https://www.sqlite.org/fasterthanfs.html> (files for large data).
 - OWASP Session Management Cheat Sheet (store a hash of the token): <https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html>.
 - A proven open source server's backup practice (SQLite online backup plus the files folder), via sync-server.md section 1.
-- App's own safe save: spec/app/APP-05-saving.md, APP-05.11.
+- Larsal's own safe save: spec/app/APP-05-saving.md, APP-05.11.
 - Litestream's tips (`PRAGMA busy_timeout = 5000`, "It is recommended to set this to 5 seconds"), read 2026-10-31: <https://litestream.io/tips/>.
-- App's own value, decided: spec/decisions.md LD-273 (1) (no proven server's default found): a device name of 1 to 64 Unicode scalar values, none in the category Cc (SYN-02.3, SYN-04.2, pinned by SYN-04 T02).
+- Larsal's own value, decided: spec/decisions.md LD-273 (1) (no proven server's default found): a device name of 1 to 64 Unicode scalar values, none in the category Cc (SYN-02.3, SYN-04.2, pinned by SYN-04 T02).
 - Written by E16-S1 (2026-10-31).

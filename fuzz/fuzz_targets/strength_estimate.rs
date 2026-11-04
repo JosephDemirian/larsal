@@ -15,9 +15,9 @@
 //! used. One path per input keeps it to one crate call.
 #![no_main]
 
-use app_core::health::{bits_with, entry_bits, zxcvbn_bits};
-use app_crypto::secret::SecretString;
-use app_model::{Entry, Field, Time, Uuid};
+use larsal_core::health::{bits_with, entry_bits, zxcvbn_bits};
+use larsal_crypto::secret::SecretString;
+use larsal_model::{Entry, Field, Time, Uuid};
 use libfuzzer_sys::arbitrary::{self, Arbitrary, Unstructured};
 use libfuzzer_sys::fuzz_target;
 

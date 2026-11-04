@@ -1,19 +1,21 @@
-# App contributor license agreements
+# Larsal contributor license agreements — historical drafts
 
-**Draft of 2026-10-31. A lawyer reads this draft before App accepts its first outside contribution ([README.md](README.md)).**
+**Withdrawn for new contributions.** These 2026-10-31 drafts are retained for history and attribution, not offered for signature. Current repository permissions are in [LICENSE](../LICENSE). Any new contribution agreement needs legal review before the first outside contribution; see [README.md](README.md).
+
+This notice does not change any earlier signed agreement, its submission-date license promise, or rights already granted under an earlier license. The draft agreement text below is preserved.
 
 There are two agreements with the same terms:
 
 - [Agreement 1](#agreement-1-individual-contributor-license-agreement) is for a person who contributes for themselves.
 - [Agreement 2](#agreement-2-entity-contributor-license-agreement) is for a company or other organization whose people contribute for it.
 
-Words in square brackets are filled in when App's company exists (README decision D1): [Licensor legal name], [Licensor address], [Jurisdiction] and [Signing instructions].
+The historical drafts leave these placeholders unfilled: [Licensor legal name], [Licensor address], [Jurisdiction] and [Signing instructions].
 
 **What the agreements do, in plain words.** This list is not part of the agreements.
 
 - You keep the copyright in your contribution. You can still use it and license it in any way you like.
 - You give [Licensor legal name] a license to use, change and share your contribution, and to license it to others under any license: open source, paid, or the terms an app store needs.
-- In return, when [Licensor legal name] uses that right, it promises to also license your contribution under the license that the part you contributed to had on the day you sent it. Today that is GPL-3.0-or-later for the Mac app and the engine.
+- In return, when [Licensor legal name] uses that right, it promises to also license your contribution under the license that the part you contributed to had on the day you sent it. At the time of these drafts, that was GPL-3.0-or-later for the Mac app and the engine; this is not the current repository license.
 - You give a patent license for your contribution.
 - You confirm that the work is yours to give. If you are employed, your employer agrees or signs Agreement 2.
 
@@ -21,7 +23,7 @@ Words in square brackets are filled in when App's company exists (README decisio
 
 ## Agreement 1: Individual Contributor License Agreement
 
-Thank you for your interest in contributing to App, the password manager made by [Licensor legal name] ("We" or "Us").
+Thank you for your interest in contributing to Larsal, the password manager made by [Licensor legal name] ("We" or "Us").
 
 This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, please sign it and send it to Us by mail, email, or electronic submission, following the instructions at [Signing instructions]. This is a legally binding document, so please read it carefully before agreeing to it. The Agreement may cover more than one software project managed by Us.
 
@@ -121,7 +123,7 @@ Title: ________________________
 
 ## Agreement 2: Entity Contributor License Agreement
 
-Thank you for your interest in contributing to App, the password manager made by [Licensor legal name] ("We" or "Us").
+Thank you for your interest in contributing to Larsal, the password manager made by [Licensor legal name] ("We" or "Us").
 
 This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, please sign it and send it to Us by mail, email, or electronic submission, following the instructions at [Signing instructions]. This is a legally binding document, so please read it carefully before agreeing to it. The Agreement may cover more than one software project managed by Us.
 
@@ -223,7 +225,7 @@ Title: ________________________
 
 ## Source and attribution
 
-Agreements 1 and 2 are adapted from the **Harmony Combined Contributor Agreement Template, Version 1.0** (2011-07-04) by Project Harmony, <https://www.harmonyagreements.org/agreements> (the text read: <https://www.harmonyagreements.org/docs/ha-combined-v1>), which is licensed under the Creative Commons Attribution 3.0 Unported License, <https://creativecommons.org/licenses/by/3.0/>. Project Harmony does not endorse App or these agreements.
+Agreements 1 and 2 are adapted from the **Harmony Combined Contributor Agreement Template, Version 1.0** (2011-07-04) by Project Harmony, <https://www.harmonyagreements.org/agreements> (the text read: <https://www.harmonyagreements.org/docs/ha-combined-v1>), which is licensed under the Creative Commons Attribution 3.0 Unported License, <https://creativecommons.org/licenses/by/3.0/>. Project Harmony does not endorse Larsal or these agreements.
 
 Changes from the template:
 
@@ -231,5 +233,5 @@ Changes from the template:
 2. Section 2.3 uses the template's Option Five (any outbound license, and the Contribution also stays under the Material's license of the Submission Date). The other four options are left out.
 3. The optional outbound license line for Media, and the definition of "Media", are left out: Option Five already covers every part of a Contribution.
 4. The warranty disclaimer (Section 4) and the damage waiver (Section 5) take the template's optional words, so they apply to both parties.
-5. The placeholders are filled: the project is App, the party is [Licensor legal name], the instructions for work You do not own are written into Section 1 and Section 3(d), fax is not offered for signing, and the signature blocks ask for an email and code host account.
+5. The placeholders are filled: the project is Larsal, the party is [Licensor legal name], the instructions for work You do not own are written into Section 1 and Section 3(d), fax is not offered for signing, and the signature blocks ask for an email and code host account.
 6. The plain-words summary at the top, the headings and this section are added. They are not part of the agreements.

@@ -1,7 +1,7 @@
-//! App's own `log` facade (E0-S7 R6, LD-221 (2)). The packages that call
-//! `log` keep compiling against it: ureq and ureq-proto in app-platform's
+//! Larsal's own `log` facade (E0-S7 R6, LD-221 (2)). The packages that call
+//! `log` keep compiling against it: ureq and ureq-proto in larsal-platform's
 //! `net` client, goblin in the bindings generator. Nothing they log goes
-//! anywhere. App never installed a logger, so with the published crate
+//! anywhere. Larsal never installed a logger, so with the published crate
 //! every call was already off; here there is no way to turn one on
 //! (dependencies never log, AGENTS.md rule 4).
 //!

@@ -1,0 +1,23 @@
+[package]
+name = "larsal-autotype"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+[lints]
+workspace = true
+
+# E8-S1: the sequence reader and planner (INT-05.1 to INT-05.18). E8-S2:
+# window matching and the picker model (INT-05.19 to INT-05.31); regex-syntax
+# only for its simple case folding tables, the ones `(?i)` uses. Typing on
+# macOS (E8-S3) comes later.
+[dependencies]
+larsal-core = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-model = { workspace = true }
+regex-syntax = { workspace = true }
+
+# F-092: the work bounds of tests/int05.rs read the thread CPU clock.
+[dev-dependencies]
+larsal-platform = { workspace = true }

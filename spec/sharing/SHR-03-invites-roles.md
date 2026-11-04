@@ -2,7 +2,7 @@
 
 Status: reviewed
 Epics: E18-S3 (family roles, the limits, the upload signature, the server's 403, every client's check), E18-S4 (invites and the code compare), E18-S6 (team roles and per-vault rights; the server without `teams`), E18-S7 (the invite sheet, roles and the read-only words), E18-S8 (the hostile-server run)
-Parity rows: none in the reference app (it has no server or sharing). App's own rows: SV-06 (plan/security.md); AT-L13, AT-L17, AT-L18, AT-L21, AT-L22 (plan/attacks-and-checks.md)
+Parity rows: none in the reference app (it has no server or sharing). Larsal's own rows: SV-06 (plan/security.md); AT-L13, AT-L17, AT-L18, AT-L21, AT-L22 (plan/attacks-and-checks.md)
 
 ## What it does
 
@@ -24,7 +24,7 @@ Design and sources: spec/research/sync-server.md P10, P11, P19, sections 5 and 6
 
 ### Words
 
-| ID | Words (App's own) | Buttons |
+| ID | Words (Larsal's own) | Buttons |
 |---|---|---|
 | `MSG-GROUP-INVITE` | Send this invite to <name>. It works once, for 5 days. | Copy, Done |
 | `MSG-GROUP-INVITE-USED` | This invite was already used or has expired. Ask for a new invite. | OK |
@@ -45,7 +45,7 @@ SHR-03.1 **Family roles** (P11; LD-262 (2); sync-server.md section 5: families o
 
 A family has exactly one shared vault, made with the group (SHR-01.4).
 
-SHR-03.2 **Team roles and rights** (P11; sync-server.md section 5: collection levels View, Edit and Manage; "hidden password" levels "limit but don't prevent access", so App has none).
+SHR-03.2 **Team roles and rights** (P11; sync-server.md section 5: collection levels View, Edit and Manage; "hidden password" levels "limit but don't prevent access", so Larsal has none).
 
 | Role | On every vault of the group | Signs |
 |---|---|---|
@@ -77,11 +77,11 @@ SHR-03.4 **Limits** (P11; LD-262 (2)). The state after every entry keeps them (S
 - both: an account appears once; one identity key belongs to one account; the last person may leave, and the group then ends (SHR-04.12).
 So the last Organizer or Owner leaves only after making somebody else one, or as the last person.
 
-SHR-03.5 **The paid folder** (P19; LD-263 (17), LD-266 (7)). Every client rule of SHR-01 to SHR-04, for families and teams, is GPL code in app-sync. On the server, the family rules are AGPL code in app-server; the team rules (SHR-03.2, the team column of SHR-03.3, `vault` and `grant` entries) are only in `crates/app-server-teams/`, linked through the cargo feature `teams`. A server built without `teams` answers a `create` of kind `team` with 403 and keeps no team group; App then shows `MSG-GROUP-NO-TEAMS`. The Mac app links no paid code.
+SHR-03.5 **The paid folder** (P19; LD-263 (17), LD-266 (7)). Every client rule of SHR-01 to SHR-04, for families and teams, is GPL code in larsal-sync. On the server, the family rules are AGPL code in larsal-server; the team rules (SHR-03.2, the team column of SHR-03.3, `vault` and `grant` entries) are only in `crates/larsal-server-teams/`, linked through the cargo feature `teams`. A server built without `teams` answers a `create` of kind `team` with 403 and keeps no team group; Larsal then shows `MSG-GROUP-NO-TEAMS`. The Mac app links no paid code.
 
 SHR-03.6 **The invite** (P10; LD-273 (4): "A code the server draws would let the server answer its own challenge"). On the inviter's Mac R, the user picks Invite, types the person's name (SHR-03.14) and picks the role (Member unless the user picks another):
 1. R checks in its own verified state that it may sign the `add` with that role and that the group has room (SHR-03.3, SHR-03.4).
-2. R draws the code, 16 bytes from app-crypto's random source, and sends only its SHA-256: `POST /v1/groups/{group_id}/invites` with `{"code_hash","role"}`. The server checks the same in its state (403 otherwise) and answers `{"invite_id","expires"}`, 5 days on its clock (sync-server.md section 5: email invitations expire after five days).
+2. R draws the code, 16 bytes from larsal-crypto's random source, and sends only its SHA-256: `POST /v1/groups/{group_id}/invites` with `{"code_hash","role"}`. The server checks the same in its state (403 otherwise) and answers `{"invite_id","expires"}`, 5 days on its clock (sync-server.md section 5: email invitations expire after five days).
 3. R shows `MSG-GROUP-INVITE` with the invite text: the server's origin (SYN-04.4's form), its certificate fingerprint (SYN-01.2's form) and the code in base32 (RFC 4648 section 6, upper case, no padding: 26 characters, in groups of 4). The invite holds no key and nothing from the vault. R keeps the invite id, the code's SHA-256 and the role in its local state until the invite ends, and the name until it has written it into the vault (SHR-03.8 step 3), or until the invite ends with no `add` entry (step 4).
 4. The invite is used once: by its first claim (SHR-03.7). It ends at the `add` entry that names its `invite_id`, at `DELETE`, 5 days after it was made if nobody claimed it, or 15 minutes after the claim (SYN-05.6; SYN-06.11's lifetime). Then the server deletes its row and both Macs wipe the compare's nonces and commitment (SYN-05.6).
 
@@ -116,7 +116,7 @@ SHR-03.8 **After "Codes match"** (P10: "Only after 'Codes match' does the admin 
 4. C reads the list until it holds an `add` entry naming C, with C's own consent, signed by the identity key in the compared `K_R`. C checks the whole list from seq 1 (SHR-02.6, SHR-02.10), pins every key in it (SHR-02.11; R's key in the list must equal the compared one), reads its wraps and opens them (SHR-01.10), then downloads the group's vaults it may read (SYN-03.2's flow, with SHR-01.8's unlock).
 Codes differ on either side, a failed check, or no `add` naming C within the request's 15 minutes: `DELETE …`, `MSG-GROUP-INVITE-FAILED` on both Macs, nothing signed, wrapped or pinned. No add entry for C is made before R's Codes match, and none is accepted without C's consent.
 
-SHR-03.9 **The invitee adds the server** (SYN-01.2; SYN-06.12 pins by the kit's fingerprint in the same way). When the invite names a server C has not pinned, C makes one TLS handshake, compares the presented certificate's SHA-256 with the invite's fingerprint, and pins it with no question when they are equal; when they differ, App shows `MSG-SYNC-CERT-CHANGED` and adds nothing. A server C already pinned under another fingerprint is not changed. Why no question: the invite is the inviter's own record, and an invite changed on its way leads only to a compare that fails (SHR-03.7).
+SHR-03.9 **The invitee adds the server** (SYN-01.2; SYN-06.12 pins by the kit's fingerprint in the same way). When the invite names a server C has not pinned, C makes one TLS handshake, compares the presented certificate's SHA-256 with the invite's fingerprint, and pins it with no question when they are equal; when they differ, Larsal shows `MSG-SYNC-CERT-CHANGED` and adds nothing. A server C already pinned under another fingerprint is not changed. Why no question: the invite is the inviter's own record, and an invite changed on its way leads only to a compare that fails (SHR-03.7).
 
 SHR-03.10 **The upload of a shared vault** (P11: "signed … over vault id, version and SHA-256 of the bytes"; D-SHR02-1 (a)). Every PUT of a shared vault carries, in place of SYN-01.7's signature:
 - `Upload-Epoch: <epoch>` (decimal u64), the vault's current epoch at this Mac's head;
@@ -143,9 +143,9 @@ SHR-03.12 **Every Mac's check of a version** (P11: "every client checks that eac
 7. SYN-03.7's version and hash guard.
 Then SHR-01.3 and SHR-01.13. This is the check that counts: a server that accepts an upload it should have refused gains nothing.
 
-SHR-03.13 **Read-only, said plainly** (P11). For a member who may read but not edit a vault, App opens that vault with editing turned off, and the members page and the vault's badge show `MSG-GROUP-READ-ONLY` (E18-S7). The screen never suggests that `view` hides anything.
+SHR-03.13 **Read-only, said plainly** (P11). For a member who may read but not edit a vault, Larsal opens that vault with editing turned off, and the members page and the vault's badge show `MSG-GROUP-READ-ONLY` (E18-S7). The screen never suggests that `view` hides anything.
 
-SHR-03.14 **Member names** (App's own; accounts have no name or email, SYN-06.13). The inviter types the person's name with the invite, and the creator types their own name at `create`: 1 to 64 Unicode scalar values, none in the Unicode category Cc (as SYN-04.2). After the entry is accepted, that Mac writes the name into the custom data of the group's first vault, key `app.member-name.<32 lowercase hex of the account id>` (FMT-14). MOD-11.18 merges vault custom data as one container: the container with the newer `_LAST_MODIFIED` wins, and keys missing from it are removed. So when two Macs write a name between the same two syncs (two invites at once), one of the names can be lost. When the members page finds no name item for a member, an Organizer, Owner or Admin can type it again (Name… on that member's row), and so can the member for their own row. A member may change their own name item. Names live only inside the encrypted vault and, until the inviter writes them there, in the inviter's local state (SHR-03.6): never in an entry, a request field or a log. A Mac that cannot read the first vault, or finds no item, shows "Member <the first 8 lowercase hex digits of the account id>".
+SHR-03.14 **Member names** (Larsal's own; accounts have no name or email, SYN-06.13). The inviter types the person's name with the invite, and the creator types their own name at `create`: 1 to 64 Unicode scalar values, none in the Unicode category Cc (as SYN-04.2). After the entry is accepted, that Mac writes the name into the custom data of the group's first vault, key `app.member-name.<32 lowercase hex of the account id>` (FMT-14). MOD-11.18 merges vault custom data as one container: the container with the newer `_LAST_MODIFIED` wins, and keys missing from it are removed. So when two Macs write a name between the same two syncs (two invites at once), one of the names can be lost. When the members page finds no name item for a member, an Organizer, Owner or Admin can type it again (Name… on that member's row), and so can the member for their own row. A member may change their own name item. Names live only inside the encrypted vault and, until the inviter writes them there, in the inviter's local state (SHR-03.6): never in an entry, a request field or a log. A Mac that cannot read the first vault, or finds no item, shows "Member <the first 8 lowercase hex digits of the account id>".
 
 SHR-03.15 **When a right to edit ends** (P11). An entry that takes away somebody's right to edit a vault but leaves them the right to read it (for example a `role` to Read-only for a Member with `edit`, or a `grant` from `edit` or `manage` down to `view`; an Owner or Admin made a Member keeps only the rights of their grants, SHR-02.5, so where they lose reading SHR-04.1 applies instead) is signed only after the signer's Mac ran a sync of that vault that ended Synced (as SHR-04.2). Right after the entry is in, that Mac saves the vault again and uploads it (SHR-03.10), so the newest version is signed by a member who may still edit. Until then, a Mac that reads the older version refuses it at SHR-03.12 step 4, and its next run reads the new one. `remove` and `leave` need no extra upload: their new epoch brings one (SHR-04.4, SHR-04.11).
 
@@ -163,9 +163,9 @@ SHR-03.15 **When a right to edit ends** (P11). An entry that takes away somebody
 ## Security notes
 
 - **Swapped keys at an invite (AT-L17, AT-L18).** The keys that go into the `add` entry and the wrap are the ones both people compared; a server that swaps the invitee's keys (LP07) or the inviter's (DL02) at any step makes the codes differ, and nothing is signed or wrapped (SYN-05.7; the ETH paper's public key authentication, sync-server.md section 6).
-- **No forced enrolment (AT-L13).** BW01 needs a client that sends its own key, encrypted to a key the server chose, when it accepts an invite. Joining App sends only a commitment, public keys, a nonce and a consent signature (SHR-03.8 step 1); there is no recovery or enrolment key at all (SHR-04.13).
+- **No forced enrolment (AT-L13).** BW01 needs a client that sends its own key, encrypted to a key the server chose, when it accepts an invite. Joining Larsal sends only a commitment, public keys, a nonce and a consent signature (SHR-03.8 step 1); there is no recovery or enrolment key at all (SHR-04.13).
 - **Consent closes injection (AT-L15).** An account is in a group only with its own consent signature (SHR-02.10), so a server cannot add it to a group of its own making, and a reused consent fails (`invite_id` once per list).
-- **Two locks on writing (SV-06).** The server's 403 keeps the honest case clean; every Mac's check makes a hostile server's acceptance worthless. A read-only member can still copy what it can read: App says so (SHR-03.13; sync-server.md section 5: hidden levels "limit but don't prevent access").
+- **Two locks on writing (SV-06).** The server's 403 keeps the honest case clean; every Mac's check makes a hostile server's acceptance worthless. A read-only member can still copy what it can read: Larsal says so (SHR-03.13; sync-server.md section 5: hidden levels "limit but don't prevent access").
 - **Removed members cannot write (AT-L21).** Step 4 of SHR-03.12 refuses a removed member's version even when a hostile server serves it with an old head.
 
 ## Test cases
@@ -192,7 +192,7 @@ Organizer A, Members B and C of family group G1 with vault V; invitee D; an in-p
 | T16 SHR-03.10 label | A personal-vault signature (`sync-upload-v1`) on a shared vault's PUT, and a shared one on a personal vault | Server and clients check | 403 on the server for both; refused by every client |
 | T17 SHR-03.3 owners (E18-S6) | T1 with Owner O1 and Admin AD1 | AD1 signs `add X` as Owner; AD1 signs `role O1 admin`; O1 signs `role AD1 owner` | Refused; refused; accepted |
 | T18 SHR-03.3 grant (E18-S6) | M1 with `manage` on W | M1 grants R1 `edit` on W; M1 grants R1 `view` on W; M1 grants M2 `edit` on vault W2 where M1 has `view` | Refused; accepted; refused |
-| T19 SHR-03.5 no teams (E18-S6) | app-server built without `teams` | `POST /v1/groups` with a `create` of kind `team`; `cargo tree -p app-server` | 403 and no group row; App shows `MSG-GROUP-NO-TEAMS`; no app-server-teams in the tree |
+| T19 SHR-03.5 no teams (E18-S6) | larsal-server built without `teams` | `POST /v1/groups` with a `create` of kind `team`; `cargo tree -p larsal-server` | 403 and no group row; Larsal shows `MSG-GROUP-NO-TEAMS`; no larsal-server-teams in the tree |
 | T20 SHR-03.9 invite pin | D has not pinned the server; the invite's fingerprint; a test server with another certificate at the same address | D pastes the invite | Pinned with no question when equal; with the other certificate `MSG-SYNC-CERT-CHANGED`, nothing added and no request sent |
 | T21 SHR-03.13 read-only words (E18-S7) | R1 on W | Open W; read the members page | Editing is off; `MSG-GROUP-READ-ONLY` on the page and the badge |
 | T22 SHR-03.14 names | A invites D as "Dana" | After the join, read V's custom data on B; search the server's rows and every request (test proxy) | `app.member-name.<D's id>` = "Dana" in V; "Dana" nowhere on the server or in any request in plain |
@@ -211,5 +211,5 @@ Organizer A, Members B and C of family group G1 with vault V; invitee D; an in-p
 - spec/research/sync-server.md P9, P10, P11, P19 and sections 5 (invites that expire after five days; "Only a current owner can invite new owners"; collection levels View, Edit and Manage, and hidden levels that "limit but don't prevent access"; a server that rejects read-only uploads; families of 6), 6 (the ETH paper's BW01, LP07 and DL02 and the fixes of section 5.1) and 7 (ZRTP's one guess).
 - Scarlata, Torrisi, Backendal, Paterson, USENIX Security 2026, section 5.1 (public key authentication; ciphertext authentication): <https://www.usenix.org/system/files/conference/usenixsecurity26/sec26_prepub_scarlata.pdf>.
 - RFC 6189 (ZRTP), section 4.4.1.1 (commit first; one guess): <https://www.rfc-editor.org/rfc/rfc6189.html>. RFC 4648 (base32): <https://www.rfc-editor.org/rfc/rfc4648.html>. RFC 9110 (If-Match, 412): <https://www.rfc-editor.org/rfc/rfc9110.html>.
-- App's own cards: SYN-01, SYN-04.2, SYN-05, SYN-06, FMT-14, MOD-11.18, CRY-04.
+- Larsal's own cards: SYN-01, SYN-04.2, SYN-05, SYN-06, FMT-14, MOD-11.18, CRY-04.
 - Written by E18-S1 (2026-11-01).

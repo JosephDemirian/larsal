@@ -6,7 +6,7 @@ Parity rows: SD-03, SD-05, SI-04, SI-06
 
 ## What it does
 
-Groups form a tree that holds the entries of a vault. This card says what a group holds in App's model (app-model `group.rs`), the rules for the root group, how the auto-type, search and browser switches and the auto-type sequence are inherited down the tree, how groups and entries are moved, reordered and sorted, what a new group gets, and which changes move a group's times. FMT-11 owns how groups are written in the file (FMT-11.6 table) and how the tree is read (FMT-11.33 to FMT-11.37).
+Groups form a tree that holds the entries of a vault. This card says what a group holds in Larsal's model (larsal-model `group.rs`), the rules for the root group, how the auto-type, search and browser switches and the auto-type sequence are inherited down the tree, how groups and entries are moved, reordered and sorted, what a new group gets, and which changes move a group's times. FMT-11 owns how groups are written in the file (FMT-11.6 table) and how the tree is read (FMT-11.33 to FMT-11.37).
 
 Words used in this card (and as in MOD-01): **now**, **change batch**, **live entry**. **Inherit**, **On**, **Off** are the three values of a group switch; in the file they are `null`, `true` and `false` (FMT-11.9). The **subtree** of a group is the group and every group below it at any depth. **Same vault** means both groups belong to one open vault.
 
@@ -16,7 +16,7 @@ Neighbor cards: MOD-01 (entries), MOD-04 (recycle bin, delete, restore), MOD-06 
 
 Every group property, its model type, what a new group gets, and who changes it. The last column points to the row of the FMT-11.6 table.
 
-| # | Property | Model type | New group (App) | Changed by | FMT-11.6 row |
+| # | Property | Model type | New group (Larsal) | Changed by | FMT-11.6 row |
 |---|---|---|---|---|---|
 | 1 | Id | 16 bytes | random RFC 4122 version 4 UUID, unique among groups (as MOD-01.12) | nobody after creation | 1 |
 | 2 | Name | text | as typed, may be empty | user | 2 |
@@ -35,13 +35,13 @@ Every group property, its model type, what a new group gets, and who changes it.
 | 15 | Child groups | ordered list of groups | none | MOD-02.20, MOD-02.26 | 16 |
 | 16 | Kept unknown elements | FMT-11.45 | none | nobody | none |
 
-The reference also keeps a merge mode per group in memory only. It is never stored and is not part of App's group (MOD-11).
+The reference also keeps a merge mode per group in memory only. It is never stored and is not part of Larsal's group (MOD-11).
 
 ## Rules
 
 ### The tree
 
-MOD-02.1 **Shape.** A vault has exactly one root group. Every other group has exactly one parent group. No group is inside itself (app-model `invariants.rs`; reading: FMT-11.36). Group ids are unique among groups; entry ids are a separate space (FMT-11.33). The order of child groups and the order of entries inside a group are stored orders: they survive open and save, and screens that show "stored order" show them.
+MOD-02.1 **Shape.** A vault has exactly one root group. Every other group has exactly one parent group. No group is inside itself (larsal-model `invariants.rs`; reading: FMT-11.36). Group ids are unique among groups; entry ids are a separate space (FMT-11.33). The order of child groups and the order of entries inside a group are stored orders: they survive open and save, and screens that show "stored order" show them.
 
 MOD-02.2 **Root group.**
 - It is made with the vault. Its name is set by APP-07 (the reference's new vault wizard uses its UI word for "Root"; vaults made by its command line tool get its UI word for "Passwords").
@@ -49,23 +49,23 @@ MOD-02.2 **Root group.**
 - Inherit on the root resolves to On for both switches (MOD-02.13, MOD-02.14); a missing browser option on the root resolves to off (MOD-02.17).
 - Its previous parent group is always none. It may hold entries. The recycle bin, when one exists, is made as its child (MOD-04).
 
-MOD-02.3 **Name and notes.** A name is any text: empty allowed, no trimming, duplicate names among siblings allowed, `/` allowed (the command line tool's paths then become ambiguous: INT-10). The group edit screen's name box is single-line: in App, each line break in typed or pasted text becomes one space, the rule of MOD-01.5 (the reference's single-line box was not run with pasted line breaks: check with Verify). Notes are multi-line text kept exactly. Names and notes from files are kept exactly.
+MOD-02.3 **Name and notes.** A name is any text: empty allowed, no trimming, duplicate names among siblings allowed, `/` allowed (the command line tool's paths then become ambiguous: INT-10). The group edit screen's name box is single-line: in Larsal, each line break in typed or pasted text becomes one space, the rule of MOD-01.5 (the reference's single-line box was not run with pasted line breaks: check with Verify). Notes are multi-line text kept exactly. Names and notes from files are kept exactly.
 
 MOD-02.4 **Icon.** A standard icon number or a custom icon (MOD-06); 48 for a new group (MOD-06.2). "Apply to children" is MOD-06.13.
 
-MOD-02.5 **Expanded.** View state stored in the file: whether the sidebar shows the group's children. It is set when the user expands or collapses the group in the sidebar. App's sidebar opens each group as this flag says. APP-05 decides when such a view-state change is saved.
+MOD-02.5 **Expanded.** View state stored in the file: whether the sidebar shows the group's children. It is set when the user expands or collapses the group in the sidebar. Larsal's sidebar opens each group as this flag says. APP-05 decides when such a view-state change is saved.
 
 MOD-02.6 **Default auto-type sequence.** Empty means "inherit" (MOD-02.15). On the group edit screen the user picks "inherit" (the group stores empty text) or "custom", whose text box starts with the group's effective sequence (MOD-02.15); saving "custom" stores the text as typed, and an empty custom text is stored as empty, which means inherit.
 
 MOD-02.7 **Switches.** The auto-type switch and the search switch each hold Inherit, On or Off; a new group has Inherit for both. The edit screen shows Inherit together with the value it currently resolves to from the parent (for example "Inherit (On)"). The recycle bin is made with both switches Off (MOD-04).
 
-MOD-02.8 **Group tags.** A group carries a tags text from the file, kept raw (FMT-11.27). Nothing in the reference shows, edits, searches, lists or merges it. App does not show, edit, search or list it either: group tags are not in the vault tag list (MOD-07.5) and not matched by tag search (FEA-01). A merge copies it with the group's other own fields (MOD-11.10, lead decision D-11-3).
+MOD-02.8 **Group tags.** A group carries a tags text from the file, kept raw (FMT-11.27). Nothing in the reference shows, edits, searches, lists or merges it. Larsal does not show, edit, search or list it either: group tags are not in the vault tag list (MOD-07.5) and not matched by tag search (FEA-01). A merge copies it with the group's other own fields (MOD-11.10, lead decision D-11-3).
 
 MOD-02.9 **Custom data.** Plug-in data (FMT-14): browser options (MOD-02.17, INT-02) and shared-group settings (INT-08). The group edit screen's properties page lists the items and lets the user delete selected items after a confirmation; the user never adds or changes one there. Deleting is a change (MOD-02.29).
 
 MOD-02.10 **Previous parent group.** Set only by moves (MOD-02.20), by the recycle bin (MOD-04) and by merge moves (MOD-11.8). No screen edits it.
 
-MOD-02.11 **Last top visible entry.** Carried only: the reference sets it only when reading a file, and App does the same. A reference that finds no entry resolves to none and is written as the zero id (FMT-11.37).
+MOD-02.11 **Last top visible entry.** Carried only: the reference sets it only when reading a file, and Larsal does the same. A reference that finds no entry resolves to none and is written as the zero id (FMT-11.37).
 
 MOD-02.12 **Group expiry.** A group has its own expires flag and expiry time, set on the group edit screen. An expired group is shown struck through and with the expired badge (MOD-06.16, MOD-09.14). It does not make its entries expired and does not hide them.
 
@@ -95,7 +95,7 @@ MOD-02.18 **Recycled and shared state.** An entry or group is "recycled" when it
 
 ### Moving and ordering
 
-MOD-02.19 **Move operations.** App's core offers: move a group (to a target group and a final position), move entries (to a target group), reorder an entry inside its group, sort groups, and cross-vault move or copy. Screens reach them by drag and drop and by menus (APP-08). Every move is one change batch.
+MOD-02.19 **Move operations.** Larsal's core offers: move a group (to a target group and a final position), move entries (to a target group), reorder an entry inside its group, sort groups, and cross-vault move or copy. Screens reach them by drag and drop and by menus (APP-08). Every move is one change batch.
 
 MOD-02.20 **Moving a group inside the vault.**
 - Refused: moving the root; a target that is the group itself or lies in its subtree. A refused move changes nothing.
@@ -108,7 +108,7 @@ MOD-02.21 **Moving entries inside the vault.**
 - Target: any group of the same vault. An entry is always put at the end of the target's entries (the reference refuses a drop of entries at a row position). Several entries are moved in the order they are given.
 - Moving an entry into the group it is in changes nothing.
 - Effects per moved entry: previous parent group = the old group; location changed = now (MOD-01.29); last modification and last access time = now when the previous parent group changed, which is every move except one where it already named the old group (MOD-01.26, MOD-03.5). Group times: MOD-02.25.
-- No history item is made by moves (MOD-01.32). The reference's command line move makes one; App's makes none (MOD-03.5, lead decision L03-1).
+- No history item is made by moves (MOD-01.32). The reference's command line move makes one; Larsal's makes none (MOD-03.5, lead decision L03-1).
 
 MOD-02.22 **Moving or copying into another open vault.** The source item is copied, not moved, into the target vault:
 - A group: the group, its whole subtree and all entries with their history are copied with new ids for every group and entry; creation, modification, last access and location changed of every copied group and live entry become now (expiry time and usage count are kept; history items keep their times and take their owner's new id). The copy goes to the given position.
@@ -124,7 +124,7 @@ MOD-02.24 **Reordering entries.** Move up and move down swap the selected entry 
 
 MOD-02.25 **What moves a group's modification time.** The last access time always moves with it, to the same value.
 
-| Event | Reference (from the source; rows marked observed were seen with the installed command line tool) | App (lead decision D-02-1, recommended) |
+| Event | Reference (from the source; rows marked observed were seen with the installed command line tool) | Larsal (lead decision D-02-1, recommended) |
 |---|---|---|
 | Own data changed (MOD-02.29) | yes | yes |
 | The group itself moved to another parent, or to another position among its siblings | yes | yes |
@@ -135,12 +135,12 @@ MOD-02.25 **What moves a group's modification time.** The last access time alway
 | A child group added, moved away or deleted | no (observed for add and for move to the recycle bin) | no |
 | An entry of the group edited | no | no |
 
-Why App differs: a merge (MOD-11) lets the group with the newer modification time win the group's name, notes, icon and expiry. When a view-state change or an entry joining a group makes the group look newer, a rename made earlier on another device is lost in the merge. App moves the time only for changes to the group itself (SD-03).
+Why Larsal differs: a merge (MOD-11) lets the group with the newer modification time win the group's name, notes, icon and expiry. When a view-state change or an entry joining a group makes the group look newer, a rename made earlier on another device is lost in the merge. Larsal moves the time only for changes to the group itself (SD-03).
 
 MOD-02.26 **Sorting groups.** "Sort A–Z" and "Sort Z–A" act on the selected group: its child groups, and the child groups of every group in its subtree, are put in order by name. Entries are never sorted in the model; sorting the entry list by a column changes the display only.
 - Comparison: compare the two names code point by code point after Unicode simple case folding; the first difference decides by the folded code point values; a name that is the start of the other comes first. There is no numeric order: `item10` comes before `item9`, `007` before `07x`. Z–A uses the reverse comparison.
-- Ties (names equal after folding, for example `Alpha` and `alpha`): App keeps their current relative order in both directions (stable sort). The reference's sort is not stable, so their order there is not defined.
-- Recycle bin: App puts it last among its siblings in both directions (lead decision D-02-2, recommended). The reference intends to keep it out of the name order, but its comparison only stops the bin from coming before others while still comparing other groups against the bin's name; the outcome depends on the order of comparisons (from the source, not run).
+- Ties (names equal after folding, for example `Alpha` and `alpha`): Larsal keeps their current relative order in both directions (stable sort). The reference's sort is not stable, so their order there is not defined.
+- Recycle bin: Larsal puts it last among its siblings in both directions (lead decision D-02-2, recommended). The reference intends to keep it out of the name order, but its comparison only stops the bin from coming before others while still comparing other groups against the bin's name; the outcome depends on the order of comparisons (from the source, not run).
 - Effects: the new orders are stored; the change is one change batch; no group's location changed time moves; modification times per MOD-02.25.
 
 ### New groups and group times
@@ -163,7 +163,7 @@ MOD-02.29 **Own data changes.** A real change of any of these sets the group's l
 | Drag group A onto itself or onto a group inside A | Refused; nothing changes. |
 | Move a group to the place it already has | No change; no time moves. |
 | Move the recycle bin under group G | Allowed; the bin stays the recycle bin (MOD-04). |
-| Two sibling groups both named `Mail` | Allowed; both kept; sort keeps their relative order (App). |
+| Two sibling groups both named `Mail` | Allowed; both kept; sort keeps their relative order (Larsal). |
 | Group named `a/b` | Allowed; command line paths are ambiguous (INT-10). |
 | Root group's switches Inherit | Search and auto-type resolve to On. |
 | Browser option value `True` (capital T) on a group | Resolves to off: only `true` means on (MOD-02.17). |
@@ -174,7 +174,7 @@ MOD-02.29 **Own data changes.** A real change of any of these sets the group's l
 
 ## Security notes
 
-- **No cycles (AT-A08).** The model must never hold a group inside itself. Moves check the subtree before they change anything (MOD-02.20); reading refuses such files (FMT-11.36). The reference relies on its screens for this; App's core checks it on every move command, because commands can be called with hostile arguments (AT-E03).
+- **No cycles (AT-A08).** The model must never hold a group inside itself. Moves check the subtree before they change anything (MOD-02.20); reading refuses such files (FMT-11.36). The reference relies on its screens for this; Larsal's core checks it on every move command, because commands can be called with hostile arguments (AT-E03).
 - **Auto-type off is inherited (SI-06).** An Off switch on a group blocks auto-type for every entry below it except under a descendant group set On (MOD-02.14). A wrong resolution would type secrets where the user turned typing off. INT-05 checks both the entry flag and this switch before typing.
 - **Browser options are inherited (SI-04).** "Hide entries" and the other options must resolve exactly as MOD-02.17 says, or entries could be offered to sites the user excluded. Only the exact value `true` turns an option on.
 - **Search off is not a protection.** Entries in a group with search Off still show in the tree and still reach the browser bridge; screens must not present the switch as hiding secrets.
@@ -192,7 +192,7 @@ Notation: t0 = 2026-10-25T10:00:00Z, t1 = 2026-10-25T10:05:00Z, t2 = 2026-10-25T
 | MOD-02.2 root refusals | Vault V | Delete R; drag R onto A; clone R | All three refused; vault unchanged. |
 | MOD-02.2 root editable | Vault V | Rename R to `Home`, set its search switch Off | Saved; R named `Home`; every group with Inherit below R resolves search Off. |
 | MOD-02.3 names | Vault V | Add two groups under R named `` (empty) and `A` | Both added; R has children A, B, ``, A (stored order: A, B, then the two new ones). |
-| MOD-02.3 line break | Group edit screen | Paste `Work` LF `Mail` as name, save | Name `Work Mail` (App). |
+| MOD-02.3 line break | Group edit screen | Paste `Work` LF `Mail` as name, save | Name `Work Mail` (Larsal). |
 | MOD-02.4 icon | Vault V | Add group N under A without touching the icon; then pick icon 12 for N and save | N icon 48; then 12. |
 | MOD-02.5 expanded stored | Group A expanded | Collapse A in the sidebar, save, reopen | A shown collapsed; A's IsExpanded false. |
 | MOD-02.6 sequence inherit | A with default sequence `{PASSWORD}{ENTER}` | Choose inherit on A's edit screen, save | A's default sequence empty. |
@@ -233,10 +233,10 @@ Notation: t0 = 2026-10-25T10:00:00Z, t1 = 2026-10-25T10:05:00Z, t2 = 2026-10-25T
 | MOD-02.22 cross-vault entry copy | Same vaults; E's previous parent group is B (moved earlier from B to A) | Copy E onto W's root | E stays in V with previous parent B; W gets a copy with a new id at the end of W's root entries; the copy's previous parent is none (LD-68). |
 | MOD-02.22 copy in same vault | Vault V | Option-drag E onto B | B gets a copy with a new id, Title unchanged (no suffix), history included; E unchanged in A. |
 | MOD-02.23 delete is a move | Vault V with recycle bin enabled, at t0 | At t1 delete group A1 | A1 under the recycle bin; A1 previous parent A; A1 location changed t1 (MOD-04 owns the rest). |
-| MOD-02.24 reorder entries | A's entries E, F (stored order shown), all times t0 | At t1 move F up | A's entries F, E; E and F times t0; App: A's times t0 (reference: A modification t1). |
+| MOD-02.24 reorder entries | A's entries E, F (stored order shown), all times t0 | At t1 move F up | A's entries F, E; E and F times t0; Larsal: A's times t0 (reference: A modification t1). |
 | MOD-02.24 sorted view | Entry list sorted by title | Look at the move up and move down actions | Not offered. |
-| MOD-02.25 entry add | Vault V at t0 | At t1 commit a new entry in A | App: A's modification time t0. Reference: t1. |
-| MOD-02.25 expand | A collapsed at t0 | At t1 expand A | App: A's modification time t0. Reference: t1. |
+| MOD-02.25 entry add | Vault V at t0 | At t1 commit a new entry in A | Larsal: A's modification time t0. Reference: t1. |
+| MOD-02.25 expand | A collapsed at t0 | At t1 expand A | Larsal: A's modification time t0. Reference: t1. |
 | MOD-02.25 child group added | Vault V at t0 | At t1 add group N under A | A's modification time t0 in both. |
 | MOD-02.26 sort | Children of R named, in stored order: `beta`, `Alpha`, `item10`, `item9`, `007`, `07x`, `_misc`, `Zeta`, `alpha` | Sort A–Z on R | Order `007`, `07x`, `_misc`, `Alpha`, `alpha`, `beta`, `item10`, `item9`, `Zeta`. |
 | MOD-02.26 reverse | Same start | Sort Z–A on R | Order `Zeta`, `item9`, `item10`, `beta`, `Alpha`, `alpha`, `_misc`, `07x`, `007`. |

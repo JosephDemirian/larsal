@@ -1,6 +1,6 @@
 # Design parity: section `generator`
 
-Date 2026-10-28. Reference: design/option-a/mockup.html (reference images exported again this run). App: offscreen snapshots of SnapshotTests.
+Date 2026-10-28. Reference: design/option-a/mockup.html (reference images exported again this run). Larsal: offscreen snapshots of SnapshotTests.
 
 **Result: 3 of 3 built frames PASS** (3 frames in the section; 0 belong to later stories).
 
@@ -51,23 +51,23 @@ Run from the project root on 2026-10-28, in this order. No window was opened: Ch
 1. `node design/option-a/tools/export-reference.mjs` (reference images and manifest from the current mockup)
    → `light: 91 frames`, `dark: 91 frames`, `manifest.json: 91 frames` (5 min 23 s).
 2. `npm install --prefix /tmp/parity-tools pixelmatch pngjs` → `added 2 packages`; versions pixelmatch 8.0.0, pngjs 7.0.0 (outside the project).
-3. `scripts/build-core.sh` → `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift`, exit 0.
-4. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath target/xcode test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` (the check.sh G2 test step)
-   → `✔ Suite SnapshotTests passed`, `✔ Suite ParityLockTests passed`, `✔ Suite ParityMainTests passed`, `✔ Suite ParityStatesTests passed`, `✔ Suite ScreenTests passed`, `✔ Suite ParityFontTests passed`, `✔ Test run with 41 tests in 10 suites passed after 30.276 seconds`, `** TEST SUCCEEDED **`. SnapshotTests wrote app-shots/<theme>/<frame-id>.png and, new for this check, the accessibility tree next to each (`<frame-id>.ax.json`, test only). The Parity suites are new (test only, 27 tests): they press the mockup's controls through the accessibility tree. Log: target/parity/behaviour.log.
-5. `swift format lint --strict macos/AppTests/*.swift` and `swiftlint lint --strict --quiet AppTests/` (in macos/) → no findings.
+3. `scripts/build-core.sh` → `build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift`, exit 0.
+4. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath target/xcode test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` (the check.sh G2 test step)
+   → `✔ Suite SnapshotTests passed`, `✔ Suite ParityLockTests passed`, `✔ Suite ParityMainTests passed`, `✔ Suite ParityStatesTests passed`, `✔ Suite ScreenTests passed`, `✔ Suite ParityFontTests passed`, `✔ Test run with 41 tests in 10 suites passed after 30.276 seconds`, `** TEST SUCCEEDED **`. SnapshotTests wrote larsal-shots/<theme>/<frame-id>.png and, new for this check, the accessibility tree next to each (`<frame-id>.ax.json`, test only). The Parity suites are new (test only, 27 tests): they press the mockup's controls through the accessibility tree. Log: target/parity/behaviour.log.
+5. `swift format lint --strict macos/LarsalTests/*.swift` and `swiftlint lint --strict --quiet LarsalTests/` (in macos/) → no findings.
 6. `node design/parity/tools/mockup-dom.mjs lock,main,states` (mockup boxes, text runs, fonts, glyphs, controls; headless) → `light: 21 frames, 2586 text runs`, `dark: 21 frames, 2586 text runs`.
-7. `swift design/parity/tools/ocr.swift app-shots/light/*.png app-shots/dark/*.png` (on-device text recognition, only for strings kept out of the accessibility tree) → 36 images read.
+7. `swift design/parity/tools/ocr.swift larsal-shots/light/*.png larsal-shots/dark/*.png` (on-device text recognition, only for strings kept out of the accessibility tree) → 36 images read.
 8. `node design/parity/tools/compare.mjs <section>` (pixelmatch threshold 0.1, includeAA false; text, tokens, geometry, behaviour; writes this report).
 
 Measured looks (LD-169): `ParityFontTests` (new, test only). "Font check" reads the large code's font runs from the accessibility tree and compares the drawn glyphs of the large code and a row code with the same string set by Core Text in IBM Plex Mono 500 and in the system face. "Focus check" renders the focused row offscreen in light and dark and reads the outline back. A probe in /tmp showed that the font runs in the tree name the requested font even where the glyphs drawn differ, so the glyph comparison is the deciding check.
 
 E6-S1 re-run (Builder, 2026-10-28, sections lock, main and states; states-copied added): steps 1, 2 and 6 were not repeated (mockup.js and app.css are older than the reference images and target/parity/dom-*.json).
-3. `scripts/build-core.sh` → `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift` (bindings with `copyField`, `clearClipboard`, `Copied`).
+3. `scripts/build-core.sh` → `build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift` (bindings with `copyField`, `clearClipboard`, `Copied`).
 4. The check.sh G2 test step as above → `✔ Suite SnapshotTests passed`, `✔ Suite ParityStatesTests passed`, `✔ Test run with 45 tests in 10 suites passed after 32.980 seconds`, `** TEST SUCCEEDED **`. New: the states-copied snapshot and three "Parity states-copied" tests. The offscreen windows are now pinned to sRGB: on 2026-10-28 the Mac's screen gave Display P3 renders (accent #1b6c80 read as 53,107,126), which failed the Focus check and would shift every colour; the reference images are sRGB. Log: target/parity/behaviour.log.
-7. `swift design/parity/tools/ocr.swift app-shots/light/*.png app-shots/dark/*.png` → 38 images read.
+7. `swift design/parity/tools/ocr.swift larsal-shots/light/*.png larsal-shots/dark/*.png` → 38 images read.
 8. `node design/parity/tools/compare.mjs lock` → `lock: 4/4 PASS`; `node design/parity/tools/compare.mjs main` → `main: 2/2 PASS`; `node design/parity/tools/compare.mjs states` → `states: 13/13 PASS` (states-copied light 1.57 %, dark 1.6 %).
 
-E6-S1 second pass (Builder, 2026-10-28, LD-181): app-ffi `copy_code` and `copy_fingerprint`; Copy One-Time Code (⌘T), the code row's Copy and Copy fingerprint work; the unlock form's shown password is an AppKit field whose own field editor has no Copy or Cut (APP-03.19).
+E6-S1 second pass (Builder, 2026-10-28, LD-181): larsal-ffi `copy_code` and `copy_fingerprint`; Copy One-Time Code (⌘T), the code row's Copy and Copy fingerprint work; the unlock form's shown password is an AppKit field whose own field editor has no Copy or Cut (APP-03.19).
 3. `scripts/build-core.sh` → bindings with `copyCode` and `copyFingerprint`.
 4. The check.sh G2 test step → `✔ Test run with 47 tests in 10 suites passed after 30.581 seconds`, `** TEST SUCCEEDED **`; general pasteboard change count 10124 before and after the run. Log: target/parity/behaviour.log.
 7. OCR as above → 38 images read.
@@ -88,18 +88,18 @@ generator-passphrase                           PASS                   L 1.53% (0
 
 ## Verify run for E5-S6 (Verify agent, 2026-10-28)
 
-The Verify agent re-ran this section from scratch. It did not build these screens. It worked in a private copy of the tree (`rsync -a --exclude /target --exclude /fuzz/target` to /tmp/e5s6v-copy at 12:48, `target` linked to /tmp/e5s6v-target, `-derivedDataPath /tmp/e5s6v-dd`). The copy was deleted afterwards. The generator code it checked (`crates/app-ffi/src/generator.rs`, `session.rs`, `app-core/src/generator/mod.rs`, `macos/App/Generator.swift`, `GeneratorPanel.swift`) has the same bytes as the shared tree at 13:11 (checked with `cmp`). No window was opened: Chrome ran headless and the snapshots rendered offscreen.
+The Verify agent re-ran this section from scratch. It did not build these screens. It worked in a private copy of the tree (`rsync -a --exclude /target --exclude /fuzz/target` to /tmp/e5s6v-copy at 12:48, `target` linked to /tmp/e5s6v-target, `-derivedDataPath /tmp/e5s6v-dd`). The copy was deleted afterwards. The generator code it checked (`crates/larsal-ffi/src/generator.rs`, `session.rs`, `larsal-core/src/generator/mod.rs`, `macos/Larsal/Generator.swift`, `GeneratorPanel.swift`) has the same bytes as the shared tree at 13:11 (checked with `cmp`). No window was opened: Chrome ran headless and the snapshots rendered offscreen.
 
 1. `node design/option-a/tools/export-reference.mjs` → `light: 91 frames`, `dark: 91 frames`, `manifest.json: 91 frames`, exit 0, 51 s.
    - The manifest is byte-equal to the tree's.
    - generator-password and generator-passphrase are byte-equal to the tree's, light and dark.
    - generator-generator-in-the-window differs in 13 pixels of 4,329,600, with pixelmatch 0 (0.000 %). That is font rasterisation noise.
-2. `scripts/build-core.sh` → `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift`, 56 s.
+2. `scripts/build-core.sh` → `build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift`, 56 s.
 3. `node design/parity/tools/mockup-dom.mjs generator` → `light: 3 frames, 280 text runs`, `dark: 3 frames, 280 text runs`.
-4. `xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath /tmp/e5s6v-dd test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES > target/parity/behaviour.log` → `✔ Suite GeneratorSnapshotTests passed`, `✔ Suite ParityGeneratorTests passed`, `✔ Test run with 110 tests in 18 suites passed after 73.104 seconds`, `** TEST SUCCEEDED **`.
+4. `xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath /tmp/e5s6v-dd test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES > target/parity/behaviour.log` → `✔ Suite GeneratorSnapshotTests passed`, `✔ Suite ParityGeneratorTests passed`, `✔ Test run with 110 tests in 18 suites passed after 73.104 seconds`, `** TEST SUCCEEDED **`.
    - The first try stopped on a compile error in ParityEditorPagesTests.swift:316, which was unfinished E5-S5 work. The fixed file from the tree was copied in, and the run then passed.
-5. Final generator run: `xcodebuild … test -only-testing:AppTests/GeneratorSnapshotTests -only-testing:AppTests/ParityGeneratorTests -only-testing:AppTests/VerifyE5S6Tests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` → `✔ Test run with 13 tests in 3 suites passed`, `** TEST SUCCEEDED **`. The general pasteboard change count was 10145 before and 10145 after. This run wrote the snapshots checked here.
-6. `swift design/parity/tools/ocr.swift app-shots/light/generator-*.png app-shots/dark/generator-*.png` → 6 images read.
+5. Final generator run: `xcodebuild … test -only-testing:LarsalTests/GeneratorSnapshotTests -only-testing:LarsalTests/ParityGeneratorTests -only-testing:LarsalTests/VerifyE5S6Tests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` → `✔ Test run with 13 tests in 3 suites passed`, `** TEST SUCCEEDED **`. The general pasteboard change count was 10145 before and 10145 after. This run wrote the snapshots checked here.
+6. `swift design/parity/tools/ocr.swift larsal-shots/light/generator-*.png larsal-shots/dark/generator-*.png` → 6 images read.
 7. `node design/parity/tools/compare.mjs generator` → the result printed above: 3/3 PASS. Static tokens 45 of 45. Contrast: 42 pairs, lowest 4.87:1.
 
 Checked by eye on the images:

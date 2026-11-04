@@ -1,0 +1,779 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            48,
+            55,
+            165,
+            18
+          ],
+          "label" : "Search settings",
+          "placeholder" : "Search settings…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            10,
+            94,
+            212,
+            32
+          ],
+          "label" : "General",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            128,
+            212,
+            32
+          ],
+          "label" : "Security",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            10,
+            162,
+            212,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            196,
+            212,
+            32
+          ],
+          "label" : "Browser Integration",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            230,
+            212,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            264,
+            212,
+            32
+          ],
+          "label" : "Shared Groups",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            298,
+            212,
+            32
+          ],
+          "label" : "Shortcuts",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        10,
+        16,
+        212,
+        314
+      ],
+      "label" : "Settings pages",
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        253,
+        27,
+        16,
+        16
+      ],
+      "help" : "Back",
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "disabled" : true,
+      "frame" : [
+        277,
+        27,
+        16,
+        16
+      ],
+      "help" : "Forward",
+      "label" : "Forward",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        301,
+        25.5,
+        58,
+        19
+      ],
+      "label" : "Security",
+      "role" : "AXHeading"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            259,
+            81.5,
+            56.5,
+            17
+          ],
+          "label" : "Timeouts",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                118,
+                152.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Clear the clipboard after"
+            },
+            {
+              "frame" : [
+                271,
+                138.5,
+                318.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Copied passwords and codes disappear from the clipboard."
+            },
+            {
+              "children" : [
+                {
+                  "frame" : [
+                    724,
+                    127,
+                    25,
+                    17
+                  ],
+                  "role" : "AXStaticText",
+                  "value" : "30 s"
+                },
+                {
+                  "frame" : [
+                    759,
+                    120.5,
+                    26,
+                    30
+                  ],
+                  "label" : "Less",
+                  "role" : "AXButton"
+                },
+                {
+                  "frame" : [
+                    785,
+                    120.5,
+                    26,
+                    30
+                  ],
+                  "label" : "More",
+                  "role" : "AXButton"
+                }
+              ],
+              "frame" : [
+                707,
+                120.5,
+                104,
+                30
+              ],
+              "role" : "AXGroup"
+            },
+            {
+              "frame" : [
+                819,
+                125.5,
+                34,
+                20
+              ],
+              "label" : "Clipboard",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            118,
+            582,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                181,
+                128,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lock after no use for"
+            },
+            {
+              "children" : [
+                {
+                  "frame" : [
+                    716,
+                    181.5,
+                    33,
+                    17
+                  ],
+                  "role" : "AXStaticText",
+                  "value" : "5 min"
+                },
+                {
+                  "frame" : [
+                    759,
+                    175,
+                    26,
+                    30
+                  ],
+                  "label" : "Less",
+                  "role" : "AXButton"
+                },
+                {
+                  "frame" : [
+                    785,
+                    175,
+                    26,
+                    30
+                  ],
+                  "label" : "More",
+                  "role" : "AXButton"
+                }
+              ],
+              "frame" : [
+                706,
+                175,
+                105,
+                30
+              ],
+              "role" : "AXGroup"
+            },
+            {
+              "frame" : [
+                819,
+                180,
+                34,
+                20
+              ],
+              "label" : "Idle lock",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            175,
+            582,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                232,
+                135.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Clear the search after"
+            },
+            {
+              "children" : [
+                {
+                  "disabled" : true,
+                  "frame" : [
+                    716,
+                    232.5,
+                    33,
+                    17
+                  ],
+                  "role" : "AXStaticText",
+                  "value" : "5 min"
+                },
+                {
+                  "disabled" : true,
+                  "frame" : [
+                    759,
+                    226,
+                    26,
+                    30
+                  ],
+                  "label" : "Less",
+                  "role" : "AXButton"
+                },
+                {
+                  "disabled" : true,
+                  "frame" : [
+                    785,
+                    226,
+                    26,
+                    30
+                  ],
+                  "label" : "More",
+                  "role" : "AXButton"
+                }
+              ],
+              "frame" : [
+                706,
+                226,
+                105,
+                30
+              ],
+              "role" : "AXGroup"
+            },
+            {
+              "frame" : [
+                819,
+                231,
+                34,
+                20
+              ],
+              "label" : "Clear search",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            226,
+            582,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            290.5,
+            46.5,
+            17
+          ],
+          "label" : "Locking",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                327,
+                133.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Unlock with Touch ID"
+            },
+            {
+              "frame" : [
+                271,
+                347.5,
+                444.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Your vault key stays in the Secure Enclave keychain until Larsal quits or 8 hours pass."
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                819,
+                334.5,
+                34,
+                20
+              ],
+              "help" : "Touch ID comes with quick unlock (E6-S3).",
+              "label" : "Touch ID",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            327,
+            582,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                387.5,
+                172.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lock when the screen locks"
+            },
+            {
+              "frame" : [
+                819,
+                386.5,
+                34,
+                20
+              ],
+              "label" : "Screen lock",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            386.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                433.5,
+                168,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lock when you switch user"
+            },
+            {
+              "frame" : [
+                819,
+                432.5,
+                34,
+                20
+              ],
+              "label" : "User switch",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            432.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                479.5,
+                225,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lock when the window is minimized"
+            },
+            {
+              "frame" : [
+                819,
+                478.5,
+                34,
+                20
+              ],
+              "label" : "Minimize",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            478.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            535.5,
+            99,
+            17
+          ],
+          "label" : "Showing secrets",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                575,
+                179.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Hide passwords in the editor"
+            },
+            {
+              "frame" : [
+                819,
+                574,
+                34,
+                20
+              ],
+              "label" : "Editor",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            574,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                621.5,
+                212.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Hide passwords in the detail pane"
+            },
+            {
+              "frame" : [
+                819,
+                620.5,
+                34,
+                20
+              ],
+              "label" : "Preview",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            620.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                667.5,
+                243,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Hide one-time codes in the detail pane"
+            },
+            {
+              "frame" : [
+                819,
+                666.5,
+                34,
+                20
+              ],
+              "label" : "Codes",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            666.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                713.5,
+                68,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Hide notes"
+            },
+            {
+              "frame" : [
+                819,
+                712.5,
+                34,
+                20
+              ],
+              "label" : "Notes",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            712.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                759.5,
+                200.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Show dots for empty passwords"
+            },
+            {
+              "frame" : [
+                819,
+                758.5,
+                34,
+                20
+              ],
+              "label" : "Dots",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            758.5,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            815.5,
+            44.5,
+            17
+          ],
+          "label" : "Privacy",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                852,
+                232,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Let other apps record Larsal's windows"
+            },
+            {
+              "frame" : [
+                271,
+                872.5,
+                415,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Screen sharing and screenshots show Larsal as a blank window while this is off."
+            },
+            {
+              "frame" : [
+                819,
+                859.5,
+                34,
+                20
+              ],
+              "label" : "Capture",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            271,
+            852,
+            582,
+            35.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        233,
+        61,
+        658,
+        610
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    680
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

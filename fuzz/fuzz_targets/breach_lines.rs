@@ -4,7 +4,7 @@
 //! and every record the file reader accepts took at least 42 bytes.
 #![no_main]
 
-use app_core::breach::{FileError, HashFile, MAX_BODY, parse_range};
+use larsal_core::breach::{FileError, HashFile, MAX_BODY, parse_range};
 use libfuzzer_sys::fuzz_target;
 
 /// The suffix of `password` (FEA-06.3).

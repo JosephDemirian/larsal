@@ -52,7 +52,7 @@ gate() {
 "
 }
 
-# Unsafe count of our own crates. Only app-platform and app-hwkey may have any;
+# Unsafe count of our own crates. Only larsal-platform and larsal-hwkey may have any;
 # every other crate must also carry #![forbid(unsafe_code)] (Rust rule 2).
 # Limits: cargo-geiger refuses the virtual root manifest and wants an absolute
 # --manifest-path, so it runs once per crate. It reads source, so unsafe made by
@@ -76,8 +76,8 @@ unsafe_count() {
       jq -r --arg n "$name" '.packages[] | select(.package.id.name == $n) | .unsafety |
         "\([.used, .unused | .[].unsafe_] | add) \(.forbids_unsafe)"')
     case "$name:$n:$f" in
-      app-platform:[0-9]*:* | app-hwkey:[0-9]*:* | *:0:true) echo "$name: $n unsafe" ;;
-      *:[0-9]*:*) echo "$name: $n unsafe, forbids unsafe: $f (outside app-platform and app-hwkey: need 0 and #![forbid(unsafe_code)])"; return 1 ;;
+      larsal-platform:[0-9]*:* | larsal-hwkey:[0-9]*:* | *:0:true) echo "$name: $n unsafe" ;;
+      *:[0-9]*:*) echo "$name: $n unsafe, forbids unsafe: $f (outside larsal-platform and larsal-hwkey: need 0 and #![forbid(unsafe_code)])"; return 1 ;;
       *) echo "$name: cargo-geiger failed (stale build files? run cargo clean)"; return 1 ;;
     esac
     total=$((total + n)) crates=$((crates + 1))
@@ -87,7 +87,7 @@ unsafe_count() {
 }
 
 # Swift format and lint (Swift rule 2), all of macos/. The generated bindings
-# in macos/AppCore/Generated are skipped: swift format does not follow that
+# in macos/LarsalCore/Generated are skipped: swift format does not follow that
 # link, and .swiftlint.yml excludes it.
 swift_format() { swift format lint --strict --recursive macos; }
 swiftlint_lint() {
@@ -101,10 +101,10 @@ g1() {
   run fmt cargo fmt --all -- --check
   run fmt-fuzz cargo fmt --manifest-path fuzz/Cargo.toml -- --check
   run clippy cargo clippy --offline --locked --workspace --all-targets -- -D warnings
-  run clippy-app09 cargo clippy --offline --locked -p app-ffi --test app09 -- -D warnings  # test = false: not in --all-targets
-  run clippy-net cargo clippy --offline --locked -p app-platform --features net --all-targets -- -D warnings  # off by default (E6-S7)
+  run clippy-app09 cargo clippy --offline --locked -p larsal-ffi --test app09 -- -D warnings  # test = false: not in --all-targets
+  run clippy-net cargo clippy --offline --locked -p larsal-platform --features net --all-targets -- -D warnings  # off by default (E6-S7)
   run vendor scripts/check-vendor.sh  # E0-S7: only this tree is read; no stub is built for a Mac
-  run server-blind scripts/check-server-blind.sh  # P16 (E16-S3): app-server never links the vault reader
+  run server-blind scripts/check-server-blind.sh  # P16 (E16-S3): larsal-server never links the vault reader
   run names-self-test scripts/check-names.sh --self-test  # a broken guard fails G1
   run names scripts/check-names.sh
   run unsafe unsafe_count
@@ -115,25 +115,25 @@ g1() {
 # release build; some run only there.
 g2() {
   run test cargo test --offline --locked --workspace
-  run test-net cargo test --offline --locked -p app-platform --features net  # the opt-in network client, off by default (E6-S7)
-  run test-release cargo test --offline --locked --release -p app-core --test fea01 --test fea05 --test fea06 --test fea07 --test mod08 --test mod11
-  run test-release-browser cargo test --offline --locked --release -p app-browser --test int03  # INT-03.17's timed bounds (F-244, F-245)
+  run test-net cargo test --offline --locked -p larsal-platform --features net  # the opt-in network client, off by default (E6-S7)
+  run test-release cargo test --offline --locked --release -p larsal-core --test fea01 --test fea05 --test fea06 --test fea07 --test mod08 --test mod11
+  run test-release-browser cargo test --offline --locked --release -p larsal-browser --test int03  # INT-03.17's timed bounds (F-244, F-245)
   # The Mac app: the Rust core as a Swift package, then the unit tests, then
-  # the APP-09 cases that run the built App.app (each with its own instance
+  # the APP-09 cases that run the built Larsal.app (each with its own instance
   # folder). The UI tests need a logged-in screen and run in Mac QA (G8).
   run build-core scripts/build-core.sh &&
-    run xcode-test xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS \
-      -derivedDataPath target/xcode test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES &&
-    run app09 cargo test --offline --locked -p app-ffi --test app09
+    run xcode-test xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS \
+      -derivedDataPath target/xcode test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES &&
+    run app09 cargo test --offline --locked -p larsal-ffi --test app09
 }
 # F-114: the fuzz workspace has the same policy; its run reads deny.toml
-# without the `app-platform/net` feature line, which only the root has.
+# without the `larsal-platform/net` feature line, which only the root has.
 deny_fuzz() {
-  sed '/^features = \["app-platform\/net"\]$/d' deny.toml >"$LOGS/deny-fuzz.toml"
-  cargo deny --locked --manifest-path fuzz/Cargo.toml --config "$LOGS/deny-fuzz.toml" check
+  sed '/^features = \["larsal-platform\/net"\]$/d' deny.toml >"$LOGS/deny-fuzz.toml"
+  cargo deny --offline --locked --manifest-path fuzz/Cargo.toml --config "$LOGS/deny-fuzz.toml" check
 }
 deny() {
-  run deny cargo deny --locked check
+  run deny cargo deny --offline --locked check
   run deny-fuzz deny_fuzz
 }
 # F-113: cargo audit matches packages by name, version and crates.io source
@@ -154,7 +154,7 @@ audit_copies() {
   cargo audit -n -f "$lock"
 }
 audit() {
-  run audit cargo audit
+  run audit cargo audit -n
   run audit-fuzz cargo audit -n -f fuzz/Cargo.lock  # F-114
   run audit-copies audit_copies                       # F-113
 }
@@ -162,8 +162,21 @@ audit() {
 fuzz_list() {
   cargo +nightly fuzz list 2>"$LOGS/fuzz-list.err" || { cat "$LOGS/fuzz-list.err" >&2; return 1; }
 }
+# Wait in the parent so every worker failure reaches the gate summary.
+fuzz_wait() {
+  local pid step
+  while [ "$#" -gt 0 ]; do
+    pid=$1 step=$2; shift 2
+    if ! wait "$pid"; then
+      bad="$bad $step"
+      echo "--- $step FAILED. Last lines of $LOGS/$step.log:"
+      tail -n 30 "$LOGS/$step.log"
+    fi
+  done
+}
 fuzz() {
   local t list=$LOGS/fuzz-list.log
+  local -a pending=()
   [ -f fuzz/Cargo.toml ] || { note="SKIP (no fuzz targets yet)"; return; }
   run fuzz-list fuzz_list || return
   [ -s "$list" ] || { note="SKIP (no fuzz targets yet)"; return; }
@@ -172,10 +185,19 @@ fuzz() {
   # fuzzer finds can hold the root element name as text, AGENTS.md rule 1).
   # The grown corpus of the long runs (fuzz/target/corpus) is not loaded: it
   # takes minutes per target (Checker, 2026-10-27).
+  # Four independent targets at a time; keep each target's full time and seeds.
   for t in $(cat "$list"); do
-    rm -rf "fuzz/target/smoke/$t" && mkdir -p "fuzz/target/smoke/$t"
-    run "fuzz-$t" cargo +nightly fuzz run "$t" "fuzz/target/smoke/$t" "fuzz/corpus/$t" -- -max_total_time="$FUZZ_SECONDS"
+    (
+      rm -rf "fuzz/target/smoke/$t" && mkdir -p "fuzz/target/smoke/$t" &&
+        cargo +nightly fuzz run "$t" "fuzz/target/smoke/$t" "fuzz/corpus/$t" -- -max_total_time="$FUZZ_SECONDS"
+    ) >"$LOGS/fuzz-$t.log" 2>&1 &
+    pending+=("$!" "fuzz-$t")
+    if [ "${#pending[@]}" -eq 8 ]; then
+      fuzz_wait "${pending[@]}"
+      pending=()
+    fi
   done
+  if [ "${#pending[@]}" -gt 0 ]; then fuzz_wait "${pending[@]}"; fi
   note="$(wc -l <"$list" | tr -d ' ') targets, ${FUZZ_SECONDS}s each"
 }
 

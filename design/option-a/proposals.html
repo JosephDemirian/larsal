@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>App · Option A proposals (owner's OK pending)</title>
+<title>Larsal · Option A proposals (owner's OK pending)</title>
 <link rel="stylesheet" href="vendor/phosphor/regular.css">
 <link rel="stylesheet" href="vendor/phosphor/fill.css">
 <script src="vendor/simple-icons/brands.js"></script>
@@ -49,7 +49,7 @@ body.b-dark .wtable td { border-color: rgba(255,255,255,.08); }
 </head>
 <body>
 <header class="boardbar">
-  <h1>App · Option A proposals</h1>
+  <h1>Larsal · Option A proposals</h1>
   <div class="seg" role="group" aria-label="Theme">
     <button data-p-theme="light" aria-pressed="true">Light</button>
     <button data-p-theme="dark" aria-pressed="false">Dark</button>
@@ -90,15 +90,15 @@ const sshPage = () => grp('', row('Work with the SSH agent', 'Adds keys from ent
   + grp('Agent', row('Status', '<span class="mono">/private/tmp/com.apple.launchd.Kp9w/Listeners</span>', `<span class="pill pos">${icf('check-circle')}Connected</span>`)
     + row('Use a different socket', '', sw(false, 'Socket'))
     + row('Security key provider', 'For keys that live on a security key.</span><span class="d">The SSH agent built into macOS has no built-in provider. To use keys that live on a security key, choose a provider library.', selx('Built-in'))
-    + row('App\'s agent', '<span class="mono">~/Library/Application Support/App/agent.sock</span>', `<span class="pill pos">${icf('check-circle')}Ready</span><button class="btn sm">Copy Setup Line</button>`));
+    + row('Larsal\'s agent', '<span class="mono">~/Library/Application Support/Larsal/agent.sock</span>', `<span class="pill pos">${icf('check-circle')}Ready</span><button class="btn sm">Copy Setup Line</button>`));
 
 // ---------- W-06 Auto-Type ----------
 const atPage = ({ off = false, ctl = kbdCap('⌃⌥V') + '<button class="btn sm">Change</button>', ctlD = '' } = {}) =>
-  (off ? `<div class="notice warn" style="margin:0 0 20px">${ic('warning-circle')}<div><b>Accessibility access is off.</b> App can't type into other apps until you turn it on. <button class="link">Open Privacy & Security</button></div></div>`
-    : `<div class="notice neu" style="margin:0 0 20px">${ic('check-circle')}<div><b>Accessibility access is on.</b> macOS lets App type into other apps. <button class="link">Open Privacy & Security</button></div></div>`)
+  (off ? `<div class="notice warn" style="margin:0 0 20px">${ic('warning-circle')}<div><b>Accessibility access is off.</b> Larsal can't type into other apps until you turn it on. <button class="link">Open Privacy & Security</button></div></div>`
+    : `<div class="notice neu" style="margin:0 0 20px">${ic('check-circle')}<div><b>Accessibility access is on.</b> macOS lets Larsal type into other apps. <button class="link">Open Privacy & Security</button></div></div>`)
   + grp('Shortcut', row('Type the login for the window in front', ctlD, ctl))
   + grp('Matching', row('Match by window title', '', sw(true, 'Title')) + row('Match by website address in the title', '', sw(true, 'URL')) + row('Always ask which entry to type', '', sw(true, 'Ask'))
-    + row('Don\'t ask when I start from App\'s window', '', sw(false, 'Skip ask'), 'sub') + row('Skip expired entries', '', sw(false, 'Expired')) + row('Lock again after typing', '', sw(false, 'Relock')))
+    + row('Don\'t ask when I start from Larsal\'s window', '', sw(false, 'Skip ask'), 'sub') + row('Skip expired entries', '', sw(false, 'Expired')) + row('Lock again after typing', '', sw(false, 'Relock')))
   + grp('Timing', row('Wait before typing', '', stepper(500, 'ms')) + row('Pause between keys', '', stepper(25, 'ms')) + row('Preselect the previous choice for', '', stepper(15, 's')));
 const atSettings = (o) => settingsWin({ page: 'autotype' }, SETTINGS, { ...SETP, autotype: () => atPage(o) });
 const ROW_SEQ = (e, sub, on) => `<button class="rec"${on ? ' style="background:var(--active)"' : ''}>${logo(e)}<span class="who"><b>${esc(e.title)}</b><small>${esc(sub)}</small></span><span class="when">${on ? 'Type login ⏎' : ''}</span></button>`;
@@ -149,7 +149,7 @@ const colourSecs = `<section class="edsec"><h3>Colours</h3><p class="lead">Tint 
     ${row('Skip in reports', 'Password health and the online breach check leave this entry out.', sw(false, 'Skip in reports'))}</div></div></section>`;
 
 // ---------- W-12 reports ----------
-const consent = () => `<div class="notice neu" style="margin:0 0 20px">${ic('shield-check')}<div><b>Check your passwords against known leaks.</b> App sends information to the online Have I Been Pwned service: each password is hashed with SHA-1 and only the first 5 characters of each hash are sent, over HTTPS, so your vault cannot be rebuilt from them. The service learns how many passwords are checked and this Mac's IP address. Nothing is sent until you press the button.</div></div>
+const consent = () => `<div class="notice neu" style="margin:0 0 20px">${ic('shield-check')}<div><b>Check your passwords against known leaks.</b> Larsal sends information to the online Have I Been Pwned service: each password is hashed with SHA-1 and only the first 5 characters of each hash are sent, over HTTPS, so your vault cannot be rebuilt from them. The service learns how many passwords are checked and this Mac's IP address. Nothing is sent until you press the button.</div></div>
   <button class="btn lg primary">${ic('shield-check')}Check passwords online</button>`;
 const statsAdd = (orig) => () => {
   const pws = live.filter((e) => e.password), counts = {};
@@ -165,26 +165,26 @@ const statsAdd = (orig) => () => {
       tile1('Passkey entries', live.filter((e) => e.passkey).length, 'entries'), tile1('Skipped in reports', 0, 'with a password')])
     + `<div style="height:8px"></div>` + orig()
       .replace(/(<span>Average length<\/span><b style="font-weight:500">)[\d.]+ characters/, `$1${Math.round(pws.reduce((a, e) => a + e.password.length, 0) / pws.length)} characters`) // FEA-07.12: whole number
-      .replace('<div><span>File</span><b style="font-weight:500">Personal.appvault</b></div>', '<div><span>Name</span><b style="font-weight:500">Personal</b></div><div><span>File</span><b style="font-weight:500">Personal.appvault</b></div><div><span>Description</span><b style="font-weight:500">Everything that is mine, not work.</b></div>')
+      .replace('<div><span>File</span><b style="font-weight:500">Personal.larsalvault</b></div>', '<div><span>Name</span><b style="font-weight:500">Personal</b></div><div><span>File</span><b style="font-weight:500">Personal.larsalvault</b></div><div><span>Description</span><b style="font-weight:500">Everything that is mine, not work.</b></div>')
       .replace('<div><span>Last saved</span><b style="font-weight:500">Today, 08:50</b></div>', '<div><span>Created on</span><b style="font-weight:500">Mar 3, 2019, 10:00</b></div><div><span>Last saved</span><b style="font-weight:500">Today, 08:50</b></div><div><span>Changes not saved yet</span><b style="font-weight:500">No</b></div>');
 };
 const passkeysAdd = (orig) => () => orig() + `<div class="inline" style="margin:16px 10px 0">${chk(false, 'Show expired entries')}<button class="btn sm">Import Passkey…</button><button class="btn sm" disabled style="opacity:.55">Export Passkeys…</button></div>`;
-const browserEmpty = () => () => '<p style="color:var(--muted);font-size:13px;margin:0 10px">No browser is connected to this vault. Connect one from the App extension.</p>';
+const browserEmpty = () => () => '<p style="color:var(--muted);font-size:13px;margin:0 10px">No browser is connected to this vault. Connect one from the Larsal extension.</p>';
 const reports = (rep, key, fn) => once(REPS, key, fn, () => shell(M({ mode: 'reports', view: 'health', rep })));
 
 // ---------- W-16, W-17 unlock and recovery ----------
 // path: the file being unlocked (UL-PATH); touch: false where Touch ID holds no key for that file (APP-05.29)
-const unlockCard = (purpose, path = '~/Documents/Passwords/Personal.appvault', touch = true) => `<div class="ucard" style="width:auto"><p style="margin:0 0 16px;font-size:13px;color:var(--muted)">${purpose}</p>${tile('--teal', 'keyhole', 'xl')}<h1>Personal is locked</h1><div class="path" style="overflow-wrap:anywhere">${path}</div>
+const unlockCard = (purpose, path = '~/Documents/Passwords/Personal.larsalvault', touch = true) => `<div class="ucard" style="width:auto"><p style="margin:0 0 16px;font-size:13px;color:var(--muted)">${purpose}</p>${tile('--teal', 'keyhole', 'xl')}<h1>Personal is locked</h1><div class="path" style="overflow-wrap:anywhere">${path}</div>
   <form class="stack" onsubmit="return false">
     <div><label class="lab">Password</label><div class="inp lg">${ic('key')}<input type="password" placeholder="Vault password" autocomplete="off">${ibtn('eye', 'Show password')}</div></div>
     <div class="extra"><div>${ic('file-lock')}<span class="grow">Key file<small>None</small></span><button class="btn sm">Choose…</button></div>
       <div>${brandSvg('yubico', 16)}<span class="grow">Security key<small>Not used</small></span>${sw(false, 'Use a security key')}</div></div>
     <div style="display:flex;gap:8px"><button class="btn xl" style="flex:1">Cancel</button><button class="btn primary xl" style="flex:1">Unlock</button></div>
     ${touch ? `<div class="opts"><button>${ic('fingerprint')}Use Touch ID</button></div>` : ''}</form></div>`;
-const RECOVERY = '~/Library/Application Support/App/recovery/3386635e7f523312e706310f8839c32798022491d6048e9342c7329eb0caa0ec.appvault'; // SHA-256 of the vault's real path (APP-02.16)
+const RECOVERY = '~/Library/Application Support/Larsal/recovery/3386635e7f523312e706310f8839c32798022491d6048e9342c7329eb0caa0ec.larsalvault'; // SHA-256 of the vault's real path (APP-02.16)
 
 // ---------- W-19 security keys ----------
-const credRows = (key) => row('Password', 'Changed Mar 3, 2024', '<button class="btn sm">Change…</button>') + row('Key file', 'personal.appkey', '<button class="btn sm">Change…</button><button class="btn sm" style="color:var(--negative)">Remove</button>')
+const credRows = (key) => row('Password', 'Changed Mar 3, 2024', '<button class="btn sm">Change…</button>') + row('Key file', 'personal.larsalkey', '<button class="btn sm">Change…</button><button class="btn sm" style="color:var(--negative)">Remove</button>')
   + row(ykLabel, key ? 'Serial 24531878 · slot 2 · challenge-response' : 'Not used', key ? '<button class="btn sm" data-anchor>Change…</button>' : '<button class="btn sm">Add…</button>');
 const forced = (over = '') => `<div style="display:flex;flex-direction:column;height:100%"><div style="height:52px;flex:none;display:flex;align-items:center;padding:0 18px"><div class="lights"><i></i><i></i><i></i></div></div>
   <div style="display:flex;justify-content:center">${dlg('--orange', 'key', 'Change the master key of “Personal”', 'This vault requires a new master key: it was last changed 45 days ago, and it requires a change every 30 days.', '', '<button class="btn lg">Lock</button><button class="btn lg primary">Change Now</button>')}</div></div>${over}`;
@@ -193,7 +193,7 @@ const forced = (over = '') => `<div style="display:flex;flex-direction:column;he
 const iconPage = (done) => (orig) => (e) => {
   let h = orig(e);
   if (done) h = h.replace('<button class="choice" aria-checked="true"><span class="rb" role="radio" aria-checked="true"></span>', '<button class="choice" aria-checked="false"><span class="rb" role="radio" aria-checked="false"></span>');
-  const fetchChoice = `<button class="choice" aria-checked="${done}">${rb(done)}<span style="flex:1"><b>Icon from the website</b><small>${done ? 'Fetched from github.com. The same icon was already in the vault, so App chose it.' : 'App asks github.com for its own icon once and keeps it in the vault.'}</small></span>${done ? logo(e, 'lg') : '<span class="btn sm">Fetch Site Icon</span>'}</button>`;
+  const fetchChoice = `<button class="choice" aria-checked="${done}">${rb(done)}<span style="flex:1"><b>Icon from the website</b><small>${done ? 'Fetched from github.com. The same icon was already in the vault, so Larsal chose it.' : 'Larsal asks github.com for its own icon once and keeps it in the vault.'}</small></span>${done ? logo(e, 'lg') : '<span class="btn sm">Fetch Site Icon</span>'}</button>`;
   return h.replace('</div></section>', fetchChoice + '</div></section>');
 };
 
@@ -208,9 +208,9 @@ const SH_ENTRIES = [
   E({ id: 'spotify', title: 'Spotify Family', username: 'family.morgan@posteo.de', password: 'Sp6#Wq1!Xr8@Kt3$', url: 'https://www.spotify.com', group: 'streaming', created: '2023-11-20T20:00', modified: '2026-10-25T21:05' }),
 ];
 const SH_GROUPS = [HH, ...HH_KIDS];
-const P15 = 'Shared/Household.appvault'; // as stored: relative to the vault's folder (INT-08.5)
-const FULL15 = '/Users/alex/Documents/Passwords/Shared/Household.appvault';
-const DV15 = '/Users/alex/Library/Mobile Documents/com~apple~CloudDocs/Family/Devices.appvault'; // ~ is never expanded (INT-08.5), so share paths are drawn whole
+const P15 = 'Shared/Household.larsalvault'; // as stored: relative to the vault's folder (INT-08.5)
+const FULL15 = '/Users/alex/Documents/Passwords/Shared/Household.larsalvault';
+const DV15 = '/Users/alex/Library/Mobile Documents/com~apple~CloudDocs/Family/Devices.larsalvault'; // ~ is never expanded (INT-08.5), so share paths are drawn whole
 function withShares(run) {
   const nf = byId('netflix'), g0 = nf.group;
   GROUPS.push(...SH_GROUPS); ENTRIES.push(...SH_ENTRIES); live.push(...SH_ENTRIES); nf.group = 'streaming';
@@ -228,7 +228,7 @@ const markSide = (h, g, on, cur) => on === null ? h : h.replace(`${tile(g.c, g.i
 const note15 = (kind, icon, lines, acts = '', style = 'margin:0') => `<div class="notice ${kind}" style="${style}">${ic(icon)}<div style="flex:1;min-width:0">${lines.map((l) => `<div>${l}</div>`).join('')}${acts ? `<div class="acts">${acts}</div>` : ''}</div></div>`;
 const LABEL15 = {
   sync: () => note15('neu', 'share-network', [`Shared: syncs with ${mono(P15)}`]),
-  off: () => note15('warn', 'share-network', [`Shared: syncs with ${mono(P15)}`, 'Import is turned off in App\'s settings.', 'Export is turned off in App\'s settings.']),
+  off: () => note15('warn', 'share-network', [`Shared: syncs with ${mono(P15)}`, 'Import is turned off in Larsal\'s settings.', 'Export is turned off in Larsal\'s settings.']),
   approve: () => note15('warn', 'pause-circle', ['Sharing is paused for this group: its settings were not made on this Mac.', `Import: ${mono(DV15)}`], '<button>Approve</button>'),
 };
 const banner15 = (kind, icon, lines) => `<div class="notice ${kind}" role="status" style="margin:0">${ic(icon)}<div style="flex:1;min-width:0">${lines.map((l) => `<div>${l}</div>`).join('')}</div><button class="ibtn sm" aria-label="Close" title="Close" style="margin:-6px -8px -6px 0;color:inherit">${ic('x')}</button></div>`;
@@ -246,7 +246,7 @@ const GED = [['group', 'folder-simple', 'Group'], ['icon', 'image-square', 'Icon
 const groupEd = (body, hh) => `<div class="trow">${hh === null ? tile(HH.c, HH.icon, 'lg') : shareTile(HH, hh, 'lg', '--surface')}<div><h1>Edit group</h1><p class="sub">Household · Personal</p></div>
     <div class="acts"><button class="btn lg">Cancel</button><button class="btn lg primary">Save ${kbd('⌘S')}</button></div></div>
   <div class="ed"><nav class="ednav" aria-label="Group editor pages">${GED.map(([id, icon, l]) => `<button class="si"${id === 'share' ? ' aria-current="page"' : ''}>${ic(icon)}<span class="lbl">${l}</span></button>`).join('')}</nav><div class="edbody">${body}</div></div>`;
-const MODES15 = { Inactive: 'This group is not shared.', Import: 'Reads changes from the file into this group. App never writes the file.', Export: 'Writes this group to the file after every save of the vault. App never reads the file.', Synchronize: 'Reads changes from the file into this group, and writes this group to the file after every save of the vault.' };
+const MODES15 = { Inactive: 'This group is not shared.', Import: 'Reads changes from the file into this group. Larsal never writes the file.', Export: 'Writes this group to the file after every save of the vault. Larsal never reads the file.', Synchronize: 'Reads changes from the file into this group, and writes this group to the file after every save of the vault.' };
 // item: the group has a share item. Type drives Path, Browse, Share password and Keep group structure; only Clear depends on the item (an Inactive share with an item keeps Clear on, T42).
 function sharePage({ mode = 'Synchronize', msg = '', item = true } = {}) {
   const off = mode === 'Inactive';
@@ -267,32 +267,32 @@ const editWin = (mode, hh, msg, item = true) => once(window, 'editorView', () =>
 // Part sheets: each state of one slot, as it shows in place.
 const sheet15 = (w, items) => `<div class="panel" style="width:${w}px;margin:0;padding:20px 20px 4px">${items.map(([l, k, i, lines, acts]) => `<label class="lab">${l}</label><div style="margin-bottom:16px">${note15(k, i, lines, acts)}</div>`).join('')}</div>`;
 const msgSheet = () => sheet15(700, [
-  ['Path ends in no name App can share <small>· case 1 · MI08-10 · warning</small>', 'warn', 'warning', [`App cannot share this kind of file. Use a name that ends in ${mono('.appvault')} or ${mono('.appshare')}.`]],
+  ['Path ends in no name Larsal can share <small>· case 1 · MI08-10 · warning</small>', 'warn', 'warning', [`Larsal cannot share this kind of file. Use a name that ends in ${mono('.larsalvault')} or ${mono('.larsalshare')}.`]],
   ['Another group exports to this file <small>· case 2 · MI08-11 · error</small>', '', 'warning-circle', [`Another group in this vault already exports to ${mono(P15)}. Choose another file.`]],
   ['Another group imports this file <small>· case 3 · MI08-12 · warning</small>', 'warn', 'warning', [`Another group in this vault already imports from ${mono(P15)}. While both do, neither is updated.`]],
   ['One group imports it, another exports it <small>· case 4 · MI08-13 · warning</small>', 'warn', 'warning', [`One group in this vault exports to ${mono(P15)} and another imports from it.`]],
-  ['Import and export both off <small>· case 5 · MI08-14 · information</small>', 'neu', 'info', ['Sharing is turned off. Turn on import or export in App\'s settings, Shared groups.']],
-  ['Only import allowed <small>· case 5 · MI08-15 · information</small>', 'neu', 'info', ['Export is turned off in App\'s settings.']],
-  ['Only export allowed <small>· case 5 · MI08-16 · information</small>', 'neu', 'info', ['Import is turned off in App\'s settings.']],
+  ['Import and export both off <small>· case 5 · MI08-14 · information</small>', 'neu', 'info', ['Sharing is turned off. Turn on import or export in Larsal\'s settings, Shared groups.']],
+  ['Only import allowed <small>· case 5 · MI08-15 · information</small>', 'neu', 'info', ['Export is turned off in Larsal\'s settings.']],
+  ['Only export allowed <small>· case 5 · MI08-16 · information</small>', 'neu', 'info', ['Import is turned off in Larsal\'s settings.']],
   ['Vault not saved to a file yet <small>· INT-08.5 · MI08-17 · error</small>', '', 'warning-circle', ['This file cannot be used for sharing. Save this vault to a file first.']],
-  ['Path is the file of an open vault <small>· INT-08.34 · MI08-17 · error</small>', '', 'warning-circle', ['This file cannot be used for sharing: it is the file of a vault open in App.']],
+  ['Path is the file of an open vault <small>· INT-08.34 · MI08-17 · error</small>', '', 'warning-circle', ['This file cannot be used for sharing: it is the file of a vault open in Larsal.']],
   ['Under Share password, empty or weak <small>· INT-08.39 · MI08-23 · warning</small>', 'warn', 'warning', ['The share password is empty or weak. Anyone who gets the share file may be able to open it.']],
 ]);
 const badgeRow = `<label class="lab">Badges <small>· the share group's own tile only, never its subgroups · INT-08.24</small></label>
   <div class="inline" style="gap:24px;margin-bottom:20px;flex-wrap:wrap">${[true, false].map((on) => `<span class="inline" style="gap:12px">${shareTile(HH, on, '', '--surface')}${shareTile(HH, on, 'lg', '--surface')}<span>Share ${on ? 'active' : 'inactive'}</span></span>`).join('')}</div>`;
 const labelSheet = () => sheet15(624, [
   ['Synchronize, running <small>· MI08-24</small>', 'neu', 'share-network', [`Shared: syncs with ${mono(P15)}`]],
-  ['Import with import turned off <small>· MI08-24, MI08-16</small>', 'warn', 'share-network', [`Shared: imports from ${mono(P15)}`, 'Import is turned off in App\'s settings.']],
-  ['Export with export turned off <small>· MI08-24, MI08-15</small>', 'warn', 'share-network', [`Shared: exports to ${mono(P15)}`, 'Export is turned off in App\'s settings.']],
+  ['Import with import turned off <small>· MI08-24, MI08-16</small>', 'warn', 'share-network', [`Shared: imports from ${mono(P15)}`, 'Import is turned off in Larsal\'s settings.']],
+  ['Export with export turned off <small>· MI08-24, MI08-15</small>', 'warn', 'share-network', [`Shared: exports to ${mono(P15)}`, 'Export is turned off in Larsal\'s settings.']],
   ['Inactive, or settings that cannot be read <small>· MI08-25</small>', 'neu', 'pause-circle', ['Sharing is off for this group: its settings are inactive or cannot be read.']],
   ['Settings not made on this Mac <small>· MI08-18 · INT-08.31</small>', 'warn', 'pause-circle', ['Sharing is paused for this group: its settings were not made on this Mac.', `Import: ${mono(DV15)}`], '<button>Approve</button>'],
 ]).replace('padding:20px 20px 4px">', 'padding:20px 20px 4px">' + badgeRow);
 const bannerSheet = () => `<div class="panel" style="width:1016px;padding:20px 20px 4px">${[
   ['Success <small>· shown only while Hide sync success messages is off · MI08-01, MI08-03</small>', banner15('neu', 'check-circle', [`${mono(P15)}: changes imported.`, `${mono(P15)}: exported.`])],
   ['Warning <small>· MI08-05</small>', banner15('warn', 'warning', [`${mono(P15)}: imported by several groups (Household, Holiday flat), so none of them is updated until only one imports it.`])],
-  ['Error <small>· success lines first, then warnings, then errors; the banner takes the worst kind · MI08-01, MI08-02 with the system\'s reason for a missing file, MI08-04, MI08-06</small>', banner15('', 'warning-circle', [`${mono(P15)}: changes imported.`, `${mono('Shared/Parents.appvault')}: import failed. There is no file at this path.`, `${mono('Shared/Car.appvault')}: import failed. It is not a share file (unknown file kind).`, `${mono('Shared/Partner.appvault')}: exported by several groups (Banking, Shopping), so nothing was exported. Give each group its own file.`])],
+  ['Error <small>· success lines first, then warnings, then errors; the banner takes the worst kind · MI08-01, MI08-02 with the system\'s reason for a missing file, MI08-04, MI08-06</small>', banner15('', 'warning-circle', [`${mono(P15)}: changes imported.`, `${mono('Shared/Parents.larsalvault')}: import failed. There is no file at this path.`, `${mono('Shared/Car.larsalvault')}: import failed. It is not a share file (unknown file kind).`, `${mono('Shared/Partner.larsalvault')}: exported by several groups (Banking, Shopping), so nothing was exported. Give each group its own file.`])],
 ].map(([l, b]) => `<label class="lab">${l}</label><div style="margin-bottom:16px">${b}</div>`).join('')}</div>`;
-const approveSheet = () => dlg('--green', 'share-network', 'Approve sharing for “Devices”?', 'Its sharing settings were not made on this Mac. After you approve, App reads changes from this file into Devices.',
+const approveSheet = () => dlg('--green', 'share-network', 'Approve sharing for “Devices”?', 'Its sharing settings were not made on this Mac. After you approve, Larsal reads changes from this file into Devices.',
   `<div class="panel"><div class="fld"><div><span class="lb">Group</span>${gval(DV, false)}</div></div>${fld('Type', 'Import')}<div class="fld"><div><span class="lb">Path</span><span class="v" style="white-space:normal">${mono(DV15)}</span></div></div></div>`,
   cancel() + '<button class="btn lg primary">Approve</button>', 'wide');
 const VSET15 = [...VSET, ['share', 'Shared Groups', '--green', 'share-network']];
@@ -329,7 +329,7 @@ const S8ST = {
   replaced: ['warning', '--warning', 'Uses a replaced password'],
   signedout: ['sign-out', '--warning', 'Signed out'],
   error: ['warning-circle', '--negative', `Sync with “${S8.srv}” failed. Your copy on this Mac is unchanged.`],
-  busy: ['warning', '--warning', 'The server\'s copy kept changing. App will try again at the next sync.'],
+  busy: ['warning', '--warning', 'The server\'s copy kept changing. Larsal will try again at the next sync.'],
   wait: ['clock', '--muted', 'Waiting for the new key of “Morgan family”. Your changes are kept on this Mac.'],
   waitNew: ['clock', '--muted', 'Waiting for the key of “Vault 4c94485e”. It opens on this Mac when the key arrives.'],
 };
@@ -341,8 +341,8 @@ const S8RO = 'Read-only members can see and copy every password in this vault.';
 const srvMark = (ro, d, ring) => `<span role="img" aria-label="${ro ? 'Shared through your server, read-only' : 'Shared through your server'}" title="${ro ? S8RO : 'A vault shared through your server'}" style="position:absolute;right:${-Math.round(d / 3)}px;bottom:${-Math.round(d / 3)}px;width:${d}px;height:${d}px;border-radius:${Math.round(d * .3)}px;display:grid;place-items:center;background:var(${ro ? '--slate' : '--blue'});box-shadow:0 0 0 2px var(${ring});color:#fff"><i class="ph-fill ph-${ro ? 'eye' : 'users'}" style="font-size:${Math.round(d * .62)}px" aria-hidden="true"></i></span>`;
 const srvTile = (v, ro, size = '', ring = '--ground') => tile(v.c, v.icon, size).replace('">', ';position:relative">').replace(/<\/span>$/, srvMark(ro, { '': 13, md: 16, lg: 22, xl: 28 }[size], ring) + '</span>');
 // Demo vaults on the server: a family vault (its group takes the vault's name, SHR-02 Words) and a team vault.
-const FAMV = { id: 'mfam', name: 'Morgan family', file: 'Morgan family.appvault', path: '~/Documents/Passwords/Morgan family.appvault', c: '--pink', icon: 'heart', saved: '10:28' };
-const TEAMV = { id: 'mlabs', name: 'Lab servers', file: 'Lab servers.appvault', path: '~/Documents/Passwords/Lab servers.appvault', c: '--slate', icon: 'hard-drives' };
+const FAMV = { id: 'mfam', name: 'Morgan family', file: 'Morgan family.larsalvault', path: '~/Documents/Passwords/Morgan family.larsalvault', c: '--pink', icon: 'heart', saved: '10:28' };
+const TEAMV = { id: 'mlabs', name: 'Lab servers', file: 'Lab servers.larsalvault', path: '~/Documents/Passwords/Lab servers.larsalvault', c: '--slate', icon: 'hard-drives' };
 const FAM_G = [{ id: 'fhome', name: 'Home', icon: 'house-simple', c: '--orange' }, { id: 'ftv', name: 'Streaming', icon: 'film-strip', c: '--red' }, { id: 'ftravel', name: 'Travel', icon: 'airplane', c: '--blue' }, { id: 'fschool', name: 'School', icon: 'student', c: '--green' }];
 const FAM_E = [
   E({ id: 'fpower', title: 'Electricity', icon: 'lightning', c: '--yellow', username: 'family.morgan@posteo.de', password: 'Fm2!kR7#Tq4@Zp9$', url: 'https://portal.example.com', group: 'fhome', created: '2025-01-12T10:00', modified: '2026-10-26T19:40', hist: 2 }),
@@ -363,7 +363,7 @@ function withVault(v, groups, entries, run) {
 const famHead = (h, v = FAMV) => h.replace(`${tile('--teal', 'keyhole', 'md')}<span><b style="display:block;font-weight:600">Personal</b>`, `${srvTile(v, false, 'md')}<span><b style="display:block;font-weight:600">${v.name}</b>`);
 // Settings › Sync (app-wide) and Vault Settings pages.
 const SET8 = [...SETTINGS.slice(0, 6), ['sync', 'Sync', '--cyan', 'arrows-clockwise'], ...SETTINGS.slice(6)];
-const syncEmpty = () => grp('', row('Sync with your own server', 'Keeps your vaults the same on your Macs through an App server you run. The server stores them encrypted and cannot open them.', '<button class="btn sm">Add Server…</button>'));
+const syncEmpty = () => grp('', row('Sync with your own server', 'Keeps your vaults the same on your Macs through a Larsal server you run. The server stores them encrypted and cannot open them.', '<button class="btn sm">Add Server…</button>'));
 const DEV8 = [['Oct 3, 2026', 'Today, 10:28', true], ['Oct 20, 2026', 'Oct 26, 18:04', false]];
 const syncPage = () => grp('Server', row(`<span class="mono">${S8.srv}</span>`, `<span class="mono">${s8lines(S8.fp, 4)}</span>`, ''))
   + `<div class="grp"><h4>Macs of your account</h4><div class="panel tbl-p"><table class="mini"><thead><tr><th>Name</th><th>Added</th><th>Last seen</th><th></th></tr></thead><tbody>${DEV8.map(([a, s, me]) => `<tr><td><span class="inline">${ic('desktop')}Mac${me ? '<span class="pill neu">This Mac</span>' : ''}</span></td><td class="num">${a}</td><td class="num">${s}</td><td class="act">${me ? '' : '<button class="btn sm" style="color:var(--negative)">Remove…</button>'}</td></tr>`).join('')}</tbody></table></div>
@@ -371,15 +371,15 @@ const syncPage = () => grp('Server', row(`<span class="mono">${S8.srv}</span>`, 
   + grp('', row('Add a Mac', 'Shows a code to type on the new Mac. It works for 15 minutes.', '<button class="btn sm">Add a Mac…</button>') + row('Sign out everywhere', 'Signs out every other Mac and removes it from this account. Its vault files stay as they are.', '<button class="btn sm" style="color:var(--negative)">Sign Out Everywhere…</button>'));
 const VSET8 = [...VSET, ['sync', 'Sync', '--cyan', 'arrows-clockwise']];
 const vaultSync = () => grp('Server', row('Server', `<span class="mono">${S8.srv}</span>`, '') + row('Status', 'Synced at 10:28', '<button class="btn sm">Sync now</button>'))
-  + '<p class="help" style="margin:10px 2px 0">App syncs this vault when you unlock it, 2 seconds after each save, every minute while it is unlocked, and when you pick Sync now.</p>'
+  + '<p class="help" style="margin:10px 2px 0">Larsal syncs this vault when you unlock it, 2 seconds after each save, every minute while it is unlocked, and when you pick Sync now.</p>'
   + `<div style="height:24px"></div>${grp('', row('Stop syncing', 'Removes this Mac\'s link only. The vault keeps its key and its key-file part, and the copy on the server stays.', '<button class="btn sm">Stop syncing…</button>'))}`;
 const keptSecurity = () => VSETP.security()
-  .replace('<span class="d">personal.appkey</span></div><div class="ctl"><button class="btn sm">Change…</button><button class="btn sm" style="color:var(--negative)">Remove</button>', '<span class="d">Kept for sync</span></div><div class="ctl"><button class="btn sm">Save as key file…</button>')
+  .replace('<span class="d">personal.larsalkey</span></div><div class="ctl"><button class="btn sm">Change…</button><button class="btn sm" style="color:var(--negative)">Remove</button>', '<span class="d">Kept for sync</span></div><div class="ctl"><button class="btn sm">Save as key file…</button>')
   .replace('</div></div><div class="grp"><h4>Encryption</h4>', '</div><p class="help" style="margin:10px 2px 0">A random key-file part, added when this vault went on the server. A password change keeps it. Saved as a key file, it opens the vault in other apps with the master password.</p></div><div class="grp"><h4>Encryption</h4>');
 const VSETF = [...VSET.slice(0, 2), ['members', 'Members', '--blue', 'users'], ...VSET.slice(2)];
 const sharedSecurity = () => grp('Credentials', row('Key kept for sharing', 'Opens with your account password on this Mac. The vault has no password or key file of its own.', '') + row('Touch ID for this vault', '', sw(true, 'Touch ID')))
   + grp('Encryption', [['Cipher', 'AES-256'], ['Key derivation', 'Argon2id'], ['Memory', '1 MiB'], ['Iterations', '1'], ['Parallel threads', '1']].map(([t, v]) => row(t, '', `<span class="num" style="color:var(--muted)">${v}</span>`)).join(''))
-  + '<p class="help" style="margin:10px 2px 0">Read only. The key of a shared vault is 256 random bits, so App always uses the lowest unlock cost, and nobody can change it.</p>';
+  + '<p class="help" style="margin:10px 2px 0">Read only. The key of a shared vault is 256 random bits, so Larsal always uses the lowest unlock cost, and nobody can change it.</p>';
 // Members (SHR-03.14: names live inside the vault; a member with no name item shows the fallback).
 const MEM8 = [{ n: 'Alex', role: 'Organizer', you: true }, { n: 'Sam', role: 'Organizer' }, { n: 'Robin', role: 'Member' }, { n: 'Jo', role: 'Member' }, { id: 'ca0df2c9', role: 'Member' }];
 const who8 = (m) => `<span class="idc">${m.n ? logo({ title: m.n }, 'xs') : logo({ icon: 'user', c: '--gray' }, 'xs')}<span><b>${m.n || 'Member ' + m.id}</b></span>${m.you ? '<span class="pill neu">You</span>' : ''}</span>`;
@@ -388,7 +388,7 @@ const listCode = (seq, c) => grp('List check', row(`List check: entry ${seq}, co
 const REM8 = [['fpower', true, '2 earlier versions'], ['fwifi', true, ''], ['falarm', false, '1 attachment'], ['fnetflix', false, '1 earlier version'], ['fspotify', false, ''], ['fdb', false, '3 earlier versions'], ['fschool', false, ''], ['frouter', false, ''], [null, false, '1 earlier version']];
 const removedList = () => `<div class="grp">${note15('warn', 'warning', ['<b>Passwords Robin could see.</b> Robin keeps every copy they had. Only a new password at each website protects these accounts. Tick each one when you changed it.'], '', 'margin:0 0 12px')}
   <div class="panel tbl-p"><table class="mini"><thead><tr><th></th><th>Entry</th><th>Website</th><th>At removal</th></tr></thead><tbody>${REM8.map(([id, on, n]) => { const e = id && byId(id); return `<tr><td style="width:1%">${cb(on)}</td><td>${e ? entryCell(e, esc(e.username)) : '<span style="color:var(--muted)">Deleted since the removal</span>'}</td><td>${e && e.url ? esc(host(e.url)) : '<span class="dash">—</span>'}</td><td>${n || '<span class="dash">—</span>'}</td></tr>`; }).join('')}
-    <tr><td></td><td colspan="3" style="color:var(--muted)">3 items deleted for good since Robin joined (Mar 4, 2026 to Oct 12, 2026). App can no longer name them.</td></tr></tbody></table></div>
+    <tr><td></td><td colspan="3" style="color:var(--muted)">3 items deleted for good since Robin joined (Mar 4, 2026 to Oct 12, 2026). Larsal can no longer name them.</td></tr></tbody></table></div>
   <div class="inline" style="margin-top:12px;justify-content:flex-end"><button class="btn sm">Close list</button></div></div>`;
 const membersPage = (removed) => (removed ? removedList() : '')
   + grp('', row('Morgan family', `Family · ${removed ? 4 : 5} of 6 people · <span class="mono">${S8.srv}</span>`, '<button class="btn sm">Invite…</button>'))
@@ -396,7 +396,7 @@ const membersPage = (removed) => (removed ? removedList() : '')
   + (removed ? listCode(8, '204 973') : listCode(7, '736 095'))
   + '<div class="inline" style="margin-top:24px"><button class="btn" style="color:var(--negative)">Leave…</button></div>';
 const famSettings = (page, pages, after) => withVault(FAMV, FAM_G, FAM_E, () => famHead(settingsWin({ page }, VSETF, { ...VSETP, ...pages }, 'vault')));
-// Team (E18-S6; the client is GPL code in app-sync): roles and the right on this vault (SHR-03.2).
+// Team (E18-S6; the client is GPL code in larsal-sync): roles and the right on this vault (SHR-03.2).
 const TEAM8 = [['Alex', 'Owner', 'Can manage', true], ['Sam', 'Admin', 'Can manage'], ['Robin', 'Member', 'Can edit'], ['Jo', 'Read-only', 'Can view'], ['Kai', 'Member', 'No access']];
 const teamPage = () => grp('', row('Morgan Labs', `Team · 5 people · <span class="mono">${S8.srv}</span>`, '<button class="btn sm">Invite…</button>'))
   + `<div class="grp"><h4>Members</h4><div class="panel tbl-p"><table class="mini"><thead><tr><th>Name</th><th>Role</th><th>On “Lab servers”</th></tr></thead><tbody>${TEAM8.map(([n, r, v, me]) => `<tr><td>${who8({ n, you: me })}</td><td>${me ? r : selx(r).replace('class="selx"', n === 'Jo' ? 'class="selx" data-anchor' : 'class="selx"')}</td><td>${['Owner', 'Admin'].includes(r) ? `<span style="color:var(--muted)">${v}</span>` : selx(v)}</td></tr>`).join('')}</tbody></table></div>
@@ -404,14 +404,14 @@ const teamPage = () => grp('', row('Morgan Labs', `Team · 5 people · <span cla
   + listCode(12, '058 316');
 const roleMenu = `<div class="menu" data-for style="min-width:180px">${['Owner', 'Admin', 'Member', 'Read-only'].map((r) => `<button class="mi check">${r === 'Read-only' ? ic('check') : L()}${r}</button>`).join('')}</div>`;
 // Sheets and cards.
-const addServerDlg = () => dlg('--cyan', 'hard-drives', 'Add a server', 'App connected once to read the server\'s certificate. It sent nothing.', `${fieldRow('Address', inp(S8.srv, { mono: true, lead: 'globe-simple' }))}<p style="margin:16px 0 8px">Check that this code matches the code the server printed:</p>${s8fp()}`, cancel() + '<button class="btn lg primary">They match</button>', 'wide');
+const addServerDlg = () => dlg('--cyan', 'hard-drives', 'Add a server', 'Larsal connected once to read the server\'s certificate. It sent nothing.', `${fieldRow('Address', inp(S8.srv, { mono: true, lead: 'globe-simple' }))}<p style="margin:16px 0 8px">Check that this code matches the code the server printed:</p>${s8fp()}`, cancel() + '<button class="btn lg primary">They match</button>', 'wide');
 const choice8 = (on, t, d, off) => `<button class="choice" aria-checked="${on}"${off ? ' style="opacity:.55"' : ''}>${rb(on)}<span><b>${t}</b><small>${d}</small></span></button>`;
-const accountDlg = () => dlg('--cyan', 'user-circle', `Your account on ${S8.srv}`, 'An account needs no email address.', `<div class="choices">${choice8(true, 'Create an account', 'For your first Mac on this server. App makes a Recovery Kit for it.')}${choice8(false, 'Add this Mac to your account', 'Type the code that Add a Mac shows on one of your other Macs.')}${choice8(false, 'Use your Recovery Kit', 'When none of your other Macs is at hand.')}</div>`, cancel() + '<button class="btn lg primary">Continue</button>');
+const accountDlg = () => dlg('--cyan', 'user-circle', `Your account on ${S8.srv}`, 'An account needs no email address.', `<div class="choices">${choice8(true, 'Create an account', 'For your first Mac on this server. Larsal makes a Recovery Kit for it.')}${choice8(false, 'Add this Mac to your account', 'Type the code that Add a Mac shows on one of your other Macs.')}${choice8(false, 'Use your Recovery Kit', 'When none of your other Macs is at hand.')}</div>`, cancel() + '<button class="btn lg primary">Continue</button>');
 const signUpDlg = () => dlg('--cyan', 'user-circle', 'Create an account', 'You type the account password on each new Mac. It never leaves your Macs, and nobody can reset it.',
   `<div class="fgrid"><div class="span"><label class="lab">Account password <small>· Strong, about 82 bits</small></label><div class="inp lg"><span class="pw" style="flex:1;font-size:15px">${dots(18)}</span>${ibtn('eye', 'Show password')}${ibtn('password', 'Generate')}</div><div class="bar" style="height:3px;margin-top:8px"><i style="width:66%;background:var(--positive)"></i></div><div class="help">At least 8 characters.</div></div>
     ${fieldRow('Repeat it', `<div class="inp lg"><span class="pw" style="flex:1;font-size:15px">${dots(18)}</span><i class="ph-fill ph-check-circle" style="color:var(--positive);font-size:18px;margin-right:6px"></i></div>`, '', true)}</div>`,
   cancel() + '<button class="btn lg primary">Create Account</button>');
-const kitDlg = () => dlg('--cyan', 'identification-card', 'This is your Recovery Kit.', 'Print it or save it, and keep it safe. App shows it only now.',
+const kitDlg = () => dlg('--cyan', 'identification-card', 'This is your Recovery Kit.', 'Print it or save it, and keep it safe. Larsal shows it only now.',
   `<div class="panel">${fldw('Kit format', '1')}${fldw('Server', `<span class="mono">${S8.origin}</span>`)}${fldw('Certificate', `<span class="mono">${s8lines(S8.fp, 4)}</span>`)}${fldw('Account', `<span class="mono">${S8.acct}</span>`)}${fldw('Account secret', `<span class="mono">${s8lines(S8.kit, 7)}</span>`)}</div>
     <p class="help">With your account password, it adds a new Mac to your account when none of your other Macs is at hand.</p>`,
   '<button class="btn lg left">Print</button><button class="btn lg">Save as PDF</button><button class="btn lg primary">Done</button>');
@@ -423,20 +423,20 @@ const acctCard = ({ purpose, tileH, title, path, touch }) => `<div class="dlg" s
   <form class="stack" onsubmit="return false"><div><label class="lab">Account password</label><div class="inp lg">${ic('key')}<input type="password" placeholder="Account password" autocomplete="off">${ibtn('eye', 'Show password')}</div></div>
     <div style="display:flex;gap:8px"><button class="btn xl" style="flex:1">Cancel</button><button class="btn primary xl" style="flex:1">Unlock</button></div>${touch ? `<div class="opts"><button>${ic('fingerprint')}Use Touch ID</button></div>` : ''}</form></div></div>`;
 const linkedUnlock = () => `<div class="dlg" style="width:430px;padding:23px 25px">${unlockCard('').replace('<p style="margin:0 0 16px;font-size:13px;color:var(--muted)"></p>', '').replace('<span class="grow">Key file<small>None</small></span><button class="btn sm">Choose…</button>', '<span class="grow">Key file<small>Key part kept for sync</small></span>')}</div>`;
-const inviteDlg = () => dlg('--blue', 'user-plus', 'Invite to “Morgan family”', 'The person joins with their own App account on this server. You both check a code before they get the vault.',
+const inviteDlg = () => dlg('--blue', 'user-plus', 'Invite to “Morgan family”', 'The person joins with their own Larsal account on this server. You both check a code before they get the vault.',
   `${fieldRow('Name', inp('Dana'), 'Shown to the family. It is kept inside the vault, never on the server.')}<label class="lab" style="margin-top:16px">Role</label><div class="choices">${choice8(true, 'Member', 'Sees and edits every entry of “Morgan family”.')}${choice8(false, 'Organizer', 'Also invites and removes people. The family already has 2 Organizers, the most it can have.', true)}</div>`,
   cancel() + '<button class="btn lg primary">Create Invite</button>');
 const inviteTextDlg = () => dlg('--blue', 'ticket', 'Invite Dana', 'Send this invite to Dana. It works once, for 5 days.', `<div class="keybox">${S8.origin}<br>${s8lines(S8.fp, 4)}<br>${S8.inv}</div><p class="help">The invite holds no key and nothing from the vault. Send it any way you like.</p>`, '<button class="btn lg">Copy</button><button class="btn lg primary">Done</button>');
-const removeDlg = () => dlg('--red', 'user-minus', 'Remove Robin from “Morgan family”?', 'Robin keeps every password they could see. App makes a new key for the vault and lists those passwords, so you can change them.', '', cancel() + '<button class="btn lg danger">Remove</button>');
+const removeDlg = () => dlg('--red', 'user-minus', 'Remove Robin from “Morgan family”?', 'Robin keeps every password they could see. Larsal makes a new key for the vault and lists those passwords, so you can change them.', '', cancel() + '<button class="btn lg danger">Remove</button>');
 // Message sheets: the slot labels say the buttons; every line is the card's words.
 const syncMsgs = () => `<div style="display:flex;gap:32px;align-items:flex-start">${sheet15(600, [
-  ['Certificate changed <small>· MSG-SYNC-CERT-CHANGED · SYN-01.2 · OK</small>', '', 'warning-circle', [`The server “${S8.srv}” shows a different certificate. App stopped syncing with it.`]],
-  ['Not a sync server <small>· MSG-SYNC-NOT-SERVER · SYN-01.3 · OK</small>', '', 'warning-circle', ['“192.168.0.20:8443” is not an App sync server.']],
+  ['Certificate changed <small>· MSG-SYNC-CERT-CHANGED · SYN-01.2 · OK</small>', '', 'warning-circle', [`The server “${S8.srv}” shows a different certificate. Larsal stopped syncing with it.`]],
+  ['Not a sync server <small>· MSG-SYNC-NOT-SERVER · SYN-01.3 · OK</small>', '', 'warning-circle', ['“192.168.0.20:8443” is not a Larsal sync server.']],
   ['Other credentials <small>· MSG-SYNC-OTHER-KEY · SYN-03.8 · the unlock sheet (APP-06): Open, Cancel</small>', 'warn', 'key', ['The server\'s copy of “Personal” opens with another password or key. Enter the password or key this copy opens with.']],
   ['A replaced password <small>· MSG-SYNC-OLD-KEY · SYN-03.9 · Skip (default), Merge anyway</small>', 'warn', 'warning', ['The server\'s copy of “Personal” uses a password or key that was replaced on this Mac.']],
   ['Another vault <small>· MSG-SYNC-OTHER-VAULT · SYN-03.8 · OK</small>', '', 'warning-circle', ['The server\'s copy is a different vault. Nothing was merged or uploaded.']],
   ['Rollback <small>· MSG-SYNC-ROLLBACK · SYN-03.7 · OK</small>', '', 'warning-circle', ['The server sent an older copy of “Personal” than this Mac has seen. Nothing was merged or uploaded.']],
-  ['Went back in time <small>· MSG-SYNC-WENT-BACK · SYN-03.7 · OK</small>', 'warn', 'warning', ['The server\'s copy of “Personal” went back in time. App merged it, so nothing newer was lost, and uploaded the result.']],
+  ['Went back in time <small>· MSG-SYNC-WENT-BACK · SYN-03.7 · OK</small>', 'warn', 'warning', ['The server\'s copy of “Personal” went back in time. Larsal merged it, so nothing newer was lost, and uploaded the result.']],
   ['Weaker settings <small>· MSG-SYNC-WEAKER · SYN-03.7 · names the setting, never a value · OK</small>', 'warn', 'warning', ['The server\'s copy of “Personal” used key derivation settings weaker than this Mac has seen.']],
 ])}${sheet15(600, [
   ['Signed out <small>· MSG-SYNC-SIGNED-OUT · SYN-03.10 · Sign In, Cancel</small>', 'warn', 'sign-out', [`This Mac is signed out of “${S8.srv}”.`]],
@@ -444,17 +444,17 @@ const syncMsgs = () => `<div style="display:flex;gap:32px;align-items:flex-start
   ['Gone from the server <small>· MSG-SYNC-GONE · SYN-03.10 · OK</small>', 'warn', 'warning', ['The server no longer has “Personal”. Your copy on this Mac is unchanged.']],
   ['Too large <small>· MSG-SYNC-TOO-LARGE · SYN-03.10 · OK</small>', '', 'warning-circle', ['“Personal” is too large for the server.']],
   ['Kit or password wrong <small>· MSG-ACCOUNT-RESTORE-FAILED · SYN-06.11, SYN-06.12 · OK</small>', '', 'warning-circle', ['The Recovery Kit or the account password is not right.']],
-  ['Account keys changed <small>· MSG-ACCOUNT-KEYS-CHANGED · SYN-06.6 · OK</small>', '', 'warning-circle', ['The server sent other account keys than this Mac knows. App stopped using this account.']],
+  ['Account keys changed <small>· MSG-ACCOUNT-KEYS-CHANGED · SYN-06.6 · OK</small>', '', 'warning-circle', ['The server sent other account keys than this Mac knows. Larsal stopped using this account.']],
   ['Compare failed <small>· MSG-CODE-FAILED · SYN-05.3, SHR-03.8 · OK</small>', '', 'warning-circle', ['The check did not work. Nothing was shared. Start again on both Macs.']],
 ])}</div>`;
 const groupMsgs = () => `<div style="display:flex;gap:32px;align-items:flex-start">${sheet15(600, [
-  ['Wrong key <small>· MSG-GROUP-BAD-KEY · SHR-01.10 · OK</small>', '', 'warning-circle', ['The key for “Morgan family” that the server sent does not fit. App did not use it.']],
-  ['A version App cannot check <small>· MSG-GROUP-BAD-VERSION · SHR-03.12 · OK</small>', '', 'warning-circle', ['The server sent a copy of “Morgan family” that App cannot check. Nothing was merged or uploaded.']],
+  ['Wrong key <small>· MSG-GROUP-BAD-KEY · SHR-01.10 · OK</small>', '', 'warning-circle', ['The key for “Morgan family” that the server sent does not fit. Larsal did not use it.']],
+  ['A version Larsal cannot check <small>· MSG-GROUP-BAD-VERSION · SHR-03.12 · OK</small>', '', 'warning-circle', ['The server sent a copy of “Morgan family” that Larsal cannot check. Nothing was merged or uploaded.']],
   ['Older member list <small>· MSG-GROUP-ROLLBACK · SHR-02 · OK</small>', '', 'warning-circle', ['The server sent an older member list of “Morgan family” than this Mac has seen. Nothing was changed.']],
-  ['Fork, family <small>· MSG-GROUP-FORK · SHR-02.9, SHR-02.12 · OK</small>', '', 'warning-circle', ['The server showed this Mac a member list of “Morgan family” that other members do not see. App stopped using it. Its vault still opens on this Mac, so you can copy from it. Compare the list code with another member.']],
-  ['Fork, team <small>· MSG-GROUP-FORK · OK</small>', '', 'warning-circle', ['The server showed this Mac a member list of “Morgan Labs” that other members do not see. App stopped using it. Its vaults still open on this Mac, so you can copy from them. Compare the list code with another member.']],
+  ['Fork, family <small>· MSG-GROUP-FORK · SHR-02.9, SHR-02.12 · OK</small>', '', 'warning-circle', ['The server showed this Mac a member list of “Morgan family” that other members do not see. Larsal stopped using it. Its vault still opens on this Mac, so you can copy from it. Compare the list code with another member.']],
+  ['Fork, team <small>· MSG-GROUP-FORK · OK</small>', '', 'warning-circle', ['The server showed this Mac a member list of “Morgan Labs” that other members do not see. Larsal stopped using it. Its vaults still open on this Mac, so you can copy from them. Compare the list code with another member.']],
   ['Member list not valid <small>· MSG-GROUP-BAD-LIST · SHR-02 · OK</small>', '', 'warning-circle', ['The member list of “Morgan family” from the server is not valid. Nothing was changed.']],
-  ['A member\'s keys changed <small>· MSG-GROUP-KEY-CHANGED · SHR-02.11 · OK</small>', '', 'warning-circle', ['The server sent other keys for Sam than this Mac knows. App stops syncing “Morgan family” on this Mac until Sam is removed from it. Then invite Sam again and check the code together.']],
+  ['A member\'s keys changed <small>· MSG-GROUP-KEY-CHANGED · SHR-02.11 · OK</small>', '', 'warning-circle', ['The server sent other keys for Sam than this Mac knows. Larsal stops syncing “Morgan family” on this Mac until Sam is removed from it. Then invite Sam again and check the code together.']],
   ['Invite used <small>· MSG-GROUP-INVITE-USED · SHR-03.6 · OK</small>', 'warn', 'warning', ['This invite was already used or has expired. Ask for a new invite.']],
   ['Invite did not finish <small>· MSG-GROUP-INVITE-FAILED · SHR-03.8 · OK</small>', '', 'warning-circle', ['The invite did not finish. Nothing was shared. Ask for a new invite.']],
   ['No team sharing <small>· MSG-GROUP-NO-TEAMS · SHR-03.5 · OK</small>', 'neu', 'info', ['This server has no team sharing.']],
@@ -465,8 +465,8 @@ const groupMsgs = () => `<div style="display:flex;gap:32px;align-items:flex-star
   ['Leave: sync first <small>· MSG-GROUP-LEAVE-WAIT · SHR-04.11 · OK</small>', 'warn', 'warning', ['Open and sync “Morgan family” first, with every change saved. Then leave.']],
   ['Last Organizer, family <small>· MSG-GROUP-LEAVE-LAST · SHR-03.4 · OK</small>', 'warn', 'warning', ['Make another member an Organizer first. Then you can leave.']],
   ['Last Owner, team <small>· MSG-GROUP-LEAVE-LAST · OK</small>', 'warn', 'warning', ['Make another member an Owner first. Then you can leave.']],
-  ['You were removed <small>· MSG-GROUP-YOU-WERE-REMOVED · SHR-04.10 · on a Mac that never opened the vault, the group is “Group &lt;8 hex digits&gt;” · OK</small>', 'neu', 'info', ['You are no longer in “Group cd0aa985”. App removed its keys from this Mac.']],
-  ['A vault taken away <small>· MSG-GROUP-VAULT-REMOVED · SHR-04.10 · OK</small>', 'neu', 'info', ['You can no longer open “Lab servers”. App removed its key from this Mac.']],
+  ['You were removed <small>· MSG-GROUP-YOU-WERE-REMOVED · SHR-04.10 · on a Mac that never opened the vault, the group is “Group &lt;8 hex digits&gt;” · OK</small>', 'neu', 'info', ['You are no longer in “Group cd0aa985”. Larsal removed its keys from this Mac.']],
+  ['A vault taken away <small>· MSG-GROUP-VAULT-REMOVED · SHR-04.10 · OK</small>', 'neu', 'info', ['You can no longer open “Lab servers”. Larsal removed its key from this Mac.']],
 ])}</div>`;
 const statusSheet = () => `<div class="panel" style="padding:20px 20px 4px"><div style="display:grid;grid-template-columns:repeat(5,248px);gap:4px 16px">${[
   ['synced', 'Synced <small>· SYN-03.13</small>'], ['syncing', 'Syncing <small>· no Sync now during a run</small>'], ['offline', 'Offline <small>· network, timeout, 5xx, SYN-03.10</small>'], ['password', 'Needs password <small>· SYN-03.8</small>'], ['replaced', 'Uses a replaced password <small>· SYN-03.9</small>'],
@@ -482,7 +482,7 @@ const badgeSheet = () => `<div class="panel" style="width:460px;padding:20px 20p
 const twoKinds = () => {
   const panel = (head, rows) => `<div class="panel" style="width:460px;margin:0"><div style="padding:16px 16px 6px"><label class="lab" style="margin:0">${head}</label></div>${rows}</div>`;
   const si = `<button class="si" aria-current="page">${shareTile(HH, true, '', '--active')}<span class="lbl">Household</span><span class="cnt num">4</span></button>`;
-  const vsw = `<button class="vsw">${srvTile(FAMV, false, 'md', '--surface')}<span class="who"><b>Morgan family</b><small>Morgan family.appvault</small></span>${ic('caret-up-down')}</button>`;
+  const vsw = `<button class="vsw">${srvTile(FAMV, false, 'md', '--surface')}<span class="who"><b>Morgan family</b><small>Morgan family.larsalvault</small></span>${ic('caret-up-down')}</button>`;
   return `<div style="display:flex;gap:32px;align-items:flex-start">${panel('Shared group <small>· E11 · INT-08.21, INT-08.24, MI08-24</small>',
     fldw('In the sidebar', `<span style="display:block;width:224px;margin-top:6px">${si}</span>`) + fldw('What it is', 'A group of your vault, shared as a file.')
     + fldw('Who opens it', 'The people you share with open the file with its password, from a group of their own vault.')
@@ -490,7 +490,7 @@ const twoKinds = () => {
     + fldw('Under the entry list', `<span style="display:block;margin-top:6px">${LABEL15.sync()}</span>`) + fldw('Set up in', 'Edit group › Sharing'))}
   ${panel('Shared vault <small>· E18 · SHR-01.8, SHR-03.13, SYN-03.13 · P24</small>',
     fldw('In the sidebar', `<span style="display:block;width:224px;margin-top:6px">${vsw}</span>`) + fldw('What it is', 'A vault shared through your server.')
-    + fldw('Who opens it', 'Each member, with their own account password on their own Mac. App checks each new member with a code you both compare.')
+    + fldw('Who opens it', 'Each member, with their own account password on their own Mac. Larsal checks each new member with a code you both compare.')
     + fldw('Badge', `<span class="inline" style="gap:16px;margin-top:6px">${srvTile(FAMV, false, '', '--surface')}${srvTile(FAMV, false, 'lg', '--surface')}<span>Shared through your server</span></span>`)
     + fldw('Under “Saved at” in the sidebar', `<span style="display:block;margin:0 -8px">${s8status('synced')}</span>`) + fldw('Set up in', 'Vault Settings › Members'))}</div>`;
 };
@@ -502,8 +502,8 @@ const brwName = (mark, l) => `<span style="display:inline-flex;gap:10px;align-it
 const OPERA_ROW = row(brwName(`<span class="logo">${brandSvg('opera')}</span>`, 'Opera'), '', sw(false, 'Opera'));
 const BRW7 = { Edge: 'Microsoft Edge', Chromium: 'Chromium', Arc: 'Arc/User Data' }; // INT-01.8, under ~/Library/Application Support/
 const brwFolder = (b) => `~/Library/Application Support/${BRW7[b]}/NativeMessagingHosts`;
-const brwFailed = (b) => `<span style="color:var(--negative)">App couldn't set up ${b}. Check that its folder ${mono(brwFolder(b))} can be written, then try again.</span>`; // MI01-01
-const brwOld = (b) => `<span style="color:var(--warning)">The setup for ${b} points to an old copy of App. Turn the browser off and on again here, or turn on “Rewrite the browser setup files at start”.</span>`; // MI01-02
+const brwFailed = (b) => `<span style="color:var(--negative)">Larsal couldn't set up ${b}. Check that its folder ${mono(brwFolder(b))} can be written, then try again.</span>`; // MI01-01
+const brwOld = (b) => `<span style="color:var(--warning)">The setup for ${b} points to an old copy of Larsal. Turn the browser off and on again here, or turn on “Rewrite the browser setup files at start”.</span>`; // MI01-02
 function brwPage({ on = ['Edge'], msg = {}, rewrite = true, master = true } = {}) {
   let h = SETP.browser();
   if (!h.includes(OPERA_ROW)) throw new Error('E7-S7k: the Opera row changed in mockup.js');
@@ -529,19 +529,19 @@ const P = [
       ['dialogs-weak-vault-password', 'Title “This password is easy to guess”; text ““family2026” could be guessed in about 2 hours on a graphics card. Anyone with a copy of the vault file could open it.”; buttons Use It Anyway, Choose Another', 'One sentence: “This password is easy to guess, so your vault is less safe. Use it anyway?”; buttons “Use this password” and “Cancel” (Cancel the default). The typed password is not shown.', 'FEA-05.20 MSG-MK-WEAK, APP-07 M07-23 (LD-210)'],
       ['settings-settings-general · Remember recent vaults', 'Also remembers which key file each one used.', 'Line removed. Key files and security keys are remembered only by its own switch “Remember each vault\'s key file and hardware key”, off by default.', 'APP-01 S-START-08, APP-01.16 (LD-51, LD-212 (3))'],
       ['settings-settings-general · Check for updates', 'Asks GitHub once a day. Nothing else leaves this Mac.', 'Asks GitHub once a week. Nothing else leaves this Mac.', 'APP-01 S-START-09, APP-01.19 (LD-212 (4))'],
-      ['settings-settings-general · Keep a backup before saving', '{DB_FILENAME}.old.appvault', '{FILE_NAME}.old.appvault', 'APP-01 S-FILE-06, APP-01.2 (LD-212 (4))'],
+      ['settings-settings-general · Keep a backup before saving', '{DB_FILENAME}.old.larsalvault', '{FILE_NAME}.old.larsalvault', 'APP-01 S-FILE-06, APP-01.2 (LD-212 (4))'],
       ['settings-settings-general · Show entries that expire soon (list)', 'Within 7 days (only the chosen item is drawn)', 'Expired only · Within 1 day · Within 3 days · Within 7 days · Within 14 days · Within 30 days · Within 90 days', 'APP-01 S-START-11, S-START-12 (LD-212 (4))'],
       ['settings-settings-general · Safe saving (list)', 'Through a temporary file', 'Through a temporary file · Temporary file moved into place · Straight into the vault file', 'APP-01 S-FILE-07, S-FILE-08, APP-05 (LD-212 (4))'],
       ['settings-settings-general · Double-clicking a row copies (list)', 'Password', 'Password · Nothing', 'APP-01 S-ENTRY-04 (LD-212 (4))'],
-      ['settings-settings-general · Hide App after copying (list)', 'Minimize', 'Minimize · Move behind other windows', 'APP-01 S-ENTRY-08, S-ENTRY-09 (LD-212 (4))'],
-      ['settings-settings-general · Show App in the menu bar (list)', 'Monochrome icon', 'Monochrome icon · Colourful icon', 'APP-01 S-UI-10, S-UI-11 (LD-212 (4))'],
+      ['settings-settings-general · Hide Larsal after copying (list)', 'Minimize', 'Minimize · Move behind other windows', 'APP-01 S-ENTRY-08, S-ENTRY-09 (LD-212 (4))'],
+      ['settings-settings-general · Show Larsal in the menu bar (list)', 'Monochrome icon', 'Monochrome icon · Colourful icon', 'APP-01 S-UI-10, S-UI-11 (LD-212 (4))'],
       ['reports-reports-statistics · Average length', '18.6 characters', '19 characters: a whole number, halves rounded up (drawn in W-12)', 'FEA-07.12, T08, T12 (LD-208)'],
       ['settings-settings-ssh-agent · Status', 'Connected', 'Connected, or Not connected with its reason (MI06-01 to MI06-03)', 'INT-06.38, MI06-22 (LD-212 (4))'],
     ], frames: [] },
   { id: 'w-05', title: 'W-05 SSH agent (proposed)',
-    line: 'Adds the “App\'s agent” row with Copy Setup Line and the provider lines to SSH settings, the “Not loaded” state with its lock note in the detail pane, and the comment placeholder of an encrypted key in the editor. Serves INT-06.38, INT-06.40, INT-06.42, INT-06.43, MI06-22 to MI06-28, MI06-32 (D-INT06-7, R06-7). Waiting: E9-S2.',
+    line: 'Adds the “Larsal\'s agent” row with Copy Setup Line and the provider lines to SSH settings, the “Not loaded” state with its lock note in the detail pane, and the comment placeholder of an encrypted key in the editor. Serves INT-06.38, INT-06.40, INT-06.42, INT-06.43, MI06-22 to MI06-28, MI06-32 (D-INT06-7, R06-7). Waiting: E9-S2.',
     frames: [
-      { id: 'w-05-ssh-settings', t: 'W-05 SSH Agent settings with App\'s agent', n: 'Copy Setup Line just pressed; R06-7 line and MI06-28 under the provider', w: 900, h: 680, after: grow('.sc'),
+      { id: 'w-05-ssh-settings', t: 'W-05 SSH Agent settings with Larsal\'s agent', n: 'Copy Setup Line just pressed; R06-7 line and MI06-28 under the provider', w: 900, h: 680, after: grow('.sc'),
         html: () => settingsWin({ page: 'ssh' }, SETTINGS, { ...SETP, ssh: sshPage }) + `<div class="toast" role="status">${ic('check')}Setup line copied. <small>Add it to ~/.ssh/config for the hosts that should use keys that ask first.</small></div>` },
       { id: 'w-05-detail-not-loaded', t: 'W-05 Server with SSH key, not loaded', n: 'MI06-23 “Not loaded”, MI06-25 note for remove-on-lock off with a 10 min lifetime', w: W, h: H,
         html: () => shell(M({ view: 'servers', sel: 'web01' })).replace(`<span class="v" style="display:flex;gap:8px;align-items:center;margin-top:4px"><span class="pill pos">${icf('check-circle')}Loaded</span><span class="pwm" style="margin:0">Removed when the vault locks</span>`, '<span class="v" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px"><span class="pill neu">Not loaded</span><span class="pwm" style="margin:0">Stays loaded after the vault locks, removed after 10 min</span>') },
@@ -562,7 +562,7 @@ const P = [
       { id: 'w-06-picker-empty', t: 'W-06 Picker, nothing found', n: 'MI05-45', w: 720, h: 320, html: () => picker({ q: 'dropbox', body: '<div class="empty" style="margin:4px 0 0;text-align:center">No entries match. Type to search all entries.</div>' }) },
       { id: 'w-06-pick-characters', t: 'W-06 Pick Characters', n: 'MI05-60; 4 of 20 characters picked; the characters themselves are never shown', card: true,
         html: () => dlg('--orange', 'keyboard', 'Pick Characters', 'Each button stands for one character of the field, by its position. ⌘S types the ones you picked.', pickGrid, cancel() + '<button class="btn lg primary">Type</button>') },
-      { id: 'w-06-type-question', t: 'W-06 Question before typing from App\'s window', n: 'MI05-50; Type is the default', card: true,
+      { id: 'w-06-type-question', t: 'W-06 Question before typing from Larsal\'s window', n: 'MI05-50; Type is the default', card: true,
         html: () => dlg('--orange', 'keyboard', 'Type “GitHub” into Safari?', '', '', cancel() + '<button class="btn lg primary">Type</button>') },
       { id: 'w-06-editor-no-shortcut', t: 'W-06 Editor Auto-Type page without a shortcut', n: 'MI05-51 without a shortcut; switch label of LD-167', w: W, h: H,
         html: () => shell(M({ mode: 'editor', page: 'autotype', edit: 'github' })).replace('Auto-Type for this entry', 'Let Auto-Type use this entry').replace('Types the sign-in into the window in front when you press ⌃⌥V.', 'Choose a shortcut in Settings › Auto-Type to type this sign-in into other apps.') },
@@ -583,7 +583,7 @@ const P = [
   { id: 'w-12', title: 'W-12 Reports (proposed)',
     line: 'Adds the breach check\'s consent page before any request, the statistics rows and warnings the frame lacks, the passkeys report\'s show-expired box with Import and Export under the table, and the empty Browser report line. Serves FEA-06.1, FEA-07.15, FEA-07.16, FEA-07.19, INT-04.52, INT-04.53, INT-02.32 (LD-208, D-INT04-15). Waiting: E5-S7.',
     frames: [
-      { id: 'w-12-breach-consent', t: 'W-12 Breach check consent', n: 'Nothing is sent before the press (FEA-06.1); MSG-BREACH-CONSENT in App\'s words', w: W, h: H, html: () => reports('breach', 'breach', () => consent) },
+      { id: 'w-12-breach-consent', t: 'W-12 Breach check consent', n: 'Nothing is sent before the press (FEA-06.1); MSG-BREACH-CONSENT in Larsal\'s words', w: W, h: H, html: () => reports('breach', 'breach', () => consent) },
       { id: 'w-12-statistics', t: 'W-12 Statistics with every FEA-07 row', n: 'Count tiles in FEA-07.19 order (Entries, Groups, Unique and Average stay in the list as drawn); Name heads the info rows; the average is a whole number (FEA-07.12); warnings of FEA-07.16 in red; taller than the window', w: W, h: H, after: grow('.rep'), html: () => reports('stats', 'stats', statsAdd) },
       { id: 'w-12-passkeys', t: 'W-12 Passkeys with show-expired, Import and Export', n: 'Export Passkeys… works on the selected rows', w: W, h: H, html: () => reports('passkeys', 'passkeys', passkeysAdd) },
       { id: 'w-12-browser-empty', t: 'W-12 Browser report, nothing to list', n: 'No entry with site settings and no connected browser', w: W, h: H, html: () => reports('browser', 'browser', browserEmpty) },
@@ -598,31 +598,31 @@ const P = [
     line: 'Adds Import, Export and Reset to Defaults at the end of the General page, and the question that lists each setting an import would weaken. Serves APP-01.9, APP-01.10, APP-01.11 (LD-54, LD-212 (2)). Waiting: E5-S9.',
     frames: [
       { id: 'w-14-general-buttons', t: 'W-14 Settings General, end of the page', n: 'Scrolled to the end', w: 900, h: 680, after: toEnd('.sc'),
-        html: () => settingsWin({ page: 'general' }, SETTINGS, { ...SETP, general: () => SETP.general() + grp('Settings file', row('Move or reset your settings', 'Exports never hold a secret. Reset leaves Open App at login as it is.', '<button class="btn sm">Import…</button><button class="btn sm">Export…</button><button class="btn sm">Reset to Defaults…</button>')) }) },
+        html: () => settingsWin({ page: 'general' }, SETTINGS, { ...SETP, general: () => SETP.general() + grp('Settings file', row('Move or reset your settings', 'Exports never hold a secret. Reset leaves Open Larsal at login as it is.', '<button class="btn sm">Import…</button><button class="btn sm">Export…</button><button class="btn sm">Reset to Defaults…</button>')) }) },
       { id: 'w-14-import-weakens', t: 'W-14 Import that lowers protection', n: 'Cancel is the default; Apply imports', card: true,
-        html: () => dlg('--orange', 'warning', 'This import lowers protection', 'Importing “app-settings.json” changes these settings. Apply only if you made this file yourself.',
+        html: () => dlg('--orange', 'warning', 'This import lowers protection', 'Importing “larsal-settings.json” changes these settings. Apply only if you made this file yourself.',
           `<div class="panel" style="padding:4px 16px">${[['Lock after no use for', 'On', 'Off'], ['Never ask before giving access', 'Off', 'On'], ['Check for updates', 'Off', 'On']].map(([t, a, b]) => row(t, '', `<span class="pill neu">${a}</span>${ic('arrow-right')}<span class="pill warn">${b}</span>`)).join('')}</div>`,
           cancel() + '<button class="btn lg danger">Apply</button>', 'wide') },
     ] },
   { id: 'w-15', title: 'W-15 Shared groups (proposed)',
-    line: 'Adds shared groups: a group of your vault, shared as a file (INT-08; W-15 decided 2026-10-31, LD-262 (6); drawn here by LD-268). The group editor\'s Sharing page with its messages and the line about deleted items, the share badges and the labels under the entry list, the result banner, the approval line with its Approve sheet, and the Shared Groups pages of vault settings and Settings. Unsigned shares only (D-INT08-1 (a)): no signer, certificate or trust parts, so MI08-20 to MI08-22 are not drawn. W-15\'s Settings page replaces the drawn settings-settings-shared-groups, whose identity group is option (b). Serves INT-08.20 to INT-08.26, INT-08.31, INT-08.34, INT-08.39, MI08-01 to MI08-07, MI08-10 to MI08-19 and MI08-23 to MI08-25: every App message of the card except the option (b) ones (the card has no MI08-08 or MI08-09). Built by E11-S5, which never waits for this review (LD-268).',
+    line: 'Adds shared groups: a group of your vault, shared as a file (INT-08; W-15 decided 2026-10-31, LD-262 (6); drawn here by LD-268). The group editor\'s Sharing page with its messages and the line about deleted items, the share badges and the labels under the entry list, the result banner, the approval line with its Approve sheet, and the Shared Groups pages of vault settings and Settings. Unsigned shares only (D-INT08-1 (a)): no signer, certificate or trust parts, so MI08-20 to MI08-22 are not drawn. W-15\'s Settings page replaces the drawn settings-settings-shared-groups, whose identity group is option (b). Serves INT-08.20 to INT-08.26, INT-08.31, INT-08.34, INT-08.39, MI08-01 to MI08-07, MI08-10 to MI08-19 and MI08-23 to MI08-25: every Larsal message of the card except the option (b) ones (the card has no MI08-08 or MI08-09). Built by E11-S5, which never waits for this review (LD-268).',
     frames: [
       { id: 'w-15-sharing-sync', t: 'W-15 Group editor, Sharing page', n: 'INT-08.21: Type Synchronize, Path with Browse… and the full path (INT-08.5), Share password with the generator button (FEA-02), Keep group structure on, Clear; INT-08.23 case 5 in the message slot under Path: MI08-14, as import and export are both off (the defaults, INT-08.7); the deleted-items line (INT-08 security notes, FMT-15.12); inactive badge on the tile (INT-08.24). Only the Sharing page of the group editor is drawn', w: W, h: H, after: grow('.edbody'),
-        html: () => editWin('Synchronize', false, note15('neu', 'info', ['Sharing is turned off. Turn on import or export in App\'s settings, Shared groups.'])) },
+        html: () => editWin('Synchronize', false, note15('neu', 'info', ['Sharing is turned off. Turn on import or export in Larsal\'s settings, Shared groups.'])) },
       { id: 'w-15-sharing-inactive', t: 'W-15 Group editor, Sharing page, not shared yet', n: 'T35: Type Inactive; Path, Browse…, Share password and Keep group structure are off until a type is chosen (INT-08.21); no message while Inactive (INT-08.23); no badge yet; Clear is off only because this group has no share item yet: only Path, Browse…, Share password and Keep group structure follow Type, so an Inactive share that has its item (T42) keeps Clear on', w: W, h: H, after: grow('.edbody'),
         html: () => editWin('Inactive', null, '', false) },
-      { id: 'w-15-messages-labels', t: 'W-15 Sharing page messages; share badges and labels', n: 'Left, INT-08.23: cases 1 to 5, first match only, in the slot under Path (MI08-10 to MI08-16), MI08-17 (INT-08.5, INT-08.34) in the same slot, MI08-23 under Share password (INT-08.39); the ‹list› of MI08-10 shows App\'s two names only. Right, INT-08.24: the badge on the share group\'s own tile wherever it shows (sidebar, the detail pane\'s Group field, the group editor\'s title, vault settings, the Approve sheet), never on a subgroup; the label under the entry list when the selected group is a share or inside one (the nearest share counts): MI08-24, then MI08-16, then MI08-15; MI08-25; MI08-18 with Approve (INT-08.31)', card: true,
+      { id: 'w-15-messages-labels', t: 'W-15 Sharing page messages; share badges and labels', n: 'Left, INT-08.23: cases 1 to 5, first match only, in the slot under Path (MI08-10 to MI08-16), MI08-17 (INT-08.5, INT-08.34) in the same slot, MI08-23 under Share password (INT-08.39); the ‹list› of MI08-10 shows Larsal\'s two names only. Right, INT-08.24: the badge on the share group\'s own tile wherever it shows (sidebar, the detail pane\'s Group field, the group editor\'s title, vault settings, the Approve sheet), never on a subgroup; the label under the entry list when the selected group is a share or inside one (the nearest share counts): MI08-24, then MI08-16, then MI08-15; MI08-25; MI08-18 with Approve (INT-08.31)', card: true,
         html: () => `<div style="display:flex;gap:32px;align-items:flex-start">${msgSheet()}${labelSheet()}</div>` },
       { id: 'w-15-list-banner', t: 'W-15 Shared group after a pass, with the result banner', n: 'INT-08.20: one banner per pass, one line each, warnings before errors; error banner as one line failed; Hide sync success messages on, so no success line; MI08-19 (INT-08.32) and MI08-03 with MI08-07; label MI08-24; import and export allowed, so the badge is active, in the sidebar and on the detail pane\'s Group tile, as Household is the share', w: W, h: H,
         html: () => shareWin({ view: 'household', sel: 'power' }, { hh: true, label: LABEL15.sync(), banner: banner15('', 'warning-circle', [`${mono(P15)}: 2 items were not imported because they belong outside this shared group.`, `${mono(P15)}: export failed. The file could not be written: there is no space left on the disk.`]) }) },
       { id: 'w-15-banner-kinds', t: 'W-15 Banner kinds', n: 'INT-08.20: the banner type is error if any line is an error, else warning, else success; lines start with the path as stored', card: true, html: bannerSheet },
       { id: 'w-15-list-inside-share', t: 'W-15 Inside a shared group, sharing off in Settings', n: 'T41: Streaming sits inside Household and has no badge; the label is Household\'s: MI08-24, then MI08-16 and MI08-15, as import and export are both off (the defaults); Household\'s badge is inactive', w: W, h: H,
         html: () => shareWin({ view: 'streaming', sel: 'netflix' }, { hh: false, label: LABEL15.off() }) },
-      { id: 'w-15-list-approval', t: 'W-15 Shared group waiting for approval, Approve sheet', n: 'INT-08.31: settings made on another Mac (or arrived by merge) never import, export or watch until approved; behind the sheet, MI08-18 with the type, the full path and Approve, and the inactive badge; the sheet shows group, type and full path, never cut short; Approve stores the record in App\'s settings (share.approved), Cancel keeps sharing paused. Devices is one of the demo vault\'s own groups; its inactive badge also shows in the sidebar, on the detail pane\'s Group tile and in the sheet', w: W, h: H,
+      { id: 'w-15-list-approval', t: 'W-15 Shared group waiting for approval, Approve sheet', n: 'INT-08.31: settings made on another Mac (or arrived by merge) never import, export or watch until approved; behind the sheet, MI08-18 with the type, the full path and Approve, and the inactive badge; the sheet shows group, type and full path, never cut short; Approve stores the record in Larsal\'s settings (share.approved), Cancel keeps sharing paused. Devices is one of the demo vault\'s own groups; its inactive badge also shows in the sidebar, on the detail pane\'s Group tile and in the sheet', w: W, h: H,
         html: () => shareWin({ view: 'devices', sel: 'wifi' }, { hh: true, label: LABEL15.approve() }) + `<div class="scrim">${approveSheet()}</div>` },
       { id: 'w-15-vault-settings', t: 'W-15 Vault settings, Shared Groups', n: 'INT-08.25, T43, MOD-12.1: read only, one row per share in tree order, the group path without the root joined by “ > ”, type and path as stored; no signer or certificate columns (option (b) only)', w: 900, h: 640,
         html: () => settingsWin({ page: 'share' }, VSET15, { ...VSETP, share: vaultShares }, 'vault') },
-      { id: 'w-15-app-settings', t: 'W-15 Settings, Shared Groups', n: 'INT-08.26, INT-08.7, T09, T44: Allow import off, Allow export off, Hide sync success messages on (the defaults, D-INT08-10); no signer name, fingerprint or Generate (option (b) only)', w: 900, h: 680,
+      { id: 'w-15-larsal-settings', t: 'W-15 Settings, Shared Groups', n: 'INT-08.26, INT-08.7, T09, T44: Allow import off, Allow export off, Hide sync success messages on (the defaults, D-INT08-10); no signer name, fingerprint or Generate (option (b) only)', w: 900, h: 680,
         html: () => settingsWin({ page: 'share' }, SETTINGS, { ...SETP, share: appShares }) },
     ] },
   { id: 'w-16', title: 'W-16 Recovery copy at the next unlock (proposed)',
@@ -652,7 +652,7 @@ const P = [
         html: () => settingsWin({ page: 'security' }, VSET, { ...VSETP, security: () => VSETP.security().replace('YubiKey 5 NFC · slot 2 · challenge-response</span></div><div class="ctl"><button class="btn sm">', 'Serial 24531878 · slot 2 · challenge-response</span></div><div class="ctl"><button class="btn sm" data-anchor>') }, 'vault') + keyMenu(true, true, false) },
       { id: 'w-19-forced-prompt', t: 'W-19 Forced key change', n: 'keychange.msg.forced in Rust\'s words; nothing of the vault is shown', w: W, h: H, html: () => forced() },
       { id: 'w-19-forced-credentials', t: 'W-19 Forced key change, credentials', n: 'After Change Now; Cancel returns to the prompt; the security key row without a key', w: W, h: H,
-        html: () => forced(`<div class="scrim">${dlg('--blue', 'lock-key', 'Credentials', 'Change at least one part. The vault opens after App saves the new master key.', grp('', credRows(false)), '<button class="btn lg">Cancel</button>', 'wide')}</div>`) },
+        html: () => forced(`<div class="scrim">${dlg('--blue', 'lock-key', 'Credentials', 'Change at least one part. The vault opens after Larsal saves the new master key.', grp('', credRows(false)), '<button class="btn lg">Cancel</button>', 'wide')}</div>`) },
     ] },
   { id: 'w-20', title: 'W-20 Site icon download in the editor (proposed)',
     line: 'Adds the editor Icon page\'s download for one entry. A group\'s download is the existing “Fetch Site Icons for Group…” menu item and needs no frame (LD-243 (1)). Serves MOD-06.11, APP-01.21, APP-08 action.download_icon (LD-232 (4)). Waiting: E13-S6 part k parked it; not built until drawn (E13-S1 carries W-20).',
@@ -663,16 +663,16 @@ const P = [
         html: () => once(EDP, 'icon', iconPage(true), () => shell(M({ mode: 'editor', page: 'icon', edit: 'github' }))) },
     ] },
   { id: 'e16-s8', title: 'E16-S8 Sync, accounts and sharing (proposed)',
-    line: 'Adds sync through App\'s own server, accounts, and sharing through it (LD-262 (2), LD-263; drawn here by LD-268): adding a server with the fingerprint compare, sign-up and the Recovery Kit, account unlock, approving a new Mac with the code compare, the Macs of an account, the sync status line and Sync now with every state, a synced vault\'s Sync page and its kept key-file part, the members page with the list code, the invite sheet with the code compare, family and team roles, removal and the list of passwords a removed member could see with the deleted-for-good line, the shared vault badges, and a shared group (INT-08, E11) beside a shared vault (E18) with their different words (P24). Every message of SYN-01 to SYN-06 and SHR-01 to SHR-04 is drawn in the card\'s words with its id; CRY-04 has no screen words (its two-secret key is behind sign-up). Words without a message id are App\'s own proposals. Demo server on 127.0.0.1 only. Built by E16-S9, E17-S4 and E18-S7, which never wait for this review (LD-268).',
+    line: 'Adds sync through Larsal\'s own server, accounts, and sharing through it (LD-262 (2), LD-263; drawn here by LD-268): adding a server with the fingerprint compare, sign-up and the Recovery Kit, account unlock, approving a new Mac with the code compare, the Macs of an account, the sync status line and Sync now with every state, a synced vault\'s Sync page and its kept key-file part, the members page with the list code, the invite sheet with the code compare, family and team roles, removal and the list of passwords a removed member could see with the deleted-for-good line, the shared vault badges, and a shared group (INT-08, E11) beside a shared vault (E18) with their different words (P24). Every message of SYN-01 to SYN-06 and SHR-01 to SHR-04 is drawn in the card\'s words with its id; CRY-04 has no screen words (its two-secret key is behind sign-up). Words without a message id are Larsal\'s own proposals. Demo server on 127.0.0.1 only. Built by E16-S9, E17-S4 and E18-S7, which never wait for this review (LD-268).',
     frames: [
-      { id: 'e16-s8-add-server', t: 'E16-S8 Add a server, the fingerprint compare', n: 'SYN-01.2, SYN-01.3, SYN-03.3: App made one TLS handshake and sent no request; MSG-SYNC-FINGERPRINT with the fingerprint as 64 hex digits in 8 groups of 8; They match (the default) pins it, and only then does App send a request (LD-273 (8)); Cancel adds nothing. Behind it, a new Sync page in Settings with no server yet. An invite or a Recovery Kit pins its own fingerprint with no question (SHR-03.9, SYN-06.12)', w: 900, h: 680,
+      { id: 'e16-s8-add-server', t: 'E16-S8 Add a server, the fingerprint compare', n: 'SYN-01.2, SYN-01.3, SYN-03.3: Larsal made one TLS handshake and sent no request; MSG-SYNC-FINGERPRINT with the fingerprint as 64 hex digits in 8 groups of 8; They match (the default) pins it, and only then does Larsal send a request (LD-273 (8)); Cancel adds nothing. Behind it, a new Sync page in Settings with no server yet. An invite or a Recovery Kit pins its own fingerprint with no question (SHR-03.9, SYN-06.12)', w: 900, h: 680,
         html: () => settingsWin({ page: 'sync' }, SET8, { ...SETP, sync: syncEmpty }) + `<div class="scrim">${addServerDlg()}</div>` },
       { id: 'e16-s8-account', t: 'E16-S8 Your account on the server', n: 'After They match: a new account (SYN-04.2, SYN-06.1), this Mac added by approval (SYN-06.11) or by Recovery Kit (SYN-06.12); no email (SYN-06.13)', card: true, html: accountDlg },
       { id: 'e16-s8-sign-up', t: 'E16-S8 Sign up', n: 'SYN-06.2: the account password, at least 8 characters, with the strength meter (FEA-05), used exactly as typed and never sent anywhere; it takes the unlock screen\'s path into Rust (APP-06, LD-220); with the account secret it makes the wrap key (SYN-06.3, CRY-04.9); no reset (SYN-06.13). The server names this Mac “Mac”, never its computer name (SYN-04.2)', card: true, html: signUpDlg },
       { id: 'e16-s8-recovery-kit', t: 'E16-S8 Recovery Kit', n: 'MSG-ACCOUNT-KIT with Print, Save as PDF and Done; SYN-06.7: kit format 1, the server address and fingerprint, the account id as 32 hex digits and the account secret as 52 base32 characters in groups of 4; shown once, right after sign-up, and written nowhere else: no log, crash report, state file or general pasteboard (E17-S4)', card: true, html: kitDlg },
       { id: 'e16-s8-account-unlock', t: 'E16-S8 Account unlock on a new Mac', n: 'SYN-06.11 step 6, SYN-06.12: after the code compare or the kit, the new Mac asks for the account password through the unlock screen\'s form (APP-06), opens the account blob on this Mac (SYN-06.3, SYN-06.4) and only then keeps the secrets (SYN-06.8); a wrong password or kit: MSG-ACCOUNT-RESTORE-FAILED (sync and account messages), with no detail on which was wrong', card: true,
-        html: () => acctCard({ purpose: 'App needs your account password to finish adding this Mac.', tileH: tile('--cyan', 'user-circle', 'xl'), title: 'Your account', path: S8.srv, touch: false }) },
-      { id: 'e16-s8-devices', t: 'E16-S8 Settings, Sync: the server and the Macs of the account', n: 'The device list (SYN-04.8): each Mac by name (App fills in “Mac”, SYN-04.2), when it was added and last seen, to the minute; Remove… revokes one (its sessions go; the last Mac cannot be removed); Add a Mac… (SYN-06.11); Sign Out Everywhere… (SYN-04.9: the other Macs drop the account and keep their vault files); the pinned server and its fingerprint (SYN-03.3); the account id (SYN-06.7)', w: 900, h: 680, after: grow('.sc'),
+        html: () => acctCard({ purpose: 'Larsal needs your account password to finish adding this Mac.', tileH: tile('--cyan', 'user-circle', 'xl'), title: 'Your account', path: S8.srv, touch: false }) },
+      { id: 'e16-s8-devices', t: 'E16-S8 Settings, Sync: the server and the Macs of the account', n: 'The device list (SYN-04.8): each Mac by name (Larsal fills in “Mac”, SYN-04.2), when it was added and last seen, to the minute; Remove… revokes one (its sessions go; the last Mac cannot be removed); Add a Mac… (SYN-06.11); Sign Out Everywhere… (SYN-04.9: the other Macs drop the account and keep their vault files); the pinned server and its fingerprint (SYN-03.3); the account id (SYN-06.7)', w: 900, h: 680, after: grow('.sc'),
         html: () => settingsWin({ page: 'sync' }, SET8, { ...SETP, sync: syncPage }) },
       { id: 'e16-s8-add-mac', t: 'E16-S8 Approve a new Mac: the code', n: 'MSG-ACCOUNT-ADD-MAC with Cancel; SYN-06.11 step 1: 16 random bytes as base32 in groups of 4, used once, for 15 minutes; the server gets only its SHA-256 (LD-273 (4)); the sheet also shows the server address and fingerprint', card: true, html: addMacDlg },
       { id: 'e16-s8-new-mac-code', t: 'E16-S8 The new Mac types the code', n: 'SYN-06.11 step 2: after Add a server with its fingerprint compare, and “Add this Mac to your account”; a used code is refused (409), an expired or unknown one too (401)', card: true, html: newMacDlg },
@@ -683,7 +683,7 @@ const P = [
       { id: 'e16-s8-status-states', t: 'E16-S8 Status line states', n: 'SYN-03.13 at the sidebar\'s width: Synced, Syncing, Offline, Needs password, Uses a replaced password, Signed out, and Error with the message of the last failure (MSG-SYNC-ERROR); MSG-SYNC-BUSY when the 3rd try ends with 412 (SYN-03.6); MSG-GROUP-WAITING-KEY for a shared vault, and its wording for a vault never opened on this Mac, named “Vault &lt;first 8 hex digits&gt;” (SHR-01 Words)', card: true, html: statusSheet },
       { id: 'e16-s8-vault-sync', t: 'E16-S8 Vault Settings, Sync', n: 'SYN-03.1, SYN-03.4, SYN-03.13, SYN-03.15: the server, the status with Sync now, and Stop syncing, which removes this Mac\'s link only (the key, its key-file part and the server copy stay); a shared vault has no Stop syncing: its way out is Leave (SHR-04.11)', w: 900, h: 640,
         html: () => settingsWin({ page: 'sync' }, VSET8, { ...VSETP, sync: vaultSync }, 'vault') },
-      { id: 'e16-s8-linked-unlock', t: 'E16-S8 Unlock a synced vault', n: 'SYN-03.2: the key file row reads “Key part kept for sync”: App takes the part from this Mac\'s device store and asks only for the rest of the key, normally the master password; the same row on the lock screen and in the unlock sheet (APP-06)', card: true, html: linkedUnlock },
+      { id: 'e16-s8-linked-unlock', t: 'E16-S8 Unlock a synced vault', n: 'SYN-03.2: the key file row reads “Key part kept for sync”: Larsal takes the part from this Mac\'s device store and asks only for the rest of the key, normally the master password; the same row on the lock screen and in the unlock sheet (APP-06)', card: true, html: linkedUnlock },
       { id: 'e16-s8-kept-for-sync', t: 'E16-S8 Vault Settings, Security of a synced vault', n: 'SYN-03.12 (E16-S9 check): the key file row reads “Kept for sync”, with no Change… or Remove while the vault syncs; Save as key file… writes the part as an XML 2.0 key file (FMT-18.20; no overwrite, mode 0400) that opens the vault with the master password. Drawn for a vault that had no key file (SYN-03.1 step 1)', w: 900, h: 640, after: grow('.sc'),
         html: () => settingsWin({ page: 'security' }, VSET8, { ...VSETP, security: keptSecurity }, 'vault') },
       { id: 'e16-s8-messages-sync', t: 'E16-S8 Sync and account messages', n: 'Every alert of SYN-01, SYN-03, SYN-05 and SYN-06 in the card\'s words, with its buttons in the label; the status-line messages are in the states above. Red error, orange warning, as W-15\'s sheets', card: true, html: syncMsgs },
@@ -695,7 +695,7 @@ const P = [
         html: () => s8pair(['On your Mac', cmpDlg('Check the code with the person you invited')], ['On Dana\'s Mac', cmpDlg('Check the code with the person who invited you')]) },
       { id: 'e16-s8-roles', t: 'E16-S8 Team roles and rights', n: 'SHR-03.2: Owner, Admin, Member and Read-only, and each member\'s right on this vault: Can view, Can edit, Can manage, or none (“No access”); Owners and Admins manage every vault; Read-only at most views; MSG-GROUP-READ-ONLY on the members page (SHR-03.13); Jo\'s role menu, open with its ticked Read-only over Jo\'s select, so Alex\'s own role and the help line stay clear; nobody changes their own role (SHR-03.3); a team needs a server with team features (E18-S6, MSG-GROUP-NO-TEAMS); its own list code (SHR-02.13)', w: 900, h: 640, after: (win) => { grow('.sc')(win); anchor(win); const b = win.querySelector('[data-anchor]'), m = win.querySelector('.menu[data-for]'); const k = m.querySelector('.mi:has(.ph-check)'); m.style.top = (offs(b, win).y + b.offsetHeight / 2 - offs(k, m).y - k.offsetHeight / 2) + 'px'; },
         html: () => withVault(TEAMV, [], [], () => famHead(settingsWin({ page: 'members' }, VSETF, { ...VSETP, members: teamPage }, 'vault'), TEAMV)) + roleMenu },
-      { id: 'e16-s8-remove', t: 'E16-S8 Remove a member', n: 'MSG-GROUP-REMOVE-CONFIRM: Cancel is the default and Remove is red (SHR-04.1); the words say Robin keeps what they saw (SHR-04.9); before it signs, App syncs the vault, or shows MSG-GROUP-REMOVE-WAIT (SHR-04.2)', card: true, html: removeDlg },
+      { id: 'e16-s8-remove', t: 'E16-S8 Remove a member', n: 'MSG-GROUP-REMOVE-CONFIRM: Cancel is the default and Remove is red (SHR-04.1); the words say Robin keeps what they saw (SHR-04.9); before it signs, Larsal syncs the vault, or shows MSG-GROUP-REMOVE-WAIT (SHR-04.2)', card: true, html: removeDlg },
       { id: 'e16-s8-removed-list', t: 'E16-S8 Passwords a removed member could see', n: 'MSG-GROUP-REMOVED-LIST on the members page until Close list (SHR-04.6, SHR-04.8): every entry of the vault at removal, the Recycle Bin\'s too, with user name, website and the earlier versions and attachments it had; a tick per row that survives a restart; “Deleted since the removal” for an entry gone since; then MSG-GROUP-DELETED-LINE: the count and the first and last dates of the items deleted for good since Robin joined (SHR-04.7, LD-290 (5)); below, 4 of 6 people and the new entry\'s list code', w: 900, h: 640, after: grow('.sc'),
         html: () => famSettings('members', { members: () => membersPage(true) }) },
       { id: 'e16-s8-shared-unlock', t: 'E16-S8 Unlock a shared vault', n: 'MSG-GROUP-UNLOCK above the unlock form (SHR-01.8, LD-290 (1)): the account password, checked on this Mac against the kept account blob; quick unlock then works as for any vault; the tile carries the server badge', card: true,
@@ -711,15 +711,15 @@ const P = [
       { id: 'e16-s8-messages-sharing', t: 'E16-S8 Sharing messages', n: 'Every alert of SHR-01 to SHR-04 in the card\'s words, with its buttons in the label, in its family and team wordings (SHR-02 and SHR-04 Words); “&lt;group&gt;” is the name of the group\'s first vault, and “Group &lt;first 8 hex digits&gt;” on a Mac that never opened it', card: true, html: groupMsgs },
     ] },
   { id: 'e7-s7k', title: 'E7-S7k Browsers: Edge, Chromium and Arc (proposed)',
-    line: 'Adds the Edge, Chromium and Arc rows to the Browsers group of Settings › Browser Integration, after the frame\'s six, in the same row part, with the states the cards give them: on while App\'s manifest is in that browser\'s folder, off, a setup that failed (MI01-01), a setup for an old copy of App (MI01-02), and browser integration off. Serves INT-01.8 (research B5, D-INT01-6, LD-272 (1), LD-295 (3)), INT-01.10, INT-01.11, APP-01.30, APP-01.5, S-BRW-08, and S-BRW-28 and S-BRW-29 (added to APP-01 by E7-S7l, LD-298 (3)); covers W-07\'s Edge row (LD-189). The owner\'s one-pass review never blocks the build (AT-K05, LD-268). Waiting: E7-S7l.',
+    line: 'Adds the Edge, Chromium and Arc rows to the Browsers group of Settings › Browser Integration, after the frame\'s six, in the same row part, with the states the cards give them: on while Larsal\'s manifest is in that browser\'s folder, off, a setup that failed (MI01-01), a setup for an old copy of Larsal (MI01-02), and browser integration off. Serves INT-01.8 (research B5, D-INT01-6, LD-272 (1), LD-295 (3)), INT-01.10, INT-01.11, APP-01.30, APP-01.5, S-BRW-08, and S-BRW-28 and S-BRW-29 (added to APP-01 by E7-S7l, LD-298 (3)); covers W-07\'s Edge row (LD-189). The owner\'s one-pass review never blocks the build (AT-K05, LD-268). Waiting: E7-S7l.',
     frames: [
-      { id: 'e7-s7k-every-browser', t: 'E7-S7k Settings, Browser Integration with every browser', n: 'INT-01.8, APP-01.30: the frame\'s six, then Edge (S-BRW-08), Chromium (S-BRW-28) and Arc (S-BRW-29); a switch is on exactly while App\'s manifest is in that browser\'s folder: Edge on (Microsoft Edge/NativeMessagingHosts/), Chromium and Arc off, the default; turning one on writes the manifest (INT-01.9, INT-01.10), turning it off removes it only when its name is App\'s. Edge, Chromium and Arc show the letter tile: brands.js has no mark for them', w: 900, h: 680, after: grow('.sc'),
+      { id: 'e7-s7k-every-browser', t: 'E7-S7k Settings, Browser Integration with every browser', n: 'INT-01.8, APP-01.30: the frame\'s six, then Edge (S-BRW-08), Chromium (S-BRW-28) and Arc (S-BRW-29); a switch is on exactly while Larsal\'s manifest is in that browser\'s folder: Edge on (Microsoft Edge/NativeMessagingHosts/), Chromium and Arc off, the default; turning one on writes the manifest (INT-01.9, INT-01.10), turning it off removes it only when its name is Larsal\'s. Edge, Chromium and Arc show the letter tile: brands.js has no mark for them', w: 900, h: 680, after: grow('.sc'),
         html: () => brwSettings({ on: ['Edge'] }) },
       { id: 'e7-s7k-setup-failed', t: 'E7-S7k Arc could not be set up', n: 'MI01-01 (INT-01.10, APP-01.30) in red under the row, the W-06 line: it names the browser and its INT-01.8 folder (Arc/User Data/NativeMessagingHosts/, V-INT01-4), home shown as ~; the switch went back to off. Edge and Chromium show the same line with their own name and folder', w: 900, h: 680, after: grow('.sc'),
         html: () => brwSettings({ on: ['Edge'], msg: { Arc: brwFailed('Arc') } }) },
-      { id: 'e7-s7k-old-setup', t: 'E7-S7k Chromium set up for an old copy of App', n: 'MI01-02 (INT-01.11) in the warning colour under the row: “Rewrite the browser setup files at start” is off (S-BRW-21) and the manifest in Chromium/NativeMessagingHosts/ (INT-01.8) names an app-bridge that is gone; the switch stays on, as the file is there', w: 900, h: 680, after: grow('.sc'),
+      { id: 'e7-s7k-old-setup', t: 'E7-S7k Chromium set up for an old copy of Larsal', n: 'MI01-02 (INT-01.11) in the warning colour under the row: “Rewrite the browser setup files at start” is off (S-BRW-21) and the manifest in Chromium/NativeMessagingHosts/ (INT-01.8) names an larsal-bridge that is gone; the switch stays on, as the file is there', w: 900, h: 680, after: grow('.sc'),
         html: () => brwSettings({ on: ['Edge', 'Chromium'], msg: { Chromium: brwOld('Chromium') }, rewrite: false }) },
-      { id: 'e7-s7k-integration-off', t: 'E7-S7k Browser integration off', n: 'APP-01.5: with “Let browsers use App” off (S-BRW-01, the default) every control under it is disabled, the new rows too, at the .55 opacity of .inp.off; each switch still shows whether App\'s manifest is in that browser\'s folder (INT-01.8)', w: 900, h: 680, after: grow('.sc'),
+      { id: 'e7-s7k-integration-off', t: 'E7-S7k Browser integration off', n: 'APP-01.5: with “Let browsers use Larsal” off (S-BRW-01, the default) every control under it is disabled, the new rows too, at the .55 opacity of .inp.off; each switch still shows whether Larsal\'s manifest is in that browser\'s folder (INT-01.8)', w: 900, h: 680, after: grow('.sc'),
         html: () => brwSettings({ on: ['Edge'], master: false }) },
     ] },
 ];

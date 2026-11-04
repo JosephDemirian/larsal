@@ -26,7 +26,7 @@ esac
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 DATA=$ROOT/testdata
 HELPERS=$ROOT/scripts/testdata
-TMP=$(mktemp -d)
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/larsal-testdata.XXXXXX") || die "cannot create a private temporary folder"
 trap 'rm -rf "$TMP"' EXIT
 OUT=$TMP/out
 mkdir "$TMP/xml" "$TMP/export" "$OUT"
@@ -44,12 +44,12 @@ EOF
 python3 -I "$HELPERS/make_inputs.py" "$TMP/xml" "$OUT"
 
 # The CLI makes this key file from random bytes, so it is made once and kept.
-CLI_KEY=key-cli-made.appkey
+CLI_KEY=key-cli-made.larsalkey
 if [ -f "$DATA/$CLI_KEY" ]; then
   cp "$DATA/$CLI_KEY" "$OUT/"
 else
   [ "$VERIFY" = 0 ] || die "testdata/$CLI_KEY is missing; run without --verify first."
-  cli "" db-create --set-key-file "$OUT/$CLI_KEY" "$TMP/throwaway.appvault" > /dev/null
+  cli "" db-create --set-key-file "$OUT/$CLI_KEY" "$TMP/throwaway.larsalvault" > /dev/null
 fi
 python3 -I -c 'import hashlib, sys; sys.stdout.buffer.write(hashlib.sha256(open(sys.argv[1], "rb").read()).digest())' \
   "$OUT/$CLI_KEY" > "$TMP/xml/$CLI_KEY.raw"
@@ -78,7 +78,7 @@ attachments() {
 }
 
 if [ "$VERIFY" = 1 ]; then
-  for f in "$OUT"/*.appkey; do same "$f" "$DATA/${f##*/}"; done
+  for f in "$OUT"/*.larsalkey; do same "$f" "$DATA/${f##*/}"; done
 fi
 
 N=0
@@ -91,32 +91,32 @@ while IFS='|' read -r name doc pass key ms <&3; do
   [ -z "$key" ] || { new+=(--set-key-file "$OUT/$key"); open+=(-k "$OUT/$key"); twin+=(-k "$TMP/xml/$key.raw"); }
   [ -z "$ms" ] || new+=(-t "$ms")
 
-  cli "$pass" "${new[@]}" "$TMP/xml/$doc.xml" "$OUT/$name.appvault" > /dev/null
-  cli "$pass" export "${open[@]}" -f xml "$OUT/$name.appvault" > "$TMP/export/$name.xml"
+  cli "$pass" "${new[@]}" "$TMP/xml/$doc.xml" "$OUT/$name.larsalvault" > /dev/null
+  cli "$pass" export "${open[@]}" -f xml "$OUT/$name.larsalvault" > "$TMP/export/$name.xml"
   python3 -I "$HELPERS/to_json.py" "$TMP/export/$name.xml" "$OUT/$name.json"
   # Opening with the 32 raw key bytes proves the CLI read the key file as the kind its name says.
-  [ -z "$key" ] || cli "$pass" db-info "${twin[@]}" "$OUT/$name.appvault" > /dev/null
-  attachments "$OUT/$name.appvault" "$pass" "$doc"
+  [ -z "$key" ] || cli "$pass" db-info "${twin[@]}" "$OUT/$name.larsalvault" > /dev/null
+  attachments "$OUT/$name.larsalvault" "$pass" "$doc"
 
   if [ "$VERIFY" = 1 ]; then
     same "$OUT/$name.json" "$DATA/$name.json"
     # The stored vault must still export to the stored JSON.
-    cli "$pass" export "${open[@]}" -f xml "$DATA/$name.appvault" > "$TMP/export/$name.stored.xml"
+    cli "$pass" export "${open[@]}" -f xml "$DATA/$name.larsalvault" > "$TMP/export/$name.stored.xml"
     python3 -I "$HELPERS/to_json.py" "$TMP/export/$name.stored.xml" "$TMP/$name.stored.json"
     same "$TMP/$name.stored.json" "$DATA/$name.json"
-    attachments "$DATA/$name.appvault" "$pass" "$doc"
+    attachments "$DATA/$name.larsalvault" "$pass" "$doc"
   fi
   N=$((N + 1))
   echo "$name: done"
 done 3<<'EOF'
 password-only|basic|demo-pass-1||100
-keyfile-binary32|basic||key-binary32.appkey|100
-keyfile-hex64|basic||key-hex64.appkey|100
-keyfile-hashed|basic||key-hashed.appkey|100
-keyfile-xml-v1|basic||key-xml-v1.appkey|100
-keyfile-xml-v2|basic||key-xml-v2.appkey|100
-keyfile-cli-made|basic||key-cli-made.appkey|100
-password-and-keyfile|basic|demo-pass-2|key-hex64.appkey|100
+keyfile-binary32|basic||key-binary32.larsalkey|100
+keyfile-hex64|basic||key-hex64.larsalkey|100
+keyfile-hashed|basic||key-hashed.larsalkey|100
+keyfile-xml-v1|basic||key-xml-v1.larsalkey|100
+keyfile-xml-v2|basic||key-xml-v2.larsalkey|100
+keyfile-cli-made|basic||key-cli-made.larsalkey|100
+password-and-keyfile|basic|demo-pass-2|key-hex64.larsalkey|100
 default-time|basic|demo-pass-3||
 rich-v3|rich-v3|demo-pass-4||100
 rich-v4|rich-v4|demo-pass-5||100

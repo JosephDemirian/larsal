@@ -5,7 +5,7 @@ Date: 2026-10-28.
 Role: Verify. I did not build or review this story. No reference access was needed, and none was used.
 Result: **signed.**
 
-- **Tests:** `cargo test -p app-autotype`: 52 passed (1 unit, 51 in `tests/int05.rs`). Every INT-05 case this story owns maps to a test.
+- **Tests:** `cargo test -p larsal-autotype`: 52 passed (1 unit, 51 in `tests/int05.rs`). Every INT-05 case this story owns maps to a test.
 - **Own probes:** 214 checks in a separate crate, written from the card. 213 matched the card. The last one is a card gap, not a build error (G1 below).
 - **AT-G03:**
   - 32 levels of nesting read; 33 give MI05-25. 1,000,000 levels fail in 87 ms.
@@ -14,7 +14,7 @@ Result: **signed.**
   - 256 characters to pick pass and 257 give MI05-18.
   - All 10 self-reference and growth shapes give MI05-27 in under 1 ms (the 16-fold growth shape in 0.4 ms).
   - A 64 MiB sequence peaks at 387 MB at most, input included, and takes at most 3.2 s.
-- **R05-4:** App's own shortcut gives MI05-26 in every written form; other modifiers pass.
+- **R05-4:** Larsal's own shortcut gives MI05-26 in every written form; other modifiers pass.
 - **`{TOTP}`:** written in the sequence, the code is computed when typing reaches it. Reached through a field, it is computed when the plan is made. Invalid settings give MI05-16 on both paths, also through a reference and in the editor check.
 - **Secrets:** the plan's `Debug` output shows `[hidden]` for every value. 18 failing sequences, run through both the plan and the editor check, hold no value in any message.
 - **T40:** `autotype_sequence` ran 601 s and 144,097 runs: no crash, no timeout, no artifact. Replayed in release, the slowest of the 2,116 corpus inputs took 32 ms. The two `tests/data` inputs took 18.4 ms and 10.8 ms in release.
@@ -22,18 +22,18 @@ Result: **signed.**
 ## Setup
 
 - **Build.** `. "$HOME/.cargo/env"`, `CARGO_TARGET_DIR=/tmp/v-e8s1-target`, toolchain 1.99.1. Nightly was used only for `cargo +nightly fuzz` (cargo-fuzz 0.13.2), with `--target-dir /tmp/v-e8s1-target/fuzz`.
-- **Probe crate.** `/tmp/v-e8s1-probe`, outside the workspace. It has path dependencies on `app-autotype`, `app-core`, `app-model` and `app-crypto`, a copy of the workspace `Cargo.lock`, the `zxcvbn` patch, `--offline`, and release with `lto`, `codegen-units = 1` and `overflow-checks`.
+- **Probe crate.** `/tmp/v-e8s1-probe`, outside the workspace. It has path dependencies on `larsal-autotype`, `larsal-core`, `larsal-model` and `larsal-crypto`, a copy of the workspace `Cargo.lock`, the `zxcvbn` patch, `--offline`, and release with `lto`, `codegen-units = 1` and `overflow-checks`.
   - It uses only the public API: `plan`, `check`, `Plan::{actions, keys, waits_ms, picks, fill_picks, otp_code}`, `Error::id` and `Display`, `Layout::new`, `Options`, `Shortcut`, `Mods`, `refs::Context` and `totp::code_for`.
   - Its own demo vault holds an entry P with marker values `SECRET-UN-17` and `SECRET-PW-41`, a reference target Q and the card's E3. Its own US layout table was written from Carbon `kVK_ANSI_*`.
   - None of the Builder's test code was used.
-- **Nothing in the project changed** except this file and the E8-S1 status line. `find fuzz crates/app-autotype -newer /tmp/v-e8s1-probe/Cargo.toml -not -path "*/target/*"` printed nothing. The fuzz corpus was a `/tmp` copy, and artifacts went to `/tmp/v-e8s1-artifacts` (left empty). `fuzz/Cargo.lock` and `Cargo.lock` were not touched. Every `/tmp/v-e8s1-*` folder was deleted at the end.
+- **Nothing in the project changed** except this file and the E8-S1 status line. `find fuzz crates/larsal-autotype -newer /tmp/v-e8s1-probe/Cargo.toml -not -path "*/target/*"` printed nothing. The fuzz corpus was a `/tmp` copy, and artifacts went to `/tmp/v-e8s1-artifacts` (left empty). `fuzz/Cargo.lock` and `Cargo.lock` were not touched. Every `/tmp/v-e8s1-*` folder was deleted at the end.
 - **No window and no typing.** This story types nothing, and no probe posted a key event or touched a pasteboard. Every process I started ran in the foreground of its command and ended there, so nothing had to be stopped.
 
 ## 1. Builder tests and INT-05 case map
 
-`cargo test -p app-autotype`: `cargo test: 52 passed (3 suites, 0.45s)`. A second run listed each test as `ok`: `read::tests::ld184_1_memory_follows_the_braces` (unit) and 51 in `tests/int05.rs`.
+`cargo test -p larsal-autotype`: `cargo test: 52 passed (3 suites, 0.45s)`. A second run listed each test as `ok`: `read::tests::ld184_1_memory_follows_the_braces` (unit) and 51 in `tests/int05.rs`.
 
-In release, `cargo test -p app-autotype --release --test int05 -- t40_slowest r05_2_deep t37`: `t37_growth_bound`, `r05_2_deep_nesting_fails_fast` and `t40_slowest_fuzz_inputs_stay_fast` passed, `3 passed; 0 failed`.
+In release, `cargo test -p larsal-autotype --release --test int05 -- t40_slowest r05_2_deep t37`: `t37_growth_bound`, `r05_2_deep_nesting_fails_fast` and `t40_slowest_fuzz_inputs_stay_fast` passed, `3 passed; 0 failed`.
 
 Cases owned by E8-S1 (the reader and the planner, INT-05.1 to INT-05.18):
 
@@ -200,8 +200,8 @@ All timings below are in release on this Mac, which was not otherwise idle (load
 
 ## 4. R05-4 and `{TOTP}` (LD-184)
 
-**App's own shortcut.**
-- With ⌃⌥V (0x09) set, these give MI05-26 naming the token as written: `x^%v` (`^%v is App's own Auto-Type shortcut.`), `%^v`, `^%V`, `^^%%v`, and `{MODE=VIRTUAL}^%v`.
+**Larsal's own shortcut.**
+- With ⌃⌥V (0x09) set, these give MI05-26 naming the token as written: `x^%v` (`^%v is Larsal's own Auto-Type shortcut.`), `%^v`, `^%V`, `^^%%v`, and `{MODE=VIRTUAL}^%v`.
 - These pass: `^%+v`, `^v`, `%v`, `#^%v`, `v`, `^%c`, and a username of `^%v`, which is typed as text.
 - The editor check also gives MI05-26.
 - With ⌃⌥Tab set: `a^%{TAB}`, `^%{TAB 3}` and `^%`TAB give MI05-26. `^%{TAB 0}` presses nothing and passes.
@@ -217,7 +217,7 @@ All timings below are in release on this Mac, which was not otherwise idle (load
 
 ## 5. Secrets
 
-**The plan's `Debug` output.** The plan came from `{USERNAME}{TAB}{PASSWORD}{PICKCHARS:Pin}{TOTP}{NOTES}x` and was printed before and after `fill_picks`. It begins `Plan { start_delay_ms: 500, key_pause_ms: 25, actions: [Text { text: [hidden], by_key: false }, Key { code: 48, mods: Mods(0) }, Text { text: [hidden], by_key: false }, Pick { value: [hidden], by_key: false }, Otp { by_key: false }, …`. The one-time settings print as digits, period, algorithm, encoder, form and problem only (app-core `totp::Settings`).
+**The plan's `Debug` output.** The plan came from `{USERNAME}{TAB}{PASSWORD}{PICKCHARS:Pin}{TOTP}{NOTES}x` and was printed before and after `fill_picks`. It begins `Plan { start_delay_ms: 500, key_pause_ms: 25, actions: [Text { text: [hidden], by_key: false }, Key { code: 48, mods: Mods(0) }, Text { text: [hidden], by_key: false }, Pick { value: [hidden], by_key: false }, Otp { by_key: false }, …`. The one-time settings print as digits, period, algorithm, encoder, form and problem only (larsal-core `totp::Settings`).
 
 None of these appeared in either output: `SECRET-UN-17`, `SECRET-PW-41`, `JBSWY3DPEHPK3PXP`, `value1`, `PICKME-99`, or the current code.
 
@@ -232,7 +232,7 @@ None of these appeared in either output: `SECRET-UN-17`, `SECRET-PW-41`, `JBSWY3
 
 No `Display` or `Debug` text held a marker. Code reading agrees:
 - every reason holds a token as written, cut to 40 characters (`error::shown`), a modifier run, or one character of the sequence text (`NoKey` is built only in `combo`, which never receives a resolved value);
-- `crates/app-autotype/src` has no `println`, `eprintln`, `dbg!`, `log::` or `tracing` (`grep` exit 1).
+- `crates/larsal-autotype/src` has no `println`, `eprintln`, `dbg!`, `log::` or `tracing` (`grep` exit 1).
 
 ## 6. T40: 10-minute fuzz run
 
@@ -251,7 +251,7 @@ cargo +nightly fuzz run autotype_sequence --target-dir /tmp/v-e8s1-target/fuzz /
 - **That RSS is the sanitizer's, not a leak.**
   - Replaying the grown corpus once in the fuzz build (2,118 runs) already reached 871 MB.
   - The same 2,116 inputs in a plain release build peaked at 30.6 MB. Ten passes (21,160 runs) peaked at 33.0 MB.
-  - App's crates hold no global cache (`grep` for `thread_local`, `OnceLock`, `static … Mutex`, `Box::leak` and `mem::forget` finds only the per-call `OTP_INVALID` flag and fixed tables).
+  - Larsal's crates hold no global cache (`grep` for `thread_local`, `OnceLock`, `static … Mutex`, `Box::leak` and `mem::forget` finds only the per-call `OTP_INVALID` flag and fixed tables).
 - **The slowest input, in release.**
   - The probe repeats the target's entry, options, plan, check and `fill_picks` for every file.
   - Across all 2,116 corpus inputs, 0 took over 100 ms. The slowest took 30.5 to 32.4 ms over three runs: `87f6a7b5…` (6,890 bytes, a run of `{T-REPLACE-RX:/{USERNAME}/a/b/}` tokens; `f87b9974…` is next at 29.9 ms).

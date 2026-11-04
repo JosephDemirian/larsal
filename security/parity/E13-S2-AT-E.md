@@ -14,45 +14,45 @@ Date: 2026-10-29. Role: Red team, group AT-E. I did not build any of this code. 
 | AT-E05 Retired, replacement | **waits for its stories** | Its replacement checks are AT-C03 (group AT-C, E13-S4: debugger attach and crash on a release build, needs Mac QA) and AT-J05 (E14-S3). |
 | AT-E06 Drag and drop | **passed** | Three drop targets. Links are refused, and only vault files open, each as an unlock screen. FIFO, `/dev/zero` and a folder named like a vault return at once. |
 | AT-E07 Secrets in the screen | **failed** (RT-E-2, Medium) | The Swift view state is clean after Hide and after lock. But after the editor's Show and Hide, one copy of the entry password stays in process memory after lock and after close. |
-| AT-E08 Local listeners | **passed** (RT-E-5, Low: the row omits a listener) | The only listener is the instance socket, Unix, `0600` in a `0700` folder. With the SSH agent on, App's own agent socket is added, also `0600`/`0700`. No TCP, no UDP, no port. |
+| AT-E08 Local listeners | **passed** (RT-E-5, Low: the row omits a listener) | The only listener is the instance socket, Unix, `0600` in a `0700` folder. With the SSH agent on, Larsal's own agent socket is added, also `0600`/`0700`. No TCP, no UDP, no port. |
 
 Findings: RT-E-1 High, RT-E-2 Medium, RT-E-3 Medium, RT-E-4 Low, RT-E-5 Low. The filer gives them F-numbers.
 
 ## Setup
 
-- **Private copy.** At 20:35:33 I made it with `rsync -a --exclude target --exclude app-shots --exclude fuzz/target` into `/tmp/e13s2-ate/copy`. It had its own `target` and the DerivedData folder `/tmp/e13s2-ate/dd`. I changed no product code in the shared tree.
+- **Private copy.** At 20:35:33 I made it with `rsync -a --exclude target --exclude larsal-shots --exclude fuzz/target` into `/tmp/e13s2-ate/copy`. It had its own `target` and the DerivedData folder `/tmp/e13s2-ate/dd`. I changed no product code in the shared tree.
   - The harness files were added only in the copy:
-    - `crates/app-ffi/tests/red_at_e03.rs`: 1,342 lines, SHA-256 `5d758e7b8229c66a…`;
-    - `macos/AppTests/RedTeamATETests.swift`: 631 lines, `d78a3ea12e4ebd1e…`.
+    - `crates/larsal-ffi/tests/red_at_e03.rs`: 1,342 lines, SHA-256 `5d758e7b8229c66a…`;
+    - `macos/LarsalTests/RedTeamATETests.swift`: 631 lines, `d78a3ea12e4ebd1e…`.
   - Both are deleted with the copy.
-- **Tree changes during the run.** Other agents changed files during my run: `app-core/src/storage.rs` (F-047), `app-ffi/src/edit.rs` and `views.rs` (20:37 to 21:00), and `macos/App/Platform/ShownPasswordField.swift` (F-069, 20:58).
+- **Tree changes during the run.** Other agents changed files during my run: `larsal-core/src/storage.rs` (F-047), `larsal-ffi/src/edit.rs` and `views.rs` (20:37 to 21:00), and `macos/Larsal/Platform/ShownPasswordField.swift` (F-069, 20:58).
   - At 21:40:31 I re-synced `crates/` and the Cargo files from the tree into the copy and re-ran the FIFO checks of RT-E-1.
-  - I also copied today's `ShownPasswordField.swift` and its test and re-ran AT-E07 on them. After that copy, `diff -rq` showed `macos/App` equal to the tree.
+  - I also copied today's `ShownPasswordField.swift` and its test and re-ran AT-E07 on them. After that copy, `diff -rq` showed `macos/Larsal` equal to the tree.
   - Both findings hold on the re-synced code.
 - **Builds.** All builds ran in the copy:
-  - `scripts/build-core.sh` printed `build-core (debug): target/app-core/AppFFI.xcframework …` (11 min);
-  - `cargo test -p app-ffi --test red_at_e03 --no-run`;
+  - `scripts/build-core.sh` printed `build-core (debug): target/larsal-core/LarsalFFI.xcframework …` (11 min);
+  - `cargo test -p larsal-ffi --test red_at_e03 --no-run`;
   - `xcodebuild … -derivedDataPath /tmp/e13s2-ate/dd build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` printed `** TEST BUILD SUCCEEDED **`.
   - Tools: rustc 1.99.1, Xcode 27.0, macOS 26.6.
-- **Demo data only.** I used copies of `testdata/rich-v4.appvault` (`demo-pass-5`) and `option-a-personal.appvault` (`demo-pass-7`) in `/tmp/e13s2-ate/run`. I also made three vaults from rich-v4 through app-ffi:
-  - `e01.appvault`: hostile text in every field;
-  - `e07.appvault`: one entry, "E07 entry", with a random 26-character password and a protected `PIN`, both made in the Rust step;
-  - `hang.appvault`.
+- **Demo data only.** I used copies of `testdata/rich-v4.larsalvault` (`demo-pass-5`) and `option-a-personal.larsalvault` (`demo-pass-7`) in `/tmp/e13s2-ate/run`. I also made three vaults from rich-v4 through larsal-ffi:
+  - `e01.larsalvault`: hostile text in every field;
+  - `e07.larsalvault`: one entry, "E07 entry", with a random 26-character password and a protected `PIN`, both made in the Rust step;
+  - `hang.larsalvault`.
   - Nothing in `testdata/` was written.
 - **Rule 10 and rule 11.**
   - The Rust harness ran under `env -u SSH_AUTH_SOCK HOME=/tmp/e13s2-ate/run/home sandbox-exec` with a profile that denies remote network. It used `Session()` and its private pasteboard; the one `Session.shared()` call only reads `vaults()`.
-  - The Swift tests run in the host-less AppTests bundle with offscreen windows that are never ordered front. Attachment Open goes to the existing fake opener (`ParityDemo.setUp`).
-  - App launches ran the Debug binary directly, the way `tests/app09.rs` does: `APP_TEST_HIDDEN=1`, `APP_TEST_INSTANCE_DIR` in `/tmp`, no `SSH_AUTH_SOCK`. Each was stopped by its PID with SIGTERM.
+  - The Swift tests run in the host-less LarsalTests bundle with offscreen windows that are never ordered front. Attachment Open goes to the existing fake opener (`ParityDemo.setUp`).
+  - Larsal launches ran the Debug binary directly, the way `tests/app09.rs` does: `LARSAL_TEST_HIDDEN=1`, `LARSAL_TEST_INSTANCE_DIR` in `/tmp`, no `SSH_AUTH_SOCK`. Each was stopped by its PID with SIGTERM.
   - No window, no focus, no general pasteboard, no `~/.ssh`, no keychain. `ps` at the end showed none of my processes.
 
 ## AT-E01 Text injection
 
-**Method.** The Rust step wrote one hostile marker into every text field of `e01.appvault`. The pattern is `**T1** [lnk](https://example.com) <b>x</b> \`c\` _i_` + BEL. The markers and their fields:
+**Method.** The Rust step wrote one hostile marker into every text field of `e01.larsalvault`. The pattern is `**T1** [lnk](https://example.com) <b>x</b> \`c\` _i_` + BEL. The markers and their fields:
 - `T1` title, `U1` user name, `L1` URL, `N1` notes;
 - `K1` tag, `A1` attribute name, `B1` attribute value;
 - `F1` attachment name (the file `**F1** [lnk](https:example.com) <b>x.txt`);
 - `G1` group name;
-- `V1` the vault's file name, which App shows as the vault name;
+- `V1` the vault's file name, which Larsal shows as the vault name;
 - `D1` the vault's stored name and description.
 
 The Swift test `RedATE01` opens the vault with `Session()` and renders the real `MainWindow` offscreen (`Screen`). It reads every label, title, value, help and placeholder of the accessibility tree in these states:
@@ -61,7 +61,7 @@ The Swift test `RedATE01` opens the vault with `Session()` and renders the real 
 - the unlock screen;
 - welcome with the vault in the recent list.
 
-Static checks: SwiftLint over `macos/App` with the project rule `no_markdown_text`, a probe file against that rule, and a grep for rich-text and link APIs.
+Static checks: SwiftLint over `macos/Larsal` with the project rule `no_markdown_text`, a probe file against that rule, and a grep for rich-text and link APIs.
 
 **Output.**
 
@@ -71,17 +71,17 @@ RED AT-E01 seen: A1, B1, F1: detail, editor Advanced, main, tags open; G1, K1, T
 RED AT-E01 links: []
 RED AT-E01 not literal: []
 ✘ … Expectation failed: seen[m]?.isEmpty == false      (D1 only: the stored name is not on any main-window frame)
-swiftlint lint --strict --config .swiftlint.yml App   -> exit 0, 0 lines
+swiftlint lint --strict --config .swiftlint.yml Larsal   -> exit 0, 0 lines
 probe: Probe.swift:8 / :9 / :10 error "No Markdown or interpolated Text keys"
        (Text("Title: \(title)"), AttributedString(markdown:), LocalizedStringKey(title)); Text(verbatim:) and Text(title) pass
-grep AttributedString(markdown | LocalizedStringKey( | NSAttributedString(html | WKWebView | import WebKit | openURL over macos/App: 0
+grep AttributedString(markdown | LocalizedStringKey( | NSAttributedString(html | WKWebView | import WebKit | openURL over macos/Larsal: 0
 existing PlainTextTests "AT-E01: …shown as they are": passed
 ```
 
 **Result: passed.**
 - Every marker that is on screen is drawn with its asterisks, brackets and tags. No element has the link role, and no marker shows up in rendered form.
 - `D1` appears only in Vault Settings, as the value of a `TextField` bound to `model.name` and `model.description` (`VaultSettingsView.swift`), which is plain text. I did not render that window; the CPU budget was spent.
-- The `AttributedString` uses in `AutoTypePicker.swift` and `AppSettingsMorePages.swift` are `AttributedString(String)` (plain) or a fixed text of App's own.
+- The `AttributedString` uses in `AutoTypePicker.swift` and `LarsalSettingsMorePages.swift` are `AttributedString(String)` (plain) or a fixed text of Larsal's own.
 
 ## AT-E02 Dangerous links
 
@@ -93,7 +93,7 @@ existing PlainTextTests "AT-E01: …shown as they are": passed
 - `https:example.com`, `https:\\example.com`, `http:///etc/hosts`, full-width `ｈｔｔｐｓ://`, `{REF:U@I:0}`;
 - a text with line breaks that ends in `javascript:`.
 
-Static check: every `NSWorkspace.shared.open` in `macos/App`.
+Static check: every `NSWorkspace.shared.open` in `macos/Larsal`.
 
 **Output.**
 
@@ -101,7 +101,7 @@ Static check: every `NSWorkspace.shared.open` in `macos/App`.
 ✔ Test "AT-E02: only http and https with a host are opened" passed
 RED AT-E02 allowed of 37 hostile: ["https://%00"]
 grep NSWorkspace|openURL|URLOpener: vault URLs open only in URLOpener.open (URLOpener.swift:24), called from RailView 48/94,
-  Menus 67, AppCommandsVault 58, EditorEntryPage 83, ContextMenus 23; each control is disabled when allowed() is nil.
+  Menus 67, LarsalCommandsVault 58, EditorEntryPage 83, ContextMenus 23; each control is disabled when allowed() is nil.
   The other open is FileOpener.open (VaultEdits.swift:305), for attachment copies (see RT-E-3).
 ```
 
@@ -111,14 +111,14 @@ grep NSWorkspace|openURL|URLOpener: vault URLs open only in URLOpener.open (URLO
 
 ## AT-E03 Boundary abuse
 
-**Method.** The Rust harness `red_at_e03.rs` calls every export of app-ffi. The script below counts 180 in the source, from `#[uniffi::export]` blocks.
+**Method.** The Rust harness `red_at_e03.rs` calls every export of larsal-ffi. The script below counts 180 in the source, from `#[uniffi::export]` blocks.
 
 In-process callers:
 - `Session` methods;
-- `AppSettingsStore`, `VaultSettings` and `Wizard` methods;
+- `LarsalSettingsStore`, `VaultSettings` and `Wizard` methods;
 - the free functions.
 
-`start()` reads the process arguments, so it ran on the Debug App binary instead (below).
+`start()` reads the process arguments, so it ran on the Debug Larsal binary instead (below).
 
 The calls, each wrapped in `catch_unwind` and timed:
 - **Unknown vault ids:** `0`, `999999`, `u64::MAX`, and a closed id.
@@ -137,7 +137,7 @@ The calls, each wrapped in `catch_unwind` and timed:
 
 The secret search:
 - It covers every Ok value except a Show's, every error's `Display` and `Debug` text, and every panic message.
-- The 49 secrets searched: the protected values of 5 or more characters of both vaults (entries and history, read with app-format), the two master passwords, and four typed-in markers (password, field value, one-time secret, generator text).
+- The 49 secrets searched: the protected values of 5 or more characters of both vaults (entries and history, read with larsal-format), the two master passwords, and four typed-in markers (password, field value, one-time secret, generator text).
 
 The passes:
 - **Pass 1:** with both vaults unlocked, then again on A after lock and after close. Before the lock, an editor draft with a typed password, a generator value and an Auto-Type plan were open. After that it unlocks A again to check that the draft is gone.
@@ -147,7 +147,7 @@ The passes:
 **Commands.**
 
 ```
-cargo test -p app-ffi --test red_at_e03 --no-run            (in the copy)
+cargo test -p larsal-ffi --test red_at_e03 --no-run            (in the copy)
 env -u SSH_AUTH_SOCK HOME=… RED_TMP=/tmp/e13s2-ate/run sandbox-exec -f nonet.sb target/debug/deps/red_at_e03-… <test> --nocapture
   tests: red_at_e03_every_export, red_at_e03_two_threads, red_fifo_paths, red_fifo_swap, red_fifo_open_files, red_use_folder
 ```
@@ -174,7 +174,7 @@ examples:
   autotype_type plan 0/1/2/u64::MAX -> Gone; breach_start in this build (no `net` feature) -> sends nothing
   attach_file /dev/zero, /dev/random, a folder, a loop -> CannotOpen at once
   open_attachment(vault 0 | 999999 | u64::MAX, "x.command", false) -> Ok(AskFirst)          (RT-E-4)
-start() on the Debug App, hidden (17 argument sets): --bogus exit 1 M09-09; invalid UTF-8 flag exit 1; 200 KB flag exit 1;
+start() on the Debug Larsal, hidden (17 argument sets): --bogus exit 1 M09-09; invalid UTF-8 flag exit 1; 200 KB flag exit 1;
   200 KB file / 8000 files / invalid UTF-8 file with --lock exit 0 M09-04; --key-file at the end exit 1; --config= exit 1;
   --config=/dev/zero --lock exit 0; -v, --help, --debug-info exit 0 (no path, no secret); --pw-stdin with the password, --lock exit 0;
   no output held demo-pass-5
@@ -192,7 +192,7 @@ RED SWAP own file is a FIFO: check_disk: BLOCKED over 3 s
 RED SWAP own file is a FIFO: save: BLOCKED over 3 s
 RED SWAP own file is a FIFO: resolve_disk(Reload): BLOCKED over 3 s
 RED SWAP own file is a FIFO: lock: returned in 0 ms: Ok(())      close: Ok(())
-open_files([FIFO]) and open_files([y.appvault FIFO]): returned in 0 ms
+open_files([FIFO]) and open_files([y.larsalvault FIFO]): returned in 0 ms
 ```
 
 Then through the screen. `RedLockHang` sets up a vault with one unsaved change and swaps its file for a FIFO. It then calls `MainWindowModel.lockAll()`, which is what the lock signals and the instance channel's `lock` call, on the main actor. A watchdog thread checks the vault after 4 s and then opens both ends of the FIFO once, so the test can finish:
@@ -209,16 +209,16 @@ Without the watchdog the call never returns. In my first pass 1 run the FIFO fix
 - But `save_as`, `save`, `check_disk` and `resolve_disk(Reload)` block for good on a FIFO, and the Swift lock path waits on `save` (RT-E-1).
 - Low: `open_attachment` answers `AskFirst` before it checks the vault (RT-E-4).
 
-Coverage, by a script over `crates/app-ffi/src/*.rs` (`#[uniffi::export]` blocks, minus the two foreign traits Swift implements):
+Coverage, by a script over `crates/larsal-ffi/src/*.rs` (`#[uniffi::export]` blocks, minus the two foreign traits Swift implements):
 
 ```
-180 exports in source; called: all but AppSettingsStore.use_folder in pass 1/2, and that one in red_use_folder; start() on the binary
+180 exports in source; called: all but LarsalSettingsStore.use_folder in pass 1/2, and that one in red_use_folder; start() on the binary
 ```
 
 ## AT-E04 Retired: no web engine (replacement checks)
 
 **Method.**
-- `otool -L` and `nm -u` on today's Debug App binary (built 21:32 in the copy), and for history on the Release binary in `target/xcode` (from 2026-10-27).
+- `otool -L` and `nm -u` on today's Debug Larsal binary (built 21:32 in the copy), and for history on the Release binary in `target/xcode` (from 2026-10-27).
 - `lsof` image list of the running hidden primary.
 - The E6-S7 kind of network capture, done again:
   - `lsof -nP -a -i -p <pid>` every 0.25 s and `nettop -n -L 21 -s 1 -p <pid>`, both over the first 20 s from the launch;
@@ -227,8 +227,8 @@ Coverage, by a script over `crates/app-ffi/src/*.rs` (`#[uniffi::export]` blocks
 **Output.**
 
 ```
-Debug App (today): otool -L WebKit/JavaScriptCore: 0; nm -u WKWebView|WebView|JSContext|JavaScriptCore: 0
-Release App (2026-10-27, history): 0 and 0
+Debug Larsal (today): otool -L WebKit/JavaScriptCore: 0; nm -u WKWebView|WebView|JSContext|JavaScriptCore: 0
+Release Larsal (2026-10-27, history): 0 and 0
 NETCAP pid 69709: 64 lsof -i polls in 20 s from start, 0 with an internet socket; nettop -p: 0 rows
 NETCAP mapped WebKit/JavaScriptCore/WebCore images in the running app: 0
 NETCTL positive control (loopback TCP): 8 nettop rows, e.g. "tcp4 127.0.0.1:52225<->127.0.0.1:52224,lo0,Established,…"
@@ -240,7 +240,7 @@ NETCTL positive control (loopback TCP): 8 nettop rows, e.g. "tcp4 127.0.0.1:5222
 
 - The row says it is covered by AT-C03 and AT-J05.
 - **AT-C03** is a debugger attach and a forced crash on a release build. It belongs to group AT-C (E13-S4). On this Mac a debugger attach can raise the developer-tools prompt, and a crash of a window app can raise the crash dialog, both on the owner's screen. So it needs Mac QA with the owner's go (rule 10).
-- The code is in place: `app-platform/src/macos/process.rs` has `PT_DENY_ATTACH`, `RLIMIT_CORE` 0 and its own test, `app11_3_deny_attach_refuses_ptrace_attach`. I did not re-run that test (CPU budget).
+- The code is in place: `larsal-platform/src/macos/process.rs` has `PT_DENY_ATTACH`, `RLIMIT_CORE` 0 and its own test, `app11_3_deny_attach_refuses_ptrace_attach`. I did not re-run that test (CPU budget).
 - **AT-J05** is E14-S3.
 
 **Result: waits for its stories.**
@@ -248,23 +248,23 @@ NETCTL positive control (loopback TCP): 8 nettop rows, e.g. "tcp4 127.0.0.1:5222
 ## AT-E06 Drag and drop
 
 **Method.**
-- **Drop targets.** A grep of `macos/App` for `dropDestination|onDrop|registerForDraggedTypes|NSDraggingDestination|performDragOperation` found three:
+- **Drop targets.** A grep of `macos/Larsal` for `dropDestination|onDrop|registerForDraggedTypes|NSDraggingDestination|performDragOperation` found three:
   - `WelcomeView.swift:71`: vault files only, through `FileOpen.droppedVaults`;
   - `UnlockView.swift:340`: the key file row, which takes any file URL by LD-163 (2);
   - `EditorPages.swift:154`: the attachment zone, file URLs only.
 - **`RedATE06`.** It feeds 13 hostile URLs to `FileOpen.droppedVaults` and `FileOpen.paths`:
   - links: `https:`, `javascript:`, `data:`, a remote-host `file:`;
-  - non-vault files: `notes.txt`, `x.command`, `x.appvault.command`;
-  - vault names: `x.APPVAULT`, a folder named `folder.appvault`, a FIFO `fifo.appvault`, a link `zero.appvault` → `/dev/zero`, a symlink loop, a real vault.
+  - non-vault files: `notes.txt`, `x.command`, `x.larsalvault.command`;
+  - vault names: `x.LARSALVAULT`, a folder named `folder.larsalvault`, a FIFO `fifo.larsalvault`, a link `zero.larsalvault` → `/dev/zero`, a symlink loop, a real vault.
 - Then it opens each accepted path the way the welcome drop does (`window.open`), timed.
 - The attachment zone and the key file row hand their files to `attach_file` and `unlock`. AT-E03 shows those refuse FIFOs and devices at once.
 
 **Output.**
 
 ```
-RED AT-E06 dropped vault paths: x.appvault (remote file URL), x.APPVAULT, folder.appvault, fifo.appvault, zero.appvault, loop.appvault, real.appvault
+RED AT-E06 dropped vault paths: x.larsalvault (remote file URL), x.LARSALVAULT, folder.larsalvault, fifo.larsalvault, zero.larsalvault, loop.larsalvault, real.larsalvault
 RED AT-E06 key file row paths: 10 of 13 (file URLs only)
-RED AT-E06 open <each>: 0.000 s; unlock screen true (or none for the missing remote path); main false; vaults 1, then 2 for real.appvault
+RED AT-E06 open <each>: 0.000 s; unlock screen true (or none for the missing remote path); main false; vaults 1, then 2 for real.larsalvault
 ✔ AT-E06 red … passed; ✔ "APP-09.26-a, AT-E06: a drop opens vault files only" passed; ✔ "LD-163 (2): the key file row …" passed
 ```
 
@@ -320,16 +320,16 @@ existing: ✔ "APP-06.11, AT-E07: …", ✔ "AT-E07: a Show that finishes after 
 - the socket's mode and folder;
 - a `lock` request and a 1 MB request on the channel.
 
-A second run had `ssh.enabled` true (S-SSH-01) and `HOME` in `/tmp`; it ran a same-user identities request to App's agent socket. Both primaries were stopped with SIGTERM by their PID.
+A second run had `ssh.enabled` true (S-SSH-01) and `HOME` in `/tmp`; it ran a same-user identities request to Larsal's agent socket. Both primaries were stopped with SIGTERM by their PID.
 
 **Output.**
 
 ```
 LISTEN socket: 0o140600 owner uid 501 me 501 folder 0o40700
-lsof -nP -p 68193: 42 fds, types DIR 2, REG 36, PIPE 3, unix 1   (4u unix …/inst/com.app.desktop-debug.sock)
-lsof -nP -a -i -p: 0 lines; netstat tcp: 0, udp: 0 lines naming the pid; netstat unix: 1 line (App:68193)
-channel lock answer: {"ok":true}; 1 MB request: connection closed (BrokenPipe); App alive after: True; SIGTERM -> exit 0
-SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Support/App/agent.sock
+lsof -nP -p 68193: 42 fds, types DIR 2, REG 36, PIPE 3, unix 1   (4u unix …/inst/app.larsal.desktop-debug.sock)
+lsof -nP -a -i -p: 0 lines; netstat tcp: 0, udp: 0 lines naming the pid; netstat unix: 1 line (Larsal:68193)
+channel lock answer: {"ok":true}; 1 MB request: connection closed (BrokenPipe); Larsal alive after: True; SIGTERM -> exit 0
+SSH on: 2 socket fds: instance socket and …/larsalhome/Library/Application Support/Larsal/agent.sock
   agent socket mode 0o140600 uid 501, folder 0o40700; same-user identities answer type 12; internet sockets: none;
   after exit the agent socket is gone
 ```
@@ -348,13 +348,13 @@ SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Suppor
   - `save_as` with a FIFO target blocks. So do `save`, `check_disk` and `resolve_disk(Reload)` once the open vault's own file is a FIFO. They never return a typed error.
   - Every other path export refuses a FIFO at once: `open`, the unlock key file, `attach_file`, `import_settings`, key files, `vault_look`, `open_files`.
   - `MainWindowModel.lockAll()` (Swift, main actor) calls `saveAll`. For each unlocked vault with unsaved changes, and `save.on_lock` on by default (S-FILE-02), `saveAll` calls `session.save(vault:)` synchronously on the main thread (`Saving.swift` line 282).
-  - So Lock Everything, every automatic lock (idle, sleep, screen lock, user switch) and the channel's `lock` wait on the blocked save: the vault stays unlocked and App freezes. `Session.lock` itself still works while a save blocks (`red_fifo_swap`).
+  - So Lock Everything, every automatic lock (idle, sleep, screen lock, user switch) and the channel's `lock` wait on the blocked save: the vault stays unlocked and Larsal freezes. `Session.lock` itself still works while a save blocks (`red_fifo_swap`).
 - **Who can do it.**
   - Another app with normal user rights that can write the vault's folder: it replaces the vault file with a FIFO (the Tamperer and Other-apps rows of security.md). After that the next autosave blocks in its detached task, and the change stays unsaved.
   - A save that stalls on an unresponsive network volume delays every lock in the same way, until the volume times out.
 - **Why High.** The automatic lock, a protection, does not happen: the window keeps showing the open vault. The lead may weigh that it needs a local writer in the vault's folder.
 - **Steps (demo data).**
-  1. Copy `testdata/rich-v4.appvault` to `/tmp/hang/hang.appvault`.
+  1. Copy `testdata/rich-v4.larsalvault` to `/tmp/hang/hang.larsalvault`.
   2. In a Swift test, `MainWindowModel(session: Session())`, open the vault, unlock it with `demo-pass-5`.
   3. Make one change, for example `session.deleteEntry(vault:entry:)` on the first row; `saveStatus.changes` is 1.
   4. `rm` the file and `mkfifo` the same path.
@@ -367,7 +367,7 @@ SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Suppor
 
 ### RT-E-2 (Medium; AT-E07, area editor password field): the editor's Show leaves a copy of the entry password in memory after lock and close
 
-- **What.** After the editor is rendered with its password shown, then Hide, Cancel, lock and close, one UTF-8 copy of the entry password stays in App's process. It stays after the hosting view is removed too. The Swift model state is clean (`Mirror`: none).
+- **What.** After the editor is rendered with its password shown, then Hide, Cancel, lock and close, one UTF-8 copy of the entry password stays in Larsal's process. It stays after the hosting view is removed too. The Swift model state is clean (`Mirror`: none).
 - **What leaves no copy:**
   - the main window's Show and Hide;
   - the editor without rendering;
@@ -376,7 +376,7 @@ SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Suppor
 - So the copy comes from AppKit drawing the shown value in `EditorPasswordField`: a `NoCopyTextField` whose `attributedStringValue` is `EditorPasswordField.coloured(text)`.
   - It holds with and without the accessibility flag, in a fresh process, and on today's `ShownPasswordField.swift` (with F-069's undo fix).
   - Clearing the field in `dismantleNSView` did not remove it (probe in the copy, reverted).
-  - Medium, as F-058: a secret left in memory after lock, readable only by someone who can read App's memory.
+  - Medium, as F-058: a secret left in memory after lock, readable only by someone who can read Larsal's memory.
 - **Steps (demo data).**
   1. Make a copy of rich-v4 with a new entry "E07 entry" whose password is a random value made in a separate process. The test knows it only XOR-masked.
   2. `MainWindowModel` with `Session()`, open and unlock that copy.
@@ -384,11 +384,11 @@ SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Suppor
   4. Select the entry, `main.edit()`, `editor.toggleShowPassword()` twice, `main.cancelEditor()`, `window.lock(id)`, `window.close(id)`.
   5. Scan the process's own resident pages (`mach_vm_region_recurse` + `mincore` + `mach_vm_read_overwrite`). The result is 1 hit for the password; the same steps with the main window's Show give 0.
 - **Smallest fix to try.** While the field is not being edited, draw the shown password the way the detail does: SwiftUI `Text(verbatim:)` in the coloured runs, which leaves no copy. Make the `NoCopyTextField` only when the user focuses the field to type. Then find any other cell that draws a secret.
-- **Test.** The `RedATE07Editor` scan as an AppTests case: after lock, 0 hits.
+- **Test.** The `RedATE07Editor` scan as a LarsalTests case: after lock, 0 hits.
 
 ### RT-E-3 (Medium; AT-E01 and AT-E06 "nothing runs", area attachments): Open asks first for 18 extensions, but macOS runs or acts on more
 
-- **What.** `open_attachment` asks first only for the 18 extensions of MOD-05.12 rule 3 (`RISKY` in `edit.rs` and `app-core/src/attachments.rs`), and the card says "for example".
+- **What.** `open_attachment` asks first only for the 18 extensions of MOD-05.12 rule 3 (`RISKY` in `edit.rs` and `larsal-core/src/attachments.rs`), and the card says "for example".
 - **What else LaunchServices on this Mac hands out.** Asked without opening anything (`NSWorkspace.urlForApplication(toOpen:)` on files with each extension), it gives these default apps for types that are not on the list:
 
 | Extension | Default app | Same kind as, on the list |
@@ -406,9 +406,9 @@ SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Suppor
 | `.svgz` | the SVG viewer | `.svg` |
 | `.iso`, `.img`, `.cdr`, `.sparseimage`, `.toast` | DiskImageMounter | `.dmg` |
 
-- **Why it matters.** App writes the copy itself; its Info.plist sets no `LSFileQuarantineEnabled`, so the copy carries no quarantine mark and Gatekeeper does not ask either. A hostile vault (a shared group or a merge) can bring such an attachment.
+- **Why it matters.** Larsal writes the copy itself; its Info.plist sets no `LSFileQuarantineEnabled`, so the copy carries no quarantine mark and Gatekeeper does not ask either. A hostile vault (a shared group or a merge) can bring such an attachment.
 - **Steps.** In the editor of any demo vault, attach a file named `x.term` or `x.xhtml`. `open_attachment(vault, "x.term", false)` returns `Opened { path }` with no `AskFirst`, while `x.terminal` and `x.html` return `AskFirst`.
-- **Smallest fix.** Add these extensions to both `RISKY` lists, keeping the two in one place, and say on the card that the list is App's. Better: ask for every extension whose default app is not a plain viewer. Test: `open_attachment` gives `AskFirst` for each added extension.
+- **Smallest fix.** Add these extensions to both `RISKY` lists, keeping the two in one place, and say on the card that the list is Larsal's. Better: ask for every extension whose default app is not a plain viewer. Test: `open_attachment` gives `AskFirst` for each added extension.
 
 ### RT-E-4 (Low; AT-E03, area attachments): `open_attachment` answers `AskFirst` before it checks the vault
 
@@ -417,16 +417,16 @@ SSH on: 2 socket fds: instance socket and …/apphome/Library/Application Suppor
 - **Steps.** `Session::new().open_attachment(u64::MAX, "x.command".into(), false)` returns `Ok(AskFirst)`; with `"x.txt"` it returns `Err(UnknownVault)`.
 - **Smallest fix.** Look up the attachment in the draft first, then test the extension. Add the case to `at_e03_editor_refuses_hostile_arguments`.
 
-### RT-E-5 (Low; AT-E08 row, area plan and spec): the row does not name App's own SSH agent socket
+### RT-E-5 (Low; AT-E08 row, area plan and spec): the row does not name Larsal's own SSH agent socket
 
-- **What.** With S-SSH-01 on, App listens on `~/Library/Application Support/App/agent.sock` (INT-06.32). It is a Unix socket, `0600` in a `0700` folder, serving only peers of the same user (`app-sshagent/src/server.rs` `same_user`), and it is removed at exit.
+- **What.** With S-SSH-01 on, Larsal listens on `~/Library/Application Support/Larsal/agent.sock` (INT-06.32). It is a Unix socket, `0600` in a `0700` folder, serving only peers of the same user (`larsal-sshagent/src/server.rs` `same_user`), and it is removed at exit.
 - **The gap.** AT-E08's "Passes when" lists only the instance socket and the bridge sockets. A strict reading would fail a correct build.
-- **Fix.** Add "with the SSH agent on (S-SSH-01), App's own agent socket of INT-06.32" to the AT-E08 row and to security.md's listener list.
+- **Fix.** Add "with the SSH agent on (S-SSH-01), Larsal's own agent socket of INT-06.32" to the AT-E08 row and to security.md's listener list.
 
 ### Notes (not findings)
 
-- An unknown flag is echoed with its control characters, so an ESC sequence in an argument reaches the terminal (`--\x1b[31m\x07` printed as typed). The argument comes from whoever starts App.
-- `AppSettingsStore.text`, `save_settings` and the Unknown-flag message echo the text they were given, unbounded: a 10 MiB key comes back in a 10 MiB error. No secret is involved, and Swift passes fixed keys.
+- An unknown flag is echoed with its control characters, so an ESC sequence in an argument reaches the terminal (`--\x1b[31m\x07` printed as typed). The argument comes from whoever starts Larsal.
+- `LarsalSettingsStore.text`, `save_settings` and the Unknown-flag message echo the text they were given, unbounded: a 10 MiB key comes back in a 10 MiB error. No secret is involved, and Swift passes fixed keys.
 - `open_files` with a path that is not a vault opens nothing, and in this harness left no M09-07 banner (`take_banner` was `None`). This is for the APP-09 Verify to look at.
 
 ## Open items

@@ -2,7 +2,7 @@
 
 Story E0-S7 step 2 (spec/research/dependencies.md section 8, LD-221, LD-247). This file holds the Builder's proof. Checker next.
 
-Setup: a private copy of the tree (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), its own target folders under `/tmp`, an empty cargo home (it held only `.package-cache`, `.package-cache-mutate`, `.global-cache` and `registry/CACHEDIR.TAG` at the end), `CARGO_NET_OFFLINE=true`, and every cargo call `--offline`. Every call was also `--locked`, except the one lockfile rewrite of step 2.2. Nothing was fetched. The published `.crate` files were read from the local cargo cache (`~/.cargo/registry/cache`) and unpacked under `/tmp` only. The result went to the shared tree in one step at the end (section 9).
+Setup: a private copy of the tree (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), its own target folders under `/tmp`, an empty cargo home (it held only `.package-cache`, `.package-cache-mutate`, `.global-cache` and `registry/CACHEDIR.TAG` at the end), `CARGO_NET_OFFLINE=true`, and every cargo call `--offline`. Every call was also `--locked`, except the one lockfile rewrite of step 2.2. Nothing was fetched. The published `.crate` files were read from the local cargo cache (`~/.cargo/registry/cache`) and unpacked under `/tmp` only. The result went to the shared tree in one step at the end (section 9).
 
 ## 1. What was cut
 
@@ -13,17 +13,17 @@ Only the manifests (`Cargo.toml`) of 14 parent copies changed. rustls-platform-v
 | rcgen 0.14.10 | test, B | the optional `x509-parser` dependency and its 2 weak feature entries (`x509-parser?/verify`, `x509-parser?/verify-aws`) | asn1-rs, asn1-rs-derive, asn1-rs-impl, der-parser, displaydoc, num-bigint, num-integer, oid-registry, rusticata-macros, synstructure, x509-parser, data-encoding |
 | yasna 0.6.0 | test, B | the optional `bit-vec` dependency and `bit-vec?/std` | bit-vec 0.9.1 |
 | bit-vec 0.10.1 | test, B | the optional `borsh` dependency and `borsh?/std` | borsh, borsh-derive, cfg_aliases, proc-macro-crate, toml_edit |
-| ssh-cipher 0.3.0 | App, key, C | the `tdes` feature, the optional `des` dependency and `des?/zeroize` | des |
-| time 0.3.55 | App, R | the `macros` feature, the optional `time-macros` dependency and its 4 weak feature entries | time-macros |
+| ssh-cipher 0.3.0 | Larsal, key, C | the `tdes` feature, the optional `des` dependency and `des?/zeroize` | des |
+| time 0.3.55 | Larsal, R | the `macros` feature, the optional `time-macros` dependency and its 4 weak feature entries | time-macros |
 | textwrap 0.16.4 | build, B | the `unicode-width` feature (also out of `default`), its optional dependency and `unicode-width?/default` | unicode-width |
-| flate2 1.1.10 | App, T | the `zlib-rs` feature, its optional dependency and `zlib-rs?/std` | zlib-rs |
-| ring 0.17.14 | App (net), C | the Windows (aarch64) target table | windows-sys 0.52.0, windows-targets, the 8 windows_* crates |
-| errno 0.3.14 | App, B | the Windows target table | windows-sys 0.61.2, windows-link (with rustix and tempfile) |
-| tempfile 3.27.0 | App, B | the Windows target table | (as errno) |
-| rustix 1.1.5 | App, B | the Windows target table of windows-sys, the 2 Linux target tables of linux-raw-sys, and the `linux-raw-sys/...` entries in 7 features (`io_uring`, `net`, `process`, `runtime`, `rustc-dep-of-std`, `system`, `thread`; the feature names stay) | linux-raw-sys |
-| getrandom 0.2.17 | App (net), C | the WASI target table and `wasi/rustc-dep-of-std` | wasi |
-| getrandom 0.4.3 | App, C (LD-221 (7)) | the UEFI target table | r-efi |
-| curve25519-dalek 5.0.0 | App, C | the fiat backend's target table | fiat-crypto |
+| flate2 1.1.10 | Larsal, T | the `zlib-rs` feature, its optional dependency and `zlib-rs?/std` | zlib-rs |
+| ring 0.17.14 | Larsal (net), C | the Windows (aarch64) target table | windows-sys 0.52.0, windows-targets, the 8 windows_* crates |
+| errno 0.3.14 | Larsal, B | the Windows target table | windows-sys 0.61.2, windows-link (with rustix and tempfile) |
+| tempfile 3.27.0 | Larsal, B | the Windows target table | (as errno) |
+| rustix 1.1.5 | Larsal, B | the Windows target table of windows-sys, the 2 Linux target tables of linux-raw-sys, and the `linux-raw-sys/...` entries in 7 features (`io_uring`, `net`, `process`, `runtime`, `rustc-dep-of-std`, `system`, `thread`; the feature names stay) | linux-raw-sys |
+| getrandom 0.2.17 | Larsal (net), C | the WASI target table and `wasi/rustc-dep-of-std` | wasi |
+| getrandom 0.4.3 | Larsal, C (LD-221 (7)) | the UEFI target table | r-efi |
+| curve25519-dalek 5.0.0 | Larsal, C | the fiat backend's target table | fiat-crypto |
 
 Why the feature entries went too: cargo refuses a manifest whose feature names a dependency that is not declared, and the weak entries (`name?/feature`) were what put the "lock only" packages in Cargo.lock. Rustix's other Linux tables (libc and errno for the Linux backend) stay: they bring no package that is not already there, and rustix's `std` and `use-libc` features name them.
 
@@ -111,8 +111,8 @@ Mutants, each in a second private copy (`/tmp/e0s7s2-builder-mut`), restored by 
 | Y2 (rule 1, Checker 1 re-check 2): as Y1, but `build = "Cargo.toml"` (in place of `build.rs`) and the last line `# */ fn main() { std::fs::write("<a file under /tmp>", "y2").unwrap(); }` | FAIL, exit 1: `targets outside their package or not a .rs file: build-script-Cargo: …/getrandom-0.4.3/Cargo.toml` (both workspaces). Before section 16: PASS, exit 0; `cargo build --offline --locked -p getrandom@0.4.3 -v` runs `rustc --crate-name build_script_Cargo --edition=2024 …/getrandom-0.4.3/Cargo.toml`, the build script writes its file, exit 0, Cargo.lock unchanged |
 | Z1 (rule 4, Checker 1 re-check 2): getrandom 0.4.3's `.cargo-checksum.upstream.json` and its entry in `.cargo-checksum.json` removed, then M4 | FAIL, exit 1: `vendor/crates-io/getrandom-0.4.3: a cut copy without its upstream list` (`cut copies: 13`); since section 18 also `files not in its list: src/lib_mut.rs`. Before section 16: PASS, exit 0, `cut copies: 13`; cargo compiles `…/getrandom-0.4.3/src/lib_mut.rs` as getrandom, exit 0, Cargo.lock unchanged |
 | Z2 (rule 4, the other half of Z1): the plain copy subtle 2.6.1 gets a `.cargo-checksum.upstream.json` (its own list), listed | FAIL, exit 1: `upstream lists in copies not named as cut: subtle-2.6.1`. Before section 16: PASS, exit 0, `cut copies: 15` |
-| W1 (rule 4, Checker 1 re-check 3): `vendor/crates-io/byteorder-1.5.0/build.rs` added (`fn main` writes a file under `/tmp`), nothing else changed: no list, no manifest. byteorder has no `build` key and no `build.rs`, and is in app-crypto's tree (bcrypt-pbkdf, blowfish) | FAIL, exit 1: `vendor/crates-io/byteorder-1.5.0: files not in its list: build.rs`. Before section 18: PASS, exit 0; `cargo build --offline --locked -p byteorder@1.5.0 -v` runs `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`, the build script writes its file, exit 0, Cargo.lock unchanged |
-| W2 (rule 4, Checker 1 re-check 3): the same in `vendor/crates-io/untrusted-0.9.0` (ring's input reader) | FAIL, exit 1: `vendor/crates-io/untrusted-0.9.0: files not in its list: build.rs`. Before section 18: PASS, exit 0; `cargo build --offline --locked -p app-platform --features net -v` runs `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`, the build script writes its file, exit 0, Cargo.lock unchanged |
+| W1 (rule 4, Checker 1 re-check 3): `vendor/crates-io/byteorder-1.5.0/build.rs` added (`fn main` writes a file under `/tmp`), nothing else changed: no list, no manifest. byteorder has no `build` key and no `build.rs`, and is in larsal-crypto's tree (bcrypt-pbkdf, blowfish) | FAIL, exit 1: `vendor/crates-io/byteorder-1.5.0: files not in its list: build.rs`. Before section 18: PASS, exit 0; `cargo build --offline --locked -p byteorder@1.5.0 -v` runs `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`, the build script writes its file, exit 0, Cargo.lock unchanged |
+| W2 (rule 4, Checker 1 re-check 3): the same in `vendor/crates-io/untrusted-0.9.0` (ring's input reader) | FAIL, exit 1: `vendor/crates-io/untrusted-0.9.0: files not in its list: build.rs`. Before section 18: PASS, exit 0; `cargo build --offline --locked -p larsal-platform --features net -v` runs `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`, the build script writes its file, exit 0, Cargo.lock unchanged |
 
 Three cases that rule 4 is not meant to catch:
 - A code line changed in ssh-cipher's `src/lib.rs`, with the list left as it was: check-vendor passes, because it never hashes files on disk. `cargo check -p ssh-cipher` refuses it: `the listed checksum of …/ssh-cipher-0.3.0/src/lib.rs has changed`. So cargo checks the files against the new list, and rule 4 checks the new list against upstream.
@@ -122,28 +122,28 @@ Three cases that rule 4 is not meant to catch:
 ## 5. Build and tests (private copy, empty cargo home)
 
 - `cargo build --workspace --offline --locked`: exit 0 (178 crates compiled, 1 min 01 s).
-- `cargo test --offline --locked --workspace --no-fail-fast`: exit 0. 2,437 passed, 0 failed, 62 ignored, in 100 test binaries (101 result lines: app-crypto's doc-tests report twice). Per binary (passed, ignored in brackets):
-  - app-autotype: lib 3; int05 51; int05_match 38; int05_typing 14.
-  - app-cli: main 15; bench_system 0 (1); bench_zeroing 0 (1); int10 116; memory_hygiene 1.
-  - app-core: lib 25; app05 36 (2); auto_open 4; autotype_support 2; fea01 35 (2); fea02 20; fea03 16; fea04 30; fea05 46 (3); fea06 38; fea07 26; fea08 82; fea09 25; fuzz_seeds 0 (12); mod01 39; mod02 35; mod03 18; mod04 25; mod05 20; mod06 24; mod07 12; mod08 48; mod09 19; mod10 14; mod11 48 (4); mod12 29; mod13 11; no_plain_copies 1; round_trip 3.
-  - app-crypto: lib 47 (1); cipher 21; cipher_large 0 (3); hash 6 (1); kdf 35 (3); mac 8 (1); random 7; secret 10 (1); ssh_wipe 1; stream 19; doc-tests 2 and 7.
-  - app-ffi: lib 166 (4); autotype 15; autotype_typing 4; clipboard 9; edit 21; generator 12; key_pages 2 (1); memory 1; messages 7; new_vault 12; option_a 8 (1); reports 3; session 11; ssh 19; vault_settings 7.
-  - app-format: lib 24; attacks 13; document_read 114 (5); fuzz_seeds 0 (1); header 78; keyfile 154 (5); keys 40; open 68; property 1 (1); redteam_s2 8 (1); testdata 4; version3 51; write_file 53; write_groups 45; write_meta 46; write_pool 53; write_values 39; write_version 33.
-  - app-hwkey: lib 37; real_key 1 (1); watch 2.
-  - app-model: lib 28.
-  - app-platform: lib 31 (7); net_start 0.
-  - app-sshagent: lib 22; agent 25; own_agent 38.
+- `cargo test --offline --locked --workspace --no-fail-fast`: exit 0. 2,437 passed, 0 failed, 62 ignored, in 100 test binaries (101 result lines: larsal-crypto's doc-tests report twice). Per binary (passed, ignored in brackets):
+  - larsal-autotype: lib 3; int05 51; int05_match 38; int05_typing 14.
+  - larsal-cli: main 15; bench_system 0 (1); bench_zeroing 0 (1); int10 116; memory_hygiene 1.
+  - larsal-core: lib 25; app05 36 (2); auto_open 4; autotype_support 2; fea01 35 (2); fea02 20; fea03 16; fea04 30; fea05 46 (3); fea06 38; fea07 26; fea08 82; fea09 25; fuzz_seeds 0 (12); mod01 39; mod02 35; mod03 18; mod04 25; mod05 20; mod06 24; mod07 12; mod08 48; mod09 19; mod10 14; mod11 48 (4); mod12 29; mod13 11; no_plain_copies 1; round_trip 3.
+  - larsal-crypto: lib 47 (1); cipher 21; cipher_large 0 (3); hash 6 (1); kdf 35 (3); mac 8 (1); random 7; secret 10 (1); ssh_wipe 1; stream 19; doc-tests 2 and 7.
+  - larsal-ffi: lib 166 (4); autotype 15; autotype_typing 4; clipboard 9; edit 21; generator 12; key_pages 2 (1); memory 1; messages 7; new_vault 12; option_a 8 (1); reports 3; session 11; ssh 19; vault_settings 7.
+  - larsal-format: lib 24; attacks 13; document_read 114 (5); fuzz_seeds 0 (1); header 78; keyfile 154 (5); keys 40; open 68; property 1 (1); redteam_s2 8 (1); testdata 4; version3 51; write_file 53; write_groups 45; write_meta 46; write_pool 53; write_values 39; write_version 33.
+  - larsal-hwkey: lib 37; real_key 1 (1); watch 2.
+  - larsal-model: lib 28.
+  - larsal-platform: lib 31 (7); net_start 0.
+  - larsal-sshagent: lib 22; agent 25; own_agent 38.
   - uniffi-bindgen: main 0.
   - doc-tests of the other 8 crates: 0 each.
-- `cargo test --offline --locked -p app-platform --features net` (rustls on the cut ring and getrandom 0.2; rcgen, yasna and time in its tests): library 44 passed, 7 ignored; net_start 1.
-- AT-B01 on the copies: `cargo test --offline --locked --release --no-fail-fast -p app-crypto` gave 163 passed, 0 failed, 10 ignored: lib 47 (1), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3), mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7. F-134's speed test passed in this run.
+- `cargo test --offline --locked -p larsal-platform --features net` (rustls on the cut ring and getrandom 0.2; rcgen, yasna and time in its tests): library 44 passed, 7 ignored; net_start 1.
+- AT-B01 on the copies: `cargo test --offline --locked --release --no-fail-fast -p larsal-crypto` gave 163 passed, 0 failed, 10 ignored: lib 47 (1), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3), mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7. F-134's speed test passed in this run.
 - Fuzz workspace: `cargo check --offline --locked --manifest-path fuzz/Cargo.toml --bins` exit 0; fuzz/Cargo.lock unchanged.
-- ring for x86_64: `cargo build --offline --locked --keep-going -p app-platform --features net --target x86_64-apple-darwin` ran ring's build script. It made `aesni-x86_64-macosx.o` from `pregenerated/`, and its output does not name the cut `.pl` file. The library then stops at E0463, because the x86_64 standard library is not installed (as in step 1).
+- ring for x86_64: `cargo build --offline --locked --keep-going -p larsal-platform --features net --target x86_64-apple-darwin` ran ring's build script. It made `aesni-x86_64-macosx.o` from `pregenerated/`, and its output does not name the cut `.pl` file. The library then stops at E0463, because the x86_64 standard library is not installed (as in step 1).
 - Turning on ssh-key's `tdes` feature (in a mutant copy) now fails at once: `failed to select a version for ssh-cipher … required by package ssh-key`. The path copy `vendor/ssh-key` still names `cipher/tdes`, and des is no longer vendored, so the failure is loud and nothing is fetched.
 
 ## 6. Advisories and policy (offline)
 
-- `cargo deny --offline --locked check`: `advisories ok, bans ok, licenses ok, sources ok`. The same 2 warnings as on the tree before step 2: 2 versions of syn, and the libfuzzer-sys license exception is not met in the root graph. deny-fuzz (deny.toml without its `app-platform/net` line, `--offline`): `advisories ok, bans ok, licenses ok, sources ok`. deny.toml needed no change: it names none of the packages that left.
+- `cargo deny --offline --locked check`: `advisories ok, bans ok, licenses ok, sources ok`. The same 2 warnings as on the tree before step 2: 2 versions of syn, and the libfuzzer-sys license exception is not met in the root graph. deny-fuzz (deny.toml without its `larsal-platform/net` line, `--offline`): `advisories ok, bans ok, licenses ok, sources ok`. deny.toml needed no change: it names none of the packages that left.
 - `cargo audit -n`: 207 crate dependencies (245 before), 1 allowed warning (RUSTSEC-2026-0374, basic-toml, as before). `cargo audit -n -f fuzz/Cargo.lock`: 121 dependencies, exit 0. audit-copies (ssh-key 0.7.0-rc.11, zxcvbn 3.1.1): exit 0.
 
 ## 7. Bill of materials
@@ -192,11 +192,11 @@ scripts/check.sh was not run (the lead runs it).
 
 ## 11. Checker 1 (2026-10-30): sent back (1)
 
-Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), its own target folder under `/tmp`, an empty cargo home, `CARGO_NET_OFFLINE=true`, a throwaway `HOME` for the test runs, every cargo call `--offline --locked` (but the one lockfile rebuild below). At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`). Nothing was fetched. The empty cargo home held only `.global-cache`, `.package-cache`, `.package-cache-mutate` and `registry/CACHEDIR.TAG` afterwards.
+Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), its own target folder under `/tmp`, an empty cargo home, `CARGO_NET_OFFLINE=true`, a throwaway `HOME` for the test runs, every cargo call `--offline --locked` (but the one lockfile rebuild below). At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`). Nothing was fetched. The empty cargo home held only `.global-cache`, `.package-cache`, `.package-cache-mutate` and `registry/CACHEDIR.TAG` afterwards.
 
 ### Issue 1: rule 4 lets changed code into a cut copy through its Cargo.toml
 
-Rule 4 exempts `Cargo.toml` and never compares the files on disk with the list. Cargo checks only the files the list names. Mutant (getrandom 0.4.3, App's random source, LD-221 (7)): `src/lib_mut.rs` is a new file, `src/lib.rs` plus one code line (`pub const UNLISTED_MUTANT: u8 = 1;`), and not in the list; `Cargo.toml` `[lib] path` points to it, and only the `Cargo.toml` hash in `.cargo-checksum.json` is rewritten. Result: `check-vendor: PASS`, exit 0; `cargo build -p getrandom@0.4.3 -v` runs `rustc --crate-name getrandom … getrandom-0.4.3/src/lib_mut.rs` and finishes; Cargo.lock is unchanged. So the rule's own words ("no code line changed and no file was added") do not hold. The upstream list was not touched, so this is not the "both lists changed" case of the Builder's open issue.
+Rule 4 exempts `Cargo.toml` and never compares the files on disk with the list. Cargo checks only the files the list names. Mutant (getrandom 0.4.3, Larsal's random source, LD-221 (7)): `src/lib_mut.rs` is a new file, `src/lib.rs` plus one code line (`pub const UNLISTED_MUTANT: u8 = 1;`), and not in the list; `Cargo.toml` `[lib] path` points to it, and only the `Cargo.toml` hash in `.cargo-checksum.json` is rewritten. Result: `check-vendor: PASS`, exit 0; `cargo build -p getrandom@0.4.3 -v` runs `rustc --crate-name getrandom … getrandom-0.4.3/src/lib_mut.rs` and finishes; Cargo.lock is unchanged. So the rule's own words ("no code line changed and no file was added") do not hold. The upstream list was not touched, so this is not the "both lists changed" case of the Builder's open issue.
 
 Smallest fix, tried in the mutant copy only: in the rule 4 loop, after the `changed` test,
 
@@ -213,10 +213,10 @@ With it the tree passes, this mutant fails (`vendor/crates-io/getrandom-0.4.3: f
 - **Lockfiles.** The step 1 state was rebuilt in a second copy: the 14 published manifests and lists put back, and the 38 stubs made again (published `Cargo.toml`, empty `src/lib.rs`, the `.crate` checksum). `cargo metadata --offline` (root and `fuzz/`) added the 38 packages back: 245 entries (232 registry) and 125 (115). The diff to the step 2 lockfiles: 354 and 31 lines removed, 0 added. Every remaining registry entry's checksum equals the SHA-256 of its `.crate` in the local cargo cache, and the 197 folders are exactly the registry entries of both lockfiles (the 196 copied whole and ring of section 10 of the research).
 - **Never built on a Mac.** `cargo tree --workspace --all-features -e normal,build,dev`, root and `fuzz/`, before and after: aarch64-apple-darwin 207 and 117 packages, x86_64-apple-darwin 208 and 119, the same lists before and after, and none of the 38 in them. With `-f '{p} [{f}]'` the packages and their turned-on features are identical before and after for both targets and both workspaces. `--target all` before: 16 of the 38 in the root tree, 2 in fuzz; after: none (224 to 208, 123 to 121).
 - **Copies.** All 197: every file on disk is in its `.cargo-checksum.json`, every listed hash is right, and the `package` value is the `.crate` SHA-256. The 183 plain lists and the 14 upstream lists are byte-identical to lists rebuilt from the `.crate` (ring's with its cut file). Each cut copy's new list differs from its upstream list only in `Cargo.toml` and the upstream list itself (and ring's cut file). Every file but the checksum files is in the `.crate` with the same bytes, apart from the 14 `Cargo.toml` files. Their 14 diffs against the published manifests remove lines only, apart from the 7 lists emptied (`net`, `process`, `runtime`, `system`, `thread` in rustix, `std` in textwrap, `parsing` in time), as section 3 says.
-- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines. Per binary, passed (ignored): app-autotype lib 3, int05 51, int05_match 38, int05_typing 14; app-cli main 15, bench_system 0 (1), bench_zeroing 0 (1), int10 116, memory_hygiene 1; app-core lib 25, app05 36 (2), auto_open 4, autotype_support 2, fea01 35 (2), fea02 20, fea03 16, fea04 30, fea05 46 (3), fea06 38, fea07 26, fea08 82, fea09 25, fuzz_seeds 0 (12), mod01 39, mod02 35, mod03 18, mod04 25, mod05 20, mod06 24, mod07 12, mod08 48, mod09 19, mod10 14, mod11 48 (4), mod12 29, mod13 11, no_plain_copies 1, round_trip 3; app-crypto lib 47 (1), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3), mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7; app-ffi lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21, generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12, option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7; app-format lib 24, attacks 13, document_read 114 (5), fuzz_seeds 0 (1), header 78, keyfile 154 (5), keys 40, open 68, property 1 (1), redteam_s2 8 (1), testdata 4, version3 51, write_file 53, write_groups 45, write_meta 46, write_pool 53, write_values 39, write_version 33; app-hwkey lib 37, real_key 1 (1), watch 2; app-model lib 28; app-platform lib 31 (7), net_start 0; app-sshagent lib 22, agent 25, own_agent 38; uniffi-bindgen main 0; doc-tests of the other 8 crates 0 each.
-- `-p app-platform --features net`: lib 44 (7), net_start 1, doc-tests 0. `-p app-ffi --features net`: 297 passed, 6 ignored (lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21, generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12, option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7, doc-tests 0). AT-B01, `--release -p app-crypto`: 163 passed, 0 failed, 10 ignored (per binary as in section 5).
+- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines. Per binary, passed (ignored): larsal-autotype lib 3, int05 51, int05_match 38, int05_typing 14; larsal-cli main 15, bench_system 0 (1), bench_zeroing 0 (1), int10 116, memory_hygiene 1; larsal-core lib 25, app05 36 (2), auto_open 4, autotype_support 2, fea01 35 (2), fea02 20, fea03 16, fea04 30, fea05 46 (3), fea06 38, fea07 26, fea08 82, fea09 25, fuzz_seeds 0 (12), mod01 39, mod02 35, mod03 18, mod04 25, mod05 20, mod06 24, mod07 12, mod08 48, mod09 19, mod10 14, mod11 48 (4), mod12 29, mod13 11, no_plain_copies 1, round_trip 3; larsal-crypto lib 47 (1), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3), mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7; larsal-ffi lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21, generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12, option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7; larsal-format lib 24, attacks 13, document_read 114 (5), fuzz_seeds 0 (1), header 78, keyfile 154 (5), keys 40, open 68, property 1 (1), redteam_s2 8 (1), testdata 4, version3 51, write_file 53, write_groups 45, write_meta 46, write_pool 53, write_values 39, write_version 33; larsal-hwkey lib 37, real_key 1 (1), watch 2; larsal-model lib 28; larsal-platform lib 31 (7), net_start 0; larsal-sshagent lib 22, agent 25, own_agent 38; uniffi-bindgen main 0; doc-tests of the other 8 crates 0 each.
+- `-p larsal-platform --features net`: lib 44 (7), net_start 1, doc-tests 0. `-p larsal-ffi --features net`: 297 passed, 6 ignored (lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21, generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12, option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7, doc-tests 0). AT-B01, `--release -p larsal-crypto`: 163 passed, 0 failed, 10 ignored (per binary as in section 5).
 - The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles were byte-identical after all runs.
-- ring for x86_64 (`-p app-platform --features net --target x86_64-apple-darwin --keep-going`): the build script made `aesni-x86_64-macosx.o`, then E0463 (no x86_64 standard library), as in step 1. `cargo build -p ring --target x86_64-apple-darwin` makes cargo itself panic (`did not find features for … ring`) in the step 1 state too, so it is not from this step.
+- ring for x86_64 (`-p larsal-platform --features net --target x86_64-apple-darwin --keep-going`): the build script made `aesni-x86_64-macosx.o`, then E0463 (no x86_64 standard library), as in step 1. `cargo build -p ring --target x86_64-apple-darwin` makes cargo itself panic (`did not find features for … ring`) in the step 1 state too, so it is not from this step.
 - **check-vendor.** PASS (200 packages, 187 from vendor/crates-io; fuzz 121, 111; 0 stubs; 14 cut copies). The Builder's mutants, each from a fresh copy: N1 exit 101 (no matching package `cfg-if`); N2 exit 101 (offline, nothing fetched); N3 FAIL, and the same path written with `..` FAIL; N4 FAIL (symbolic link); N5 FAIL (both Mac targets, both workspaces); N6 exit 101; M1, M2, M3 FAIL with the messages of section 4.
 - **Policy.** `cargo deny --offline --locked check`: `advisories ok, bans ok, licenses ok, sources ok`, with the same warnings as the rebuilt step 1 state (2 versions of syn, the libfuzzer-sys exception not met, and 194 yanked checks that cannot run offline). deny-fuzz: ok. `cargo audit -n`: 207, 1 allowed warning (RUSTSEC-2026-0374); audit-fuzz 121; audit-copies 2 (ssh-key, zxcvbn); all exit 0. No crate, deny.toml or script names a removed package or data-encoding.
 - **Bill of materials.** `scripts/make-sbom.sh` on the rebuilt step 1 state and on the copy: `151 components, 116 license texts, 12 crates without a license file`; the 3 files byte-identical; none of the 38 in it.
@@ -227,7 +227,7 @@ With it the tree passes, this mutant fails (`vendor/crates-io/getrandom-0.4.3: f
 
 Issue 1 is fixed as Checker 1 proposed: the rule 4 loop of `scripts/check-vendor.sh` now also fails on a file in a cut copy that its `.cargo-checksum.json` does not name (3 lines), and the header comment says so. Mutant M4 is in section 4.
 
-In a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), with an empty cargo home and `CARGO_NET_OFFLINE=true`, each mutant from a fresh second copy, restored by rsync and checked with `diff -rq` (0 differences) after each one:
+In a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), with an empty cargo home and `CARGO_NET_OFFLINE=true`, each mutant from a fresh second copy, restored by rsync and checked with `diff -rq` (0 differences) after each one:
 - No mutant: PASS, exit 0 (200 packages, 187 from vendor/crates-io; fuzz 121, 111; 0 stubs; 14 cut copies).
 - M4: FAIL, exit 1 (section 4). M1, M2, M3: FAIL, exit 1, the messages of section 4.
 - N1 exit 101 (no matching package `cfg-if`); N2 exit 101 (offline mode, nothing fetched); N3 FAIL (`read from outside the tree: zxcvbn 3.1.1`); N4 FAIL (symbolic link); N5 FAIL (stub compiled, both Mac targets, both workspaces); N6 exit 101.
@@ -241,9 +241,9 @@ scripts/check.sh was not run (the lead runs it).
 
 ## 13. Checker 1 re-check (2026-10-30): sent back (2)
 
-Setup as in section 11: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), its own target folders under `/tmp`, an empty cargo home (it held only `.global-cache`, `.package-cache`, `.package-cache-mutate` and `registry/CACHEDIR.TAG` afterwards), a throwaway `HOME` for the test runs, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked` (but the one lockfile rebuild of the step 1 state). Each mutant ran in a second copy, restored from the first by `rsync -a --delete`. Nothing was fetched. At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`).
+Setup as in section 11: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), its own target folders under `/tmp`, an empty cargo home (it held only `.global-cache`, `.package-cache`, `.package-cache-mutate` and `registry/CACHEDIR.TAG` afterwards), a throwaway `HOME` for the test runs, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked` (but the one lockfile rebuild of the step 1 state). Each mutant ran in a second copy, restored from the first by `rsync -a --delete`. Nothing was fetched. At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`).
 
-The fix of section 12 is in, and M4 fails. But the cause of issue 1 of section 11 is still there: a changed `Cargo.toml` (exempt from rule 4) can still make cargo compile a file that is not upstream as a cut copy. Each mutant below starts from getrandom 0.4.3 (App's random source, LD-221 (7)). Its `Cargo.toml` `[lib] path` is changed, and only the `Cargo.toml` hash in `.cargo-checksum.json` is rewritten. The upstream list is not touched.
+The fix of section 12 is in, and M4 fails. But the cause of issue 1 of section 11 is still there: a changed `Cargo.toml` (exempt from rule 4) can still make cargo compile a file that is not upstream as a cut copy. Each mutant below starts from getrandom 0.4.3 (Larsal's random source, LD-221 (7)). Its `Cargo.toml` `[lib] path` is changed, and only the `Cargo.toml` hash in `.cargo-checksum.json` is rewritten. The upstream list is not touched.
 
 | Mutant | Shared script | `cargo build --offline --locked -p getrandom@0.4.3 -v` |
 |---|---|---|
@@ -274,7 +274,7 @@ Both fixes, tried only in the mutant copy (the script under /tmp, never in the t
 - **Lockfiles.** The step 1 state was rebuilt in a third copy: the 14 published manifests put back, each upstream list as `.cargo-checksum.json` (ring's without its cut file), and the 38 stubs made again (published `Cargo.toml`, empty `src/lib.rs`, the `.crate` checksum). `cargo metadata --offline` added the 38 back: 245 entries (232 registry) and 125 (115). The diff to the step 2 lockfiles: 354 and 31 lines removed, 0 added. The removed packages are the 38 of section 2 (4 in fuzz/Cargo.lock).
 - **Never built on a Mac.** `cargo tree --workspace --all-features -e normal,build,dev -f '{p} [{f}]'`, root and `fuzz/`: aarch64-apple-darwin 207 and 117 packages, x86_64-apple-darwin 208 and 119, none of the 38 in them, before or after. Packages and their features are identical before and after (folder paths aside) for both targets and both workspaces. `--target all`: 16 and 2 of the 38 before, none after (224 to 208, 123 to 121).
 - **Copies.** The 197 folders are exactly the registry entries of both lockfiles. For each one, the `.crate` SHA-256 equals the `package` value and the Cargo.lock checksum. Every file on disk (8,082, the lists aside) is in its `.cargo-checksum.json` with the right hash. The 183 plain lists and the 14 upstream lists are byte-identical to lists rebuilt from the `.crate`. Each cut copy's new list differs from its upstream list only in `Cargo.toml` and the upstream list itself (and ring's cut file). Against the unpacked `.crate` (8,139 files), only the 14 `Cargo.toml` files differ. They have only removed lines, apart from the 7 emptied lists of section 3, with the counts of section 3. The only files missing are 65 `.gitignore`, 5 `.gitattributes` and ring's one cut file.
-- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0, 58 s. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines, per binary the same as section 5. `-p app-platform --features net`: lib 44 (7), net_start 1, doc-tests 0. `-p app-ffi --features net`: 297 passed, 6 ignored, per binary as section 11. `--release -p app-crypto`: 163 passed, 10 ignored, per binary as section 5. The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles byte-identical after all runs.
+- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0, 58 s. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines, per binary the same as section 5. `-p larsal-platform --features net`: lib 44 (7), net_start 1, doc-tests 0. `-p larsal-ffi --features net`: 297 passed, 6 ignored, per binary as section 11. `--release -p larsal-crypto`: 163 passed, 10 ignored, per binary as section 5. The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles byte-identical after all runs.
 - **Policy.** With a copy of the local advisory databases in the empty cargo home: `cargo deny --offline --locked check` and deny-fuzz: `advisories ok, bans ok, licenses ok, sources ok` (warnings: 2 versions of syn, the libfuzzer-sys exception not met in the root graph, yanked checks that cannot run offline). `cargo audit -n`: 207, 1 allowed warning (RUSTSEC-2026-0374); audit-fuzz 121; audit-copies 2; all exit 0.
 - **Bill of materials.** `scripts/make-sbom.sh` on the rebuilt step 1 state and on the copy: `151 components, 116 license texts, 12 crates without a license file`; the 3 files byte-identical; none of the 38 in it by name and version.
 - **Size.** vendor/ 8,432 files (step 1 state) to 8,332, 86,450,876 bytes, 102 MB; vendor/crates-io 235 packages to 197, 8,279 files, 1,946,975 Rust lines.
@@ -289,7 +289,7 @@ Both issues of section 13 are fixed as Checker 1 proposed, in `scripts/check-ven
 - Issue 2: in the `cargo metadata` loop of rule 1 (both workspaces), the run fails on a target whose source file is not in its package's folder or has `/../` in its path (3 lines). Today no target of any package is outside its folder.
 - The header comment says both.
 
-In a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), with an empty cargo home and `CARGO_NET_OFFLINE=true`. Each mutant ran in a fresh second copy, restored by `rsync -a --delete` and checked with `diff -rq` (0 differences) after each one. The only `diff` note is `macos/AppCore/Generated`, a link into the `target/` folder that the copy leaves out. It is the same in both copies.
+In a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), with an empty cargo home and `CARGO_NET_OFFLINE=true`. Each mutant ran in a fresh second copy, restored by `rsync -a --delete` and checked with `diff -rq` (0 differences) after each one. The only `diff` note is `macos/LarsalCore/Generated`, a link into the `target/` folder that the copy leaves out. It is the same in both copies.
 - No mutant: PASS, exit 0 (200 packages, 187 from vendor/crates-io; fuzz 121, 111; 0 stubs; 14 cut copies).
 - X1 to X4: FAIL, exit 1, with the messages of section 4. With the script before this fix each one passes (exit 0). For X1, X2 and X3, `cargo build --offline --locked -p getrandom@0.4.3 -v` compiles the mutant file as getrandom (exit 0, Cargo.lock unchanged), so each mutant is real.
 - M1 to M4: FAIL, exit 1, with the messages of section 4.
@@ -304,20 +304,20 @@ scripts/check.sh was not run (the lead runs it).
 
 ## 15. Checker 1 re-check 2 (2026-10-30): sent back (1)
 
-Setup as in section 13: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), its own target folders under `/tmp`, an empty cargo home, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked` (but the one lockfile rebuild of the step 1 state). Each mutant ran in a second copy, restored from the first by `rsync -a --delete`. Nothing was fetched. At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`).
+Setup as in section 13: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), its own target folders under `/tmp`, an empty cargo home, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked` (but the one lockfile rebuild of the step 1 state). Each mutant ran in a second copy, restored from the first by `rsync -a --delete`. Nothing was fetched. At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`).
 
 The two fixes of section 14 are in: X1 to X4 fail. But a cut copy's `Cargo.toml` (exempt from rule 4) can itself be the crate root, so changed code still compiles as a cut crypto copy.
 
 ### Issue 1: a cut copy's Cargo.toml can be its library or its build script
 
-A file can be valid TOML and valid Rust at once: the first line `#![allow(unused)] /*` and the last line `# */ <code>` are TOML comments, and for Rust everything between them is one block comment. Both mutants start from getrandom 0.4.3 (App's random source, LD-221 (7)): that polyglot `Cargo.toml` replaces the published one, and only its hash in `.cargo-checksum.json` is rewritten. The upstream list is not touched. The target stays in the package folder, has no `/../`, and the file is in the list, so rules 1 and 4 both pass.
+A file can be valid TOML and valid Rust at once: the first line `#![allow(unused)] /*` and the last line `# */ <code>` are TOML comments, and for Rust everything between them is one block comment. Both mutants start from getrandom 0.4.3 (Larsal's random source, LD-221 (7)): that polyglot `Cargo.toml` replaces the published one, and only its hash in `.cargo-checksum.json` is rewritten. The upstream list is not touched. The target stays in the package folder, has no `/../`, and the file is in the list, so rules 1 and 4 both pass.
 
 | Mutant | `scripts/check-vendor.sh` (shared) | cargo |
 |---|---|---|
 | Y1: `[lib] path = "Cargo.toml"`, last line `# */ pub const UNLISTED_MUTANT: u8 = 1;` | PASS, exit 0 | `cargo build --offline --locked -p getrandom@0.4.3 -v`: exit 0, `rustc --crate-name getrandom --edition=2024 …/getrandom-0.4.3/Cargo.toml`; the rmeta names `UNLISTED_MUTANT`; Cargo.lock unchanged |
-| Y2: `build = "Cargo.toml"` (in place of `build.rs`), last line `# */ fn main() { std::fs::write("<a file under /tmp>", …).unwrap(); }` | PASS, exit 0 | `cargo build --offline --locked -p app-crypto -v`: exit 0, `rustc --crate-name build_script_Cargo --edition=2024 …/getrandom-0.4.3/Cargo.toml`, and the build script wrote its file; Cargo.lock unchanged |
+| Y2: `build = "Cargo.toml"` (in place of `build.rs`), last line `# */ fn main() { std::fs::write("<a file under /tmp>", …).unwrap(); }` | PASS, exit 0 | `cargo build --offline --locked -p larsal-crypto -v`: exit 0, `rustc --crate-name build_script_Cargo --edition=2024 …/getrandom-0.4.3/Cargo.toml`, and the build script wrote its file; Cargo.lock unchanged |
 
-So the claim of sections 13 and 14 (every crate root cargo can compile for a cut copy is a file with its upstream hash) does not hold, and Y2 runs code that is in no upstream file while App builds.
+So the claim of sections 13 and 14 (every crate root cargo can compile for a cut copy is a file with its upstream hash) does not hold, and Y2 runs code that is in no upstream file while Larsal builds.
 
 Smallest fix, tried only in the mutant copy (the script under `/tmp`): in rule 1's `roots` test, a target's source file must also end in `.rs`:
 
@@ -337,7 +337,7 @@ Z1: in getrandom 0.4.3, `.cargo-checksum.upstream.json` and its entry are remove
 - **Lockfiles.** The step 1 state was rebuilt in a third copy: the 14 published manifests put back, each upstream list as `.cargo-checksum.json` (ring's without its cut file), and the 38 stubs made again (published `Cargo.toml`, empty `src/lib.rs`, the `.crate` checksum); vendor/ then held 8,432 files. `cargo metadata --offline` added the 38 back: 245 entries (232 registry) and 125 (115). The diff to the step 2 lockfiles: 354 and 31 lines removed, 0 added. The removed packages are the 38 stubs (des, fiat-crypto, r-efi, zlib-rs in fuzz/Cargo.lock). No remaining entry changed its source or checksum or gained a dependency; 14 entries (4 in fuzz) lost dependency lines.
 - **Never built on a Mac.** `cargo tree --workspace --all-features -e normal,build,dev -f '{p} [{f}]'`, root and `fuzz/`: aarch64-apple-darwin 207 and 117 packages, x86_64-apple-darwin 208 and 119, none of the 38 in them, before or after. Packages and their features identical before and after for both targets and both workspaces. `--target all`: 16 and 2 of the 38 before, none after (224 to 208, 123 to 121).
 - **Copies.** The 197 folders are exactly the registry entries of both lockfiles. For each one the `.crate` SHA-256 in the local cargo cache equals the `package` value and the Cargo.lock checksum. Every file on disk (8,082, the lists aside) is in its `.cargo-checksum.json` with the right hash, and every listed file is on disk. The 183 plain lists and the 14 upstream lists are byte-identical to lists rebuilt from the `.crate`. Each cut copy's new list differs from its upstream list only in `Cargo.toml` and the upstream list itself (and ring's cut file). Against the unpacked `.crate`, only the 14 `Cargo.toml` files differ, with the line counts of section 3; the only added lines are the 7 emptied lists. The only files missing are `.gitignore`, `.gitattributes` and ring's one cut file.
-- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0, 1 min 02 s. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines, per binary the same as section 5. `-p app-platform --features net`: lib 44 (7), net_start 1, doc-tests 0. `-p app-ffi --features net`: 297 passed, 6 ignored, per binary as section 11. The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles byte-identical after all runs.
+- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0, 1 min 02 s. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines, per binary the same as section 5. `-p larsal-platform --features net`: lib 44 (7), net_start 1, doc-tests 0. `-p larsal-ffi --features net`: 297 passed, 6 ignored, per binary as section 11. The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles byte-identical after all runs.
 - **Policy.** With a copy of the local advisory databases in the empty cargo home: `cargo deny --offline --locked check` and deny-fuzz: `advisories ok, bans ok, licenses ok, sources ok`. `cargo audit -n`: 207, 1 allowed warning (RUSTSEC-2026-0374); audit-fuzz 121; audit-copies 2; all exit 0.
 - **Bill of materials.** `scripts/make-sbom.sh` on the rebuilt step 1 state and on the copy: `151 components, 116 license texts, 12 crates without a license file`; the 3 files byte-identical; none of the 38 in it.
 - **Size.** vendor/ 8,432 files (step 1 state) to 8,332, 86,450,876 bytes, 102 MB.
@@ -352,7 +352,7 @@ Both items of LD-254 (1), from section 15, are in `scripts/check-vendor.sh`:
 - Rule 4: the script names the 14 cut copies of section 1 (`cut_copies`). It fails when one of them has no `.cargo-checksum.upstream.json` (`a cut copy without its upstream list`) and when a copy it does not name has one (`upstream lists in copies not named as cut:`). The rule 4 loop now runs over the named copies, not over the lists it finds.
 - No file in `vendor/` changed (`diff -rq` of the copy against the shared tree: 0 differences), so rule 3 needs no new `.crate` diff.
 
-Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked`, an empty cargo home for each run, target folders under `/tmp`. Each mutant ran in a fresh second copy, restored by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/AppCore/Generated` link into the left-out `target/` aside) before the next one. The script before this fix ran on the same mutant from beside it in the mutant copy only. Nothing was fetched: N2's git source is a `file://` path under `/tmp`, and cargo refused it in offline mode.
+Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked`, an empty cargo home for each run, target folders under `/tmp`. Each mutant ran in a fresh second copy, restored by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/LarsalCore/Generated` link into the left-out `target/` aside) before the next one. The script before this fix ran on the same mutant from beside it in the mutant copy only. Nothing was fetched: N2's git source is a `file://` path under `/tmp`, and cargo refused it in offline mode.
 
 | Mutant | Fixed script | Script before the fix |
 |---|---|---|
@@ -387,7 +387,7 @@ scripts/check.sh was not run (the lead runs it).
 
 ## 17. Checker 1 re-check 3 (2026-10-30): sent back (1)
 
-Setup as in section 15: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), its own target folders under `/tmp`, an empty cargo home, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked`. Each mutant ran in a second copy, restored from a clean third copy by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/AppCore/Generated` link aside) before each one. The script before section 16 was rebuilt from the shared script by taking out the two LD-254 (1) items (the `.rs` condition, and the `cut_copies` list with its two tests, so the loop runs again over the upstream lists it finds), and ran from beside it in the mutant copy. Nothing was fetched. At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`, 0 lines).
+Setup as in section 15: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), its own target folders under `/tmp`, an empty cargo home, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked`. Each mutant ran in a second copy, restored from a clean third copy by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/LarsalCore/Generated` link aside) before each one. The script before section 16 was rebuilt from the shared script by taking out the two LD-254 (1) items (the `.rs` condition, and the `cut_copies` list with its two tests, so the loop runs again over the upstream lists it finds), and ran from beside it in the mutant copy. Nothing was fetched. At the end the shared tree still matched the copy: both lockfiles, both `Cargo.toml` files, `.cargo/config.toml`, `deny.toml`, `scripts/check-vendor.sh`, `scripts/make-sbom.sh` (`cmp`) and `vendor/` (`diff -rq`, 0 lines).
 
 Both LD-254 (1) items are in and right:
 
@@ -412,10 +412,10 @@ Cargo checks only the files a list names (section 4), and when a manifest has no
 
 | Mutant | `scripts/check-vendor.sh` (now and before section 16) | cargo |
 |---|---|---|
-| W1: `vendor/crates-io/byteorder-1.5.0/build.rs` added (`fn main` writes a file under `/tmp`). byteorder is in app-crypto's tree (bcrypt-pbkdf, blowfish) | PASS, exit 0 (both) | `cargo build --offline --locked -p app-crypto -v`: exit 0, `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`, and the build script wrote its file; Cargo.lock unchanged |
-| W2: the same in `vendor/crates-io/untrusted-0.9.0` (ring's input reader) | PASS, exit 0 (both) | `cargo build --offline --locked -p app-platform --features net -v`: exit 0, `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`, and the build script wrote its file; Cargo.lock unchanged |
+| W1: `vendor/crates-io/byteorder-1.5.0/build.rs` added (`fn main` writes a file under `/tmp`). byteorder is in larsal-crypto's tree (bcrypt-pbkdf, blowfish) | PASS, exit 0 (both) | `cargo build --offline --locked -p larsal-crypto -v`: exit 0, `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`, and the build script wrote its file; Cargo.lock unchanged |
+| W2: the same in `vendor/crates-io/untrusted-0.9.0` (ring's input reader) | PASS, exit 0 (both) | `cargo build --offline --locked -p larsal-platform --features net -v`: exit 0, `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`, and the build script wrote its file; Cargo.lock unchanged |
 
-So code that is in no upstream file runs while App builds, after one simple edit in `vendor/`. That is LD-254 (2) (c): a gap that needs no rewrite of a list or a manifest.
+So code that is in no upstream file runs while Larsal builds, after one simple edit in `vendor/`. That is LD-254 (2) (c): a gap that needs no rewrite of a list or a manifest.
 
 Smallest fix, tried only in the mutant copy (the script under `/tmp`): move the unlisted-file test out of the cut-copies loop into a loop over every copy that is not a stub (stubs stay under rule 2):
 
@@ -432,7 +432,7 @@ With it: the clean copy passes (every file on disk in all 197 copies is in its l
 
 ### Everything else passed
 
-- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0, 57 s. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines, per binary the same as section 15. `-p app-platform --features net`: lib 44 (7 ignored), net_start 1, doc-tests 0. `-p app-ffi --features net`: 297 passed, 6 ignored, 16 result lines. The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --offline --locked --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles byte-identical after all runs.
+- **Build and tests.** `cargo build --workspace --offline --locked`: exit 0, 57 s. `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines, per binary the same as section 15. `-p larsal-platform --features net`: lib 44 (7 ignored), net_start 1, doc-tests 0. `-p larsal-ffi --features net`: 297 passed, 6 ignored, 16 result lines. The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --offline --locked --manifest-path fuzz/Cargo.toml --bins`: exit 0. Both lockfiles byte-identical after all runs.
 - **check-vendor.** PASS on the copy and on the shared tree (200 and 187; 121 and 111; 0 stubs; 14 cut copies).
 - **Name guard.** The copy: self-test PASS; `names: PASS (11236 files scanned, 16 vault files name-only)`, exit 0.
 
@@ -445,7 +445,7 @@ The issue of section 17 is fixed as Checker 1 proposed, in `scripts/check-vendor
 - The header comment of rule 4 says that the test covers every copy but a stub, and why: cargo hashes only the files a list names, and it builds a `build.rs` it finds when the manifest names none. 17 of the 183 plain copies have no `build` key and no `build.rs` (counted again in the copy).
 - No file in `vendor/` changed (`diff -rq` of the copy against the shared tree: 0 lines), so rule 3 needs no new `.crate` diff.
 
-Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), `CARGO_NET_OFFLINE=true`, a throwaway `HOME`, every cargo call `--offline --locked`, an empty cargo home for each run, target folders under `/tmp`. Each mutant ran in a second copy, restored from the first by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/AppCore/Generated` link into the left-out `target/` aside) before it was applied. The script before this fix (the shared script of section 16) ran on the same mutant from beside it in the mutant copy. Nothing was fetched: N2's git source is a `file://` path under `/tmp`, and cargo refused it in offline mode.
+Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), `CARGO_NET_OFFLINE=true`, a throwaway `HOME`, every cargo call `--offline --locked`, an empty cargo home for each run, target folders under `/tmp`. Each mutant ran in a second copy, restored from the first by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/LarsalCore/Generated` link into the left-out `target/` aside) before it was applied. The script before this fix (the shared script of section 16) ran on the same mutant from beside it in the mutant copy. Nothing was fetched: N2's git source is a `file://` path under `/tmp`, and cargo refused it in offline mode.
 
 | Mutant | Fixed script | Script before the fix |
 |---|---|---|
@@ -467,7 +467,7 @@ Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --excl
 
 The W mutants are real. In the mutant copy, with an empty cargo home and an empty target folder:
 - W1: `cargo build --offline --locked -p byteorder@1.5.0 -v` runs `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`, exit 0; the build script wrote its file under `/tmp`; Cargo.lock unchanged (`cmp`).
-- W2: `cargo build --offline --locked -p app-platform --features net -v` runs `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`, exit 0; the build script wrote its file under `/tmp`; Cargo.lock unchanged.
+- W2: `cargo build --offline --locked -p larsal-platform --features net -v` runs `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`, exit 0; the build script wrote its file under `/tmp`; Cargo.lock unchanged.
 
 The name guard on the copy, with these records: `names: PASS (11236 files scanned, 16 vault files name-only)`.
 
@@ -480,7 +480,7 @@ scripts/check.sh was not run (the lead runs it).
 
 ## 19. Checker 1 re-check 4 (2026-10-30): passed
 
-Setup as in section 17: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`), its own target folders under `/tmp`, an empty cargo home for each run, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked`. Each mutant ran in a second copy, restored from the clean copy by `rsync -a --delete` and checked with `diff -rq` (0 differences) before it was applied. Two older scripts were rebuilt from the shared script and ran from beside it in the mutant copy: the script before section 18 (the unlisted-file test back inside the cut-copies loop) and the script before section 16 (also without the `.rs` condition and without the `cut_copies` list and its two tests, so the loop runs over the upstream lists it finds). Nothing was fetched: N2's git source is a `file://` path under `/tmp`, and cargo refused it in offline mode.
+Setup as in section 17: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`), its own target folders under `/tmp`, an empty cargo home for each run, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline --locked`. Each mutant ran in a second copy, restored from the clean copy by `rsync -a --delete` and checked with `diff -rq` (0 differences) before it was applied. Two older scripts were rebuilt from the shared script and ran from beside it in the mutant copy: the script before section 18 (the unlisted-file test back inside the cut-copies loop) and the script before section 16 (also without the `.rs` condition and without the `cut_copies` list and its two tests, so the loop runs over the upstream lists it finds). Nothing was fetched: N2's git source is a `file://` path under `/tmp`, and cargo refused it in offline mode.
 
 The fix of section 18 and both LD-254 (1) items are in and right. The new loop runs over every folder in `vendor/crates-io` and skips only a stub, matched by its whole name. The header comment and the message say what the code does.
 
@@ -503,8 +503,8 @@ The new mutants are real. Each cargo run had an empty cargo home and an empty ta
 - Y1, `cargo build -p getrandom@0.4.3 -v`: exit 0, `rustc --crate-name getrandom --edition=2024 …/getrandom-0.4.3/Cargo.toml`; the rmeta names `UNLISTED_MUTANT`.
 - Y2, the same command: exit 0, `rustc --crate-name build_script_Cargo --edition=2024 …/getrandom-0.4.3/Cargo.toml`; the build script wrote its file under `/tmp`.
 - Z1, the same command: exit 0, `rustc --crate-name getrandom --edition=2024 …/getrandom-0.4.3/src/lib_mut.rs`; the rmeta names `UNLISTED_MUTANT`.
-- W1, `cargo build -p app-crypto -v`: exit 0, `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`; the build script wrote its file. `cargo tree -p app-crypto -i byteorder@1.5.0`: through blowfish and bcrypt-pbkdf (also through vendor/ssh-key).
-- W2, `cargo build -p app-platform --features net -v`: exit 0, `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`; the build script wrote its file. untrusted comes in through ring, rustls and rustls-webpki.
+- W1, `cargo build -p larsal-crypto -v`: exit 0, `rustc --crate-name build_script_build --edition=2021 …/byteorder-1.5.0/build.rs`; the build script wrote its file. `cargo tree -p larsal-crypto -i byteorder@1.5.0`: through blowfish and bcrypt-pbkdf (also through vendor/ssh-key).
+- W2, `cargo build -p larsal-platform --features net -v`: exit 0, `rustc --crate-name build_script_build --edition=2018 …/untrusted-0.9.0/build.rs`; the build script wrote its file. untrusted comes in through ring, rustls and rustls-webpki.
 
 Targets and copies on the clean copy:
 - `cargo metadata`: all 904 targets of the root workspace (18 of them build scripts) and all 555 of fuzz (13 build scripts) are a `.rs` file in their own package folder, with no `/../`.
@@ -514,8 +514,8 @@ Targets and copies on the clean copy:
 Build and tests on the clean copy:
 - `cargo build --workspace --offline --locked`: exit 0, 60 s.
 - `cargo test --offline --locked --workspace --no-fail-fast`: exit 0, 2,437 passed, 0 failed, 62 ignored, 101 result lines; per binary the same as section 5.
-- `-p app-platform --features net`: lib 44 (7 ignored), net_start 1, doc-tests 0.
-- `-p app-ffi --features net`: 297 passed, 6 ignored, 16 result lines: lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21, generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12, option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7, doc-tests 0.
+- `-p larsal-platform --features net`: lib 44 (7 ignored), net_start 1, doc-tests 0.
+- `-p larsal-ffi --features net`: 297 passed, 6 ignored, 16 result lines: lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21, generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12, option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7, doc-tests 0.
 - The three clippy steps of `scripts/check.sh` (`-D warnings`), `cargo fmt --all -- --check`, the fuzz workspace's fmt and `cargo check --offline --locked --manifest-path fuzz/Cargo.toml --bins`: exit 0, no warning.
 - Both lockfiles byte-identical to the shared tree after all runs.
 - `scripts/check-vendor.sh`: PASS on the copy and on the shared tree (the numbers of the first row).
@@ -523,7 +523,7 @@ Build and tests on the clean copy:
 
 Notes, not send-backs (LD-254 (2)):
 - A plain copy whose list is rewritten together with a new file (a listed `build.rs`, or a listed file named in a rewritten `Cargo.toml`) still passes. That is out of check-vendor's scope; the review rule and the `.crate` diff cover it (section 4).
-- P1: the path copy `vendor/zxcvbn` has no `build` key. A new `vendor/zxcvbn/build.rs` passes check-vendor (exit 0), and `cargo build -p zxcvbn` runs it (`rustc --crate-name build_script_build --edition=2021 vendor/zxcvbn/build.rs`; it wrote its file; Cargo.lock unchanged). The path copies have no checksum list: they are App's own patched source (LD-136, LD-209), and a changed code line in them passes too, as in `crates/`. This is none of the four properties of LD-254 (2). `vendor/ssh-key` has `build = false`. To close it, `build = false` in `vendor/zxcvbn/Cargo.toml` is enough, as one reviewed change to that copy. The lead decides.
+- P1: the path copy `vendor/zxcvbn` has no `build` key. A new `vendor/zxcvbn/build.rs` passes check-vendor (exit 0), and `cargo build -p zxcvbn` runs it (`rustc --crate-name build_script_build --edition=2021 vendor/zxcvbn/build.rs`; it wrote its file; Cargo.lock unchanged). The path copies have no checksum list: they are Larsal's own patched source (LD-136, LD-209), and a changed code line in them passes too, as in `crates/`. This is none of the four properties of LD-254 (2). `vendor/ssh-key` has `build = false`. To close it, `build = false` in `vendor/zxcvbn/Cargo.toml` is enough, as one reviewed change to that copy. The lead decides.
 
 scripts/check.sh was not run (the lead runs it).
 
@@ -531,7 +531,7 @@ scripts/check.sh was not run (the lead runs it).
 
 Scope: the crypto copies this step touched, as section 7 of spec/research/dependencies.md marks them: ring 0.17.14, getrandom 0.2.17, getrandom 0.4.3, curve25519-dalek 5.0.0 and ssh-cipher 0.3.0 (rustls-platform-verifier left in step 1). Also: does `cut_copies` in `scripts/check-vendor.sh` name exactly the copies that differ from their `.crate`?
 
-Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /app-shots`) and a second copy for mutants, restored by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/AppCore/Generated` link aside) before each mutant. Target folders under `/tmp`, an empty cargo home for each run, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline` and `--locked`, except the one lockfile rewrite in the upstream-manifest copy below. Each `.crate` came from `~/.cargo/registry/cache` and was unpacked into its own folder under `/tmp`. Checksum lists were read with python3's standard library.
+Setup: a private copy (`rsync -a --exclude /target --exclude /fuzz/target --exclude /larsal-shots`) and a second copy for mutants, restored by `rsync -a --delete` and checked with `diff -rq` (0 differences, the `macos/LarsalCore/Generated` link aside) before each mutant. Target folders under `/tmp`, an empty cargo home for each run, a throwaway `HOME`, `CARGO_NET_OFFLINE=true`, every cargo call `--offline` and `--locked`, except the one lockfile rewrite in the upstream-manifest copy below. Each `.crate` came from `~/.cargo/registry/cache` and was unpacked into its own folder under `/tmp`. Checksum lists were read with python3's standard library.
 
 ### Byte for byte (rule 3)
 
@@ -565,7 +565,7 @@ The upstream-manifest copy: in the mutant copy, the 5 crypto copies got back the
 
 So with every feature of our crates, on both Mac targets, in both workspaces, the packages and their features are the same with or without the cuts: no cut table and no cut feature is ever selected on a Mac. With `--target all`, the upstream-manifest copy shows fiat-crypto, r-efi, wasi, windows-sys 0.52.0, windows-targets and the 8 windows_* crates (root), and fiat-crypto and r-efi (fuzz). So the tables are real there, and only the Mac cfg leaves them out. des is in no tree, because nothing turns on `tdes`. The features on a Mac: ssh-cipher `aes, chacha20poly1305, encoding, rand_core, zeroize`; ring `alloc, default, dev_urandom_fallback`; getrandom 0.2.17 none; getrandom 0.4.3 `std, sys_rng`; curve25519-dalek `digest, zeroize`.
 
-Custom cfgs: no `RUSTFLAGS`, `.cargo/config.toml` entry or script sets `curve25519_dalek_backend` or `getrandom_backend` (the only `RUSTFLAGS`, in `scripts/repro-build.sh`, are path maps and linker flags; LD-201 (4)). Turning the fiat backend on now fails at once: `RUSTFLAGS='--cfg curve25519_dalek_backend="fiat"' cargo check --offline --locked -p app-crypto` exits 101 (curve25519-dalek: 57 errors, for example `cannot find function fiat_25519_add`). Nothing is fetched and no other backend is taken without notice. ssh-cipher's `tdes` fails the same way (section 5).
+Custom cfgs: no `RUSTFLAGS`, `.cargo/config.toml` entry or script sets `curve25519_dalek_backend` or `getrandom_backend` (the only `RUSTFLAGS`, in `scripts/repro-build.sh`, are path maps and linker flags; LD-201 (4)). Turning the fiat backend on now fails at once: `RUSTFLAGS='--cfg curve25519_dalek_backend="fiat"' cargo check --offline --locked -p larsal-crypto` exits 101 (curve25519-dalek: 57 errors, for example `cannot find function fiat_25519_add`). Nothing is fetched and no other backend is taken without notice. ssh-cipher's `tdes` fails the same way (section 5).
 
 ### cut_copies
 
@@ -578,7 +578,7 @@ The 14 names in `cut_copies` are exactly the 14 copies whose `Cargo.toml` differ
 | None | PASS, exit 0 (14 cut copies) | |
 | M1: curve25519-dalek `src/scalar.rs`, one code line, its hash written into the new list | FAIL, exit 1, `curve25519-dalek-5.0.0: not upstream beyond its cut: src/scalar.rs` | |
 | M3: ssh-cipher's upstream list names another package checksum | FAIL, exit 1, `ssh-cipher-0.3.0: not upstream beyond its cut: the package checksum` | |
-| C1: ring `pregenerated/sha256-armv8-ios64.S`, one `nop` line added at its end, its hash written into the new list | FAIL, exit 1, `ring-0.17.14: not upstream beyond its cut: pregenerated/sha256-armv8-ios64.S` | `cargo build -p app-platform --features net` (with C2): exit 0; ring's build script assembles the file, and the object ends in the added `nop` (`otool -tv`) |
+| C1: ring `pregenerated/sha256-armv8-ios64.S`, one `nop` line added at its end, its hash written into the new list | FAIL, exit 1, `ring-0.17.14: not upstream beyond its cut: pregenerated/sha256-armv8-ios64.S` | `cargo build -p larsal-platform --features net` (with C2): exit 0; ring's build script assembles the file, and the object ends in the added `nop` (`otool -tv`) |
 | C2: getrandom 0.2.17 `src/lib.rs`, `pub const UNLISTED_MUTANT: u8 = 1;` added, its hash written into the new list | FAIL, exit 1, `getrandom-0.2.17: not upstream beyond its cut: src/lib.rs` | the same build: exit 0, `rustc --crate-name getrandom … getrandom-0.2.17/src/lib.rs`, the rmeta names `UNLISTED_MUTANT`; Cargo.lock unchanged |
 | C3: the same in getrandom 0.4.3 `src/lib.rs` | FAIL, exit 1, `getrandom-0.4.3: not upstream beyond its cut: src/lib.rs` | |
 | C4: a new `build.rs` in ssh-cipher, nothing else changed | FAIL, exit 1, `ssh-cipher-0.3.0: files not in its list: build.rs` | ssh-cipher's manifest has `build = false`, so cargo would not run it |
@@ -588,8 +588,8 @@ So cargo alone builds a changed code line in a cut crypto copy whose list was re
 
 ### Known answers on the copies (AT-B01)
 
-- `cargo test --offline --locked --release --no-fail-fast -p app-crypto`: exit 0. 163 passed, 0 failed, 10 ignored: lib 47 (1 ignored), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3), mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7. Among them `ssh::tests::sign_ed25519_rfc8032_test_1` (curve25519-dalek) and `ssh::tests::sign_p256_rfc6979_sample`.
-- `cargo test --offline --locked --no-fail-fast -p app-platform --features net` (ring and getrandom 0.2.17): exit 0. lib 44 passed (7 ignored), net_start 1, doc-tests 0.
+- `cargo test --offline --locked --release --no-fail-fast -p larsal-crypto`: exit 0. 163 passed, 0 failed, 10 ignored: lib 47 (1 ignored), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3), mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7. Among them `ssh::tests::sign_ed25519_rfc8032_test_1` (curve25519-dalek) and `ssh::tests::sign_p256_rfc6979_sample`.
+- `cargo test --offline --locked --no-fail-fast -p larsal-platform --features net` (ring and getrandom 0.2.17): exit 0. lib 44 passed (7 ignored), net_start 1, doc-tests 0.
 - Both lockfiles of the clean copy are byte-identical to the shared tree after all runs.
 
 ### My own run broke one rule
@@ -611,9 +611,9 @@ this step, and it changed no product file. No new finding was filed (the next
 free number is F-137).
 
 Setup: a private copy, `rsync -a --exclude /target --exclude /fuzz/target
---exclude /app-shots` (`/tmp/e0s7s2-verify-copy`), a second copy for mutants
+--exclude /larsal-shots` (`/tmp/e0s7s2-verify-copy`), a second copy for mutants
 (`/tmp/e0s7s2-verify-mut`, restored by `rsync -a --delete` before each one,
-`diff -rq` then 0 lines, the dangling `macos/AppCore/Generated` link aside),
+`diff -rq` then 0 lines, the dangling `macos/LarsalCore/Generated` link aside),
 and a third copy that holds the step 1 state (`/tmp/e0s7s2-verify-step1`,
 section 21.2). Target folders under `/tmp`, a new empty cargo home per run,
 a throwaway `HOME`, `RUSTUP_HOME=~/.rustup` and `RUSTUP_AUTO_INSTALL=0`
@@ -648,12 +648,12 @@ afterwards.
   `t53_t57_ssh_signs_in_through_apps_socket` (macOS's `sshd-auth` starts its
   own sandbox). So 2,437 pass, the Builder's count. No `sshd` was left
   behind. Per binary the numbers are those of section 5, for example
-  app-crypto lib 47 (1 ignored), app-ffi lib 166 (4), app-format keyfile 154
-  (5), app-core fea01 35 (2), app-platform lib 31 (7), `net_start` 0, and
-  app-crypto doc-tests 2 and 7.
-- `-p app-platform --features net` (sandbox): lib 44 passed, 7 ignored;
+  larsal-crypto lib 47 (1 ignored), larsal-ffi lib 166 (4), larsal-format keyfile 154
+  (5), larsal-core fea01 35 (2), larsal-platform lib 31 (7), `net_start` 0, and
+  larsal-crypto doc-tests 2 and 7.
+- `-p larsal-platform --features net` (sandbox): lib 44 passed, 7 ignored;
   `net_start` 1; doc-tests 0.
-- `-p app-ffi --features net` (sandbox): 297 passed, 6 ignored, 16 result
+- `-p larsal-ffi --features net` (sandbox): 297 passed, 6 ignored, 16 result
   lines: lib 166 (4), autotype 15, autotype_typing 4, clipboard 9, edit 21,
   generator 12, key_pages 2 (1), memory 1, messages 7, new_vault 12,
   option_a 8 (1), reports 3, session 11, ssh 19, vault_settings 7.
@@ -732,7 +732,7 @@ license texts, 12 crates without a license file`, and `sbom.cdx.json`,
 and checksum. In the file: 151 components; 138 carry a crates.io SHA-256, and
 each equals its `Cargo.lock` checksum; 2 patched copies (zxcvbn, ssh-key)
 carry a `pedigree` instead; the only components without a license field are
-App's own 10 crates (App's license is D2, the owner's). None of the 38
+Larsal's own 10 crates (Larsal's license is D2, the owner's). None of the 38
 packages that left is listed (the only near name is bit-vec 0.8.0, a version
 that stays and is not the bit-vec 0.9.1 that left).
 
@@ -763,7 +763,7 @@ read straight from the archive in the local cargo cache:
 
 ### 21.6 AT-B01 known answers on the copies, in release
 
-`cargo test --offline --locked --release --no-fail-fast -p app-crypto`
+`cargo test --offline --locked --release --no-fail-fast -p larsal-crypto`
 (sandbox, empty cargo home): exit 0, **163 passed, 0 failed, 10 ignored**:
 lib 47 (1 ignored), cipher 21, cipher_large 0 (3), hash 6 (1), kdf 35 (3),
 mac 8 (1), random 7, secret 10 (1), ssh_wipe 1, stream 19, doc-tests 2 and 7.
@@ -786,13 +786,13 @@ each compiled from `vendor/crates-io/<name>-<version>/src/lib.rs`.
 ### 21.8 The Mac app still builds
 
 - `scripts/build-core.sh` (sandbox, empty cargo home, offline and locked):
-  exit 0, 50 s. It made `target/app-core/AppFFI.xcframework`,
-  `Swift/AppCore.swift`, `include/AppFFI.h` and `include/module.modulemap`.
-- `xcodebuild -project macos/App.xcodeproj -scheme App -destination
+  exit 0, 50 s. It made `target/larsal-core/LarsalFFI.xcframework`,
+  `Swift/LarsalCore.swift`, `include/LarsalFFI.h` and `include/module.modulemap`.
+- `xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination
   platform=macOS -derivedDataPath /tmp/e0s7s2-verify-dd build-for-testing
   SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: `** TEST BUILD SUCCEEDED **`, exit 0,
   22 s, no code warning. The only resolved package is the local one,
-  `AppCore: …/macos/AppCore @ local`, so nothing was fetched. No test was
+  `LarsalCore: …/macos/LarsalCore @ local`, so nothing was fetched. No test was
   run, and no window was shown.
 
 ### 21.9 check-vendor on the shared tree
@@ -816,7 +816,7 @@ vendor/crates-io; fuzz 121, 111; stubs 0; cut copies 14).
 
 ### Clean-up
 
-Every process Verify started ended. No App and no `sshd` was left (`pgrep`).
+Every process Verify started ended. No Larsal and no `sshd` was left (`pgrep`).
 All `/tmp/e0s7s2-verify-*` folders are deleted. `scripts/check.sh` was not
 run (the lead runs it).
 

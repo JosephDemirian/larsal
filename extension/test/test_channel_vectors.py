@@ -1,6 +1,6 @@
 """The channel's known answers in WebCrypto (story E7-S1; INT-01.50, T79).
 
-App's side computes the same values in app-crypto (crates/app-crypto/src/bridge.rs,
+Larsal's side computes the same values in larsal-crypto (crates/larsal-crypto/src/bridge.rs,
 t78_* and t79_channel_vectors_cv1_to_cv9); both must give INT-01.50's bytes. Runs in
 the installed Chrome, headless, in the driver's demo extension (service worker),
 through E7-S7b's driver only (INT-11.43).

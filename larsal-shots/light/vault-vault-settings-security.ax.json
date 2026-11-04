@@ -1,0 +1,532 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        300,
+        24.5,
+        58,
+        19
+      ],
+      "label" : "Security",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        18,
+        49,
+        115.5,
+        36.5
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal, Vault settings"
+    },
+    {
+      "frame" : [
+        10,
+        102,
+        212,
+        32
+      ],
+      "label" : "General",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        136,
+        212,
+        32
+      ],
+      "label" : "Security",
+      "role" : "AXButton",
+      "selected" : true
+    },
+    {
+      "frame" : [
+        10,
+        170,
+        212,
+        32
+      ],
+      "label" : "Recycle Bin",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        204,
+        212,
+        32
+      ],
+      "label" : "History",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        238,
+        212,
+        32
+      ],
+      "label" : "Browser Keys",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            258,
+            80.549999999999272,
+            69.5,
+            17
+          ],
+          "label" : "Credentials",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                117.04999999999927,
+                61,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Password"
+            },
+            {
+              "frame" : [
+                270,
+                137.54999999999927,
+                121.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Changed Oct 31, 2026"
+            },
+            {
+              "frame" : [
+                776.5,
+                120.5,
+                77.5,
+                28
+              ],
+              "label" : "Change…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            117.05000305175781,
+            584,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                175.04999999999927,
+                46,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Key file"
+            },
+            {
+              "frame" : [
+                270,
+                195.54999999999927,
+                89.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "personal.larsalkey"
+            },
+            {
+              "frame" : [
+                698.5,
+                178.5,
+                77.5,
+                28
+              ],
+              "label" : "Change…",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                784,
+                178.5,
+                70,
+                28
+              ],
+              "label" : "Remove",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            175.05000305175781,
+            584,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                234,
+                16,
+                16
+              ],
+              "label" : "Yubico",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                294,
+                233.04999999999927,
+                76.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Security key"
+            },
+            {
+              "frame" : [
+                270,
+                256.04999999999927,
+                48.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Not used"
+            },
+            {
+              "frame" : [
+                797,
+                238,
+                57,
+                28
+              ],
+              "label" : "Add…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            233.05000305175781,
+            584,
+            37.999984741210938
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                296.54999999999927,
+                138,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Touch ID for this vault"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                820,
+                295.5,
+                34,
+                20
+              ],
+              "help" : "Touch ID comes with quick unlock (E6-S3).",
+              "label" : "Touch ID",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            270,
+            295.5,
+            584,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            258,
+            353.04999999999927,
+            65.5,
+            17
+          ],
+          "label" : "Encryption",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                394.54999999999927,
+                41.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Cipher"
+            },
+            {
+              "frame" : [
+                761.5,
+                388.5,
+                92.5,
+                30
+              ],
+              "label" : "Cipher",
+              "role" : "AXButton",
+              "value" : "AES-256"
+            }
+          ],
+          "frame" : [
+            270,
+            388.5,
+            584,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                440.54999999999927,
+                89.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Key derivation"
+            },
+            {
+              "frame" : [
+                270,
+                461.04999999999927,
+                238.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Argon2id resists guessing on graphics cards."
+            },
+            {
+              "frame" : [
+                761,
+                443,
+                93,
+                30
+              ],
+              "label" : "Key derivation",
+              "role" : "AXButton",
+              "value" : "Argon2id"
+            }
+          ],
+          "frame" : [
+            270,
+            440.54998779296875,
+            584,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                498.54999999999927,
+                150,
+                17.999999999999943
+              ],
+              "role" : "AXStaticText",
+              "value" : "Unlock time on this Mac"
+            },
+            {
+              "frame" : [
+                270,
+                519.04999999999927,
+                247,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Higher means slower guessing for an attacker."
+            },
+            {
+              "frame" : [
+                644,
+                506,
+                156,
+                20
+              ],
+              "label" : "Unlock time on this Mac",
+              "role" : "AXSlider",
+              "value" : "10"
+            },
+            {
+              "frame" : [
+                823,
+                507.04999999999927,
+                31,
+                17.999999999999943
+              ],
+              "role" : "AXStaticText",
+              "value" : "Unlock time on this Mac, 1.0 s"
+            }
+          ],
+          "frame" : [
+            270,
+            498.54998779296875,
+            584,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                561.54999999999927,
+                51.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Memory"
+            },
+            {
+              "frame" : [
+                751,
+                562.04999999999927,
+                41,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "64 MiB"
+            },
+            {
+              "frame" : [
+                802,
+                555.5,
+                26,
+                30
+              ],
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                828,
+                555.5,
+                26,
+                30
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            555.5,
+            584,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                612.54999999999927,
+                99,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Parallel threads"
+            },
+            {
+              "frame" : [
+                784,
+                613.04999999999927,
+                8,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "2"
+            },
+            {
+              "frame" : [
+                802,
+                606.5,
+                26,
+                30
+              ],
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                828,
+                606.5,
+                26,
+                30
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            606.5,
+            584,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            258,
+            656.75,
+            603.5,
+            30.5
+          ],
+          "role" : "AXStaticText",
+          "value" : "Changes take effect the next time Larsal saves. Older apps may not open a vault that uses ChaCha20 or more than 1 GiB of memory."
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        232,
+        60,
+        660,
+        572
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    640
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

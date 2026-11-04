@@ -17,7 +17,7 @@ This card owns the behavior: when an item is made, what it holds, the limits, ho
 - merging two histories: MOD-11; cloning with or without history: MOD-10;
 - the entry fields themselves: MOD-01.
 
-Words used here. **Edit session**: a set of changes to one live entry that App applies as one step (one editor commit, one command line edit, one browser-bridge update). **Stored value**: anything that is written to the file for the entry (MOD-01, FMT-11.15). **Now**: one UTC timestamp in whole seconds, taken once per action.
+Words used here. **Edit session**: a set of changes to one live entry that Larsal applies as one step (one editor commit, one command line edit, one browser-bridge update). **Stored value**: anything that is written to the file for the entry (MOD-01, FMT-11.15). **Now**: one UTC timestamp in whole seconds, taken once per action.
 
 ## Inputs and outputs
 
@@ -49,9 +49,9 @@ MOD-03.1 **Contents.** A history item is a copy of the live entry taken at the s
 
 The item carries the owner's id (FMT-11.32). The item's own times are the entry's times before the edit, so the item's `LastModificationTime` says when that version was made.
 
-MOD-03.2 **Edit sessions make at most one item.** At the start of an edit session App takes the copy. At the end, if at least one stored value of the entry changed, App appends the copy at the end of the history list and then prunes (MOD-03.8). If no stored value changed, the copy is thrown away (and wiped), and the entry's times do not move. Setting a value to the value it already has is not a change. Many changes in one session still give one item.
+MOD-03.2 **Edit sessions make at most one item.** At the start of an edit session Larsal takes the copy. At the end, if at least one stored value of the entry changed, Larsal appends the copy at the end of the history list and then prunes (MOD-03.8). If no stored value changed, the copy is thrown away (and wiped), and the entry's times do not move. Setting a value to the value it already has is not a change. Many changes in one session still give one item.
 
-MOD-03.3 **Times on a change.** When an edit session changes the entry, App sets the entry's `LastModificationTime` and `LastAccessTime` to now. `CreationTime`, `LocationChanged`, `UsageCount`, `ExpiryTime` and `Expires` change only when the session itself changes them. The reference never moves `LastAccessTime` or `UsageCount` for viewing, copying, opening a URL or auto-type; App does the same.
+MOD-03.3 **Times on a change.** When an edit session changes the entry, Larsal sets the entry's `LastModificationTime` and `LastAccessTime` to now. `CreationTime`, `LocationChanged`, `UsageCount`, `ExpiryTime` and `Expires` change only when the session itself changes them. The reference never moves `LastAccessTime` or `UsageCount` for viewing, copying, opening a URL or auto-type; Larsal does the same.
 
 MOD-03.4 **Actions that are edit sessions** (they make one item when something changed):
 
@@ -75,7 +75,7 @@ MOD-03.5 **Actions that make no history item.** Some of them still change the en
 | Editor opened, then OK or Apply with no change | none |
 | Editor Cancel, then choosing to discard | none (see the edge case on missing custom icons) |
 | Moving an entry inside the vault: drag and drop, move to the recycle bin, restore from it (MOD-04) | `LocationChanged` always; `LastModificationTime` and `LastAccessTime` too when the previous-parent group changes (MOD-04.5) |
-| Command line move (App) | as the row above; lead decision L03-1 |
+| Command line move (Larsal) | as the row above; lead decision L03-1 |
 | Expire now (MOD-09) | `LastModificationTime`, `LastAccessTime` |
 | Adding or removing a tag on selected entries from the main screen, or deleting a tag from the tag list (MOD-07) | `LastModificationTime`, `LastAccessTime` |
 | Downloading website icons for a group's entries (MOD-06) | `LastModificationTime`, `LastAccessTime` |
@@ -99,7 +99,7 @@ MOD-03.7 **Size of an item.** The size of an entry or history item is the sum of
 | each auto-type window association | UTF-8 bytes of the window title + UTF-8 bytes of the sequence |
 | each tag | UTF-8 bytes of the tag |
 
-Nothing else counts: not the icon, colors, override URL, default auto-type sequence, times, flags, previous parent or ids. App computes sizes in 64-bit arithmetic. The reference uses signed 32-bit sums, which can wrap for an entry over 2 GiB; App never wraps.
+Nothing else counts: not the icon, colors, override URL, default auto-type sequence, times, flags, previous parent or ids. Larsal computes sizes in 64-bit arithmetic. The reference uses signed 32-bit sums, which can wrap for an entry over 2 GiB; Larsal never wraps.
 
 MOD-03.8 **Pruning.** Pruning runs on one entry's history:
 
@@ -118,7 +118,7 @@ MOD-03.9 **When pruning runs.** Exactly these times:
 
 Pruning does not run when a vault is opened, saved, or reloaded, when history items are deleted, or when a limit is changed back to its old value. A vault opened with more items than the limits allow keeps them until one of the triggers above.
 
-MOD-03.10 **App ceiling.** The reader refuses an entry with more than 100,000 history items (the history row of FMT-08.12), and App never writes a vault it would refuse to read. So App prunes every entry to at most 100,000 items at each trigger, also when max items is -1, and the settings screen accepts max items from 0 to 100,000 (lead decision L03-3). The whole-file limit of 4,000,000 live entries plus history items (the entry elements row of FMT-08.12) is checked at open, where a file over it is refused, and at save, where the save fails, nothing is written and the old file stays (lead decision LD-68).
+MOD-03.10 **Larsal ceiling.** The reader refuses an entry with more than 100,000 history items (the history row of FMT-08.12), and Larsal never writes a vault it would refuse to read. So Larsal prunes every entry to at most 100,000 items at each trigger, also when max items is -1, and the settings screen accepts max items from 0 to 100,000 (lead decision L03-3). The whole-file limit of 4,000,000 live entries plus history items (the entry elements row of FMT-08.12) is checked at open, where a file over it is refused, and at save, where the save fails, nothing is written and the old file stays (lead decision LD-68).
 
 ### The history page
 
@@ -135,11 +135,11 @@ Rows are sorted by `LastModificationTime`, newest first. The Difference labels, 
 
 MOD-03.12 **Show and Restore.** Show (or double-click) opens the selected item in a read-only copy of the editor; closing it returns to the History page. Restore copies all stored values of the selected item (MOD-03.1) into the editor's draft: fields, attachments, custom data, icon, colors, auto-type, tags, expiry and report flag. The times, id and previous parent are not copied. Nothing changes in the vault until the user commits. The commit is a normal edit session (MOD-03.2): the current state becomes a new history item, and the restored item also stays in the list. Show, Restore and Delete are available only for history rows, never for the current row.
 
-MOD-03.13 **Delete and Delete all.** Delete removes the selected history item from the list. Delete all removes every history item. Both only mark the items: they are removed when the user commits the editor (OK or Apply), and kept if the user cancels and discards. At commit, App removes the marked items first, then runs the edit session. Removing items alone makes no new history item; the reference moves the entry's `LastModificationTime` and `LastAccessTime` to now when items were removed, and App does the same. Deleting history items adds no deleted-object record (FMT-15.8).
+MOD-03.13 **Delete and Delete all.** Delete removes the selected history item from the list. Delete all removes every history item. Both only mark the items: they are removed when the user commits the editor (OK or Apply), and kept if the user cancels and discards. At commit, Larsal removes the marked items first, then runs the edit session. Removing items alone makes no new history item; the reference moves the entry's `LastModificationTime` and `LastAccessTime` to now when items were removed, and Larsal does the same. Deleting history items adds no deleted-object record (FMT-15.8).
 
 ### History, attachments and ids
 
-MOD-03.14 **Attachments in history.** Each history item keeps its own attachments as they were (MOD-03.1). Removing or replacing an attachment on the entry does not touch its history items, so the old content stays in the vault until those items are pruned or deleted. App shares one copy of equal content in memory between an entry and its items, and the file stores it once (FMT-13.16). Size still counts each item's attachments in full (MOD-03.7).
+MOD-03.14 **Attachments in history.** Each history item keeps its own attachments as they were (MOD-03.1). Removing or replacing an attachment on the entry does not touch its history items, so the old content stays in the vault until those items are pruned or deleted. Larsal shares one copy of equal content in memory between an entry and its items, and the file stores it once (FMT-13.16). Size still counts each item's attachments in full (MOD-03.7).
 
 MOD-03.15 **History items are not live entries.** They carry the owner's id (FMT-11.32) and are not in the id registry. They are never listed in a group, found by search (FEA-01), counted in statistics (FEA-07), checked by Health Check (FEA-05), offered to the browser bridge or auto-type, or given to the SSH agent. A clone with a new id gives its copied history items the new id (MOD-10). A history item cannot itself be edited.
 
@@ -156,11 +156,11 @@ MOD-03.15 **History items are not live entries.** They carry the owner's id (FMT
 | A history item newer than the current entry (another device's clock) | Shown above the current row; pruning still goes by list position, newest last |
 | History item whose id differs from the owner's | Takes the owner's id on read (FMT-11.32) |
 | `HistoryMaxItems` of -2 in a file | Ignored on read (FMT-10.15) |
-| Editor Cancel and discard, when the entry's custom icon no longer exists in the vault | The reference sets the entry's icon to the default icon anyway, outside an edit session: no history item, times move. App does not change the entry on discard |
-| Reference: attachment changes made in the editor after Apply | The reference then applies attachment changes straight to the live entry, without a history item, and reloads the form (other unsaved edits are lost). Read from the source, not run (source re-read by Verify: after Apply the editor's attachment list is linked to the live entry's attachments, so later attachment changes go straight into the entry outside an edit session, and the entry's change signal makes the editor reload its form). App never does this: every change goes through the editor's draft and one edit session |
-| Reference: attachment opened from the main screen's preview panel, edited outside, and saved back (MOD-05.13) | The reference writes the new content straight into the live entry, without a history item. App makes this an edit session (one history item) |
-| Reference settings screen, size limit | The screen shows the stored size rounded half up to whole MiB, and a box that is checked only when that rounded value is above 0. Applying the screen stores the shown value × 1,048,576, or -1 when the box is unchecked. So a stored size that is not a whole MiB changes on any apply (6,000,000 becomes 6,291,456), and a stored size below 524,288 bytes becomes -1 (no limit). The multiplication is signed 32-bit, and the field accepts up to 2,000,000,000 MiB: 2,048 MiB is stored as -2,147,483,648 (no limit in that session; ignored on the next read, FMT-10.15), 4,096 MiB as 0 (all history of every entry is dropped at once), 3,000 MiB as -1,149,239,296. Read from the source, not run (source re-read and arithmetic recomputed by Verify: the shown value is the stored size divided by 1,048,576, rounded half up; the number box allows 1 to 2,000,000,000 MiB; the product is a signed 32-bit multiplication, so the values above are the wrapped results the build gives in practice, the language itself leaving signed overflow undefined; a stored size of 0 removes every history item on the next prune, and any value below -1 means no limit). App: lead decision L03-2 |
-| Max items field in the reference | Accepts 0 to 2,000,000,000. App: 0 to 100,000 (MOD-03.10) |
+| Editor Cancel and discard, when the entry's custom icon no longer exists in the vault | The reference sets the entry's icon to the default icon anyway, outside an edit session: no history item, times move. Larsal does not change the entry on discard |
+| Reference: attachment changes made in the editor after Apply | The reference then applies attachment changes straight to the live entry, without a history item, and reloads the form (other unsaved edits are lost). Read from the source, not run (source re-read by Verify: after Apply the editor's attachment list is linked to the live entry's attachments, so later attachment changes go straight into the entry outside an edit session, and the entry's change signal makes the editor reload its form). Larsal never does this: every change goes through the editor's draft and one edit session |
+| Reference: attachment opened from the main screen's preview panel, edited outside, and saved back (MOD-05.13) | The reference writes the new content straight into the live entry, without a history item. Larsal makes this an edit session (one history item) |
+| Reference settings screen, size limit | The screen shows the stored size rounded half up to whole MiB, and a box that is checked only when that rounded value is above 0. Applying the screen stores the shown value × 1,048,576, or -1 when the box is unchecked. So a stored size that is not a whole MiB changes on any apply (6,000,000 becomes 6,291,456), and a stored size below 524,288 bytes becomes -1 (no limit). The multiplication is signed 32-bit, and the field accepts up to 2,000,000,000 MiB: 2,048 MiB is stored as -2,147,483,648 (no limit in that session; ignored on the next read, FMT-10.15), 4,096 MiB as 0 (all history of every entry is dropped at once), 3,000 MiB as -1,149,239,296. Read from the source, not run (source re-read and arithmetic recomputed by Verify: the shown value is the stored size divided by 1,048,576, rounded half up; the number box allows 1 to 2,000,000,000 MiB; the product is a signed 32-bit multiplication, so the values above are the wrapped results the build gives in practice, the language itself leaving signed overflow undefined; a stored size of 0 removes every history item on the next prune, and any value below -1 means no limit). Larsal: lead decision L03-2 |
+| Max items field in the reference | Accepts 0 to 2,000,000,000. Larsal: 0 to 100,000 (MOD-03.10) |
 
 ## Security notes
 
@@ -183,7 +183,7 @@ Demo vaults use the password `demo-pass`. "id(xx)" is 16 bytes of 0xxx (FMT-11).
 | 03-04 command line sessions (MOD-03.4) | Entry E with UserName "alice", no history | Command line edit to "alice1", then "alice2", then "alice3" | History users, oldest first: alice, alice1, alice2. Current: alice3 (observed) |
 | 03-05 attachment sessions (MOD-03.4) | Entry E, no attachments | Command line: import f.txt = "hello"; import f.txt again without force; import with force f.txt = "hello"; import with force f.txt = "other" | 2 history items: before the first import, and before "other". The import without force fails; the equal-content import adds nothing (observed) |
 | 03-06 no item for moves and use (MOD-03.5) | Entry E in group G1, 2 history items | Drag E to group G2; copy its password; auto-type it; expire it now | Still 2 history items. `UsageCount` and `LastAccessTime` unchanged by copy and auto-type |
-| 03-07 command line move (MOD-03.5, L03-1) | Entry E in the root group, 4 history items, no previous parent | Command line move E to G1 | Reference (observed): 5 history items. App: 4 (L03-1) |
+| 03-07 command line move (MOD-03.5, L03-1) | Entry E in the root group, 4 history items, no previous parent | Command line move E to G1 | Reference (observed): 5 history items. Larsal: 4 (L03-1) |
 | 03-08 count pruning (MOD-03.8) | Entry T with 12 history items h00 … h11 (oldest first), max items 10 | Open and save with no edit | Still 12 items (MOD-03.9) |
 | 03-09 count pruning on edit (MOD-03.8, MOD-03.9) | The vault from 03-08 | Edit T's UserName from "cur" to "new" | 10 items: h03 … h11, then "cur". h00, h01, h02 dropped (observed) |
 | 03-10 size formula (MOD-03.7) | Entry: Title "Mail", UserName "bob", Password "pw-1", URL "https://m.example", Notes "", custom field PIN = "4711", attachment key.txt of 10 bytes, tags home and work, custom data k = v, one association window "Mail*" with an empty sequence | Compute the size | 96 bytes (29 + 28 + 7 + 17 + 8 + 2 + 5) |
@@ -205,8 +205,8 @@ Demo vaults use the password `demo-pass`. "id(xx)" is 16 bytes of 0xxx (FMT-11).
 | 03-26 history not live (MOD-03.15) | Entry Alpha with an old password "hunter2" only in a history item | Search "hunter2"; run Health Check; ask the browser bridge for Alpha's site | No result from the history item in any of them |
 | 03-27 new entry (MOD-03.5) | — | Create an entry in the editor, typing several fields, OK | 0 history items |
 | 03-28 ceiling (MOD-03.10) | Max items -1, max size -1, an entry with 100,000 items | Edit it | 100,000 items (the oldest dropped); the vault saves and opens again |
-| 03-29 settings screen exact (MOD-03.6, L03-2) | Stored max size 6,000,000; separately 100,000 | Open the settings screen, apply without touching the history fields | App: both values unchanged. Reference (from source): 6,291,456 and -1 |
-| 03-30 settings screen overflow (L03-2) | — | Type 4,096 MiB into the size field | App: refused (at most 2,047 MiB), nothing pruned. Reference (from source): stored 0, all history dropped |
+| 03-29 settings screen exact (MOD-03.6, L03-2) | Stored max size 6,000,000; separately 100,000 | Open the settings screen, apply without touching the history fields | Larsal: both values unchanged. Reference (from source): 6,291,456 and -1 |
+| 03-30 settings screen overflow (L03-2) | — | Type 4,096 MiB into the size field | Larsal: refused (at most 2,047 MiB), nothing pruned. Reference (from source): stored 0, all history dropped |
 | 03-31 whole-file ceiling (MOD-03.10, LD-68) | (a) A file with 3,999,990 live entries plus history items; (b) a file with 4,000,001 | (a) Open, add 11 entries one by one, save; (b) open | (a) Opens; the save that would reach 4,000,001 fails, nothing is written, the old file is unchanged. (b) Refused at open with the size-limit error (FMT-08.12) |
 
 ## How this was learned
@@ -221,5 +221,5 @@ Demo vaults use the password `demo-pass`. "id(xx)" is 16 bytes of 0xxx (FMT-11).
 - Lead decisions (decided: spec/decisions.md default rule, each takes the recommended option):
   - L03-1: command line move. The reference command line makes a history item for a move (because the previous-parent value changes), the window does not. Options: (a) as the reference command line; (b) no history item for any move. Recommended: (b), one rule for all paths.
   - L03-2: settings screen for the size limit. Recommended: show the stored value exactly (MiB with up to two decimals, or bytes), write it back unchanged unless the user edits the field, accept 1 to 2,047 MiB (2,047 × 1,048,576 = 2,146,435,072 fits a signed 32-bit value), and compute in 64 bits.
-  - L03-3: the 100,000-item ceiling of MOD-03.10 (the reference has none). Recommended as written, because App never writes a vault it would refuse to read (FMT-08.12).
+  - L03-3: the 100,000-item ceiling of MOD-03.10 (the reference has none). Recommended as written, because Larsal never writes a vault it would refuse to read (FMT-08.12).
   - The whole-file limit at save as well as at open: decided, spec/decisions.md LD-68.

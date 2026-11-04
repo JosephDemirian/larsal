@@ -1,0 +1,69 @@
+[package]
+name = "larsal-platform"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# deny, not forbid: the macos/ module allows unsafe (Rust rule 2).
+[features]
+# Everything, when this crate is built on its own (its tests). Users pick:
+# larsal-cli and larsal-ffi `appkit` and `memory`, larsal-format `memory` only.
+default = ["appkit", "memory", "device-key", "code-sign"]
+# The clipboard, the OS version and physical memory: objc2, Foundation and
+# AppKit. Without it this crate links only libc.
+appkit = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-app-kit"]
+# The zeroing allocator and key page locks (`memory`, E6-S6): libc only.
+memory = []
+# Tests only (LD-180): `reset_quit_signals_for_tests`, so signal cases pass
+# when a test runner starts with quit signals ignored. Never in product builds.
+test-signals = []
+# Tests only (E6-S6): `memory::Probe`, `Seen`, `set_needle`, `wired_bytes` and
+# `marker_survives_free`, for the allocator checks in larsal-cli and larsal-ffi, and
+# `zero_stack_words_after`, for the stack wipe check in larsal-cli (LD-261 (4)).
+test-memory = ["memory"]
+# The HTTPS client for opt-in features (`net`, E6-S7, LD-194). Off by default;
+# the Mac app's core turns it on (scripts/build-core.sh, larsal-ffi `net`: the TLS
+# exception of LD-220 (2)). Without it this crate has no network code (SN-05).
+# The certificate check is macOS's own trust evaluation (macos/trust.rs,
+# LD-247 (2)), linked from the Security framework: no crate.
+net = ["dep:ureq", "dep:rustls", "dep:larsal-crypto"]
+# The device's P-256 sign-in key (`device_key.rs`, E16-S6, SYN-04.1):
+# security-framework, the Secure Enclave and the keychains. larsal-ffi's `sync`
+# turns it on (E16-S7a); without it this crate links no keychain code.
+device-key = ["dep:security-framework"]
+# The code signature of a socket's peer (`macos::peer_meets`, INT-01.7,
+# E7-S6): the Security framework, linked by hand as for `net` (no crate).
+# larsal-browser turns it on for the peer program check of signed builds.
+code-sign = []
+# Tests only (LD-317 (2)): `DeviceKey::test_seam`, an in-memory software key
+# that no keychain ever holds, for the sign-in tests of other crates.
+test-device-key = ["device-key"]
+
+[dependencies]
+ureq = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
+# `net`: the pinned certificate's SHA-256 and its constant-time compare
+# (SYN-01.2, CRY-04.11); hashes come only from larsal-crypto (rule 3).
+larsal-crypto = { workspace = true, optional = true }
+
+[dev-dependencies]
+rcgen = { workspace = true }
+# E16-S6: the device key's signatures are checked with larsal-crypto's P-256
+# verify (SYN-04 T01), and net.rs's pinned path is tested against Larsal's own
+# server on 127.0.0.1:0 with its first-start certificate (LD-317 (4)).
+larsal-crypto = { workspace = true }
+larsal-server = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = { workspace = true }
+objc2 = { workspace = true, optional = true }
+objc2-foundation = { workspace = true, optional = true, features = ["std", "NSArray", "NSData", "NSProcessInfo", "NSString"] }
+# The clipboard (APP-03.9): NSPasteboard and NSPasteboardItem only.
+objc2-app-kit = { workspace = true, optional = true, features = ["std", "NSPasteboard", "NSPasteboardItem"] }
+# The sign-in key (SYN-04.1): `OSX_10_15` for the data protection keychain.
+security-framework = { workspace = true, optional = true, features = ["OSX_10_15"] }

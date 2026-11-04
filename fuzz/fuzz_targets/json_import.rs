@@ -7,12 +7,12 @@
 //!
 //! No password is passed, so a protected file stops before any key
 //! derivation (its cost comes from the file): the derivations are
-//! app-crypto's, tested on vectors.
+//! larsal-crypto's, tested on vectors.
 #![no_main]
 
-use app_core::import::{self, Context, bitwarden, proton};
-use app_core::time::Utc;
-use app_model::{Group, Time, Uuid, Vault};
+use larsal_core::import::{self, Context, bitwarden, proton};
+use larsal_core::time::Utc;
+use larsal_model::{Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 use std::sync::atomic::AtomicBool;
 
@@ -24,14 +24,14 @@ fuzz_target!(|data: &[u8]| {
         let Ok(r) = r else {
             continue;
         };
-        assert_eq!(app_model::invariants::check(&r.vault), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&r.vault), Ok(()));
         let _ = import::preview(&r);
         let mut root = Group::new(Uuid([1; 16]), "Root".into(), now);
         root.groups
             .push(Group::new(Uuid([2; 16]), "Work".into(), now));
         let mut target = Vault::new(root, now);
         if import::into_group(&mut target, Uuid([2; 16]), r, now).is_ok() {
-            assert_eq!(app_model::invariants::check(&target), Ok(()));
+            assert_eq!(larsal_model::invariants::check(&target), Ok(()));
         }
     }
 });

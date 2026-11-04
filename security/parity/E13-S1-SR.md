@@ -11,15 +11,15 @@ Date: 2026-10-29. Verify agent, group SR.
 | SR-04 | Waits for E6-S3 (quick unlock is not built; it needs a signing team, D7) |
 | SR-05 | **Verified** |
 | SR-06 | **Failed (finding SR-B, High):** secure input passes, but the Caps Lock warning is only on the unlock form. The new vault, change password and entry editor password fields have none. The reference warns on all of them. |
-| SR-07 | **Verified** on today's tree (key checks re-run); the lldb dump of the real App.app still waits for Mac QA |
+| SR-07 | **Verified** on today's tree (key checks re-run); the lldb dump of the real Larsal.app still waits for Mac QA |
 | SR-08 | **Failed (finding SR-C, High):** the notice of expired and expiring entries after unlock is not wired into the app. |
 | SR-09 | **Verified** |
 | SR-10 | **Failed (finding SR-D, Medium):** auto-open is not built, and no story owns it |
-| SR-11 | **Verified** (App is stricter: no command URL ever runs, and only http and https open). Finding SR-E (Low): the rest of MOD-08.31 is not wired. |
+| SR-11 | **Verified** (Larsal is stricter: no command URL ever runs, and only http and https open). Finding SR-E (Low): the rest of MOD-08.31 is not wired. |
 | SR-12 | **Verified** |
 | SR-13 | **Verified** |
 | SR-14 | **Verified** |
-| SR-15 | **Verified** for today's App and `app`. The browser bridge sockets come with E7 and are checked there (AT-E08). |
+| SR-15 | **Verified** for today's Larsal and `larsal`. The browser bridge sockets come with E7 and are checked there (AT-E08). |
 | SR-16 | **Verified** for every dialog that exists today. The browser dialogs come with E7. |
 
 How it was run:
@@ -28,15 +28,15 @@ How it was run:
   - The reference command line tool (REF_CLI) ran on a copy of one of its own demo test vaults (REF_TESTDATA), with `HOME=/tmp/e13s1-SR-home`.
   - The reference window app was never launched.
 - **Our side, private copy.**
-  - Built in `/tmp/e13s1-SR-copy`: `rsync -a --exclude target --exclude app-shots`, with its own `target` and derived data `/tmp/e13s1-SR-dd`.
-  - The copy was made at 20:36. At the end, the SHA-256 (first 16 hex digits) of every file this report relies on matched the shared tree: `LockSignals.swift` 8a35a268a248e9ee, `AppDelegate.swift` 6be44d1aa1b50bd1, `SecureInput.swift` ebd40eada81ed87b, `UnlockView.swift` 10179bb377614c51, `SecretFields.swift` d61a24a42ac6c760, `EditorPasswordField.swift` 271b80afc359cd09, `URLOpener.swift` 0a16a9243ca76d36, `hardening.rs` 3d66e42cda450a1c, `instance.rs` 286687cff000a1db, `app_settings.rs` 44e2f852f4a32799, `session.rs` 1bda6de4ae34692f, `expiry.rs` 1271f3f9f5225a5f, `app-cli/src/main.rs` 2d65352e2216ae8b.
+  - Built in `/tmp/e13s1-SR-copy`: `rsync -a --exclude target --exclude larsal-shots`, with its own `target` and derived data `/tmp/e13s1-SR-dd`.
+  - The copy was made at 20:36. At the end, the SHA-256 (first 16 hex digits) of every file this report relies on matched the shared tree: `LockSignals.swift` 8a35a268a248e9ee, `AppDelegate.swift` 6be44d1aa1b50bd1, `SecureInput.swift` ebd40eada81ed87b, `UnlockView.swift` 10179bb377614c51, `SecretFields.swift` d61a24a42ac6c760, `EditorPasswordField.swift` 271b80afc359cd09, `URLOpener.swift` 0a16a9243ca76d36, `hardening.rs` 3d66e42cda450a1c, `instance.rs` 286687cff000a1db, `larsal_settings.rs` 44e2f852f4a32799, `session.rs` 1bda6de4ae34692f, `expiry.rs` 1271f3f9f5225a5f, `larsal-cli/src/main.rs` 2d65352e2216ae8b.
 - **Builds.**
-  - `scripts/build-core.sh` gave `build-core (debug): target/app-core/AppFFI.xcframework`.
+  - `scripts/build-core.sh` gave `build-core (debug): target/larsal-core/LarsalFFI.xcframework`.
   - `xcodebuild … -derivedDataPath /tmp/e13s1-SR-dd build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` gave `** TEST BUILD SUCCEEDED **`.
-  - The command line checks used the shared debug `app` in `/tmp/e13s1-target` (built at 20:45 from today's tree).
+  - The command line checks used the shared debug `larsal` in `/tmp/e13s1-target` (built at 20:45 from today's tree).
 - **No windows (rule 10).**
-  - AppTests has no host app, so the Swift tests ran in the xctest runner, which opens no window.
-  - The App probe ran the debug `App` with `APP_TEST_HIDDEN=1`: activation policy `.prohibited`, no window, no menu bar icon, no global shortcut. It also had its own instance folder (`APP_TEST_INSTANCE_DIR`), so it never touched the owner's settings.
+  - LarsalTests has no host app, so the Swift tests ran in the xctest runner, which opens no window.
+  - The Larsal probe ran the debug `Larsal` with `LARSAL_TEST_HIDDEN=1`: activation policy `.prohibited`, no window, no menu bar icon, no global shortcut. It also had its own instance folder (`LARSAL_TEST_INSTANCE_DIR`), so it never touched the owner's settings.
   - I stopped it by its own PID with `kill -TERM`. After that, `pgrep -f e13s1-SR-dd` was empty.
   - Nothing touched the general pasteboard, the owner's ssh-agent, `~/.ssh` or the Keychain. The ssh tests use their own agents in `/tmp`.
 - **Load.** The Mac had a load average of 300 on 14 cores (other agents were building). Timings below are slow for that reason.
@@ -48,15 +48,15 @@ How it was run:
 - **Timer.** The idle timer never runs shorter than 10,000 ms.
 - **What counts as activity.** An application-wide event filter counts mouse press to key release, hover enter to hover move, and wheel events, all inside the app. After each counted event it ignores events for 500 ms.
 - **When the timer fires,** every vault is locked.
-- **The settings spin box** has no upper bound in the source's code. Our 12-hour cap is App's own rule (APP-02.3).
+- **The settings spin box** has no upper bound in the source's code. Our 12-hour cap is Larsal's own rule (APP-02.3).
 
 **Ours.**
-- **Defaults.** `LockSettings` is built from the store: `lock.idle.enabled` defaults to on and `lock.idle.seconds` to 300 (`app_settings.rs`: `d("S-TIME-04", "lock.idle.seconds", P, Number(10, 43_200, 300))`).
+- **Defaults.** `LockSettings` is built from the store: `lock.idle.enabled` defaults to on and `lock.idle.seconds` to 300 (`larsal_settings.rs`: `d("S-TIME-04", "lock.idle.seconds", P, Number(10, 43_200, 300))`).
 - **Bounds.** `idle` is clamped to 10 s through 43,200 s, and the throttle is 0.5 s.
-- **What counts as activity.** Only an AppKit local event monitor counts input (keys, mouse buttons, moves, drags, wheel), so only input to App's own windows counts.
+- **What counts as activity.** Only an AppKit local event monitor counts input (keys, mouse buttons, moves, drags, wheel), so only input to Larsal's own windows counts.
 - **A late timer** locks before it restarts the countdown.
 
-**Run.** `xcodebuild … test-without-building -only-testing:AppTests/LockSignalsTests …`:
+**Run.** `xcodebuild … test-without-building -only-testing:LarsalTests/LockSignalsTests …`:
 ```
 ✔ Test "APP-02 T02: applied settings restart the countdown from the new period" passed
 ✔ Test "APP-02 T03: each key restarts the countdown" passed
@@ -67,7 +67,7 @@ How it was run:
 ✔ Test "APP-02 idle: input after the period locks first and never restarts the countdown" passed
 ✔ Suite LockSignalsTests passed
 ```
-`AppSettingsTests` "APP-01.3 OK stores every page and the parts read the new values" passed. It shows that the stored lock settings reach `LockSignals`.
+`LarsalSettingsTests` "APP-01.3 OK stores every page and the parts read the new values" passed. It shows that the stored lock settings reach `LockSignals`.
 
 **Result: verified** for everything that can be checked without the owner's screen. Real idle time and typing in another app (T05) wait for Mac QA, as before.
 
@@ -81,7 +81,7 @@ How it was run:
 **Ours.**
 - **Screen lock.** `LockSignals` observes `com.apple.screenIsLocked` on the system distributed center with `.deliverImmediately`.
 - **User switch.** It observes `NSWorkspace.sessionDidResignActiveNotification`.
-- **Sleep.** It observes `NSWorkspace.willSleepNotification` (App goes further). The lock runs on the main thread before the handler returns.
+- **Sleep.** It observes `NSWorkspace.willSleepNotification` (Larsal goes further). The lock runs on the main thread before the handler returns.
 
 **Run (same run):**
 ```
@@ -106,8 +106,8 @@ How it was run:
 - **Minimize.** `LockSignals.minimized()` sets `minimizeDue = now + clamp(secondsLeft(), 1, 20)`. It is called on `NSWindow.didMiniaturizeNotification`, on `NSApplication.didHideNotification` and from `WindowRules.hideToIcon()` (the menu bar hide, E5-S11).
 - **Minimize after unlock** sets `locksOnMinimize` to false.
 - **Quit** saves and then locks (`applicationShouldTerminate`, `window.quit()`).
-- **But the app never passes `secondsLeft`.** `AppDelegate.applicationDidFinishLaunching` builds `LockSignals(settings:unlocked:lock:)`, so the default `secondsLeft: { 0 }` is used. The ponytail note in `LockSignals.init` still says "`r` is 0 until Rust exports the clipboard countdown's time left". Rust exports no such value: `crates/app-platform/src/clipboard.rs` has `copy`, `clear`, `peek` and nothing for the time left, and `Session` has `clipboard()` and `clear_clipboard()` only.
-- **So in the running app** a minimize always locks after 1 s, and the lock clears App's clipboard copy (APP-03.15). With lock on minimize turned on, a password copied just before minimizing is gone after 1 s instead of staying until its countdown ends (up to 20 s).
+- **But the app never passes `secondsLeft`.** `AppDelegate.applicationDidFinishLaunching` builds `LockSignals(settings:unlocked:lock:)`, so the default `secondsLeft: { 0 }` is used. The ponytail note in `LockSignals.init` still says "`r` is 0 until Rust exports the clipboard countdown's time left". Rust exports no such value: `crates/larsal-platform/src/clipboard.rs` has `copy`, `clear`, `peek` and nothing for the time left, and `Session` has `clipboard()` and `clear_clipboard()` only.
+- **So in the running app** a minimize always locks after 1 s, and the lock clears Larsal's clipboard copy (APP-03.15). With lock on minimize turned on, a password copied just before minimizing is gone after 1 s instead of staying until its countdown ends (up to 20 s).
 
 **Run:**
 ```
@@ -117,10 +117,10 @@ How it was run:
 ✔ Test "APP-02 T19: a restore does not stop the minimize lock" passed
 ✔ Test "APP-02 T20: a new minimize starts the delay again" passed
 ✔ Test "APP-02 T24: minimize after unlock turns lock on minimize off" passed
-✔ Test "APP-02 T25: Hide App counts as minimize (D-A02-2)" passed
+✔ Test "APP-02 T25: Hide Larsal counts as minimize (D-A02-2)" passed
 ✔ Test "APP-01.7 and .8 forgetting, and minimize after unlock excludes lock on minimize" passed
 ✔ Test "APP-02.15 step 8 (quit): a changed vault saves first; one that cannot be saved asks and the quit waits" passed
-$ grep -n "LockSignals(" -A4 macos/App/AppDelegate.swift
+$ grep -n "LockSignals(" -A4 macos/Larsal/AppDelegate.swift
 36:        lockSignals = LockSignals(
 37-            settings: LockSettings(store: settings),
 38-            unlocked: { session.vaults().contains { !$0.locked } },
@@ -148,13 +148,13 @@ $ grep -n "LockSignals(" -A4 macos/App/AppDelegate.swift
 **Reference.** In release builds (`QT_NO_DEBUG`), start-up sets `RLIMIT_CORE` to 0 and calls `ptrace(PT_DENY_ATTACH)`. It does this in both the window app and the command line tool, and a failure logs one warning. Its two steps are joined with `&&`, so a failed `setrlimit` skips the deny.
 
 **Ours.**
-- **Order.** `app_platform::hardening::harden()` is the first statement of `app-cli`'s `main` (`main.rs:31`) and step (1) of `app-ffi` `start` (`start.rs:87`).
+- **Order.** `larsal_platform::hardening::harden()` is the first statement of `larsal-cli`'s `main` (`main.rs:31`) and step (1) of `larsal-ffi` `start` (`start.rs:87`).
 - **Debug builds** skip both steps.
-- **Release builds** run both steps, each one whatever the other did, and print M11-01 once on stderr if either fails. App goes further: the reference skips the deny after a failed core limit.
+- **Release builds** run both steps, each one whatever the other did, and print M11-01 once on stderr if either fails. Larsal goes further: the reference skips the deny after a failed core limit.
 
 **Run** (copy, release):
 ```
-$ cargo test --release -p app-platform --lib -- hardening process
+$ cargo test --release -p larsal-platform --lib -- hardening process
 test hardening::tests::app11_4_a_failed_core_limit_still_denies_attach ... ok
 test macos::process::tests::app11_5_harden_follows_the_build_kind ... ok      (release child: core limit 0/0, attach EBUSY + SIGSEGV)
 test macos::process::tests::app11_2_core_limit_is_zero_and_cannot_be_raised ... ok
@@ -162,7 +162,7 @@ test macos::process::tests::app11_3_deny_attach_refuses_ptrace_attach ... ok   (
 test result: ok. 5 passed; 0 failed; 2 ignored
 ```
 
-**Result: verified.** The lldb and forced-crash runs on the signed Release App stay with Mac QA, as in E6-S4.
+**Result: verified.** The lldb and forced-crash runs on the signed Release Larsal stay with Mac QA, as in E6-S4.
 
 ## SR-06 Secure input and Caps Lock
 
@@ -184,21 +184,21 @@ test result: ok. 5 passed; 0 failed; 2 ignored
 **Run:**
 ```
 ✔ Test "Rule 10: a test run never makes the real secure input calls" passed
-✔ Test "APP-10.8-e, APP-10.11: a shown password field turns App's secure input on with the focus, off as it leaves" passed
-✔ Test "APP-10.8-b, APP-10.13-a, -b: off when App resigns active; on again when active with the field still focused" passed
-✔ Test "APP-10.13: after a window close's release, on again when App or the window is active, the field focused" passed
+✔ Test "APP-10.8-e, APP-10.11: a shown password field turns Larsal's secure input on with the focus, off as it leaves" passed
+✔ Test "APP-10.8-b, APP-10.13-a, -b: off when Larsal resigns active; on again when active with the field still focused" passed
+✔ Test "APP-10.13: after a window close's release, on again when Larsal or the window is active, the field focused" passed
 ✔ Test "APP-10.11, APP-10.11-a: a stale focus report for a field with no editor turns nothing on" passed
 ✔ Test "APP-10.8: off while another window is key; on again when the field's window is key" passed
 ✔ Test "APP-10.8: off when the field is hidden, removed or its text replaced while typing; off as its window closes" passed
-✔ Test "APP-10.8, APP-10.11, APP-10.12-b: a lock (the main window's path) keeps App's call only while the field edits" passed
+✔ Test "APP-10.8, APP-10.11, APP-10.12-b: a lock (the main window's path) keeps Larsal's call only while the field edits" passed
 ✔ Test "APP-10.10-a, APP-10.12: calls alternate, starting with enable; never two enables; none left on after quit" passed
 ✔ Suite SecureInputTests passed
 $ grep -rn -E "Caps Lock|capsLock|alphaShift|CapsLock" macos
-macos/App/UnlockView.swift:21:    @State private var capsLock = false
-macos/App/UnlockView.swift:55:            capsLock = NSEvent.modifierFlags.contains(.capsLock)
-macos/App/UnlockView.swift:221:            capsLock = NSEvent.modifierFlags.contains(.capsLock)
-macos/App/UnlockView.swift:265:        } else if capsLock && passwordFocused {
-macos/App/UnlockView.swift:266:            Text(verbatim: "Caps Lock is turned on.")
+macos/Larsal/UnlockView.swift:21:    @State private var capsLock = false
+macos/Larsal/UnlockView.swift:55:            capsLock = NSEvent.modifierFlags.contains(.capsLock)
+macos/Larsal/UnlockView.swift:221:            capsLock = NSEvent.modifierFlags.contains(.capsLock)
+macos/Larsal/UnlockView.swift:265:        } else if capsLock && passwordFocused {
+macos/Larsal/UnlockView.swift:266:            Text(verbatim: "Caps Lock is turned on.")
 ```
 
 **Result: failed (finding SR-B, High).** Secure input matches the reference. The Caps Lock warning is weaker: a user can set or change a master password, or type an entry password, with Caps Lock on and get no warning, where the reference warns. Real secure input (the ioreg holder, the event tap) still waits for Mac QA.
@@ -211,55 +211,55 @@ macos/App/UnlockView.swift:266:            Text(verbatim: "Caps Lock is turned o
 - **Key material** (password, key file and hardware-key response bytes) sits in the crypto library's secure buffers. In the installed build those come from a page-locked pool.
 
 **Ours.** Unchanged since E6-S6:
-- The zeroing global allocator (LD-133) is in App and `app`.
+- The zeroing global allocator (LD-133) is in Larsal and `larsal`.
 - Every secret type wipes itself on drop.
 - The key pages are locked while a vault is unlocked.
 
 **Run** (copy, debug):
 ```
-$ cargo test -p app-ffi --test key_pages
+$ cargo test -p larsal-ffi --test key_pages
 test app11_9_refused_locks_still_unlock_with_one_warning ... ok
 test app11_9_b_key_pages_are_wired_while_the_vault_is_unlocked ... ok
 test result: ok. 2 passed; 0 failed; 1 ignored
-$ cargo test -p app-cli --test memory_hygiene
+$ cargo test -p larsal-cli --test memory_hygiene
 test findings_leave_no_plain_value_in_freed_memory ... ok
-$ cargo test -p app-platform --lib
+$ cargo test -p larsal-platform --lib
 test macos::memory::tests::freed_blocks_are_zero ... ok
 test macos::memory::tests::realloc_wipes_the_old_block_when_it_grows_or_shrinks ... ok
 test macos::memory::tests::the_system_allocator_keeps_freed_bytes ... ok          (control)
 test macos::memory::tests::app11_9_b_locked_pages_are_wired_until_the_last_guard_drops ... ok
 test macos::memory::tests::app11_9_refused_lock_goes_on_with_one_warning ... ok
 test result: ok. 26 passed; 0 failed; 7 ignored
-$ cargo test -p app-ffi --test session --test clipboard
+$ cargo test -p larsal-ffi --test session --test clipboard
 test e5_s2_views_carry_no_protected_value ... ok
 test app_03_15_lock_close_and_quit_clear ... ok
 test result: ok. 11 passed … ok. 9 passed
 ```
 
-**Result: verified.** The lldb dump of the running App.app stays with Mac QA, as in E6-S6.
+**Result: verified.** The lldb dump of the running Larsal.app stays with Mac QA, as in E6-S6.
 
 ## SR-08 Expired and expiring entries after unlock
 
 **Reference.** After the first unlock of a vault in a run (not after a lock), with "show expired entries on unlock" on (default on, 3 days), it runs the search `is:expired-N`. It labels the result "Expired entries" (N ≤ 0) or "Entries expiring within N day(s)".
 
 **Ours.**
-- **The logic is in app-core.** `app_core::expiry::notice` (MOD-09.7) implements it, and `crates/app-core/tests/mod09.rs` covers it (`mod_09_7_notice_after_unlock`, `mod_09_7_notice_days_capped`; `cargo test -p app-core --test mod09`: 19 passed today).
+- **The logic is in larsal-core.** `larsal_core::expiry::notice` (MOD-09.7) implements it, and `crates/larsal-core/tests/mod09.rs` covers it (`mod_09_7_notice_after_unlock`, `mod_09_7_notice_days_capped`; `cargo test -p larsal-core --test mod09`: 19 passed today).
 - **The settings are stored.** `expiry.notice_on_unlock` (default on) and `expiry.notice_days` (default 3) are stored, and the settings page draws the "Expiry" switch.
-- **Nothing calls the notice.** No code in `app-ffi` or `macos/` calls `notice` or reads either setting:
+- **Nothing calls the notice.** No code in `larsal-ffi` or `macos/` calls `notice` or reads either setting:
 ```
-$ grep -rn "first_unlock\|NoticeSettings" crates/app-ffi/src crates/app-core/src macos/App | grep -v "^crates/app-core/src/expiry.rs"
+$ grep -rn "first_unlock\|NoticeSettings" crates/larsal-ffi/src crates/larsal-core/src macos/Larsal | grep -v "^crates/larsal-core/src/expiry.rs"
 (nothing)
-$ grep -rn "expiry.notice" crates macos/App
-crates/app-ffi/src/app_settings.rs:102:    d("S-START-11", "expiry.notice_on_unlock", P, Flag(true)),
-crates/app-ffi/src/app_settings.rs:103:    d("S-START-12", "expiry.notice_days", P, Number(0, 90, 3)),
-crates/app-core/src/expiry.rs:108:    /// `expiry.notice_on_unlock`, default on.
-crates/app-core/src/expiry.rs:110:    /// `expiry.notice_days`, default 3, 0 to 90.
-macos/App/AppSettingsModel.swift:123:  …
-macos/App/AppSettingsPages.swift:29-34: the settings page only
+$ grep -rn "expiry.notice" crates macos/Larsal
+crates/larsal-ffi/src/larsal_settings.rs:102:    d("S-START-11", "expiry.notice_on_unlock", P, Flag(true)),
+crates/larsal-ffi/src/larsal_settings.rs:103:    d("S-START-12", "expiry.notice_days", P, Number(0, 90, 3)),
+crates/larsal-core/src/expiry.rs:108:    /// `expiry.notice_on_unlock`, default on.
+crates/larsal-core/src/expiry.rs:110:    /// `expiry.notice_days`, default 3, 0 to 90.
+macos/Larsal/LarsalSettingsModel.swift:123:  …
+macos/Larsal/LarsalSettingsPages.swift:29-34: the settings page only
 ```
 - **No story owns the wiring.** E5-S9's inventory (`E5-S9-settings-inventory.md`, S-START-11) calls it "a follow-up of FEA-01/MOD-09.3". No story or follow-up batch lists it.
 
-**Result: failed (finding SR-C, High).** After unlock the reference shows the user which passwords have expired or will soon. App shows nothing, while its own "Expiry" switch says it does.
+**Result: failed (finding SR-C, High).** After unlock the reference shows the user which passwords have expired or will soon. Larsal shows nothing, while its own "Expiry" switch says it does.
 
 ## SR-09 Single instance
 
@@ -268,14 +268,14 @@ macos/App/AppSettingsPages.swift:29-34: the settings page only
 - **A second launch** sends its file names to the running instance, or `--lock` to lock all vaults, and ends.
 - **Passwords at launch** come only from standard input with `--pw-stdin`. There is no password option.
 
-**Ours** (APP-09, `app-ffi` `instance.rs`, `start.rs`):
+**Ours** (APP-09, `larsal-ffi` `instance.rs`, `start.rs`):
 - **Socket.** A Unix socket and a lock file, both 0600, in the per-user temp folder that `confstr(_CS_DARWIN_USER_TEMP_DIR)` reports (0700).
 - **Peer check.** The peer's uid is checked with `getpeereid` before anything is read.
 - **Other launches.** `--lock` locks all vaults. A second launch passes its paths on and brings the primary to the front. `--password-stdin` (alias `--pw-stdin`) reads one line per file from standard input, and there is no password flag.
 
 **Runs:**
 ```
-$ cargo test -p app-ffi --lib -- instance start:: …
+$ cargo test -p larsal-ffi --lib -- instance start:: …
 test instance::tests::app09_14_socket_is_0600_and_replaces_a_leftover ... ok
 test instance::tests::app09_14_a_other_user_is_refused_before_reading ... ok
 test instance::tests::app09_8_one_lock_holder_until_it_is_released ... ok
@@ -283,7 +283,7 @@ test instance::tests::app09_13_a_line_over_the_limit_is_dropped ... ok
 test instance::tests::app09_13_a_slow_sender_is_cut_off_at_the_deadline ... ok
 test start::tests::app09_12_a_lock_request_goes_to_the_window_else_rust_locks ... ok
 test result: ok. 19 passed; 0 failed
-$ cargo test -p app-ffi --test app09        (the copy's target/xcode linked to /tmp/e13s1-SR-dd; every App hidden)
+$ cargo test -p larsal-ffi --test app09        (the copy's target/xcode linked to /tmp/e13s1-SR-dd; every Larsal hidden)
 test app09_10_ab_open_is_passed_on_and_stdin_is_not_read ... ok
 test app09_10_c_second_launch_activates_the_primary ... ok
 test app09_11_a_lock_without_an_instance ... ok
@@ -294,17 +294,17 @@ test app09_8_a_after_kill_9_the_next_launch_is_primary ... ok
 test app09_27_a_int_term_quit_end_with_exit_code_0 ... ok
 test result: ok. 18 passed; 0 failed
 ```
-Hidden App probe (debug App from `/tmp/e13s1-SR-dd`, `APP_TEST_HIDDEN=1`, `APP_TEST_INSTANCE_DIR=/tmp/e13s1-SR-inst`, demo vault made with `app db-create`, password piped on stdin):
+Hidden Larsal probe (debug Larsal from `/tmp/e13s1-SR-dd`, `LARSAL_TEST_HIDDEN=1`, `LARSAL_TEST_INSTANCE_DIR=/tmp/e13s1-SR-inst`, demo vault made with `larsal db-create`, password piped on stdin):
 ```
-$ printf '<demo password>\n' | App --password-stdin our.appvault &      (pid 32106)
+$ printf '<demo password>\n' | Larsal --password-stdin our.larsalvault &      (pid 32106)
 stdout: "Vault password: "          (M09-08 only, the password is never printed)
 $ stat -f "%Sp %Su %N" …sock …lock
-srw------- <user> /tmp/e13s1-SR-inst/com.app.desktop-debug.sock
--rw------- <user> /tmp/e13s1-SR-inst/com.app.desktop-debug.lock
-$ App --lock
+srw------- <user> /tmp/e13s1-SR-inst/app.larsal.desktop-debug.sock
+-rw------- <user> /tmp/e13s1-SR-inst/app.larsal.desktop-debug.lock
+$ Larsal --lock
 All open vaults were locked.           exit 0
-$ App our.appvault
-App is already running. The request was passed to it.      exit 0
+$ Larsal our.larsalvault
+Larsal is already running. The request was passed to it.      exit 0
 $ kill -TERM 32106                     primary exit 0
 ```
 
@@ -317,7 +317,7 @@ $ kill -TERM 32106                     primary exit 0
 - **Opening.** It then opens the vault at the entry's resolved URL, using the resolved user name as the key file and the resolved password.
 
 **Ours.**
-- **No code.** `grep -rlni "auto_open\|autoopen\|auto-open" crates/*/src macos/App` finds only a doc comment in `app-core/src/url.rs:513`. No Rust or Swift code reads such a group.
+- **No code.** `grep -rlni "auto_open\|autoopen\|auto-open" crates/*/src macos/Larsal` finds only a doc comment in `larsal-core/src/url.rs:513`. No Rust or Swift code reads such a group.
 - **No owner.** APP-06.25, M06-39 and LD-97 specify it, but no story in `plan/epics.md` builds it. E5-S3 is Done without it.
 
 **Result: failed (finding SR-D, Medium).** We are not weaker on security, since a feature that is absent cannot be abused. But the parity row is not built and nothing owns it.
@@ -331,16 +331,16 @@ $ kill -TERM 32106                     primary exit 0
 **Ours.**
 - **One opener.** Every URL open in the app goes through `URLOpener.open`: the menu, the rail, the editor, the context menu and View > Open URL. A search for `NSWorkspace.shared.open` finds only `URLOpener` and `FileOpener` (attachments, MOD-05.12, after its own risky-file question).
 - **What it opens.** `URLOpener.allowed` accepts only `http` and `https` with a host. So a `cmd://` URL never runs a program, and `javascript:`, `file:`, `data:` and other schemes never open.
-- **app-core has the full rules** of MOD-08.31 (`open_kind`, `command_words`, `question_text`, `remember_key`) with tests. The app does not use them yet (finding SR-E).
+- **larsal-core has the full rules** of MOD-08.31 (`open_kind`, `command_words`, `question_text`, `remember_key`) with tests. The app does not use them yet (finding SR-E).
 
 **Run:**
 ```
 ✔ Test "AT-E02: only http and https with a host are opened" passed   (refused: cmd://open, javascript:, file:, data:, mailto:, example.com, …)
-$ cargo test -p app-core --test mod08      (mod_08_31_opening_urls: the core rules that the app does not call yet)
+$ cargo test -p larsal-core --test mod08      (mod_08_31_opening_urls: the core rules that the app does not call yet)
 test result: ok. 47 passed; 0 failed
 ```
 
-**Result: verified.** App is stricter than the reference: no command can run, with or without a question. The missing MOD-08.31 parts (the confirm, the vault link, `mailto`, `http://` for a bare host, MSG-08-4) are a feature gap and do not weaken security (finding SR-E, Low).
+**Result: verified.** Larsal is stricter than the reference: no command can run, with or without a question. The missing MOD-08.31 parts (the confirm, the vault link, `mailto`, `http://` for a bare host, MSG-08-4) are a feature gap and do not weaken security (finding SR-E, Low).
 
 ## SR-12 Recent vaults and remembered key files
 
@@ -356,18 +356,18 @@ test result: ok. 47 passed; 0 failed
 
 **Runs:**
 ```
-test app_settings::tests::app01_2_app_defaults ... ok
-test app_settings::tests::app01_7_forgetting ... ok
-test app_settings::tests::app01_14_recent_vaults ... ok
+test larsal_settings::tests::app01_2_app_defaults ... ok
+test larsal_settings::tests::app01_7_forgetting ... ok
+test larsal_settings::tests::app01_14_recent_vaults ... ok
 ✔ Test "APP-01.7 and .8 forgetting, and minimize after unlock excludes lock on minimize" passed
 ```
-Hidden App probe (SR-09 above): after an open and unlock by stdin password, then a quit by TERM, the instance's settings folder held:
+Hidden Larsal probe (SR-09 above): after an open and unlock by stdin password, then a quit by TERM, the instance's settings folder held:
 ```
 drwx------  settings/
 -rw-------  settings_debug.json   {}
--rw-------  state_debug.json      {"state.last_active": "/private/tmp/e13s1-SR-work/our.appvault",
-                                   "state.open_at_quit": ["/private/tmp/e13s1-SR-work/our.appvault"],
-                                   "state.recent": ["/private/tmp/e13s1-SR-work/our.appvault"]}
+-rw-------  state_debug.json      {"state.last_active": "/private/tmp/e13s1-SR-work/our.larsalvault",
+                                   "state.open_at_quit": ["/private/tmp/e13s1-SR-work/our.larsalvault"],
+                                   "state.recent": ["/private/tmp/e13s1-SR-work/our.larsalvault"]}
 $ grep -rl "sr13" settings/   ->  no sr13 value in settings
 ```
 
@@ -386,23 +386,23 @@ $ REF_CLI ls --help      (options: -q, -k, --no-password, -y, -R, -f, -h; no pas
 ```
 Its source turns terminal echo off around the prompt (`ECHO` cleared) and reads standard input when it is not a terminal.
 
-**Ours** (shared debug `app`, demo vault `our.appvault`):
+**Ours** (shared debug `larsal`, demo vault `our.larsalvault`):
 ```
-$ printf '<pw>\n<pw>\n' | app db-create -p -t 200 our.appvault
-Password for the new vault (Return for none): Same password again: … New vault our.appvault saved.     exit 0
-$ printf '<pw>\n' | app show our.appvault Demo
-Vault password for our.appvault: Title: Demo
+$ printf '<pw>\n<pw>\n' | larsal db-create -p -t 200 our.larsalvault
+Password for the new vault (Return for none): Same password again: … New vault our.larsalvault saved.     exit 0
+$ printf '<pw>\n' | larsal show our.larsalvault Demo
+Vault password for our.larsalvault: Title: Demo
 UserName: demo-user
 Password: (hidden)
-$ printf '<pw>\n' | app show -s our.appvault Demo | grep -i password
-Vault password for our.appvault: Password: sr13-entry-secret
-$ app ls --password <pw> our.appvault
-app ls: unknown option --password. Run app help ls to see its options.    exit 1
-$ app ls -p <pw> our.appvault
-app ls: unknown option -p. Run app help ls to see its options.          exit 1
+$ printf '<pw>\n' | larsal show -s our.larsalvault Demo | grep -i password
+Vault password for our.larsalvault: Password: sr13-entry-secret
+$ larsal ls --password <pw> our.larsalvault
+larsal ls: unknown option --password. Run larsal help ls to see its options.    exit 1
+$ larsal ls -p <pw> our.larsalvault
+larsal ls: unknown option -p. Run larsal help ls to see its options.          exit 1
 ```
 ```
-$ cargo test -p app-cli --test int10       (copy)
+$ cargo test -p larsal-cli --test int10       (copy)
 test int10_12_a_no_echo_at_the_prompt_pty ... ok
 test int10_12_b_signal_at_the_prompt_restores_echo_pty ... ok
 test int10_12_b_sighup_at_the_prompt_restores_echo_pty ... ok
@@ -412,7 +412,7 @@ test int10_16_b_generated_password_never_printed ... ok
 test int10_28_c_show_protected ... ok
 test result: ok. 114 passed; 0 failed
 ```
-The text for a hidden value differs: the reference prints `PROTECTED` and App prints `(hidden)`. The behaviour is the same.
+The text for a hidden value differs: the reference prints `PROTECTED` and Larsal prints `(hidden)`. The behaviour is the same.
 
 **Result: verified.**
 
@@ -425,15 +425,15 @@ The text for a hidden value differs: the reference prints `PROTECTED` and App pr
 
 **Ours.**
 - **Rust** has no logging crate. `grep -rnE "\b(log::|tracing::|info!|warn!|debug!|error!|trace!)" crates/*/src` finds nothing. Outside tests, the only `eprintln!`/`println!` calls in the library crates print fixed start-up messages (M11-01, M09-xx, M11-02 naming a self-test, the version).
-- **Swift** has three `Logger.app.notice` calls, the same in debug and release. They log the App version, a search time in µs and a count of files opened from Finder. There is no `print`, `NSLog` or `os_log` elsewhere.
-- **System log.** `/usr/bin/log show --predicate 'subsystem == "com.app.desktop"' --last 24h` gave 356 lines (test runs of the day by every agent):
+- **Swift** has three `Logger.app.notice` calls, the same in debug and release. They log the Larsal version, a search time in µs and a count of files opened from Finder. There is no `print`, `NSLog` or `os_log` elsewhere.
+- **System log.** `/usr/bin/log show --predicate 'subsystem == "app.larsal.desktop"' --last 24h` gave 356 lines (test runs of the day by every agent):
 ```
- 328 xctest [com.app.desktop:app] Main window opened: App 0.1.0
-  20 xctest [com.app.desktop:app] Search updated the list in N µs
-   7 App [com.app.desktop:app] Main window opened: App 0.1.0
+ 328 xctest [app.larsal.desktop:app] Main window opened: Larsal 0.1.0
+  20 xctest [app.larsal.desktop:app] Search updated the list in N µs
+   7 Larsal [app.larsal.desktop:app] Main window opened: Larsal 0.1.0
 ```
 
-**Result: verified** (App goes further, LD-67: no vault content in any log, debug builds included).
+**Result: verified** (Larsal goes further, LD-67: no vault content in any log, debug builds included).
 
 ## SR-15 Listening sockets
 
@@ -441,18 +441,18 @@ The text for a hidden value differs: the reference prints `PROTECTED` and App pr
 
 **Ours.**
 - **No browser bridge yet.** It is not built (E7).
-- **App** listens on one Unix socket.
-- **`app`** listens on nothing. `app-cli` has no listener code, and E6-S7's `lsof` on the release `app` saw none.
+- **Larsal** listens on one Unix socket.
+- **`larsal`** listens on nothing. `larsal-cli` has no listener code, and E6-S7's `lsof` on the release `larsal` saw none.
 
-Hidden App probe (pid 32106, after start-up and unlock):
+Hidden Larsal probe (pid 32106, after start-up and unlock):
 ```
 $ lsof -nP -a -p 32106 -i        -> (nothing)   exit 1
 $ lsof -nP -a -p 32106 -U
-App 32106 … 4u unix 0x23306b2dc23d58bd 0t0 /tmp/e13s1-SR-inst/com.app.desktop-debug.sock
+Larsal 32106 … 4u unix 0x23306b2dc23d58bd 0t0 /tmp/e13s1-SR-inst/app.larsal.desktop-debug.sock
 ```
 This is the debug build's test-folder socket. The normal path is the 0700 per-user temp folder (`instance::tests::app09_7_names_follow_the_build_kind`, `macos::instance::tests::temp_folder_is_the_os_one_and_private`). The ssh client test `int06_21_feature_off_contacts_no_agent_and_opens_no_socket` passed.
 
-**Result: verified** for today's App. E7-S1 and E7-S6 add the browser sockets, and AT-E08 must run again then.
+**Result: verified** for today's Larsal. E7-S1 and E7-S6 add the browser sockets, and AT-E08 must run again then.
 
 ## SR-16 What happens on lock
 
@@ -462,7 +462,7 @@ This is the debug build's test-folder socket. The normal path is the 0700 per-us
 - **Locking** drops the vault and keeps the header. SSH keys marked for removal on lock are removed.
 
 **Ours.**
-- **Rust.** `Session::lock`/`lock_all` drop the generator value, clear App's clipboard copy and drop the vault (`slot.vault.take()`, the pending unlock, ratings, edit state and breach state). They then call `ssh_locked` and `autotype_locked`.
+- **Rust.** `Session::lock`/`lock_all` drop the generator value, clear Larsal's clipboard copy and drop the vault (`slot.vault.take()`, the pending unlock, ratings, edit state and breach state). They then call `ssh_locked` and `autotype_locked`.
 - **Swift.** `MainWindowModel.lockAll(asks: false)` saves first. A save that cannot finish goes to a recovery copy, and the automatic lock never waits (LD-50). The Auto-Type picker and its unlock panel close on lock.
 
 **Runs:**
@@ -481,10 +481,10 @@ test int06_24_lock_removes_marked_keys_within_1_s_and_keeps_the_rest ... ok
 test int06_24_close_and_lock_all_do_the_same ... ok
 test int06_34_sr16_lock_closes_the_question_as_deny ... ok
 test int06_24_at_h01_a_lock_during_decryption_adds_nothing_to_the_system_agent ... ok
-test result (app-ffi --test ssh): ok. 16 passed; 0 failed
+test result (larsal-ffi --test ssh): ok. 16 passed; 0 failed
 ```
 
-**Result: verified** for every dialog App has today. The browser's site access and association dialogs come with E7-S2, and their close on lock is checked there.
+**Result: verified** for every dialog Larsal has today. The browser's site access and association dialogs come with E7-S2, and their close on lock is checked there.
 
 ## Findings (for the lead; not filed in security/findings.md)
 
@@ -492,21 +492,21 @@ test result (app-ffi --test ssh): ok. 16 passed; 0 failed
   - Where it is missing: the new vault wizard "Password" (`NewVaultView.swift:208`), the vault settings password change (`VaultSettingsPages.swift:220`) and the entry editor password (`EditorPasswordField.swift`). The reference warns on all of them.
   - Smallest fix: move the `NSEvent.modifierFlags.contains(.capsLock)` check and the M06-37 note out of `UnlockView` into one shared modifier, use it on those three fields (not on the repeat fields), and add one test per field.
 - **SR-C (High), SR-08: no notice after unlock.**
-  - What is missing: `app_core::expiry::notice` is never called, so after the first unlock App shows no expired or expiring entries, though "Expiry" (S-START-11) is on by default.
-  - Smallest fix: call `expiry::notice` from `app-ffi` at the first unlock of a slot (it already knows `locked_at`) and return its search text. In Swift, put that text in the vault's search field with MSG-09-1 or MSG-09-2. Add the APP-01.18 a to c cases as tests. Give it an owning story (E5 follow-up batch).
+  - What is missing: `larsal_core::expiry::notice` is never called, so after the first unlock Larsal shows no expired or expiring entries, though "Expiry" (S-START-11) is on by default.
+  - Smallest fix: call `expiry::notice` from `larsal-ffi` at the first unlock of a slot (it already knows `locked_at`) and return its search text. In Swift, put that text in the vault's search field with MSG-09-1 or MSG-09-2. Add the APP-01.18 a to c cases as tests. Give it an owning story (E5 follow-up batch).
 - **SR-A (Medium), SR-03: the minimize delay ignores the clipboard countdown.**
   - What is wrong: the app builds `LockSignals` without `secondsLeft`, so the delay is always 1 s. Rust has no export of the clipboard countdown's time left.
-  - Smallest fix: add the time left to `app-platform` `Clipboard` (it holds the deadline), export it on `Session`, and pass `secondsLeft: { Int(session.clipboardSecondsLeft()) }` in `AppDelegate`. Add a test that the app's `LockSignals` gets it, and drop the stale ponytail note.
+  - Smallest fix: add the time left to `larsal-platform` `Clipboard` (it holds the deadline), export it on `Session`, and pass `secondsLeft: { Int(session.clipboardSecondsLeft()) }` in `AppDelegate`. Add a test that the app's `LockSignals` gets it, and drop the stale ponytail note.
 - **SR-D (Medium), SR-10: auto-open is not built and has no story.**
-  - Smallest fix: give APP-06.25 (with LD-97) an owning story. It builds the `/AutoOpen` group logic in `app-core`, calls it after unlock in `app-ffi`, and adds M06-39. Or the lead records a decision to drop it.
+  - Smallest fix: give APP-06.25 (with LD-97) an owning story. It builds the `/AutoOpen` group logic in `larsal-core`, calls it after unlock in `larsal-ffi`, and adds M06-39. Or the lead records a decision to drop it.
 - **SR-E (Low), SR-11 and SR-12: Swift bypasses parts of the spec.**
-  - SR-11: the app opens URLs only through Swift's `URLOpener`, not through app-core's MOD-08.31 rules. A `cmd://` URL never asks and never runs, a vault link does nothing, `mailto:` and a bare host (`example.com`) do not open, and MSG-08-4 is never shown. This is safe, but it is not the spec.
+  - SR-11: the app opens URLs only through Swift's `URLOpener`, not through larsal-core's MOD-08.31 rules. A `cmd://` URL never asks and never runs, a vault link does nothing, `mailto:` and a bare host (`example.com`) do not open, and MSG-08-4 is never shown. This is safe, but it is not the spec.
   - SR-12: with `recent.remember_keys` on, nothing stores the key file or hardware-key slot.
-  - Smallest fix: route `URLOpener` through `app_core::url::open_kind` (via `app-ffi`), and write `state.key_files` at unlock when the option is on. Both belong in the E5 follow-up batch.
+  - Smallest fix: route `URLOpener` through `larsal_core::url::open_kind` (via `larsal-ffi`), and write `state.key_files` at unlock when the option is on. Both belong in the E5 follow-up batch.
 
 ## Cleanup
 
-- **Processes.** Every App and `app` I started has ended. The probe primary (pid 32106) ended by `kill -TERM` with exit 0, and the app09 tests stop their own children. Afterwards, `pgrep -f e13s1-SR` was empty.
-- **Launch Services.** The copy's App.app was unregistered with `lsregister -u` (dump count for the path went from 1 to 0).
+- **Processes.** Every Larsal and `larsal` I started has ended. The probe primary (pid 32106) ended by `kill -TERM` with exit 0, and the app09 tests stop their own children. Afterwards, `pgrep -f e13s1-SR` was empty.
+- **Launch Services.** The copy's Larsal.app was unregistered with `lsregister -u` (dump count for the path went from 1 to 0).
 - **Folders.** I deleted `/tmp/e13s1-SR-copy`, `-dd`, `-home`, `-work` and `-inst`, and the logs.
 - **Name guard.** `scripts/check-names.sh` after writing this file gave `names: PASS (3134 files scanned, 15 vault files name-only)`.

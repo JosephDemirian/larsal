@@ -8,7 +8,7 @@ Parity rows: SF-01, SF-02, SF-05, SF-07, SF-11, SF-12, SD-06
 
 Every vault file starts with a 12-byte preamble (two signatures and the file version, see FMT-01). Right after it comes the outer header: a list of fields stored in the clear. The outer header names the cipher, the compression, the random values used for this save, and the key derivation settings. It ends with an end-of-header field. In version 4 the header is followed by its SHA-256 and its HMAC (FMT-05). In version 3 the encrypted payload follows directly (FMT-07, FMT-08).
 
-This card says how the fields are framed, which field ids exist in versions 3 and 4, which lengths and values are allowed, which fields are required, what happens with unknown, duplicate, missing or malformed fields, in which order the reference writes them, and which size limits apply. Where the reference has no limit or is looser, this card gives App's own rule and names the lead ruling that decided it (spec/decisions.md).
+This card says how the fields are framed, which field ids exist in versions 3 and 4, which lengths and values are allowed, which fields are required, what happens with unknown, duplicate, missing or malformed fields, in which order the reference writes them, and which size limits apply. Where the reference has no limit or is looser, this card gives Larsal's own rule and names the lead ruling that decided it (spec/decisions.md).
 
 The outer header is read before any key is known. Everything in it is attacker-controlled until the header check in FMT-05 passes. So every check of this card runs on untrusted bytes, before any key derivation.
 
@@ -21,7 +21,7 @@ Output, on success:
 - the raw header bytes: every byte from offset 0 up to and including the last data byte of the end-of-header field, exactly as read (input to FMT-05);
 - the header length, which is the offset of the first byte after the header.
 
-On failure: one error kind from `app-format/error.rs`: `Corrupt` (malformed), `Unsupported` (well-formed but not something App can read), `TooLarge` (over a limit). This card never produces `WrongKey`.
+On failure: one error kind from `larsal-format/error.rs`: `Corrupt` (malformed), `Unsupported` (well-formed but not something Larsal can read), `TooLarge` (over a limit). This card never produces `WrongKey`.
 
 ### Field framing
 
@@ -34,7 +34,7 @@ Fields follow each other with no padding until the field with id 0.
 
 ### Field ids
 
-| Id | Name | v3 | v4 | Data length | Value | Required in App | Reference when absent (observed) |
+| Id | Name | v3 | v4 | Data length | Value | Required in Larsal | Reference when absent (observed) |
 |---|---|---|---|---|---|---|---|
 | 0 | End of header | yes | yes | any; writer: 4 | ignored on read; writer: `0D 0A 0D 0A` | yes (ends the header) | header never ends: truncation error |
 | 1 | Comment | unknown | unknown | any | ignored | no | nothing |
@@ -57,7 +57,7 @@ Fields follow each other with no padding until the field with id 0.
 
 Bytes are in RFC 4122 order: the UUID text read left to right, two hex digits per byte.
 
-| Cipher | UUID | Field 2 data | App |
+| Cipher | UUID | Field 2 data | Larsal |
 |---|---|---|---|
 | AES-256-CBC | 31c1f2e6-bf71-4350-be58-05216afc5aff | `31 C1 F2 E6 BF 71 43 50 BE 58 05 21 6A FC 5A FF` | read and write |
 | Twofish-CBC (256-bit key) | ad68f29f-576f-4bb9-a36a-d47af965346c | `AD 68 F2 9F 57 6F 4B B9 A3 6A D4 7A F9 65 34 6C` | read and write |
@@ -66,7 +66,7 @@ Bytes are in RFC 4122 order: the UUID text read left to right, two hex digits pe
 
 ### Limits
 
-| Limit | Reference | App |
+| Limit | Reference | Larsal |
 |---|---|---|
 | Whole outer header (offset 0 to end of end-of-header data) | none (a 20 MiB unknown field was accepted) | at most 1,048,576 bytes (1 MiB) (decided: spec/decisions.md LD-22) |
 | One field, version 4 | up to 2^32 − 1 by the length width | bounded by the header limit |
@@ -206,21 +206,21 @@ Field offsets in H4min (same as H4demo): cipher id field at 0x000C (data 0x0011)
 
 FMT-02.1 Version 4 framing: from offset 12, the header is a run of fields. Each field is a 1-byte unsigned id, a 4-byte unsigned little-endian length, then exactly that many data bytes.
 
-FMT-02.2 Version 3 framing: the same, but the length is 2 bytes, unsigned, little-endian. Files with major version 2 or 3 use this framing and the version 3 field rules (the reference reads version 2.0 files with its version 3 reader; their header layout is the same). App does the same (decided: spec/decisions.md LD-06).
+FMT-02.2 Version 3 framing: the same, but the length is 2 bytes, unsigned, little-endian. Files with major version 2 or 3 use this framing and the version 3 field rules (the reference reads version 2.0 files with its version 3 reader; their header layout is the same). Larsal does the same (decided: spec/decisions.md LD-06).
 
-FMT-02.3 The field with id 0 ends the header. Its data may have any length (including 0) and its content is ignored when reading. The header ends right after its last data byte. When writing, App writes id 0 with length 4 and data `0D 0A 0D 0A`.
+FMT-02.3 The field with id 0 ends the header. Its data may have any length (including 0) and its content is ignored when reading. The header ends right after its last data byte. When writing, Larsal writes id 0 with length 4 and data `0D 0A 0D 0A`.
 
 FMT-02.4 The raw header bytes are all bytes from offset 0 through the last data byte of the end-of-header field, exactly as read, including the preamble, unknown fields, comments and the end-of-header data. These raw bytes, never a re-encoding of the parsed values, are the input of the header checks in FMT-05.
 
 FMT-02.5 Readers accept the fields in any order. Example: the reference's version 4.0 test vault (stem Format400), written by a different program, has the order 2, 3, 4, 11, 7, 0, and the reference opens it.
 
-FMT-02.6 When writing version 4, App writes the fields in this order, which is the reference writer's order: 2 (cipher id), 3 (compression), 4 (master seed), 7 (encryption IV), 11 (KDF parameters), 12 (public custom data, only when it has at least one entry), 0 (end of header). For reference only (App does not write version 3): the reference writes version 3 headers in the order 2, 3, 4, 5, 6, 7, 8, 9, 10, 0.
+FMT-02.6 When writing version 4, Larsal writes the fields in this order, which is the reference writer's order: 2 (cipher id), 3 (compression), 4 (master seed), 7 (encryption IV), 11 (KDF parameters), 12 (public custom data, only when it has at least one entry), 0 (end of header). For reference only (Larsal does not write version 3): the reference writes version 3 headers in the order 2, 3, 4, 5, 6, 7, 8, 9, 10, 0.
 
-FMT-02.7 Cipher id (field 2): the data must be exactly 16 bytes, otherwise `Corrupt`. The 16 bytes are a UUID in RFC 4122 byte order. App accepts the three ciphers in the cipher table (AES-256-CBC, Twofish-CBC, ChaCha20). Any other value, including 16 zero bytes, is `Unsupported`. CRY-01 defines the ciphers themselves.
+FMT-02.7 Cipher id (field 2): the data must be exactly 16 bytes, otherwise `Corrupt`. The 16 bytes are a UUID in RFC 4122 byte order. Larsal accepts the three ciphers in the cipher table (AES-256-CBC, Twofish-CBC, ChaCha20). Any other value, including 16 zero bytes, is `Unsupported`. CRY-01 defines the ciphers themselves.
 
-FMT-02.8 The AES-128-CBC UUID (`61 AB 05 A1 94 64 41 C3 8D 74 3A 56 3D F8 DD 35`) is `Unsupported` when the header is parsed. The reference accepts it in the header and then fails when it sets up decryption, because the derived key is always 32 bytes. So no file opens in the reference with this id, and App loses nothing by rejecting it early.
+FMT-02.8 The AES-128-CBC UUID (`61 AB 05 A1 94 64 41 C3 8D 74 3A 56 3D F8 DD 35`) is `Unsupported` when the header is parsed. The reference accepts it in the header and then fails when it sets up decryption, because the derived key is always 32 bytes. So no file opens in the reference with this id, and Larsal loses nothing by rejecting it early.
 
-FMT-02.9 Compression (field 3): the data must be exactly 4 bytes, otherwise `Corrupt`. Read it as an unsigned 32-bit little-endian number: 0 means no compression, 1 means gzip (FMT-08). Any value of 2 or more is `Unsupported`. When writing, App writes `00 00 00 00` or `01 00 00 00`.
+FMT-02.9 Compression (field 3): the data must be exactly 4 bytes, otherwise `Corrupt`. Read it as an unsigned 32-bit little-endian number: 0 means no compression, 1 means gzip (FMT-08). Any value of 2 or more is `Unsupported`. When writing, Larsal writes `00 00 00 00` or `01 00 00 00`.
 
 FMT-02.10 Master seed (field 4): the data must be exactly 32 bytes, otherwise `Corrupt`. FMT-04 says how it is used. CRY-03 says it is fresh on every save.
 
@@ -228,7 +228,7 @@ FMT-02.11 Encryption IV (field 7): a length of 0 counts as missing (FMT-02.23). 
 
 FMT-02.12 KDF parameters (field 11, version 4): the data is a typed map (FMT-03) that must describe a supported key derivation (FMT-03.11 to FMT-03.19). Map errors and KDF errors carry the error kind given in FMT-03. The map is parsed and judged completely as soon as field 11 is read, before the next field (FMT-02.30, step 2h).
 
-FMT-02.13 Public custom data (field 12, version 4): optional. The data is a typed map (FMT-03). Any error in this map rejects the whole file, with the error kind given in FMT-03. Like field 11, the map is parsed and judged as soon as field 12 is read (FMT-02.30, step 2h). The reference also rejects the file in this case (observed). Zero data bytes is `Corrupt`, because the map version is missing. The entries are kept and written back on save (FMT-03.22). When the map has no entries, App does not write field 12 (same as the reference).
+FMT-02.13 Public custom data (field 12, version 4): optional. The data is a typed map (FMT-03). Any error in this map rejects the whole file, with the error kind given in FMT-03. Like field 11, the map is parsed and judged as soon as field 12 is read (FMT-02.30, step 2h). The reference also rejects the file in this case (observed). Zero data bytes is `Corrupt`, because the map version is missing. The entries are kept and written back on save (FMT-03.22). When the map has no entries, Larsal does not write field 12 (same as the reference).
 
 FMT-02.14 In a version 4 header, the version-3-only ids 5, 6, 8, 9 and 10 are `Corrupt`, whatever their length or content. The reference rejects them too, with a message about old (legacy) header fields.
 
@@ -236,33 +236,33 @@ FMT-02.15 In a version 3 header, ids 11 and 12 are not parsed or checked. They a
 
 FMT-02.16 Transform seed (field 5, version 3): the data must be exactly 32 bytes, otherwise `Corrupt`. It is the AES-KDF seed of the version 3 key flow (FMT-04, FMT-17). In version 3 the key derivation is always AES-KDF.
 
-FMT-02.17 Transform rounds (field 6, version 3): the data must be exactly 8 bytes, otherwise `Corrupt`. Read it as an unsigned 64-bit little-endian number. App accepts 1 to 2,147,483,646 (2^31 − 2) rounds. Any other value is `Unsupported`. CRY-02 may add a cost ceiling. The reference cuts the number to a signed 32-bit value and, when that value is out of its range, quietly uses 1 round with no message (observed, see CRY-02.13: rounds 0 and 2^31 opened with 1 round; 2^32 + 5 was read as 5 rounds). App never computes with a number other than the stored one.
+FMT-02.17 Transform rounds (field 6, version 3): the data must be exactly 8 bytes, otherwise `Corrupt`. Read it as an unsigned 64-bit little-endian number. Larsal accepts 1 to 2,147,483,646 (2^31 − 2) rounds. Any other value is `Unsupported`. CRY-02 may add a cost ceiling. The reference cuts the number to a signed 32-bit value and, when that value is out of its range, quietly uses 1 round with no message (observed, see CRY-02.13: rounds 0 and 2^31 opened with 1 round; 2^32 + 5 was read as 5 rounds). Larsal never computes with a number other than the stored one.
 
 FMT-02.18 Protected stream key (field 8, version 3): length 1 or more, any content. A length of 0 counts as missing. FMT-09 says how it is used (it is hashed, so any length works). The reference writes 32 bytes.
 
 FMT-02.19 Stream start bytes (field 9, version 3): the data must be exactly 32 bytes, otherwise `Corrupt`. FMT-07 and FMT-17 say how they are checked.
 
-FMT-02.20 Inner stream id (field 10, version 3): the data must be exactly 4 bytes, otherwise `Corrupt`. Read it as an unsigned 32-bit little-endian number. 2 means Salsa20 (FMT-09). When the field is absent, App uses Salsa20 (same as the reference). Value 3 (ChaCha20) is `Unsupported` (decided: spec/decisions.md LD-10): the reference accepts 3 in a version 3 header but still decrypts protected fields with Salsa20 (observed), so a file that really used ChaCha20 would show garbage. Value 1 (an old RC4-based stream) and every other value are `Unsupported`. The reference rejects those too.
+FMT-02.20 Inner stream id (field 10, version 3): the data must be exactly 4 bytes, otherwise `Corrupt`. Read it as an unsigned 32-bit little-endian number. 2 means Salsa20 (FMT-09). When the field is absent, Larsal uses Salsa20 (same as the reference). Value 3 (ChaCha20) is `Unsupported` (decided: spec/decisions.md LD-10): the reference accepts 3 in a version 3 header but still decrypts protected fields with Salsa20 (observed), so a file that really used ChaCha20 would show garbage. Value 1 (an old RC4-based stream) and every other value are `Unsupported`. The reference rejects those too.
 
-FMT-02.21 Field 1 (comment) and all ids not defined for the file's version (13 to 255, including ids of 128 and above; plus 11 and 12 in version 3) are skipped: App reads and discards their data, and they still count in the raw header bytes (FMT-02.4). App does not write them back on save (decided: spec/decisions.md LD-21). The reference also drops them on save (observed). This is a deliberate exception to SD-06, see Security notes.
+FMT-02.21 Field 1 (comment) and all ids not defined for the file's version (13 to 255, including ids of 128 and above; plus 11 and 12 in version 3) are skipped: Larsal reads and discards their data, and they still count in the raw header bytes (FMT-02.4). Larsal does not write them back on save (decided: spec/decisions.md LD-21). The reference also drops them on save (observed). This is a deliberate exception to SD-06, see Security notes.
 
 FMT-02.22 Duplicate fields (decided: spec/decisions.md default rule, the card's recommendation): if an id defined for the file's version appears more than once, the header is `Corrupt`. The defined ids are 2, 3, 4, 7, 11 and 12 in version 4, and 2 to 10 in version 3. Comments (id 1) and every id that FMT-02.21 skips may repeat. That includes ids 11 and 12 in a version 3 header. In version 4, ids 5, 6, 8, 9 and 10 are already `Corrupt` on their first appearance (FMT-02.14). The first id 0 ends the header, so a second end-of-header can never be seen. The reference instead uses the last copy of each repeated field (observed for cipher id, KDF parameters and public custom data).
 
-FMT-02.23 Required fields: when the end-of-header field has been read (FMT-02.30, step 3), App checks that all required fields are present. Version 4: 2, 3, 4, 7, 11. Version 3: 2, 3, 4, 5, 6, 7, 8, 9. A missing field, or an IV or protected stream key of length 0, is `Corrupt`. The reference uses defaults for some of these (see the field table). App never fills in a default.
+FMT-02.23 Required fields: when the end-of-header field has been read (FMT-02.30, step 3), Larsal checks that all required fields are present. Version 4: 2, 3, 4, 7, 11. Version 3: 2, 3, 4, 5, 6, 7, 8, 9. A missing field, or an IV or protected stream key of length 0, is `Corrupt`. The reference uses defaults for some of these (see the field table). Larsal never fills in a default.
 
-FMT-02.24 Truncation: if the input ends inside an id, a length or a data block, or before an end-of-header field has been read, the header is `Corrupt`. App never returns a partly read header.
+FMT-02.24 Truncation: if the input ends inside an id, a length or a data block, or before an end-of-header field has been read, the header is `Corrupt`. Larsal never returns a partly read header.
 
-FMT-02.25 Size limit (decided: spec/decisions.md LD-22): the raw header (FMT-02.4) is at most 1,048,576 bytes. Before reading a field's data, App checks that the field's end offset (field start + 1 + length width + length) is at most 1,048,576. If not, the result is `TooLarge`, and nothing is allocated for that field. This check runs before the truncation check of the same field. The reference has no limit (observed: a 20 MiB unknown field was accepted). For a length of `FF FF FF FF` it did not allocate 4 GiB: peak memory stayed near 25 MB.
+FMT-02.25 Size limit (decided: spec/decisions.md LD-22): the raw header (FMT-02.4) is at most 1,048,576 bytes. Before reading a field's data, Larsal checks that the field's end offset (field start + 1 + length width + length) is at most 1,048,576. If not, the result is `TooLarge`, and nothing is allocated for that field. This check runs before the truncation check of the same field. The reference has no limit (observed: a 20 MiB unknown field was accepted). For a length of `FF FF FF FF` it did not allocate 4 GiB: peak memory stayed near 25 MB.
 
-FMT-02.26 Order of work: every check in this card and in FMT-03 runs in the order of FMT-02.30, before any key derivation, decryption or decompression starts. Where these checks sit in the whole open (after the read and the credentials, then the header hash, the KDF cost check of CRY-02.14 and the key work) is owned by FMT-05.7. A malformed or unsupported header never makes App spend KDF time.
+FMT-02.26 Order of work: every check in this card and in FMT-03 runs in the order of FMT-02.30, before any key derivation, decryption or decompression starts. Where these checks sit in the whole open (after the read and the credentials, then the header hash, the KDF cost check of CRY-02.14 and the key work) is owned by FMT-05.7. A malformed or unsupported header never makes Larsal spend KDF time.
 
-FMT-02.27 Header-only read: App can parse the outer header without any key, for example to show the file version, cipher and KDF settings before unlock, or to read public custom data. The same rules apply. No secret is involved. The reference's unlock screen also reads the header without a key. Public name, colour and icon values shown before unlock follow FMT-03.23: they are unauthenticated until FMT-05 passes.
+FMT-02.27 Header-only read: Larsal can parse the outer header without any key, for example to show the file version, cipher and KDF settings before unlock, or to read public custom data. The same rules apply. No secret is involved. The reference's unlock screen also reads the header without a key. Public name, colour and icon values shown before unlock follow FMT-03.23: they are unauthenticated until FMT-05 passes.
 
 FMT-02.28 Version 3 headers may name any of the three ciphers. The reference writes a version 3.1 file whenever the KDF is AES-KDF and no feature needs version 4 (FMT-16). The cipher is whatever the vault has, any of the three, and does not affect the version choice. The IV size follows the cipher: 16 bytes for AES-256 and Twofish, 12 bytes for ChaCha20. FMT-02.11 applies to version 3 too.
 
-FMT-02.29 Values App writes in a version 4 header: field 2 holds the vault's cipher UUID (for new vaults App offers AES-256, the default, ChaCha20 and Twofish-256; decided: spec/decisions.md LD-20). Field 3 holds 0 or 1. Field 4 holds 32 fresh random bytes. Field 7 holds fresh random bytes, 16 for AES-256 or Twofish and 12 for ChaCha20 (CRY-03). Field 11 holds the KDF map with a fresh salt or seed (FMT-03.21). Field 12 holds the public custom data when it is not empty (FMT-03.22). Field 0 holds `0D 0A 0D 0A`. All lengths are 4-byte little-endian. With the same values, App's header is byte-identical to the reference's.
+FMT-02.29 Values Larsal writes in a version 4 header: field 2 holds the vault's cipher UUID (for new vaults Larsal offers AES-256, the default, ChaCha20 and Twofish-256; decided: spec/decisions.md LD-20). Field 3 holds 0 or 1. Field 4 holds 32 fresh random bytes. Field 7 holds fresh random bytes, 16 for AES-256 or Twofish and 12 for ChaCha20 (CRY-03). Field 11 holds the KDF map with a fresh salt or seed (FMT-03.21). Field 12 holds the public custom data when it is not empty (FMT-03.22). Field 0 holds `0D 0A 0D 0A`. All lengths are 4-byte little-endian. With the same values, Larsal's header is byte-identical to the reference's.
 
-FMT-02.30 Order of checks (decided: spec/decisions.md default rule, the card's recommendation). When a header has more than one fault, App reports only the first one it meets in the order below and stops there. Later bytes are not examined. Each step names the error kind it gives. This order covers the header only. FMT-05.7 owns the whole open: the read and the credentials (key file errors, `NoCredentials`) come before step 1 below, and step 5 below hands over to FMT-05.7 step 2.
+FMT-02.30 Order of checks (decided: spec/decisions.md default rule, the card's recommendation). When a header has more than one fault, Larsal reports only the first one it meets in the order below and stops there. Later bytes are not examined. Each step names the error kind it gives. This order covers the header only. FMT-05.7 owns the whole open: the read and the credentials (key file errors, `NoCredentials`) come before step 1 below, and step 5 below hands over to FMT-05.7 step 2.
 1. The preamble (FMT-01).
 2. The fields, one at a time in file order. For each field:
    a. The id byte. Input ends here: `Corrupt` (FMT-02.24).
@@ -282,7 +282,7 @@ A header-only read (FMT-02.27) runs steps 1 to 4. The reference also judges each
 
 ## Edge cases and errors
 
-| Case | App result | Reference (installed 2.7.11, observed unless marked) |
+| Case | Larsal result | Reference (installed 2.7.11, observed unless marked) |
 |---|---|---|
 | Unknown id (for example 13, 255) | skipped, not saved | skipped with a warning on the error stream; dropped on save |
 | Comment field (id 1) | skipped, not saved | same: skipped with a warning, dropped on save |
@@ -309,17 +309,17 @@ A header-only read (FMT-02.27) runs steps 1 to 4. The reference also judges each
 | Several faults in one header | the first fault in the order of FMT-02.30 | stops at the first faulty field in file order (source); missing fields are reported only with a key; IV length only at decryption setup |
 | v3 protected stream key of another length (for example 5 bytes) | accepted | accepted; protected values then decode to garbage with no error in a version 3.0 file, which has no header hash |
 
-The reference puts a general could-not-read-the-vault prefix in front of each specific header message. App's plain-language messages come from `app-desktop` (APP-06). Error values never include header bytes.
+The reference puts a general could-not-read-the-vault prefix in front of each specific header message. Larsal's plain-language messages come from `larsal-desktop` (APP-06). Error values never include header bytes.
 
 ## Security notes
 
 - Everything in the outer header is unauthenticated until FMT-05 passes. A tamperer or a hostile file controls every byte (AT-A02, AT-A04, AT-A10). Parsing must be total: no panic, no unchecked index, every length checked against the remaining input and the limit before allocation (Rust rules 4 and 5).
-- The header is public (SF-12). It must never hold a secret. The master seed, IV, KDF salt or seed and public custom data are public by design. App must never put a secret into public custom data, and must never write a new header field that carries user data.
-- Wrong-key reporting: the reference turns some structural problems into the wrong-key message (missing KDF field, missing transform seed or rounds), because it fills in defaults. App reports structure problems as `Corrupt` and reports `WrongKey` only when the header HMAC fails (version 4, FMT-05) or the stream start bytes do not match (version 3, FMT-05.11, FMT-17.13; decided: spec/decisions.md LD-12). This keeps AT-A01 honest: only wrong credentials give the wrong-key message.
-- No silent defaults and no silent number changes: App never assumes a cipher, a compression, a rounds count or a stream cipher that the file did not state, and never computes with a number cut from what the file stored (FMT-02.17, FMT-02.20, FMT-02.23).
+- The header is public (SF-12). It must never hold a secret. The master seed, IV, KDF salt or seed and public custom data are public by design. Larsal must never put a secret into public custom data, and must never write a new header field that carries user data.
+- Wrong-key reporting: the reference turns some structural problems into the wrong-key message (missing KDF field, missing transform seed or rounds), because it fills in defaults. Larsal reports structure problems as `Corrupt` and reports `WrongKey` only when the header HMAC fails (version 4, FMT-05) or the stream start bytes do not match (version 3, FMT-05.11, FMT-17.13; decided: spec/decisions.md LD-12). This keeps AT-A01 honest: only wrong credentials give the wrong-key message.
+- No silent defaults and no silent number changes: Larsal never assumes a cipher, a compression, a rounds count or a stream cipher that the file did not state, and never computes with a number cut from what the file stored (FMT-02.17, FMT-02.20, FMT-02.23).
 - Duplicate fields are rejected so two readers can never disagree about which copy counts (a parser-differential trick). In version 4 the header HMAC already stops a tamperer without the key from adding copies, so this costs no real file.
-- Dropping unknown fields on save (FMT-02.21) departs from SD-06 (keep data we do not understand), on purpose: an unknown outer field might change how the payload must be read. Written back next to a payload App encrypted its own way, it could make a future reader misread the file. The reference drops them too (decided: spec/decisions.md LD-21; keeping and re-writing them was the option not chosen).
-- Version 3.0 files have no header check at all. A tamperer can change the header (for example the protected stream key) and the reference still opens the file, showing garbage protected values (observed). Version 3.1 checks a header hash inside the document when it is present (FMT-05, FMT-17); a 3.1 file without it is accepted, as the reference does (decided: spec/decisions.md LD-11). App reads version 3 files only.
+- Dropping unknown fields on save (FMT-02.21) departs from SD-06 (keep data we do not understand), on purpose: an unknown outer field might change how the payload must be read. Written back next to a payload Larsal encrypted its own way, it could make a future reader misread the file. The reference drops them too (decided: spec/decisions.md LD-21; keeping and re-writing them was the option not chosen).
+- Version 3.0 files have no header check at all. A tamperer can change the header (for example the protected stream key) and the reference still opens the file, showing garbage protected values (observed). Version 3.1 checks a header hash inside the document when it is present (FMT-05, FMT-17); a 3.1 file without it is accepted, as the reference does (decided: spec/decisions.md LD-11). Larsal reads version 3 files only.
 - The size limit (FMT-02.25) and the ordering rule (FMT-02.26) stop memory and CPU attacks before any expensive work. The KDF cost bomb (AT-A05) is stopped by FMT-03 and CRY-02 before key derivation.
 - Fresh master seed and IV on every save (SF-07, CRY-03, AT-B03).
 - Differential fuzzing (AT-A11) will show these intended differences from the reference: duplicates, missing cipher or compression field, AES-128 id, ChaCha20 IV of 8 or 24 bytes, version 3 inner stream id 3, version 3 rounds out of range, the 1 MiB limit, and headers with several faults where FMT-02.30 checks earlier than the reference (required fields in a header-only read, IV length before the header HMAC). List them as expected differences in the differential test.
@@ -379,7 +379,7 @@ The reference puts a general could-not-read-the-vault prefix in front of each sp
 | C48 FMT-02.26 | H4min with field 3 data `02 00 00 00`, KDF wrapped in a counting test double | open with any password | `Unsupported`; the KDF was called 0 times |
 | C49 FMT-02.27 | H4demo, no key | header-only read | AES-256, gzip, AES-KDF with 15,000,000 rounds and seed `B4 ED ... 17 41`; no KDF call |
 | C50 FMT-02.28 | H3demo with field 2 set to the ChaCha20 UUID and field 7 of 12 bytes; again with field 7 of 16 bytes | parse | first accepted; second `Unsupported` |
-| C51 FMT-02.29 | one demo vault saved twice by App | compare the two headers | master seeds differ, IVs differ, KDF salts or seeds differ; lengths 32, 16 or 12, and 32 |
+| C51 FMT-02.29 | one demo vault saved twice by Larsal | compare the two headers | master seeds differ, IVs differ, KDF salts or seeds differ; lengths 32, 16 or 12, and 32 |
 | C52 FMT-02.30 | H4min with the `$UUID` value of field 11 (0x0079 to 0x0088) set to `00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F`, field 3 (0x0021 to 0x0029) removed, and `03 03 00 00 00 01 00 00` (field 3 with 3 data bytes) inserted right before the end-of-header field; 206 bytes. Again with the same `$UUID` change but the 3-byte field 3 left in its place (0x0021 to 0x0029 replaced by `03 03 00 00 00 01 00 00`); 206 bytes | parse | first `Unsupported` (field 11 comes first in the file); second `Corrupt` (field 3 comes first) (reference: stops at the first faulty field, observed on a Format400 copy with the same two faults: the KDF message first in one order, the compression-length message first in the other) |
 | C53 FMT-02.30 FMT-02.23 FMT-02.11 | H4min (AES-256) with field 4 (0x002A to 0x004E) removed and field 7 replaced by `07 0C 00 00 00` + 12 × `22`; 166 bytes | parse | `Corrupt` (the missing master seed is found before the IV length) |
 | C54 FMT-02.30 FMT-02.22 | H4min with `03 04 00 00 00 02 00 00 00` (a second field 3 holding the unsupported value 2) inserted at 0x00C6 | parse | `Corrupt` (the duplicate check comes before the value check) (reference: no duplicate check, so it rejects with the unsupported-compression message, observed) |

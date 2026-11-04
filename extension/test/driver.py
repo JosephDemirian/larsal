@@ -10,7 +10,7 @@ site-a.test, site-b.test and sub.site-a.test on an https demo server at
 
 Owner safety, checked on every run:
 - the profile is <test HOME>/Library/Application Support/Google/Chrome
-  (LD-274 (7)), so the native messaging folder App writes under the test HOME
+  (LD-274 (7)), so the native messaging folder Larsal writes under the test HOME
   (INT-01.8) is the one Chrome reads; the test HOME must be under /tmp;
 - --use-mock-keychain: Chrome never writes to the owner's login keychain;
 - --host-resolver-rules map only the three test names to 127.0.0.1 and every
@@ -151,7 +151,7 @@ _guard = []
 def guard_binary():
     """Compiles window_guard.swift once per process into a folder under /tmp."""
     if not _guard:
-        folder = tempfile.mkdtemp(prefix="app-guard-", dir="/tmp")
+        folder = tempfile.mkdtemp(prefix="larsal-guard-", dir="/tmp")
         atexit.register(shutil.rmtree, folder, True)
         binary = os.path.join(folder, "window_guard")
         env = dict(os.environ, DEVELOPER_DIR=DEVELOPER_DIR, TMPDIR=folder)
@@ -287,7 +287,7 @@ class Chrome:
     """The installed Chrome, headless, with a throwaway profile under a test HOME."""
 
     def __init__(self, sites=None, home=None, args=()):
-        self.folder = tempfile.mkdtemp(prefix="app-chrome-", dir="/tmp")
+        self.folder = tempfile.mkdtemp(prefix="larsal-chrome-", dir="/tmp")
         self.events, self.replies, self.hits = [], {}, []
         self.next_id, self.pid, self.closed = 0, None, False
         self.home = self.profile = None
@@ -481,7 +481,7 @@ class Chrome:
     def pids(self):
         """Chrome's PID, every process under it, and every process whose command line names this
         run's profile (the crash handler runs under launchd, not under Chrome). The profile, not
-        the HOME: a test may start other programs with the same HOME (E7-S7c starts App)."""
+        the HOME: a test may start other programs with the same HOME (E7-S7c starts Larsal)."""
         rows = subprocess.run(["/bin/ps", "-axww", "-o", "pid=,ppid=,command="], check=True, capture_output=True,
                               text=True).stdout.splitlines()
         children, named = {}, []
@@ -581,7 +581,7 @@ def _alive(pid):
 
 def install_echo_host(home, extension_id):
     """Writes the echo host into the test HOME: its program, and its manifest in the
-    folder App writes for Chrome (INT-01.8). Returns the manifest's path."""
+    folder Larsal writes for Chrome (INT-01.8). Returns the manifest's path."""
     home = check_test_home(home)
     folder, program = inside(home, NATIVE_HOSTS), inside(home, "echo.py")
     os.makedirs(folder, exist_ok=True)

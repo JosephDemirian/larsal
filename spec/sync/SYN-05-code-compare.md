@@ -2,7 +2,7 @@
 
 Status: reviewed
 Epics: E17-S2 (its first use: approving a new Mac), E18-S4 (invites; SHR-03 builds on this card), E16-S8 and E17-S4 (the frames and screens)
-Parity rows: none in the reference app (it has no server or sharing). App's own row: AT-L10 (plan/attacks-and-checks.md)
+Parity rows: none in the reference app (it has no server or sharing). Larsal's own row: AT-L10 (plan/attacks-and-checks.md)
 
 ## What it does
 
@@ -15,7 +15,7 @@ Design and sources: spec/research/sync-server.md P10 (decided: spec/decisions.md
 ## Inputs and outputs
 
 - Roles: **C**, the side that commits first (the new Mac, or the invitee); **R**, the side that answers (the Mac that approves, or the inviter).
-- In: `ctx`, the bytes that name the request (SYN-06.11 or SHR-03 builds it, always with a label and the request's id); `K_C` and `K_R`, each side's public keys as one CRY-04.2 field list; a fresh 32-byte nonce on each side from app-crypto's random source.
+- In: `ctx`, the bytes that name the request (SYN-06.11 or SHR-03 builds it, always with a label and the request's id); `K_C` and `K_R`, each side's public keys as one CRY-04.2 field list; a fresh 32-byte nonce on each side from larsal-crypto's random source.
 - Messages, carried by the server (which may be hostile): (1) C → R: `commit`; (2) R → C: `K_R`, `n_R`; (3) C → R: `K_C`, `n_C`.
 - Out: the same 6-digit code on both screens when nobody changed a message; each side then holds the other's keys, to pin after "Codes match".
 
@@ -37,7 +37,7 @@ SYN-05.7 **What the server sees.** The commitment, both key lists and both nonce
 
 ## Messages
 
-| ID | Words (App's own) | Buttons |
+| ID | Words (Larsal's own) | Buttons |
 |---|---|---|
 | `MSG-CODE-COMPARE` | Check that the other screen shows the same code: <code> | Codes match, Codes differ |
 | `MSG-CODE-FAILED` | The check did not work. Nothing was shared. Start again on both Macs. | OK |
@@ -61,7 +61,7 @@ SYN-05.7 **What the server sees.** The commitment, both key lists and both nonce
 | Case | Given | When | Then |
 |---|---|---|---|
 | T01 SYN-05.1, SYN-05.4 same code | Two test clients C and R; an honest relay | Run messages (1) to (3) | Both show the same 6 digits; recomputing from the logged messages gives the same value |
-| T02 SYN-05.4 known value | `ctx` = field list ("test", 16 bytes of 0x11); `K_C` = field list (32 bytes of 0x22); `K_R` = field list (32 bytes of 0x33); `n_C` = 32 bytes of 0x44; `n_R` = 32 bytes of 0x55 | Compute the code with an independent SHA-256 (for example `shasum -a 256` over the bytes) | App's code equals it |
+| T02 SYN-05.4 known value | `ctx` = field list ("test", 16 bytes of 0x11); `K_C` = field list (32 bytes of 0x22); `K_R` = field list (32 bytes of 0x33); `n_C` = 32 bytes of 0x44; `n_R` = 32 bytes of 0x55 | Compute the code with an independent SHA-256 (for example `shasum -a 256` over the bytes) | Larsal's code equals it |
 | T03 SYN-05.3 swapped key | A test relay that replaces `K_C` in message (3) | Run | R: `MSG-CODE-FAILED`; no code shown; nothing sealed |
 | T04 SYN-05.7 relay in the middle | A test relay that runs its own C toward R and its own R toward C, with its own keys | Run 10,000 times with fresh nonces | The two screens' codes match by chance only (0.01 matches expected in 10,000 runs; the test fails on more than 2); in no run did either side seal or pin before its user's Codes match |
 | T05 SYN-05.2 second commitment | A request with one commitment | Send a second commitment | 409; R refuses it; the request ends |

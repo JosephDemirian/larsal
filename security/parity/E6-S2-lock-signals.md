@@ -4,10 +4,10 @@ Story: E6-S2 Lock signals.
 - Cards: [APP-02](../../spec/app/APP-02-lock.md); also APP-03.15, APP-06.5 and APP-09.12.
 - Decision: LD-187.
 - Code:
-  - `macos/App/Platform/LockSignals.swift`;
+  - `macos/Larsal/Platform/LockSignals.swift`;
   - the `AppDelegate` hook (`applicationDidFinishLaunching`);
   - `MainWindowModel.lockAll()` and `refresh()`;
-  - `macos/AppTests/LockSignalsTests.swift`, with the weak spy.
+  - `macos/LarsalTests/LockSignalsTests.swift`, with the weak spy.
 
 Date: 2026-10-28.
 Role: Verify. I did not build or review this story. No reference access was needed, and none was used.
@@ -19,7 +19,7 @@ Result: **signed.** Every check passed. Only the real system events are left: AT
 | Check | Result |
 |---|---|
 | 1. Each E6-S2 trigger has a passing test, by T-number | PASS. The 22 `LockSignalsTests` pass. 3 `app09` cases cover the lock flag (T29 to T31). The Verify driver passes 4 tests, 18 cases. The T-cases left for later are listed in section 2 with reasons. |
-| 2. Rust lock-all first, then Swift state | PASS, proven by my own driver for all 7 triggers: screen lock, sleep, user switch, idle, minimize, Hide App and the channel. When Rust's `lockAll()` returns, App's copy is already gone from its private pasteboard and every vault is locked. At that moment the shown value, the live codes, the detail and the typed unlock password are still held. Afterwards all of them are gone. |
+| 2. Rust lock-all first, then Swift state | PASS, proven by my own driver for all 7 triggers: screen lock, sleep, user switch, idle, minimize, Hide Larsal and the channel. When Rust's `lockAll()` returns, Larsal's copy is already gone from its private pasteboard and every vault is locked. At that moment the shown value, the live codes, the detail and the typed unlock password are still held. Afterwards all of them are gone. |
 | 3. Mutation proof | PASS. 7 mutations were tried, one at a time: screen lock, sleep, idle, minimize, the channel, the relay and the order. Each one makes at least one test fail. Each file was restored and confirmed with `cmp`. |
 | 4. No real notification, owner's clipboard untouched | PASS. Every `post` in the tests goes to a private `NotificationCenter()`. An observer on the real system centers saw 0 notifications during the 7 driver triggers. The general pasteboard count was the same before and after every run. |
 | 5. swift format and SwiftLint | PASS on all of `macos/` and on the four E6-S2 files. Both exit 0, with no output. |
@@ -27,27 +27,27 @@ Result: **signed.** Every check passed. Only the real system events are left: AT
 ## Setup
 
 - **Isolated copy.**
-  - `rsync -a --exclude .swiftpm macos /tmp/verify-e6s2/`, plus copies of `target/app-core` and `testdata`. `AppCore/Generated` points at the copied core.
+  - `rsync -a --exclude .swiftpm macos /tmp/verify-e6s2/`, plus copies of `target/larsal-core` and `testdata`. `LarsalCore/Generated` points at the copied core.
   - The core is a debug build: its library is 176 MB, against 48 MB for the release one.
   - Before any change, `cmp` showed the copy's `LockSignals.swift`, `MainWindowModel.swift`, `AppDelegate.swift` and `LockSignalsTests.swift` were the same as the project's.
   - At the end, `cmp` showed those four, `Front.swift` and `UnlockModel.swift` still unchanged in the project.
   - Only `VaultModel.swift` changed in the project during the run. `afterChange` moved out of it as part of the editor work. `leave()` and `clear()`, which the lock uses, are unchanged.
 - **Build note.**
-  - `EditorModel.swift` and `VaultEdits.swift` were already in the AppTests file list when I copied, and `EditorScreen.swift` compiled. The plain copy gave `** TEST BUILD SUCCEEDED **` with `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`.
+  - `EditorModel.swift` and `VaultEdits.swift` were already in the LarsalTests file list when I copied, and `EditorScreen.swift` compiled. The plain copy gave `** TEST BUILD SUCCEEDED **` with `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`.
   - My one change to the copy's project: `Platform/Front.swift` joined the test target, so the driver can call the real `WindowEvents`.
 - **Commands.** `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, then:
 
   ```
-  xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath /tmp/verify-e6s2/dd build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
-  xcodebuild ... test-without-building -only-testing:AppTests/LockSignalsTests -only-testing:AppTests/VerifyE6S2DriverTests
+  xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath /tmp/verify-e6s2/dd build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+  xcodebuild ... test-without-building -only-testing:LarsalTests/LockSignalsTests -only-testing:LarsalTests/VerifyE6S2DriverTests
   ```
 
-- **No windows.** AppTests has no test host, so the tests run in the xctest runner with no window. The `app09` cases start `App.app` with `APP_TEST_HIDDEN=1`, and each run is stopped by its own child handle. Afterwards, `pgrep` found no App process left.
+- **No windows.** LarsalTests has no test host, so the tests run in the xctest runner with no window. The `app09` cases start `Larsal.app` with `LARSAL_TEST_HIDDEN=1`, and each run is stopped by its own child handle. Afterwards, `pgrep` found no Larsal process left.
 - **Rust.** `CARGO_TARGET_DIR=/tmp/verify-e6s2/cargo-target`, `--offline`.
 
 ## 1. Triggers by T-number
 
-Final run, with the originals rebuilt: `xcodebuild ... test-without-building -skip-testing:AppUITests`, giving `Suite LockSignalsTests passed`, `Suite VerifyE6S2DriverTests passed`.
+Final run, with the originals rebuilt: `xcodebuild ... test-without-building -skip-testing:LarsalUITests`, giving `Suite LockSignalsTests passed`, `Suite VerifyE6S2DriverTests passed`.
 
 | Trigger (APP-02) | T-cases | Tests that pass |
 |---|---|---|
@@ -57,16 +57,16 @@ Final run, with the originals rebuilt: `xcodebuild ... test-without-building -sk
 | User switch `sessionDidResignActiveNotification` (APP-02.7) | T15 | `APP-02 T15: the session resigning active locks when the setting is on`, also with the setting off |
 | Idle: settings restart the countdown (APP-02.1) | T02 | `APP-02 T02: ...` (lock at 240) |
 | Idle: activity and throttle (APP-02.2) | T03, T04 | `APP-02 T03: each key restarts the countdown`; `APP-02 T04: events within 0.5 s of a restart are ignored` |
-| Idle: own input only (APP-02.2) | T05 (part) | Verify driver: `input that reaches App's own event queue restarts the idle countdown`. A `mouseMoved` posted to App's own queue and dispatched with `sendEvent` reaches the local monitor of `watchInput()`: no lock at 10 s, lock at 15 s. By code read, the only idle source is `NSEvent.addLocalMonitorForEvents`. `grep` finds no global monitor, `CGEventSource` or HID idle time in `macos/App`. `activity()` is called only from that monitor, so the clipboard countdown and the session never count as activity (T06 by code read). |
+| Idle: own input only (APP-02.2) | T05 (part) | Verify driver: `input that reaches Larsal's own event queue restarts the idle countdown`. A `mouseMoved` posted to Larsal's own queue and dispatched with `sendEvent` reaches the local monitor of `watchInput()`: no lock at 10 s, lock at 15 s. By code read, the only idle source is `NSEvent.addLocalMonitorForEvents`. `grep` finds no global monitor, `CGEventSource` or HID idle time in `macos/Larsal`. `activity()` is called only from that monitor, so the clipboard countdown and the session never count as activity (T06 by code read). |
 | Idle: bounds (APP-02.3) | T07, T08 | `APP-02 T07, T08: the period is used within 10 s and 12 h` (3 gives 10, 100000 gives 43200, the default is 300) |
 | Idle: off (APP-02.3) | T09 | `APP-02 T09: idle lock off never locks` |
 | Idle: nothing unlocked (APP-02.3) | T10 | `APP-02 T10: the countdown runs with nothing unlocked, does nothing, and starts again` |
 | Idle: late timer (APP-02.20) | (no T-number) | `APP-02 idle: input after the period locks first and never restarts the countdown` |
 | Minimize: delay `clamp(r, 1, 20)` (APP-02.8) | T16 to T20 | `APP-02 T16`, `T17`, `T18`, `T19`, `T20`. `r` comes from a fake source here (see section 2). |
 | Minimize after unlock turns lock on minimize off (APP-02.9, settings model) | T24 | `APP-02 T24: minimize after unlock turns lock on minimize off` |
-| Hide App counts as minimize (APP-02.10, D-A02-2) | T25 | `APP-02 T25: Hide App counts as minimize (D-A02-2)` |
-| Minimize and Hide App are off by default | (defaults) | Verify driver: `minimize and Hide App do not lock with the default settings`. Minimize and Hide are posted, the clock steps to 25 s, and there are 0 locks. The default settings are idle on, screen lock on, user switch on and minimize off. |
-| The channel `lock` (APP-09.12, APP-02.12) | T29, T30, T31 | Swift: `APP-09.12 lock request: Rust's lock-all, then the session-changed refresh, clears the Swift state`. Rust: `start::tests::app09_12_activate_and_open_raise_the_window_lock_does_not ... ok`. Against the copy's `App.app`: `app09_12_a_lock_request_is_delivered ... ok` (T29, M09-02, exit 0), `app09_11_a_lock_without_an_instance ... ok` (T30), `app09_11_b_lock_with_a_stopped_primary_gives_m09_05 ... ok` (T31). The `app09` test binary holds the path `/private/tmp/verify-e6s2/crates/app-ffi/../../target/xcode/.../App.app` (`strings`), so it ran the copy's build. |
+| Hide Larsal counts as minimize (APP-02.10, D-A02-2) | T25 | `APP-02 T25: Hide Larsal counts as minimize (D-A02-2)` |
+| Minimize and Hide Larsal are off by default | (defaults) | Verify driver: `minimize and Hide Larsal do not lock with the default settings`. Minimize and Hide are posted, the clock steps to 25 s, and there are 0 locks. The default settings are idle on, screen lock on, user switch on and minimize off. |
+| The channel `lock` (APP-09.12, APP-02.12) | T29, T30, T31 | Swift: `APP-09.12 lock request: Rust's lock-all, then the session-changed refresh, clears the Swift state`. Rust: `start::tests::app09_12_activate_and_open_raise_the_window_lock_does_not ... ok`. Against the copy's `Larsal.app`: `app09_12_a_lock_request_is_delivered ... ok` (T29, M09-02, exit 0), `app09_11_a_lock_without_an_instance ... ok` (T30), `app09_11_b_lock_with_a_stopped_primary_gives_m09_05 ... ok` (T31). The `app09` test binary holds the path `/private/tmp/verify-e6s2/crates/larsal-ffi/../../target/xcode/.../Larsal.app` (`strings`), so it ran the copy's build. |
 | Clipboard and screen-layer state on lock (APP-03.15, AT-E07) | T52 (no timing) | `APP-02 T52, APP-03.15: a lock signal clears the clipboard in Rust, shown values and live codes`. Rust: `app_03_15_lock_close_and_quit_clear ... ok` and `app_03_15_lock_of_another_vault_clears ... ok`. |
 | The unlock field (APP-06.5) | APP-06 T11 | `APP-06 T11: a lock signal clears the typed password` |
 
@@ -83,7 +83,7 @@ They expect "Edit entry", "New Entry", "Clone Entry…", "Restore" and similar c
 
 | Case | Waits for | Reason |
 |---|---|---|
-| AT-K01: a real screen lock, sleep, user switch and idle on this Mac; T12, T14, T15 and T52 with real events and timing; T05 with real typing in another app; T49 (window not moved, App not brought to front) and T51 (no unlock on screen unlock) in the real app | Mac QA, with the owner's go | AGENTS.md rule 10: no agent locks the screen, sleeps the Mac, switches users or types into another app. By code read, `lockAll()` never calls `Front.bring()`, and nothing in `LockSignals` unlocks. |
+| AT-K01: a real screen lock, sleep, user switch and idle on this Mac; T12, T14, T15 and T52 with real events and timing; T05 with real typing in another app; T49 (window not moved, Larsal not brought to front) and T51 (no unlock on screen unlock) in the real app | Mac QA, with the owner's go | AGENTS.md rule 10: no agent locks the screen, sleeps the Mac, switches users or types into another app. By code read, `lockAll()` never calls `Front.bring()`, and nothing in `LockSignals` unlocks. |
 | T06 browser bridge requests | E7 (browser bridge) | The bridge does not exist yet. By code read, nothing but the local event monitor calls `activity()`. |
 | T17, T18, T20 with the real `r`; T21 (no stale value) | E5-S9 (settings), with a Rust export of the clipboard countdown's seconds left (LD-187 "Later") | `AppDelegate` passes no `secondsLeft`, so `r` is 0 and `d` is always 1 s (see the note in `LockSignals.init`). This is harmless today: lock on minimize is off and has no switch before E5-S9. The formula is proven with a fake source. |
 | T22 hide to the menu bar icon; the hide-on-copy path (APP-03.17) | E5-S11 (APP-08 menu bar icon), and the APP-03.17 option | Neither exists yet. |
@@ -96,7 +96,7 @@ They expect "Edit entry", "New Entry", "Clone Entry…", "Restore" and similar c
 
 ## 3. Verify driver: Rust lock-all first, then Swift
 
-The file was `macos/AppTests/VerifyE6S2DriverTests.swift`, in the copy only and deleted with it.
+The file was `macos/LarsalTests/VerifyE6S2DriverTests.swift`, in the copy only and deleted with it.
 
 - **Setup.** Each trigger fires through a `LockSignals` wired as `AppDelegate` wires it:
   - `unlocked: { session.vaults().contains { !$0.locked } }`;
@@ -120,11 +120,11 @@ The file was `macos/AppTests/VerifyE6S2DriverTests.swift`, in the copy only and 
   - Screen lock: `distributed.post`.
   - Sleep and user switch: `workspace.post`.
   - Idle: no lock at 299.9 s, then a lock at 300 s.
-  - Minimize and Hide App, with the setting on: no lock at 0.9 s, then a lock at 1.0 s.
+  - Minimize and Hide Larsal, with the setting on: no lock at 0.9 s, then a lock at 1.0 s.
   - Channel: `session.lockAll()`, then the real `WindowEvents(window:).sessionChanged()`, then a wait of up to 2 s for the refresh.
 - **`viewState`, 7 cases, all passed.**
   - Setup: Personal and Work unlocked, Personal shown, an entry with a one-time code selected, the code ticked, the password shown and the password copied.
-  - The copy's private pasteboard is the one `com.app.clipboard.<pid>.<n>` whose change count moved, exactly 1. It holds the shown value.
+  - The copy's private pasteboard is the one `app.larsal.clipboard.<pid>.<n>` whose change count moved, exactly 1. It holds the shown value.
   - Then, for each trigger:
     - `session.calls == 1`.
     - At Rust's return: the pasteboard string is `nil`, every vault is locked, and `shown`, `codes`, `detail` and the opened model are still there.
@@ -188,8 +188,8 @@ swiftlint on the four E6-S2 files                                   exit=0
 ## Clean-up and CPU
 
 - **Deleted** with `rm -rf`: `/tmp/verify-e6s2` (the copy, the derived data, the cargo target) and `/tmp/verify-e6s2-tools`.
-- **Processes:** no App process was left. I stopped no process.
+- **Processes:** no Larsal process was left. I stopped no process.
 - **CPU:** about 12 minutes of wall time in builds and tests.
-  - The longest single runs were the full unit suite (71 s wall, 52 s CPU) and the first cargo build of app-ffi (40 s wall, 351 s CPU over all cores).
+  - The longest single runs were the full unit suite (71 s wall, 52 s CPU) and the first cargo build of larsal-ffi (40 s wall, 351 s CPU over all cores).
   - The seven incremental rebuilds took under a minute each.
   - No run came near 30 minutes.

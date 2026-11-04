@@ -3,9 +3,9 @@
 //! from an unchecked length, whatever the bytes (AT-A10).
 #![no_main]
 
-use app_format::header::read_header;
-use app_format::kdf_params::{parse_kdf, parse_map};
-use app_format::limits::Limits;
+use larsal_format::header::read_header;
+use larsal_format::kdf_params::{parse_kdf, parse_map};
+use larsal_format::limits::Limits;
 use libfuzzer_sys::fuzz_target;
 
 /// Signatures and version 4.1, then 3.1: so most inputs reach the field loop.

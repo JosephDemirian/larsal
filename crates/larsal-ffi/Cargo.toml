@@ -1,0 +1,57 @@
+[package]
+name = "larsal-ffi"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# lib: Rust tests; staticlib: linked into the Mac app (scripts/build-core.sh).
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[lints]
+workspace = true
+
+# APP-09 cases that run the built Larsal.app; check.sh runs them after the Xcode
+# build (`cargo test -p larsal-ffi --test app09`), not with `cargo test --workspace`.
+[[test]]
+name = "app09"
+test = false
+
+[features]
+# The breach check's HTTPS client (FEA-06, E5-S7): larsal-platform `net`.
+# Without it Larsal links no network code (SN-05) and the online check answers
+# that this build has none; scripts/build-core.sh turns it on for the app.
+net = ["larsal-platform/net"]
+# Sync with Larsal's own server (E16-S7a, SYN-03, SYN-04): larsal-sync and its
+# device key (`larsal-sync/sync`, larsal-platform `device-key`). Without it
+# larsal-ffi links nothing of larsal-sync and no keychain code.
+sync = ["net", "dep:larsal-sync", "larsal-sync/sync"]
+
+[dependencies]
+larsal-autotype = { workspace = true }
+# E7-S6: the browser bridge's sockets and setup files (INT-01), in browser.rs.
+larsal-browser = { workspace = true }
+larsal-core = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-format = { workspace = true }
+# F-107: hardware keys in unlock and save (INT-07, E10-S1).
+larsal-hwkey = { workspace = true }
+larsal-model = { workspace = true }
+# E11-S3: shared groups (INT-08), run off the main thread in share.rs.
+larsal-share = { workspace = true }
+larsal-platform = { workspace = true, features = ["appkit", "memory"] }
+larsal-sshagent = { workspace = true }
+larsal-sync = { workspace = true, optional = true }
+qrcode = { workspace = true }
+uniffi = { workspace = true }
+
+[dev-dependencies]
+# tests/memory.rs: the probe that tells the zeroing allocator from the system's (E6-S6).
+larsal-platform = { workspace = true, features = ["test-memory"] }
+# F-107: unit tests answer every hardware key choice with the software key
+# (OD-01, INT-07.29); never in a product build.
+larsal-format = { workspace = true, features = ["software-key"] }
+# E16-S7a: the sync tests' servers on 127.0.0.1 (larsal-server in process,
+# the test proxy), test clock and test-seam device key (LD-317 (2)).
+larsal-sync = { workspace = true, features = ["test-server"] }

@@ -9,13 +9,13 @@ AT-J04 says: "Two clean builds: same binary hash, or every difference explained.
 
 ## Setup
 
-- **Source.** Both copies were made back to back from the shared tree with `rsync -a --exclude target --exclude app-shots`:
+- **Source.** Both copies were made back to back from the shared tree with `rsync -a --exclude target --exclude larsal-shots`:
   - A: `/tmp/e14s4-verify-a` (physical path 27 characters)
   - B: `/tmp/e14s4-verify-b-copy-at-a-second-and-much-longer-path-for-verify` (76 characters)
-- **Stub.** The shared tree does not compile right now. `crates/app-ffi/src/edit.rs:70` and `:105` use `crate::hwkey::Choice`, and `lib.rs` declares no `hwkey` module (F-107 work in progress, another agent's). Both copies got the same three lines at the end of `crates/app-ffi/src/lib.rs`: a doc comment and `pub(crate) mod hwkey { pub(crate) struct Choice; }`. The Builder and Checker 1 used the same stub. The shared tree was not touched.
-- **Same input.** `diff -r` of the two copies gave rc=0. Its one message is the dangling relative link `macos/AppCore/Generated -> ../../target/app-core`, which is the same in both. `cmp` shows that `scripts/repro-build.sh`, `scripts/make-sbom.sh`, `scripts/licenses/*`, `Cargo.toml` and `Cargo.lock` in copy A equal the shared tree's.
+- **Stub.** The shared tree does not compile right now. `crates/larsal-ffi/src/edit.rs:70` and `:105` use `crate::hwkey::Choice`, and `lib.rs` declares no `hwkey` module (F-107 work in progress, another agent's). Both copies got the same three lines at the end of `crates/larsal-ffi/src/lib.rs`: a doc comment and `pub(crate) mod hwkey { pub(crate) struct Choice; }`. The Builder and Checker 1 used the same stub. The shared tree was not touched.
+- **Same input.** `diff -r` of the two copies gave rc=0. Its one message is the dangling relative link `macos/LarsalCore/Generated -> ../../target/larsal-core`, which is the same in both. `cmp` shows that `scripts/repro-build.sh`, `scripts/make-sbom.sh`, `scripts/licenses/*`, `Cargo.toml` and `Cargo.lock` in copy A equal the shared tree's.
 - **Toolchain** (BUILDINFO, the same in both): rustc 1.99.1 (58cf8f9c3), cargo 1.99.1, LLVM 23.1.1, Xcode 27.0 (27A266a), macOS SDK 26A425, macOS 26.6 (25G5057c), SOURCE_DATE_EPOCH 1793232000.
-- **Derived data.** The script always builds in its fixed folder `/private/tmp/app-repro` (its `target/xcode-release` is the derived data), empty at the start and deleted at the end. So the brief's separate derived-data folders do not apply. Each run got its own output folder through `CARGO_TARGET_DIR`. Between the runs I stopped the `ibtoold` daemons of run A, so run B also started a fresh asset-catalog daemon.
+- **Derived data.** The script always builds in its fixed folder `/private/tmp/larsal-repro` (its `target/xcode-release` is the derived data), empty at the start and deleted at the end. So the brief's separate derived-data folders do not apply. Each run got its own output folder through `CARGO_TARGET_DIR`. Between the runs I stopped the `ibtoold` daemons of run A, so run B also started a fresh asset-catalog daemon.
 
 ## The two builds
 
@@ -25,10 +25,10 @@ AT-J04 says: "Two clean builds: same binary hash, or every difference explained.
 | Environment | as the shell has it (CET, umask 022) | `TZ=Pacific/Auckland`, `LANG=LC_ALL=de_DE.UTF-8`, `umask 027` (variations taken from reprotest's list) |
 | Time | 01:09:06 to 01:12:20 CET | 01:12:51 to 01:17:46 CET (the log shows 13:12:51 to 13:17:46, Auckland time) |
 | Exit | rc=0 | rc=0 |
-| Clean | every crate compiled (`Compiling ring`, `Compiling app-ffi`, 280 lines) | the same |
-| Catalog retry | none | one, on its own: "Assets.car appearance order differs, building App again" |
+| Clean | every crate compiled (`Compiling ring`, `Compiling larsal-ffi`, 280 lines) | the same |
+| Catalog retry | none | one, on its own: "Assets.car appearance order differs, building Larsal again" |
 
-Run B hit actool's appearance-order race by itself. The retry rebuilt App from an empty derived-data folder, and the result still matched run A. So the retry path is proven by a natural hit, not only by a forced one.
+Run B hit actool's appearance-order race by itself. The retry rebuilt Larsal from an empty derived-data folder, and the result still matched run A. So the retry path is proven by a natural hit, not only by a forced one.
 
 ## Comparison
 
@@ -38,42 +38,42 @@ Run B hit actool's appearance-order race by itself. The retry rebuilt App from a
 
 | File | Bytes | SHA-256 (both runs) |
 |---|---|---|
-| `app` | 4,173,136 | 42db6f1051152d002353b0b66bc167f88e3fc2a7536513810dbb59918850ef86 |
-| `libapp_ffi.a` | 73,436,056 | d77af8d17a6f18c76c9bb2aa4ca66513e1230afd39d205c294c02bd20bfe3add |
-| `App.app/Contents/MacOS/App` | 10,355,040 | ff68477e205ed3ad1e8701a657269fde754d474778c98df9a68c93bfc697c592 |
-| `App.app/Contents/Resources/Assets.car` | 189,288 | 84b28129a34f2e05… |
-| `App.app/Contents/_CodeSignature/CodeResources` | 5,532 | 288ce3f51086a3c2… |
+| `larsal` | 4,173,136 | 42db6f1051152d002353b0b66bc167f88e3fc2a7536513810dbb59918850ef86 |
+| `liblarsal_ffi.a` | 73,436,056 | d77af8d17a6f18c76c9bb2aa4ca66513e1230afd39d205c294c02bd20bfe3add |
+| `Larsal.app/Contents/MacOS/Larsal` | 10,355,040 | ff68477e205ed3ad1e8701a657269fde754d474778c98df9a68c93bfc697c592 |
+| `Larsal.app/Contents/Resources/Assets.car` | 189,288 | 84b28129a34f2e05… |
+| `Larsal.app/Contents/_CodeSignature/CodeResources` | 5,532 | 288ce3f51086a3c2… |
 
 The other 18 files are Info.plist, PkgInfo, the fonts and their licenses, `LICENSES.md`, `BUILDINFO`, `THIRD-PARTY-NOTICES.md` (2caa0f86…), `sbom.cdx.json` (c479bd6b…) and `rust-std-COPYRIGHT.html`. All are equal.
 
-`app` and App equal Checker 1's hashes from an hour earlier (42db6f10…, ff68477e…). `libapp_ffi.a` does not (a4260638… then), because other agents have edited app-ffi since. Only two runs of the same source are compared here.
+`larsal` and Larsal equal Checker 1's hashes from an hour earlier (42db6f10…, ff68477e…). `liblarsal_ffi.a` does not (a4260638… then), because other agents have edited larsal-ffi since. Only two runs of the same source are compared here.
 
 Signals inside the files:
 
-- **LC_UUID.** App FCC25568-FDE7-3D4B-B58C-CD0A9EC6161C, `app` E9BFA650-8070-345A-A847-27991CCEC6D2, the same in both runs. These are the values that changed with the path length in Checker 1's first round.
-- **Archive dates.** `ar -tv libapp_ffi.a`: every member is dated 1970-01-01 (`ZERO_AR_DATE`).
-- **Signature.** `codesign --verify --strict` passes on both App.app copies, and `codesign -dv` shows `Signature=adhoc` with no team.
+- **LC_UUID.** Larsal FCC25568-FDE7-3D4B-B58C-CD0A9EC6161C, `larsal` E9BFA650-8070-345A-A847-27991CCEC6D2, the same in both runs. These are the values that changed with the path length in Checker 1's first round.
+- **Archive dates.** `ar -tv liblarsal_ffi.a`: every member is dated 1970-01-01 (`ZERO_AR_DATE`).
+- **Signature.** `codesign --verify --strict` passes on both Larsal.app copies, and `codesign -dv` shows `Signature=adhoc` with no team.
 - **Info.plist.** It records only the toolchain (DTXcode 2700, DTSDKBuild 26A425, BuildMachineOSBuild 25G5057c). No path, user or time is in it.
 
 ## Leak check
 
-- `strings -a <file> | grep -cE '/Users/|josephilhan|e14s4|app-repro|/tmp/|/private/|verify-a|longer-path'` gave 0 for `app` and App in both runs. For `libapp_ffi.a` it gave 1 in both runs, a false positive: the hit is `/cargo/registry/src/index.crates.io-…/serde_core-1.0.229/src/private/doc.rs`, a file inside that crate.
-- `grep -rlaE 'josephilhan|/Users/|e14s4|app-repro|longer-path'` over each whole output folder, excluding `xcodebuild.log` and `BUILDINFO`, gave 0 files. BUILDINFO records `Build path: /private/tmp/app-repro` on purpose, as Debian's `.buildinfo` does.
+- `strings -a <file> | grep -cE '/Users/|josephilhan|e14s4|larsal-repro|/tmp/|/private/|verify-a|longer-path'` gave 0 for `larsal` and Larsal in both runs. For `liblarsal_ffi.a` it gave 1 in both runs, a false positive: the hit is `/cargo/registry/src/index.crates.io-…/serde_core-1.0.229/src/private/doc.rs`, a file inside that crate.
+- `grep -rlaE 'josephilhan|/Users/|e14s4|larsal-repro|longer-path'` over each whole output folder, excluding `xcodebuild.log` and `BUILDINFO`, gave 0 files. BUILDINFO records `Build path: /private/tmp/larsal-repro` on purpose, as Debian's `.buildinfo` does.
 - The crate paths left in the binaries for panic messages read `/cargo/registry/src/…` and `/rustc/<commit>/…`, the fixed names of LD-222.
 
 ## Bill of materials against cargo metadata
 
-`sbom.cdx.json` has 155 components: 153 crates, `uniffi_bindgen` (its templates are App's Swift glue) and the Rust standard library. I checked it two ways, neither of them `cargo tree`, which is what the script uses.
+`sbom.cdx.json` has 155 components: 153 crates, `uniffi_bindgen` (its templates are Larsal's Swift glue) and the Rust standard library. I checked it two ways, neither of them `cargo tree`, which is what the script uses.
 
-1. **Upper bound: `cargo metadata`'s resolve graph.** I walked `cargo metadata --locked --filter-platform aarch64-apple-darwin` (and again with `--features app-ffi/net`) from `app-cli` and `app-ffi`. The walk follows normal edges only and does not descend into proc macros. It reached 186 crates, and every SBOM component is among them except the standard library, which is not a cargo package. So no dev-only crate is listed. The walk has 32 crates the SBOM leaves out, because `cargo metadata` unifies features across the whole workspace and its dev-dependencies, while the script builds each product in its own cargo run:
-   - 10 are in App's own tree only under the `uniffi_macros` proc macro, which runs at build time: camino, fs-err, serde_spanned, siphasher, toml, toml_datetime, toml_parser, toml_writer, uniffi_meta, winnow. `cargo tree -p app-ffi --features net -i <crate>` shows each one.
+1. **Upper bound: `cargo metadata`'s resolve graph.** I walked `cargo metadata --locked --filter-platform aarch64-apple-darwin` (and again with `--features larsal-ffi/net`) from `larsal-cli` and `larsal-ffi`. The walk follows normal edges only and does not descend into proc macros. It reached 186 crates, and every SBOM component is among them except the standard library, which is not a cargo package. So no dev-only crate is listed. The walk has 32 crates the SBOM leaves out, because `cargo metadata` unifies features across the whole workspace and its dev-dependencies, while the script builds each product in its own cargo run:
+   - 10 are in Larsal's own tree only under the `uniffi_macros` proc macro, which runs at build time: camino, fs-err, serde_spanned, siphasher, toml, toml_datetime, toml_parser, toml_writer, uniffi_meta, winnow. `cargo tree -p larsal-ffi --features net -i <crate>` shows each one.
    - 18 are in neither product's own resolution. `cargo tree -i <crate>` for each product prints "did not match any packages". They are uniffi's generator, which the `uniffi-bindgen` workspace member turns on, and `cargo tree -p uniffi-bindgen -i <crate>` finds each one: askama, askama_macros, cargo-platform, cargo_metadata, clap_derive, glob, goblin, minimal-lexical, nom, plain, scroll, scroll_derive, semver, smawk, strsim, textwrap, uniffi_udl, weedle2.
    - 4 are edges that `cargo metadata`'s graph lists for features that no build turns on. `cargo tree --workspace --all-features -e all --target all -i <crate>` prints "nothing to print" for each:
      - des, zlib-rs and unicode-width are optional dependencies whose feature is off on the parent's own node: ssh-cipher has no `tdes`, flate2 no `zlib-rs`, textwrap no `unicode-width`.
      - time-macros: metadata marks `time`'s `macros` feature on, but `cargo tree -e features` over the whole workspace with every feature shows only `alloc`, `default` and `std`. The shipped `time` (through zxcvbn) has the same three.
 
-   The same unification is why the walk also puts clap, clap_builder, clap_lex and anstyle in App.app. `cargo tree -p app-ffi --features net -i clap` finds no clap, and the binaries agree (see 2).
-2. **Lower bound: what is inside the binaries.** I took every `/cargo/registry/src/<index>/<crate>-<version>` path from `strings -a` of each shipped binary. Those are the crates whose code is linked. `app` holds 30, `libapp_ffi.a` 81 and App 68. Every one of them is in the SBOM with that product in its `app:ships-in` property. None of the 32 left-out crates has code in any binary, and clap_builder and clap_lex appear only in `app`.
+   The same unification is why the walk also puts clap, clap_builder, clap_lex and anstyle in Larsal.app. `cargo tree -p larsal-ffi --features net -i clap` finds no clap, and the binaries agree (see 2).
+2. **Lower bound: what is inside the binaries.** I took every `/cargo/registry/src/<index>/<crate>-<version>` path from `strings -a` of each shipped binary. Those are the crates whose code is linked. `larsal` holds 30, `liblarsal_ffi.a` 81 and Larsal 68. Every one of them is in the SBOM with that product in its `larsal:ships-in` property. None of the 32 left-out crates has code in any binary, and clap_builder and clap_lex appear only in `larsal`.
 
 The SBOM sits between the two bounds, and the only crates it leaves out are build-time ones.
 
@@ -81,7 +81,7 @@ Other fields:
 
 - **Checksums.** Every crates.io component's SHA-256 equals its `Cargo.lock` checksum, and its purl is `pkg:cargo/<name>@<version>`.
 - **Vendored crates.** Both vendored crates (`vendor/zxcvbn` 3.1.1, `vendor/ssh-key` 0.7.0-rc.11) carry `pedigree` with the upstream purl and no checksum, and both are in the notices table.
-- **App's own crates.** They have no license entry (D2, the owner's).
+- **Larsal's own crates.** They have no license entry (D2, the owner's).
 
 ## Third-party notices against the crates' own files
 
@@ -94,13 +94,13 @@ Other fields:
 
 ## Run check
 
-- `app --version` from run A printed `0.1.0`, rc=0.
-- App.app was not launched, so no window could reach the owner's screen (rule 10). Its executable is byte-identical to the one Checker 1 built.
+- `larsal --version` from run A printed `0.1.0`, rc=0.
+- Larsal.app was not launched, so no window could reach the owner's screen (rule 10). Its executable is byte-identical to the one Checker 1 built.
 
 ## Not covered (no change to the verdict)
 
 - **Other toolchain or machine.** A different user account, home folder, toolchain or macOS build is not tested. BUILDINFO names what a rebuild needs, as the Reproducible Builds definition allows.
-- **Signing.** Developer ID signing and notarization (D7, E14-S3) will change the signature. The comparison then has to be made with the signature removed. Today App.app is signed ad hoc, and the two ad-hoc signatures are equal.
+- **Signing.** Developer ID signing and notarization (D7, E14-S3) will change the signature. The comparison then has to be made with the signature removed. Today Larsal.app is signed ad hoc, and the two ad-hoc signatures are equal.
 - **x86_64 slice.** It waits for E14-S3.
 - **Schema.** The SBOM is not validated against the official CycloneDX 1.6 schema, because that needs a download.
 - **One run at a time.** The script uses one fixed folder, so only one run can happen on this Mac at a time.
@@ -109,5 +109,5 @@ Other fields:
 ## Cleanup
 
 - I stopped the `ibtoold` daemons by PID after checking that their environment named my copy: 45898 and 45899 after run A, and 55170 and 55944 after run B. I left 46312 and 46313 running, because their working folder was `/tmp/e13s6g-verify-copy`, another agent's.
-- All my `/tmp/e14s4-verify*` folders and logs are deleted, and `/private/tmp/app-repro` does not exist.
+- All my `/tmp/e14s4-verify*` folders and logs are deleted, and `/private/tmp/larsal-repro` does not exist.
 - `scripts/check.sh` was not run.

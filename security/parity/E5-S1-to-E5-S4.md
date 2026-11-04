@@ -6,7 +6,7 @@ Role: Verify (no reference access needed; none used).
 Supersedes: security/parity/E5-S1-shell.md, which proved the withdrawn Tauri shell (LD-155, LD-156).
 
 Result:
-- **E5-S1: signed.** check.sh PASS with the Swift steps; AT-E08; no WebKit; cargo deny; 0 hand-written `unsafe` in app-ffi; 17 of 17 APP-09 cases, plus M09-01, 02, 04, 05, 09 by hand on the Release binary; Release signature has the hardened runtime and no `get-task-allow`. Needs a visible window: AT-E08 on a Release app after its window exists (N4).
+- **E5-S1: signed.** check.sh PASS with the Swift steps; AT-E08; no WebKit; cargo deny; 0 hand-written `unsafe` in larsal-ffi; 17 of 17 APP-09 cases, plus M09-01, 02, 04, 05, 09 by hand on the Release binary; Release signature has the hardened runtime and no `get-task-allow`. Needs a visible window: AT-E08 on a Release app after its window exists (N4).
 - **E5-S2: signed.** AT-E03 over all 30 exports; AT-E07 on four demo vaults; Show gives one value; Copy is the stub; API.md lists every export. Notes N1 (F-057) and N3, not blocking.
 - **E5-S3: signed.** APP-06 messages through the session (15 cases) and the screen model; AT-D05 as far as it can be proven without a window. Needs a visible window: AT-D05's keystroke-tap test (N4).
 - **E5-S4: signed on re-check (2026-10-28).** The first run failed AT-E06 on F-056; the lead fixed it (LD-165), and the re-check at the end of this file proves the fix. Search, AT-E01, AT-E02, the key file drop and live codes all pass.
@@ -15,18 +15,18 @@ Result:
 ## Setup
 
 - `. "$HOME/.cargo/env"`; Xcode tools with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
-- Debug: `scripts/check.sh` runs `scripts/build-core.sh` and builds `target/xcode/.../Debug/App.app`.
+- Debug: `scripts/check.sh` runs `scripts/build-core.sh` and builds `target/xcode/.../Debug/Larsal.app`.
 - Release:
   - `scripts/build-core.sh --release`: prints `build-core (release)`.
-  - Then `xcodebuild -project macos/App.xcodeproj -scheme App -configuration Release -destination platform=macOS -derivedDataPath /tmp/verify-e5/xcode-release build SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: `** BUILD SUCCEEDED **`.
-  - Afterwards `scripts/build-core.sh` (debug) was run again, so `target/app-core` is the debug core, as check.sh leaves it.
+  - Then `xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -configuration Release -destination platform=macOS -derivedDataPath /tmp/verify-e5/xcode-release build SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: `** BUILD SUCCEEDED **`.
+  - Afterwards `scripts/build-core.sh` (debug) was run again, so `target/larsal-core` is the debug core, as check.sh leaves it.
 - Screen rule (AGENTS.md rule 10): no window was shown.
-  - Debug app runs used `APP_TEST_HIDDEN` with their own instance folder.
+  - Debug app runs used `LARSAL_TEST_HIDDEN` with their own instance folder.
   - Every Release run ended before step 10 (the window): flags, a lock request, a secondary, or a primary held at the F06 prompt.
   - The SwiftUI probe used a borderless window at -20000,-20000 that was never ordered front, with activation policy `.prohibited`.
 - Processes: each one was started by a script and stopped by its PID. The final line of each script run: `all started processes ended: True`.
 - Probe tests:
-  - `/tmp/verify-e5/probe/verify_e5.rs` (7 tests) was copied into `crates/app-ffi/tests/` only for each run, then removed. `ls crates/app-ffi/tests` shows the 4 original files.
+  - `/tmp/verify-e5/probe/verify_e5.rs` (7 tests) was copied into `crates/larsal-ffi/tests/` only for each run, then removed. `ls crates/larsal-ffi/tests` shows the 4 original files.
   - The scripts are `/tmp/verify-e5/scripts/runs.py` and `/tmp/verify-e5/probe/secure/main.swift`.
   - No product file was changed. Files written: this file, two rows in `security/findings.md`, the superseded note in `security/parity/E5-S1-shell.md`, and the status lines in `plan/epics.md`.
 - Demo vaults only: testdata/ (passwords in testdata/README.md).
@@ -47,16 +47,16 @@ Overall ........... PASS
 ```
 
 - The Swift steps are in G1 (`swift-format`, `swiftlint`: both logs empty, so they passed) and G2:
-  - `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift`;
+  - `build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift`;
   - `xcode-test`: `Test run with 13 tests in 6 suites passed`, `** TEST SUCCEEDED **`;
   - `app09`: `test result: ok. 17 passed; 0 failed`.
 - `cargo audit`: one allowed warning, RUSTSEC-2026-0374 (`basic-toml`, generator only, LD-157 (3)).
 
-### No hand-written unsafe in app-ffi (Rust rule 2)
+### No hand-written unsafe in larsal-ffi (Rust rule 2)
 
-- `target/check/unsafe.log` (cargo-geiger, one run per crate): `app-ffi: 0 unsafe`. The check accepts that line only with `forbids_unsafe` true.
-- `crates/app-ffi/src/lib.rs` line 4: `#![forbid(unsafe_code)]`.
-- Only `app-platform` has `unsafe` (52; reviewed by two Checkers, E5-S1 pass B).
+- `target/check/unsafe.log` (cargo-geiger, one run per crate): `larsal-ffi: 0 unsafe`. The check accepts that line only with `forbids_unsafe` true.
+- `crates/larsal-ffi/src/lib.rs` line 4: `#![forbid(unsafe_code)]`.
+- Only `larsal-platform` has `unsafe` (52; reviewed by two Checkers, E5-S1 pass B).
 
 ### cargo deny
 
@@ -64,7 +64,7 @@ Overall ........... PASS
 
 ### No WebKit (`otool -L`)
 
-- Release binary `/tmp/verify-e5/xcode-release/Build/Products/Release/App.app/Contents/MacOS/App`, linked libraries:
+- Release binary `/tmp/verify-e5/xcode-release/Build/Products/Release/Larsal.app/Contents/MacOS/Larsal`, linked libraries:
   - frameworks: Foundation, AppKit, Carbon, CoreFoundation, CoreGraphics, CoreText, CoreTransferable, SwiftUI, SwiftUICore;
   - libraries: libobjc, libSystem and the Swift runtime libraries.
   - `otool -L … | grep -ci webkit` gives `0`.
@@ -78,7 +78,7 @@ Overall ........... PASS
 ### Codesign of the Release build
 
 ```
-Identifier=com.app.desktop
+Identifier=app.larsal.desktop
 Format=app bundle with Mach-O thin (arm64)
 CodeDirectory v=20500 size=14544 flags=0x10002(adhoc,runtime) hashes=448+3 location=embedded
 Runtime Version=27.0.0
@@ -94,21 +94,21 @@ codesign --verify --deep --strict: valid on disk; satisfies its Designated Requi
 **Debug app, hidden, fully started.** The delegate has run and the channel answers. The vault `option-a-personal` was unlocked through F06 with its demo password.
 
 ```
--rw-------  com.app.desktop-debug.lock
-srw-------  com.app.desktop-debug.sock      socket mode: srw------- josephilhan; folder: drwx------
+-rw-------  app.larsal.desktop-debug.lock
+srw-------  app.larsal.desktop-debug.sock      socket mode: srw------- josephilhan; folder: drwx------
 lsof -nP -p 44289: fds=29 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=1
-  App 44289 josephilhan 4u unix 0xa8c69fba54425307 0t0 /tmp/verify-e5/inst-debug/com.app.desktop-debug.sock
+  Larsal 44289 josephilhan 4u unix 0xa8c69fba54425307 0t0 /tmp/verify-e5/inst-debug/app.larsal.desktop-debug.sock
 lsof -nP -a -i -p 44289 (any internet socket): (empty)
 netstat tcp/udp lines naming pid 44289: (none)
-netstat -anv -f unix: a8c69fba54425307 stream … App:44289 … /tmp/verify-e5/inst-debug/com.app.desktop-debug.sock
+netstat -anv -f unix: a8c69fba54425307 stream … Larsal:44289 … /tmp/verify-e5/inst-debug/app.larsal.desktop-debug.sock
 ```
 
 **Release primary, held at the F06 prompt.** It runs from step 7 (lock and listener) and has not reached step 10 (window). It uses the real per-user folder from the OS.
 
 ```
-socket: srw------- … /var/folders/95/…/T/com.app.desktop.sock; folder: drwx------ josephilhan
+socket: srw------- … /var/folders/95/…/T/app.larsal.desktop.sock; folder: drwx------ josephilhan
 lsof -nP -p 85845: fds=9 IPv4=0 IPv6=0 TCP=0 UDP=0 LISTEN=0 unix=1
-  App 85845 josephilhan 4u unix 0x80e0dfe57a9efc85 0t0 /var/folders/95/…/T/com.app.desktop.sock
+  Larsal 85845 josephilhan 4u unix 0x80e0dfe57a9efc85 0t0 /var/folders/95/…/T/app.larsal.desktop.sock
 lsof -nP -a -i -p 85845: (empty)      netstat tcp/udp naming pid 85845: (none)
 ```
 
@@ -118,19 +118,19 @@ lsof -nP -a -i -p 85845: (empty)      netstat tcp/udp naming pid 85845: (none)
 
 ### APP-09: the 17 cases, and by hand on the Release binary
 
-- `cargo test -p app-ffi --test app09` (in check.sh): 17 passed. Each case runs the built Debug App.app hidden:
+- `cargo test -p larsal-ffi --test app09` (in check.sh): 17 passed. Each case runs the built Debug Larsal.app hidden:
   - 2_a, 2_b, 3_a, 3_b, 4_a, 8_a, 8_b;
   - 9_a, 10_ab, 10_c, 11_a, 11_b;
   - 12_a, 13_abc, 16_a, 27_a, 27_b.
 - The same cases by hand on the hidden Debug app (runs.py debug):
 
 ```
-M09-09 --bogus: exit 1, stderr 'Unknown flag: --bogus. Run App --help for the list of flags.'
-M09-04 --lock, no instance: exit 0, 'App is not running. There is no open vault to lock.'
-M09-01 activate (no args): exit 0, 'App is already running. The request was passed to it.'
-M09-01 open (a file): exit 0, 'App is already running. The request was passed to it.'
+M09-09 --bogus: exit 1, stderr 'Unknown flag: --bogus. Run Larsal --help for the list of flags.'
+M09-04 --lock, no instance: exit 0, 'Larsal is not running. There is no open vault to lock.'
+M09-01 activate (no args): exit 0, 'Larsal is already running. The request was passed to it.'
+M09-01 open (a file): exit 0, 'Larsal is already running. The request was passed to it.'
 M09-02 --lock: exit 0, 'All open vaults were locked.'
-M09-05 activate, primary stopped (SIGSTOP): exit 1, 1.01 s, 'The running copy of App does not answer. Quit it and try again.'
+M09-05 activate, primary stopped (SIGSTOP): exit 1, 1.01 s, 'The running copy of Larsal does not answer. Quit it and try again.'
 M09-05 --lock, primary stopped: exit 1, 1.01 s, same text
 primary SIGTERM -> exit 0
 ```
@@ -140,16 +140,16 @@ On the Release binary (runs.py release).
 - M09-05 also ran against the real Release primary held at the F06 prompt.
 
 ```
-M09-09 --bogus: exit 1, 'Unknown flag: --bogus. Run App --help for the list of flags.'
-M09-09 --key-file without value: exit 1, 'The flag --key-file needs a value. Run App --help for the list of flags.'
-M09-04 --lock, no instance: exit 0, 'App is not running. There is no open vault to lock.'
-M09-04 --lock with APP_TEST_* set: exit 0, same text (Release ignores the debug variables)
+M09-09 --bogus: exit 1, 'Unknown flag: --bogus. Run Larsal --help for the list of flags.'
+M09-09 --key-file without value: exit 1, 'The flag --key-file needs a value. Run Larsal --help for the list of flags.'
+M09-04 --lock, no instance: exit 0, 'Larsal is not running. There is no open vault to lock.'
+M09-04 --lock with LARSAL_TEST_* set: exit 0, same text (Release ignores the debug variables)
 stand-in answers {"ok":true}:  activate exit 0 M09-01; open exit 0 M09-01; --lock exit 0 'All open vaults were locked.' (M09-02)
-  requests: {"v":1,"cmd":"activate"}, {"v":1,"cmd":"open","paths":["/Users/…/testdata/rich-v4.appvault"]}, {"v":1,"cmd":"lock"}
+  requests: {"v":1,"cmd":"activate"}, {"v":1,"cmd":"open","paths":["/Users/…/testdata/rich-v4.larsalvault"]}, {"v":1,"cmd":"lock"}
 stand-in answers {"ok":false}: activate 0 M09-01; open 0 M09-01; --lock exit 1 'The vaults could not be locked.' (M09-03)
 stand-in never answers:        activate, open, --lock: exit 1 after 1.01 s, M09-05
 real Release primary at the F06 prompt: activate exit 1 (1.02 s) M09-05; --lock exit 1 (1.01 s) M09-05
--v: 'App 0.1.0'; --debug-info: 'Build type: release … Web engine: none … Debugging mode: off' (no path)
+-v: 'Larsal 0.1.0'; --debug-info: 'Build type: release … Web engine: none … Debugging mode: off' (no path)
 ```
 
 Hostile process arguments for `start()` (debug, hidden). No panic in any case:
@@ -173,12 +173,12 @@ Hostile process arguments for `start()` (debug, hidden). No panic in any case:
 
 ### API.md lists every export
 
-- The generated bindings (`target/app-core/Swift/AppCore.swift`) export these.
+- The generated bindings (`target/larsal-core/Swift/LarsalCore.swift`) export these.
   - Free functions: `coreIsDebug coreVersion launchHidden vaultLook launchFinished openFiles start`.
   - `Session` methods: `init() shared() vaults open switchTo unlock approveUnlock cancelUnlock checkHeader takeMessage takeBanner lock lockAll close sidebar list entry showField copyField rate search codes totp`.
-  - `AppEvents`: `bringToFront sessionChanged`.
-- Every one is a row in `crates/app-ffi/API.md`, with inputs, output, errors and secret. A script over API.md found every function name.
-- Every type has a row too: `Launch AppEvents Session AppError VaultInfo VaultLook UnlockResult UnlockMessage ListView Sidebar GroupRow TagRow EntryList EntryRow EntryKind Rating SearchHits PasskeyView SshKeyView EntryDetail FieldView AttachmentView TotpView`. The one exception is `FieldKind` (N3).
+  - `LarsalEvents`: `bringToFront sessionChanged`.
+- Every one is a row in `crates/larsal-ffi/API.md`, with inputs, output, errors and secret. A script over API.md found every function name.
+- Every type has a row too: `Launch LarsalEvents Session LarsalError VaultInfo VaultLook UnlockResult UnlockMessage ListView Sidebar GroupRow TagRow EntryList EntryRow EntryKind Rating SearchHits PasskeyView SshKeyView EntryDetail FieldView AttachmentView TotpView`. The one exception is `FieldKind` (N3).
 - In the Rust source, the `#[uniffi::export]` items are exactly these 30 functions:
   - lib.rs: 3;
   - start.rs: `start`, `launch_finished`, `open_files`;
@@ -231,12 +231,12 @@ No protected value in any view (probes `verify_at_e07_*`, all ok). The search co
 It was run before and after `rate` (rows, detail and sidebar then carry ratings). Ids are stripped. It looks for every protected value (entries and history) and every attachment line of 6 or more characters:
 
 ```
-AT-E07 rich-v4.appvault before rating: 10 entries, 15813 view bytes, 12 protected values, 2 attachment lines, hits []
-AT-E07 rich-v4.appvault after rating: 10 entries, 18558 view bytes, 12 protected values, 2 attachment lines, hits []
-AT-E07 option-a-personal.appvault before rating: 25 entries, 57671 view bytes, 33 protected values, 4 attachment lines, hits []
-AT-E07 option-a-personal.appvault after rating: 25 entries, 77179 view bytes, 33 protected values, 4 attachment lines, hits []
-AT-E07 rich-v3.appvault before/after rating: 10 entries, 12 protected values, hits [] / hits []
-AT-E07 big-10000.appvault before/after rating: 10000 entries, 13563180 / 19184366 view bytes, 10000 protected values, hits [] / hits []
+AT-E07 rich-v4.larsalvault before rating: 10 entries, 15813 view bytes, 12 protected values, 2 attachment lines, hits []
+AT-E07 rich-v4.larsalvault after rating: 10 entries, 18558 view bytes, 12 protected values, 2 attachment lines, hits []
+AT-E07 option-a-personal.larsalvault before rating: 25 entries, 57671 view bytes, 33 protected values, 4 attachment lines, hits []
+AT-E07 option-a-personal.larsalvault after rating: 25 entries, 77179 view bytes, 33 protected values, 4 attachment lines, hits []
+AT-E07 rich-v3.larsalvault before/after rating: 10 entries, 12 protected values, hits [] / hits []
+AT-E07 big-10000.larsalvault before/after rating: 10000 entries, 13563180 / 19184366 view bytes, 10000 protected values, hits [] / hits []
 ```
 
 - Existing test `session.rs::e5_s2_views_carry_no_protected_value` ok.
@@ -246,7 +246,7 @@ AT-E07 big-10000.appvault before/after rating: 10000 entries, 13563180 / 1918436
   - Show and Copy refuse the one-time password fields (`otp`, `TOTP Seed`, `TOTP Settings`, `TimeOtp-*`): `at_e03_hostile_arguments`.
 - **Copy is the stub.**
   - Rust `copy_field` checks its arguments and returns `NotAvailable` (views.rs `copy_field`; 24 of 24 above).
-  - The Swift side never calls `copyField` and never touches `NSPasteboard` (grep over `macos/App`: 0 hits).
+  - The Swift side never calls `copyField` and never touches `NSPasteboard` (grep over `macos/Larsal`: 0 hits).
   - Each Copy control is disabled with the hint "Copy comes with the clipboard (E6-S1): the value stays in the Rust core." (`Controls.swift` `Later.copy`).
 - **Swift state is cleared.** `ScreenTests` "APP-06.11, AT-E07: the password field clears when an unlock starts; Hide, entry change, lock drop shown values" passed (check.sh xcode-test). It checks:
   - Hide: `shown` is empty;
@@ -265,14 +265,14 @@ Probe `verify_app06_messages_through_the_session` ok. Each line is a real unlock
 ```
 M06-05 "Enter the password for this vault."                                  (no credentials)
 M06-06 "Wrong password, key file or security key. Check them and try again." (wrong password; empty password; wrong key file)
-M06-07 The key file "empty.appkey" is empty. Choose the right key file.
-M06-09 The key file "mismatch.appkey" is damaged: its built-in check failed. …  (XML v2 key file, one hex digit of its check changed)
-M06-11 The key file "missing.appkey" cannot be found. Choose it again.
-M06-12 App is not allowed to read the key file "noaccess.appkey". …           (mode 000)
+M06-07 The key file "empty.larsalkey" is empty. Choose the right key file.
+M06-09 The key file "mismatch.larsalkey" is damaged: its built-in check failed. …  (XML v2 key file, one hex digit of its check changed)
+M06-11 The key file "missing.larsalkey" cannot be found. Choose it again.
+M06-12 Larsal is not allowed to read the key file "noaccess.larsalkey". …           (mode 000)
 M06-14 "…" is a folder or a special file. Choose a normal file as the key file. (a folder; a FIFO; /dev/zero)
-M06-15 App does not accept the key file "dtd.appkey" because it declares a document type. …
+M06-15 Larsal does not accept the key file "dtd.larsalkey" because it declares a document type. …
 M06-30 This is the vault file itself, so it cannot also be its key file. …
-M06-24 "gone.appvault" cannot be found. It may have been moved, renamed or deleted. …  (vault removed after it was opened)
+M06-24 "gone.larsalvault" cannot be found. It may have been moved, renamed or deleted. …  (vault removed after it was opened)
 M06-01 "README.md" is not a vault file. Open the file that holds your vault.   (before Unlock, APP-06.3)
 right key file: Unlocked
 ```
@@ -285,8 +285,8 @@ right key file: Unlocked
 ### AT-D05 Keystroke tap: proven without a window, live test waits
 
 - The password field is a SwiftUI `SecureField` (`UnlockView.swift` line 186).
-- When the user shows the password, it becomes a `TextField`, and App turns on secure input itself while that field has focus. `UnlockView.swift` lines 49 to 51 call `SecureInput.set(focus == .password && model.reveal)`, and call it off on disappear.
-- Offscreen probe (`/tmp/verify-e5/probe/secure/main.swift`, compiled with App's own `Platform/SecureInput.swift`; Swift 6, main actor):
+- When the user shows the password, it becomes a `TextField`, and Larsal turns on secure input itself while that field has focus. `UnlockView.swift` lines 49 to 51 call `SecureInput.set(focus == .password && model.reveal)`, and call it off on disappear.
+- Offscreen probe (`/tmp/verify-e5/probe/secure/main.swift`, compiled with Larsal's own `Platform/SecureInput.swift`; Swift 6, main actor):
 
 ```
 secure event input before (system-wide): false
@@ -299,10 +299,10 @@ makeFirstResponder(SecureField) in the offscreen window: true
 secure event input with the SecureField first responder (window never key): false
 ```
 
-- So App's `SecureInput` turns secure event input on and off.
+- So Larsal's `SecureInput` turns secure event input on and off.
 - A SwiftUI `SecureField` on macOS is an `NSSecureTextField`. AppKit turns on secure event input for it only while it is first responder in the key window, which is why the last line reads false in a window that is never key.
 - **Not provable now:** the keystroke-tap test itself (a demo event-tap logger running while the master password is typed). It needs:
-  - a visible, key App window with the field focused;
+  - a visible, key Larsal window with the field focused;
   - Input Monitoring permission for the logger;
   - typed keys.
 - That is for Mac QA with the owner's go (AGENTS.md rule 10).
@@ -313,7 +313,7 @@ secure event input with the SecureField first responder (window never key): fals
 
 - `ScreenTests` "FEA-01.34: a search on big-10000 updates the list in under 50 ms, before and after rating" passed: `FEA-01.34 search worst: 0.016496834 seconds before rating, 0.016937917 seconds after rating`.
 - That is the worst of 6 queries: `Entry 0999`, `user01 -Entry`, `t:Entry u:user0 9 99 999`, `*t:^Entry 1`, `zzz`, `e`. Each is timed from the Rust call to the sorted sections. The Debug app runs with the optimized core (LD-161).
-- Rust: `session.rs::fea01_34_search_speed_on_big_10000` and app-core `fea01_34_speed_10000_entries` ok. `option_a.rs::typed_is_weak_matches_the_weak_view` and `search_returns_ids_of_all_rows` ok.
+- Rust: `session.rs::fea01_34_search_speed_on_big_10000` and larsal-core `fea01_34_speed_10000_entries` ok. `option_a.rs::typed_is_weak_matches_the_weak_view` and `search_returns_ids_of_all_rows` ok.
 
 ### AT-E01 Vault text is plain text
 
@@ -323,23 +323,23 @@ secure event input with the SecureField first responder (window never key): fals
 - The lint rule `no_markdown_text` (macos/.swiftlint.yml, severity error). Probe file `/tmp/verify-e5/lint/Probe.swift` linted with the project config, `--strict`:
   - refused, exit 2: `Text("Title: \(title)")` at line 8, `AttributedString(markdown: title)` at line 9, `LocalizedStringKey(title)` at line 10;
   - accepted: `Text(verbatim: title)` and `Text(title)`.
-- A grep of `macos/App` finds no `AttributedString`, `markdown`, `LocalizedStringKey`, `Link(`, `NSAttributedString`, `openURL` or web view. It also finds no interpolated string key in `Button`, `Label`, `Toggle`, `Menu`, `help` or the accessibility modifiers.
+- A grep of `macos/Larsal` finds no `AttributedString`, `markdown`, `LocalizedStringKey`, `Link(`, `NSAttributedString`, `openURL` or web view. It also finds no interpolated string key in `Button`, `Label`, `Toggle`, `Menu`, `help` or the accessibility modifiers.
 
 ### AT-E02 Only http and https open
 
 - `URLOpenerTests` "AT-E02: only http and https with a host are opened" passed.
   - 4 links allowed.
-  - 22 refused, among them `javascript:` (with case, leading space, tab), `file:///`, `file://localhost`, `data:`, `javascript://example.com/%0A…`, `data://`, `vbscript:`, `about:`, `ftp:`, `ssh:`, `cmd:`, `mailto:`, `app:`, `https://` with no host, `http:/`, a bare host and `//host`.
+  - 22 refused, among them `javascript:` (with case, leading space, tab), `file:///`, `file://localhost`, `data:`, `javascript://example.com/%0A…`, `data://`, `vbscript:`, `about:`, `ftp:`, `ssh:`, `cmd:`, `mailto:`, `larsal:`, `https://` with no host, `http:/`, a bare host and `//host`.
   - The test never calls the real opener.
 - The only `NSWorkspace.shared.open` in the app is `URLOpener.swift` line 24, after `allowed`. Its callers: `Menus.swift` line 61 and `RailView.swift` lines 47 and 94; each control is disabled when `allowed` gives nil.
 
 ### AT-E06 Drops: fails (F-056)
 
-- There are exactly 2 drop targets in `macos/App` (grep `dropDestination|onDrop`).
+- There are exactly 2 drop targets in `macos/Larsal` (grep `dropDestination|onDrop`).
   1. **Key file row** (`UnlockView.swift` lines 303 to 307). It takes the first dropped file URL as the key file; links are refused (`FileOpen.paths` keeps file URLs only). LD-163 (2) allows it. `ScreenTests` "LD-163 (2): the key file row takes a dropped file and clears with Remove Key File" passed.
   2. **Welcome card** (`WelcomeView.swift` lines 67 to 71). Links are refused. **Every dropped file is opened**: `FileOpen.paths(urls)`, then `window.open(path)`, with no extension check.
      - A `notes.txt` becomes a locked vault in the session with an unlock screen. `session.rs::app06_3_header_look` shows that `README.md` opens this way and reads M06-01.
-     - APP-09.26 (D-APP09-7, LD-153) and AT-E06 say a window drop opens only `.appvault` and the reference's vault extension; every other drop is refused. The case is APP-09.26-a: "`notes.txt` refused, nothing opened".
+     - APP-09.26 (D-APP09-7, LD-153) and AT-E06 say a window drop opens only `.larsalvault` and the reference's vault extension; every other drop is refused. The case is APP-09.26-a: "`notes.txt` refused, nothing opened".
      - Nothing runs; the file is read only for the header check. Severity Low.
 - Also not built: a vault-file drop while a vault is shown (the first half of APP-09.26-a). No drop target exists there, so the drop is refused, which is safe. It is listed open in the E5-S4 status line; LD-153 places APP-09.26 with E5-S2.
 - Text fields (search, password) take dropped text as typed text, the standard behaviour; nothing opens.
@@ -358,21 +358,21 @@ secure event input with the SecureField first responder (window never key): fals
 ## Findings and notes
 
 **F-056 (Low, fails AT-E06; blocks the E5-S4 sign-off): the welcome drop opens any file.**
-- Where: `macos/App/WelcomeView.swift` lines 67 to 70.
-- Smallest fix: keep only paths whose extension, compared without letter case, is `appvault` or the reference's vault extension. Write that extension as bytes, for example `String(decoding: [0x6B, 0x64, 0x62, 0x78], as: UTF8.self)` (name rule). It fits as a small `FileOpen.vaultPaths(_:)` beside `FileOpen.paths`. Return false when nothing is left.
-- Test: one `PlatformTests` case where a `.txt` URL gives no path and `.appvault` / `.APPVAULT` give theirs.
+- Where: `macos/Larsal/WelcomeView.swift` lines 67 to 70.
+- Smallest fix: keep only paths whose extension, compared without letter case, is `larsalvault` or the reference's vault extension. Write that extension as bytes, for example `String(decoding: [0x6B, 0x64, 0x62, 0x78], as: UTF8.self)` (name rule). It fits as a small `FileOpen.vaultPaths(_:)` beside `FileOpen.paths`. Return false when nothing is left.
+- Test: one `PlatformTests` case where a `.txt` URL gives no path and `.larsalvault` / `.LARSALVAULT` give theirs.
 
 **N1 = F-057 (Low, not blocking): Show hands out the passkey fields when Swift asks for them by name.**
 - The detail never lists the passkey fields (MOD-01.8), so no screen path asks for them.
 - Probe `verify_show_passkey_fields` on option-a-personal: `Show of protected fields not in fields (passkey, otp): given 5, refused 1`. The 5 are passkey fields, the 1 is `otp`.
-- Where: `crates/app-ffi/src/views.rs` `check_field` (lines 984 to 992) refuses only the one-time password fields.
+- Where: `crates/larsal-ffi/src/views.rs` `check_field` (lines 984 to 992) refuses only the one-time password fields.
 - Smallest fix: also refuse `name.starts_with(PASSKEY)` (the prefix constant at line 37), as for the one-time password fields; add the case to `at_e03_hostile_arguments`.
 - API.md describes today's behaviour exactly, so this is hardening, not a broken check.
 
 **N2 (note for the card): SIGTERM at the F06 prompt.**
 - The Release primary held at the prompt ended with `exit -15` (killed by the re-raised signal, the readpassphrase pattern the Checker accepted in pass B). stdout was `Vault password: `.
 - The APP-09 exit table says "quit by SIGINT, SIGTERM, SIGQUIT → 0". That holds for the running app: the hidden Debug primary gave exit 0, and so does `app09_27_a`.
-- The card has no line for the time before the window. Proposed: add an edge case "a signal at the F06 prompt ends App by that signal after the terminal is restored".
+- The card has no line for the time before the window. Proposed: add an edge case "a signal at the F06 prompt ends Larsal by that signal after the terminal is restored".
 
 **N3 (note): API.md has no row for `FieldKind`.**
 - Its five values are listed in the `FieldView` row, so nothing is missing.
@@ -385,12 +385,12 @@ secure event input with the SecureField first responder (window never key): fals
 ## Re-check 2026-10-28 (LD-165)
 
 **F-056: verified.**
-- `macos/App/Platform/FileOpen.swift` `droppedVaults` keeps only file URLs whose extension, compared without letter case, is `appvault` or the reference's vault extension (built from bytes).
+- `macos/Larsal/Platform/FileOpen.swift` `droppedVaults` keeps only file URLs whose extension, compared without letter case, is `larsalvault` or the reference's vault extension (built from bytes).
 - `WelcomeView.swift` line 68 uses it.
-- `xcodebuild … test -only-testing:AppTests/PlatformTests`, with the fix: `✔ Test "APP-09.26-a, AT-E06: a drop opens vault files only" passed`, `** TEST SUCCEEDED **`.
+- `xcodebuild … test -only-testing:LarsalTests/PlatformTests`, with the fix: `✔ Test "APP-09.26-a, AT-E06: a drop opens vault files only" passed`, `** TEST SUCCEEDED **`.
 - Probe: `droppedVaults` reduced to `paths(urls)`. Result: `✘ … recorded an issue at PlatformTests.swift:28:9` and `:29:9` (`notes.txt` kept), `** TEST FAILED **`.
 - The file was restored (`cmp` equal) and the test re-run passed, so `target/xcode` holds the fixed build.
-- Drop targets (grep `dropDestination|onDrop|registerForDraggedTypes|NSDraggingDestination` over `macos/App`): only `WelcomeView.swift` line 67 (vault files only) and `UnlockView.swift` line 303 (the key file row: any file as key file, links refused, as LD-163 (2) designs it).
+- Drop targets (grep `dropDestination|onDrop|registerForDraggedTypes|NSDraggingDestination` over `macos/Larsal`): only `WelcomeView.swift` line 67 (vault files only) and `UnlockView.swift` line 303 (the key file row: any file as key file, links refused, as LD-163 (2) designs it).
 - Note: the test covers `droppedVaults`, not the call in `WelcomeView`. That one line was checked by reading it.
 
 **F-057: fix holds in code, not verified by its test.**
@@ -408,8 +408,8 @@ secure event input with the SecureField first responder (window never key): fals
 
 About 36 minutes of CPU in total. The longest single run was check.sh at 15.9 minutes wall.
 - `scripts/check.sh`: 1867.7 s user, 122.4 s sys, 951 s wall.
-- Probe test runs: 3 × about 20 s user, plus their app-ffi test builds.
+- Probe test runs: 3 × about 20 s user, plus their larsal-ffi test builds.
 - Release core and Release app build: 16.2 s and 27.7 s user.
 - Debug core rebuild: 0.6 s.
 - SwiftUI probe: 2 small builds.
-- App runs: each under 1 s CPU.
+- Larsal runs: each under 1 s CPU.

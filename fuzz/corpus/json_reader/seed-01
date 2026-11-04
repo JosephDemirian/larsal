@@ -1,5 +1,5 @@
 {
-  "format": "app-settings",
+  "format": "larsal-settings",
   "settings": {
     "X-99": true,
     "clipboard.clear.seconds": 45,

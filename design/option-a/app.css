@@ -1,4 +1,4 @@
-/* App · Option A component styles: fonts, tokens and every window part.
+/* Larsal · Option A component styles: fonts, tokens and every window part.
    Shared by mockup.html and the website, so both always show the same app. */
 @font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("vendor/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); }
 @font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("vendor/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); }

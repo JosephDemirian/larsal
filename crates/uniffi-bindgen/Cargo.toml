@@ -3,9 +3,9 @@ name = "uniffi-bindgen"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
-license.workspace = true
+license-file.workspace = true
 
-# UniFFI's Swift bindings generator, pinned to the same UniFFI as app-ffi
+# UniFFI's Swift bindings generator, pinned to the same UniFFI as larsal-ffi
 # (LD-156 (1)). Run by scripts/build-core.sh; never linked into the app.
 [[bin]]
 name = "uniffi-bindgen-swift"
