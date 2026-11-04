@@ -114,6 +114,9 @@ Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
 | FEA-07 | Statistics | E4-S11 |
 | FEA-08 | Import formats | E4-S13 |
 | FEA-09 | Export formats | E4-S13 |
+| FEA-10 | [Show as QR Code](features/FEA-10-show-as-qr.md) | E21-S1 (spec and proposals); E21-S2 to E21-S5 after review |
+
+Status: FEA-10 revised DRAFT 2026-11-04 (E21-S1), after fresh second Spec SEND BACK A1–A8. Revised card, nine proposed frames per theme and scoped APP-10 correction await revised Spec review then fresh independent Verify. Proposed LD-359–362 and E21-S1/S2/S4/S5 aftertexts are external and unadopted; original acceptance remains unpassed until joint recording. Functional Share, enterprise/device proof and other unproved runtime checks remain OPEN. No implementation or Done; W-18 and frame approval remain pending.
 
 ### Larsal (`spec/app/`)
 
@@ -131,7 +134,7 @@ Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
 | APP-10 | Screen protection and secure input | E6-S5 |
 | APP-11 | Process hardening | E6-S4 |
 
-Status: APP-01 to APP-11 reviewed. APP-06, APP-07 and APP-08 had their second Spec review in Sprint 3 (E1-S5), with the rulings LD-95 to LD-100 written in.
+Status: APP-01 to APP-11 previously reviewed; APP-10's scoped capture-claim correction is DRAFT in this E21-S1 revision pending revised Spec review and fresh Verify, with secure-input rules and historical evidence retained. APP-06, APP-07 and APP-08 had their second Spec review in Sprint 3 (E1-S5), with the rulings LD-95 to LD-100 written in.
 
 ### Integrations (`spec/integrations/`)
 

@@ -515,6 +515,43 @@ function brwPage({ on = ['Edge'], msg = {}, rewrite = true, master = true } = {}
 }
 const brwSettings = (o) => settingsWin({ page: 'browser' }, SETTINGS, { ...SETP, browser: () => brwPage(o) });
 
+// ---------- E21-S1 QR proposals (not approved) ----------
+// Checker patterns have no finder patterns or payload: every drawing is non-scannable.
+function e21Grid(n, points, scale, backing) {
+  let cells = '';
+  for (let y = 4; y < n - 4; y++) for (let x = 4; x < n - 4; x++) {
+    if ((x + y) % 2 === 0) cells += `M${x} ${y}h1v1h-1z`;
+  }
+  return `<svg data-e21-grid="${n}" data-e21-scale="${scale}" data-e21-backing="${backing}" width="${points}" height="${points}" viewBox="0 0 ${n} ${n}" role="img" aria-label="Layout illustration, not a valid QR code" shape-rendering="crispEdges" style="display:block;background:#fff;color:#000"><path fill="#000" d="${cells}"/></svg>`;
+}
+const e21Actions = (blocked, helpId) => `<button class="btn lg"${blocked ? ' disabled style="opacity:.55"' : ''}>Save Image…</button><button class="btn lg" disabled style="opacity:.55"${blocked ? '' : ` aria-describedby="${helpId}"`}>Share…</button><button class="btn lg primary" style="outline:2px solid var(--accent);outline-offset:2px">Done</button>`;
+// Gallery illustrations settle after font layout using layout padding, never a transform or code animation.
+const e21Align = (win) => document.fonts.ready.then(() => {
+  const svg = win.querySelector('svg[data-e21-grid]'); if (!svg || !win.isConnected) return;
+  const d = +svg.dataset.e21Backing, r = svg.getBoundingClientRect();
+  svg.parentElement.style.paddingTop = (Math.ceil(r.y * d) / d - r.y) + 'px';
+  svg.style.marginLeft = (Math.ceil(r.x * d) / d - r.x) + 'px';
+});
+function qrProposal(purpose, state = 'value') {
+  const dense = state.startsWith('dense'), two = state === 'dense-2x', size = state === 'size', entry = state === 'entry';
+  const points = dense ? (two ? 277.5 : 555) : 296;
+  const helpId = `e21-share-help-${purpose === 'Wi-Fi join code' ? 'wifi' : state}`;
+  const panel = size ? '<p class="help" role="status">Make this window larger to show the QR code.</p>'
+    : entry ? '<div style="width:296px;height:296px" aria-label="Reserved code space; code absent during chrome motion"></div>'
+    : `<div style="width:${points}px;${two ? 'margin-left:69.5px' : 'margin:auto'}">${e21Grid(dense ? 185 : 37, points, dense ? 3 : 8, two ? 2 : 1)}</div><p class="help" style="margin:12px 0 0;text-align:center">Layout illustration · not a valid QR code</p>`;
+  const body = panel + '<p class="help" style="margin:16px 0 0">Anyone who sees this code can read its contents.</p><p class="help" style="margin:4px 0 0">Screenshots and recordings may include this code.</p>'
+    + (entry || size ? '' : '<p class="help num" style="margin:12px 0 0">44 seconds until this window closes</p>')
+    + (entry || size ? '' : `<p class="help" id="${helpId}" style="margin:12px 0 0">Sharing an image is not available here. You can save the image instead.</p>`);
+  let out = dlg('--cyan', 'qr-code', 'Show as QR Code', purpose, body, e21Actions(size || entry, helpId));
+  if (state === 'dense-1x') out = out.replace('class="dlg "', 'class="dlg " style="width:599px"');
+  return out;
+}
+const qrExportWarning = (share) => dlg('--orange', 'warning', share ? 'Share a readable QR image?' : 'Save a readable QR image?',
+  'This image is not encrypted. Anyone with it can read the password or other contents. Saved or shared copies can remain after this window closes or the vault locks.',
+  share ? '<p class="help">The system or browser and the app you choose may keep files or clipboard copies, even if you later cancel. Larsal cannot erase or recall those copies.</p>' : '',
+  '<button class="btn lg" style="outline:2px solid var(--accent);outline-offset:2px">Cancel</button>'
+    + `<button class="btn lg danger">${share ? 'Choose Where to Share' : 'Save Image'}</button>`);
+
 // ---------- sections ----------
 const P = [
   { id: 'w-04', title: 'W-04 Wording changes (proposed)',
@@ -721,6 +758,28 @@ const P = [
         html: () => brwSettings({ on: ['Edge', 'Chromium'], msg: { Chromium: brwOld('Chromium') }, rewrite: false }) },
       { id: 'e7-s7k-integration-off', t: 'E7-S7k Browser integration off', n: 'APP-01.5: with “Let browsers use Larsal” off (S-BRW-01, the default) every control under it is disabled, the new rows too, at the .55 opacity of .inp.off; each switch still shows whether Larsal\'s manifest is in that browser\'s folder (INT-01.8)', w: 900, h: 680, after: grow('.sc'),
         html: () => brwSettings({ on: ['Edge'], master: false }) },
+    ] },
+  { id: 'e21-s1', title: 'E21-S1 Show as QR Code (revised draft proposal)',
+    line: 'FEA-10 revised DRAFT after second Spec SEND BACK A1–A8. All drawings are non-scannable checker illustrations without finder patterns or encoded credentials. Owner approval/W-18 remain pending. The1× dense popup grows to599pt; the2× example uses277.5pt for555 physical pixels. These static states do not execute motion, prove decoding, Share, device joining or capture exclusion. Functional Share remains required and OPEN until a compliant route is proven. Revised Spec review then fresh independent Verify; no implementation or Done.',
+    frames: [
+      { id: 'e21-s1-qr-popup', t: 'E21-S1 Value as QR popup', n: 'FEA-10.11–.15: first complete settled code frame; Done default,44s original deadline. N37 ×8px =296pt at1×. Share is disabled while policy is unproved; required functionality stays OPEN. Illustration, not a valid QR.', card: true, after: e21Align,
+        html: () => qrProposal('Password') },
+      { id: 'e21-s1-qr-wifi', t: 'E21-S1 Wi-Fi join popup', n: 'FEA-10.4–.6: separate configuration action, not Password text. No network credential encoded; no claimed enterprise/phone join. Illustration, not a valid QR.', card: true, after: e21Align,
+        html: () => qrProposal('Wi-Fi join code') },
+      { id: 'e21-s1-qr-save-warning', t: 'E21-S1 Warning before every Save Image', n: 'FEA-10.16/.17: Cancel default, Return/Escape cancel. Single-use consent precedes destination/write; recheck original deadline, source/draft revision and lock request before commit. No image has been handed off here.', card: true, after: e21Align,
+        html: () => qrExportWarning(false) },
+      { id: 'e21-s1-qr-share-warning', t: 'E21-S1 Warning before every Share', n: 'FEA-10.16/.18: future policy-proven route only. Cancel default; the earliest API receiving readable pixels, possibly picker initialization, is external custody. After it, cancellation/lock cannot promise system cancellation or recall. Required functional Share is OPEN.', card: true, after: e21Align,
+        html: () => qrExportWarning(true) },
+      { id: 'e21-s1-qr-dense-1x', t: 'E21-S1 Dense code, growth at1×', n: 'FEA-10.12: proposed599pt outer width =22 +555 +22; N185, four quiet modules, pitch3 physical pixels, integral origin at1×. Whole dialog/controls must fit; adequate space is required for dense readbacks. Non-scannable illustration.', card: true, after: e21Align,
+        html: () => qrProposal('Password', 'dense-1x') },
+      { id: 'e21-s1-qr-dense-2x', t: 'E21-S1 Dense code at2× backing scale', n: 'FEA-10.12: render this state at2×: N185 ×3px =555 physical pixels =277.5pt, within460pt dialog; origin aligns to half-points/integer backing pixels. Do not upscale a secret through motion. Non-scannable illustration.', card: true, after: e21Align,
+        html: () => qrProposal('Password', 'dense-2x') },
+      { id: 'e21-s1-qr-size', t: 'E21-S1 Insufficient space', n: 'FEA-10.12: at1×, available460pt outer width cannot fit N185/pitch3 plus padding. SIZE is a presentation refusal for a capacity-fitting payload. No code pixels, exports disabled, Done remains reachable; grow only when full geometry fits.', card: true, after: e21Align,
+        html: () => qrProposal('Password', 'size') },
+      { id: 'e21-s1-qr-browser-unavailable', t: 'E21-S1 Browser Share unavailable', n: 'FEA-10.18: disabled Share with accessible help while target filtering is unproved. Save is a separate warned choice. This does not pass functional Share. No Permissions-Policy change or picker call. Non-scannable illustration.', card: true, after: e21Align,
+        html: () => qrProposal('Password', 'browser') },
+      { id: 'e21-s1-qr-entry', t: 'E21-S1 Entry interval: no code yet', n: 'FEA-10.11/.14: static reserved-space state during160ms/6pt chrome entry; no code fades/translates or starts expiry yet. First opaque settled code starts44s. Reduce Motion settles immediately; live changes never restart an existing deadline. This frame executes no animation.', card: true, after: e21Align,
+        html: () => qrProposal('Password', 'entry') },
     ] },
 ];
 
