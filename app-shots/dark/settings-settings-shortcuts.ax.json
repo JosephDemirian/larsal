@@ -1,0 +1,637 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            48,
+            55,
+            165,
+            18
+          ],
+          "label" : "Search settings",
+          "placeholder" : "Search settings…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            10,
+            94,
+            212,
+            32
+          ],
+          "label" : "General",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            128,
+            212,
+            32
+          ],
+          "label" : "Security",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            162,
+            212,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            196,
+            212,
+            32
+          ],
+          "label" : "Browser Integration",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            230,
+            212,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            264,
+            212,
+            32
+          ],
+          "label" : "Shared Groups",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            298,
+            212,
+            32
+          ],
+          "label" : "Shortcuts",
+          "role" : "AXButton",
+          "selected" : true
+        }
+      ],
+      "frame" : [
+        10,
+        16,
+        212,
+        314
+      ],
+      "label" : "Settings pages",
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        253,
+        27,
+        16,
+        16
+      ],
+      "help" : "Back",
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "disabled" : true,
+      "frame" : [
+        277,
+        27,
+        16,
+        16
+      ],
+      "help" : "Forward",
+      "label" : "Forward",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        301,
+        25.5,
+        68,
+        19
+      ],
+      "label" : "Shortcuts",
+      "role" : "AXHeading"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            259,
+            81.5,
+            43,
+            17
+          ],
+          "label" : "Entries",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                122,
+                99.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Copy Username"
+            },
+            {
+              "frame" : [
+                826,
+                123.5,
+                20,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘B"
+            }
+          ],
+          "frame" : [
+            272,
+            121,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                168.5,
+                96,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Copy Password"
+            },
+            {
+              "frame" : [
+                826.5,
+                170,
+                19.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘C"
+            }
+          ],
+          "frame" : [
+            272,
+            167.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                214.5,
+                60.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Copy URL"
+            },
+            {
+              "frame" : [
+                813.5,
+                216,
+                32.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⇧⌘U"
+            }
+          ],
+          "frame" : [
+            272,
+            213.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                260.5,
+                133,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Copy One-Time Code"
+            },
+            {
+              "frame" : [
+                827,
+                262,
+                19,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘T"
+            }
+          ],
+          "frame" : [
+            272,
+            259.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                306.5,
+                67.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Type Login"
+            },
+            {
+              "frame" : [
+                814.5,
+                308,
+                31.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⇧⌘V"
+            }
+          ],
+          "frame" : [
+            272,
+            305.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                352.5,
+                62.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Open URL"
+            },
+            {
+              "frame" : [
+                825.5,
+                354,
+                20.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘U"
+            }
+          ],
+          "frame" : [
+            272,
+            351.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                398.5,
+                61.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Edit Entry"
+            },
+            {
+              "frame" : [
+                827,
+                400,
+                19,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘E"
+            }
+          ],
+          "frame" : [
+            272,
+            397.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                444.5,
+                73,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Clone Entry"
+            },
+            {
+              "frame" : [
+                825.5,
+                446,
+                20.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘D"
+            }
+          ],
+          "frame" : [
+            272,
+            443.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                490.5,
+                78,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Delete Entry"
+            },
+            {
+              "frame" : [
+                819,
+                492,
+                27,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘⌫"
+            }
+          ],
+          "frame" : [
+            272,
+            489.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            547.5,
+            24.5,
+            17
+          ],
+          "label" : "App",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                588,
+                65,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lock Vault"
+            },
+            {
+              "frame" : [
+                827.5,
+                589.5,
+                18.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌘L"
+            }
+          ],
+          "frame" : [
+            272,
+            587,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                634.5,
+                99.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lock Everything"
+            },
+            {
+              "frame" : [
+                815.5,
+                636,
+                30.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⇧⌘L"
+            }
+          ],
+          "frame" : [
+            272,
+            633.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                680.5,
+                128,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Password Generator"
+            },
+            {
+              "frame" : [
+                813.5,
+                682,
+                32.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌥⌘G"
+            }
+          ],
+          "frame" : [
+            272,
+            679.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                726.5,
+                49.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Reports"
+            },
+            {
+              "frame" : [
+                814,
+                728,
+                32,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⇧⌘R"
+            }
+          ],
+          "frame" : [
+            272,
+            725.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                772.5,
+                87,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Vault Settings"
+            },
+            {
+              "frame" : [
+                818.5,
+                774,
+                27.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⇧⌘,"
+            }
+          ],
+          "frame" : [
+            272,
+            771.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                818.5,
+                86.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Show Sidebar"
+            },
+            {
+              "frame" : [
+                817,
+                820,
+                29,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "⌃⌘S"
+            }
+          ],
+          "frame" : [
+            272,
+            817.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        233,
+        61,
+        658,
+        610
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    680
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

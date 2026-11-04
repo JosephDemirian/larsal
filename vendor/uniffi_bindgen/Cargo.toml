@@ -1,0 +1,118 @@
+# App's patched copy of uniffi_bindgen 0.32.2 (E0-S7 step 5: spec/research/dependencies.md
+# section 8 step 5 item 2). Upstream: https://github.com/mozilla/uniffi-rs, MPL-2.0. The
+# crate publishes no license file: its source files carry the MPL-2.0 notice, and the
+# release notices use scripts/licenses/MPL-2.0.txt (LD-222 (3)). Used through
+# [patch.crates-io] in the root workspace by the bindings generator
+# (crates/uniffi-bindgen, a build tool run by scripts/build-core.sh); never linked into
+# App; its Swift templates write App's Swift glue. Not a workspace member. App changes,
+# each marked `App change (E0-S7 step 5, change N)` in the source:
+# 1. Only the Swift generator: src/bindings/kotlin/, src/bindings/python/ and
+#    src/bindings/ruby/ (code and templates) are cut, with their `mod` lines, the
+#    Kotlin, Python and Ruby `TargetLanguage` values and their arms in
+#    src/bindings/mod.rs, and their template folders in askama.toml. The
+#    `bindgen-tests` helpers (src/bindings/swift/test.rs, `RunScriptOptions` and
+#    the test re-exports) are cut with the `bindgen-tests` feature and the
+#    `uniffi_testing` dependency; `ffi-trace` stays as a feature with nothing in it.
+# 2. No UDL parser: the `uniffi_udl` dependency is gone (and with it weedle2, nom and
+#    minimal-lexical). A private module `uniffi_udl` in src/lib.rs fails with a
+#    message; the five places in src/library_mode.rs, src/loader.rs (2),
+#    src/pipeline/initial/mod.rs and src/interface/mod.rs that parsed a UDL file
+#    call it. app-ffi has no .udl file: its interface comes from the proc macros.
+# 3. This manifest is the published, normalized one with the changes above and
+#    without the README entry; the copy leaves out README.md, Cargo.lock,
+#    Cargo.toml.orig and .cargo_vcs_info.json. No `publish = false`: cargo deny
+#    skips the license of an unpublished crate (deny.toml [licenses.private],
+#    F-137), and this MPL-2.0 copy stays checked.
+[package]
+edition = "2021"
+name = "uniffi_bindgen"
+version = "0.32.2"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "a multi-language bindings generator for rust (codegen and cli tooling)"
+homepage = "https://mozilla.github.io/uniffi-rs"
+documentation = "https://mozilla.github.io/uniffi-rs"
+keywords = [
+    "ffi",
+    "bindgen",
+]
+license = "MPL-2.0"
+repository = "https://github.com/mozilla/uniffi-rs"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]
+
+[features]
+cargo-metadata = ["dep:cargo_metadata"]
+default = ["cargo-metadata"]
+ffi-trace = []
+
+[lib]
+name = "uniffi_bindgen"
+path = "src/lib.rs"
+
+[dependencies.anyhow]
+version = "1"
+
+[dependencies.askama]
+version = "0.16.0"
+features = [
+    "config",
+    "derive",
+    "alloc",
+]
+default-features = false
+
+[dependencies.camino]
+version = "1.0.8"
+
+[dependencies.cargo_metadata]
+version = "0.23.1"
+optional = true
+
+[dependencies.fs-err]
+version = "3.3.0"
+
+[dependencies.glob]
+version = "0.3"
+
+[dependencies.goblin]
+version = "0.8"
+
+[dependencies.heck]
+version = "0.5"
+
+[dependencies.indexmap]
+version = "2.2"
+features = ["serde"]
+
+[dependencies.once_cell]
+version = "1.12"
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+
+[dependencies.tempfile]
+version = "3"
+
+[dependencies.textwrap]
+version = "0.16"
+features = ["smawk"]
+default-features = false
+
+[dependencies.toml]
+version = ">=0.9, <2"
+
+[dependencies.uniffi_internal_macros]
+version = "=0.32.2"
+
+[dependencies.uniffi_meta]
+version = "=0.32.2"
+
+[dependencies.uniffi_pipeline]
+version = "=0.32.2"

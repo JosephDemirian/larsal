@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>site-a.test</title>
+<h1>site-a.test demo page</h1>
+<iframe id="other" title="site-b.test frame" width="400" height="120"></iframe>
+<script>
+  // Records what the site-b.test frame posts, with the origin the browser names.
+  window.frameMessages = [];
+  addEventListener('message', (event) => frameMessages.push({ origin: event.origin, data: event.data }));
+  document.getElementById('other').src = 'https://site-b.test:' + location.port + '/frame.html';
+</script>

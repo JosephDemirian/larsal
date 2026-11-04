@@ -1,0 +1,191 @@
+# SHR-02 The signed member list
+
+Status: reviewed
+Epics: E18-S2 (the entry, the hash chain, the accept rules, pinning, rollback and fork refusal, the server's store and checks), E18-S3 and E18-S6 (family and team groups on it), E18-S7 (the list code on the members page), E18-S8 (the hostile-server run)
+Parity rows: none in the reference app (it has no server or sharing). App's own rows: SV-05 (plan/security.md); AT-L15, AT-L16, AT-L19, AT-L20, AT-L22 (plan/attacks-and-checks.md)
+
+## What it does
+
+Each group (a family or a team) has one member list: a chain of entries, each signed with the Ed25519 identity key of the member who made it and each naming the hash of the entry before it. An entry adds, removes or changes a member, adds a vault or changes a right. A client accepts an entry only when its signer had the right to make it in the state before it, so the list itself says who is in the group, with which role, and which keys are theirs. The server stores the list and runs the same checks, but it holds no member's key, so it cannot write an entry a client accepts.
+
+Each Mac keeps the newest entry it verified. It refuses a list that goes back (a rollback) or that does not grow from what it saw (a fork it can see). Each upload of a shared vault also names the uploader's newest entry (SHR-03.10), so a member who is shown another branch finds out at the next upload it reads from the other side. Two members can also compare a short list code (SHR-02.13).
+
+Other cards: SHR-01 owns keys, wraps and epochs; SHR-03 owns roles, who may sign which entry, invites and the upload check; SHR-04 owns removal and leaving; CRY-04 owns Ed25519 and field lists; SYN-01 the record and error conventions.
+
+Design and sources: spec/research/sync-server.md P9, P11, P4, section 6 (the ETH paper's "correctly signed list of admins") and section 2 (SUNDR) (decided: spec/decisions.md LD-263 (8), (10), LD-266 (4), LD-290 (3), (4); D-SHR02-1 and D-SHR02-2 below).
+
+## Inputs and outputs
+
+- In: entries from the server; this Mac's account keys (SYN-06.8); the Mac's own verified state (SHR-02.14).
+- Out: the state of SHR-02.5; on the server, the stored list.
+- Limits: an entry record at most 16 KiB (an entry is about 1.5 KiB of JSON plus 106 bytes per vault in `keys`, and a team has at most 100 vaults, SHR-03.4); at most 32 entries in one reply, so a reply stays under SYN-01.10's 1 MiB; both in `app-proto` `limits.rs` (App's own values: D-SHR02-2, decided: spec/decisions.md LD-290 (4)).
+
+### Words
+
+| ID | Words (App's own) | Buttons |
+|---|---|---|
+| `MSG-GROUP-ROLLBACK` | The server sent an older member list of "<group>" than this Mac has seen. Nothing was changed. | OK |
+| `MSG-GROUP-FORK` | The server showed this Mac a member list of "<group>" that other members do not see. App stopped using it. Its vaults still open on this Mac, so you can copy from them. Compare the list code with another member. | OK |
+| `MSG-GROUP-BAD-LIST` | The member list of "<group>" from the server is not valid. Nothing was changed. | OK |
+| `MSG-GROUP-KEY-CHANGED` | The server sent other keys for <name> than this Mac knows. App stops syncing "<group>" on this Mac until <name> is removed from it. Then invite <name> again and check the code together. | OK |
+| `MSG-GROUP-LIST-CODE` | List check: entry <seq>, code <code>. You and another member pick Sync now, then compare. If the entry or the code differs, sync and compare again. If it still differs, the server shows you different lists. | none (members page) |
+
+"<group>" is the name of the group's first vault (inside the vault, never on the server); on a Mac that cannot read the first vault or has never opened it, it is "Group <the first 8 lowercase hex digits of group_id>". "<name>" is the member's name (SHR-03.14). In a family, `MSG-GROUP-FORK` says "Its vault still opens on this Mac, so you can copy from it."
+
+## Rules
+
+SHR-02.1 **A group** (P9, P11). A group has a 16-byte `group_id` drawn by the creating Mac from app-crypto's random source (so it can sign the first entry before the server knows it), a kind (`family` or `team`, fixed at creation), one member list and the shared vaults the list names. A group lives on one server.
+
+SHR-02.2 **An entry** (P9; App's own layout). Every entry has all these fields, in this order. A field an action does not use is empty (zero bytes; for `seq`, `time` never empty).
+
+| # | Field | Bytes | Used by |
+|---|---|---|---|
+| 1 | label `sync-member-entry-v1` | ASCII | all |
+| 2 | `group_id` | 16 | all |
+| 3 | `seq` | u64 | all: 1 for the first entry, then +1 |
+| 4 | `prev` | 32 | all: the hash (SHR-02.3) of entry `seq − 1`; 32 zero bytes for seq 1 |
+| 5 | `time` | u64 | all: seconds since 1970-01-01T00:00:00Z on the signer's clock |
+| 6 | `signer` | 16 | all: the signer's account id |
+| 7 | `action` | ASCII | one of `create`, `add`, `remove`, `leave`, `role`, `vault`, `grant`, `rotate` |
+| 8 | `kind` | ASCII | `create`: `family` or `team` |
+| 9 | `member_id` | 16 | `create` (the signer), `add`, `remove`, `leave` (the signer), `role`, `grant`: the account the entry is about |
+| 10 | `identity_key` | 32 | `create`, `add`: the member's Ed25519 public key |
+| 11 | `x25519_key` | 32 | `create`, `add`: the member's X25519 public key |
+| 12 | `x25519_signature` | 64 | `create`, `add`: the member's SYN-06.1 signature on field 11 |
+| 13 | `role` | ASCII | `create`, `add`, `role`: a role of SHR-03.1 or SHR-03.2 |
+| 14 | `vault_id` | 16 | `create` (the first vault), `vault`, `grant`, `rotate` |
+| 15 | `right` | ASCII | `grant`: `none`, `view`, `edit` or `manage` |
+| 16 | `invite_id` | 16 | `add`: the invite it closes (SHR-03.6) |
+| 17 | `consent` | 64 | `add`: the member's consent signature (SHR-03.8) |
+| 18 | `keys` | field list | the vaults whose epoch the entry starts or raises: for each, `vault_id` then its key check (SHR-01.5), sorted by `vault_id` bytes; empty when none |
+
+SHR-02.3 **Signature and hash** (CRY-04.2, CRY-04.3). `M` = the CRY-04.2 field list of fields 1 to 18 (u64 values as 8 bytes big endian, ASCII as its bytes, `keys` as the bytes of its own field list). The signature is Ed25519 over `M` with the signer's identity key. The entry's hash is `SHA-256(field list ("sync-member-hash-v1", M, signature))`. The head of a list is its last entry's `seq` and hash.
+
+SHR-02.4 **The record** (SYN-01.8). On the wire an entry is the JSON object `{"group_id","seq","prev","time","signer","action","kind","member_id","identity_key","x25519_key","x25519_signature","role","vault_id","right","invite_id","consent","keys":[{"vault_id","key_check"}],"signature"}`, every field always present: byte fields in base64url (an unused one is `""`), ids as 32 lowercase hex digits (an unused one is `""`), numbers as JSON integers, text fields as JSON strings (an unused one is `""`). Both sides build `M` from the fields, never from bytes the other side sent as a whole. A record over 16 KiB is refused before it is parsed.
+
+SHR-02.5 **The state** (P9, P11). Both client and server derive the state after each entry by these effects, from seq 1 on, and nothing else:
+- `create`: the kind; one member (the signer) with its keys, role and join time (the entry's `time`); the first vault at epoch 1 with its key check.
+- `add`: a new member with its keys, role and join time; in a team, no right on any vault yet.
+- `remove`, `leave`: the member is gone with all its rights; `leave` marks each vault the leaver could read as rotation due.
+- `role`: the member's new role. In a team, an Owner or Admin who becomes a Member or Read-only member has on each vault only the right a `grant` in the state gives them (`none` where there is none), so on every vault they can no longer read, SHR-02.6 step 8 and SHR-04.1 apply; and a Read-only member's rights above `view` become `view`.
+- `vault`: a new vault at epoch 1 with its key check.
+- `grant`: the member's right on the vault.
+- `rotate`, and every entry other than `create` and `vault` whose `keys` names a vault: that vault's epoch + 1 and the key check of the new epoch (the checks of earlier epochs stay in the state), and rotation due cleared.
+From the state, SHR-03.1 and SHR-03.2 say who may read, edit and manage each vault. The state also holds the hash of every entry (SHR-02.12 needs them).
+
+SHR-02.6 **Accepting an entry** (P9; the ETH paper section 5.1). Client and server run the same checks, in this order, against the state before the entry; the first failure refuses the entry and everything after it:
+1. the record is well formed (SHR-02.4): sizes, alphabets, an `action` from the list, every field the action uses present and every other field empty;
+2. `group_id` is this group's; `seq` is the head's `seq` + 1 (1 for the first); `prev` is the head's hash (32 zero bytes for seq 1);
+3. seq 1 is a `create` and no other entry is; in a `create`, `signer` = `member_id`;
+4. the signature verifies (CRY-04.3, strict) with the signer's identity key in the state before; for `create`, with the entry's own `identity_key`;
+5. in `create` and `add`, `x25519_signature` verifies with `identity_key` over SYN-06.1's field list (`sync-x25519-v1`, `member_id`, `x25519_key`); in `add`, `consent` verifies with `identity_key` over SHR-03.8's field list built from this entry's own `group_id`, `invite_id`, `member_id`, `identity_key`, `role` and `signer`, and `invite_id` appears in no earlier entry;
+6. the signer may make this entry (SHR-03.3);
+7. the state after keeps the limits of SHR-03.4;
+8. `keys` names exactly the vaults the entry starts (`create`, `vault`), the one vault of a `rotate`, and every vault on which somebody who could read it before cannot read it after, except in a `leave`, whose `keys` is empty (SHR-01.6).
+The `time` field is not checked: it is the signer's word, shown as a date only (SHR-04.7).
+
+SHR-02.7 **The server's part** (P9: "The server stores the list, checks the same rules, and takes its role table from it"; RFC 9420 section 14: one change per starting state). The server stores each group's entries and head. It appends an entry only when SHR-02.6 passes and the request's `If-Match` names the current head's `seq` (as SYN-01.6 does for a vault version: a strong ETag `"<seq>"`; the compare and the append are one transaction, SYN-02.8). So two entries made on one head never both get in: the second gets 412 and its Mac reads the list again. Every role and right the server checks (vault reads and writes, wrap routes, invites) comes from the state of its stored list, never from a table of its own. The server also refuses (403) a `create` or `add` whose `identity_key` or `x25519_key` differs from the keys it stores for `member_id` (SYN-06.6), or whose `member_id` has no stored keys, so an Organizer, Owner or Admin cannot put an existing account into a group with keys they made up. Clients still decide alone: they never ask the server for these keys, and they accept or refuse an entry by SHR-02.6 and SHR-02.11 only. The server holds no member's private key, so it cannot make an entry that passes step 4.
+
+SHR-02.8 **Routes** (SYN-01 conventions).
+
+| Method and path | Session | Body in | Body out | Statuses |
+|---|---|---|---|---|
+| `POST /v1/groups` | yes | `{"entry"}`: a `create` entry | `{"group_id","seq":1}`, `ETag: "1"` | 201, 400, 401, 403, 409 |
+| `GET /v1/groups` | yes | none | `{"groups":[{"id","kind","seq"}]}`: the groups whose state at the server's head lists this account | 200, 401 |
+| `GET /v1/groups/{group_id}/entries/{from}` | yes | none | `{"entries":[…],"head":{"seq","hash"}}`: entries with `seq` ≥ `from`, at most 32 | 200, 401, 403, 404 |
+| `POST /v1/groups/{group_id}/entries` | yes | `{"entry"}` | `{"seq"}`, `ETag: "<seq>"` | 201, 400, 401, 403, 404, 412, 428 |
+
+`POST /v1/groups` gets 409 when the group id or the first vault's id exists, 400 when SHR-02.6 step 1 to 3 fails, and 403 when step 4 to 8 or SHR-02.7's key check fails. A POST of an entry without `If-Match` gets 428; with an `If-Match` that is not the current head, 412; with an entry that fails SHR-02.6 step 1 to 3, 400; step 4 to 8 or SHR-02.7's key check, 403; in each case nothing is stored. A caller whose account the state at the head does not list gets 404, as for an unknown group, except a former member (SHR-02.15). `from` is a decimal u64 from 1. Each record, the `from` segment and `If-Match` have fuzz targets (SYN-01.15).
+
+SHR-02.9 **Updating the list on a Mac** (P4, P9). At each sync run of a group (SYN-03.4's triggers) and before every check that needs the head, the Mac reads `entries/{own seq + 1}` until the reply's `head` is reached. It checks each reply in this order, before SHR-02.6, and the first check that fails gives the message:
+1. rollback: the reply's head `seq` is below this Mac's head `seq`: `MSG-GROUP-ROLLBACK`;
+2. fork: the reply holds an entry that meets all five of these: its `group_id` is this group's; its `seq` is from 2 to this Mac's head `seq` + 1; its signature verifies (CRY-04.3, strict) with the identity key that this Mac's verified list gives its signer in the state before that `seq`; its signer is a member in the state at this Mac's head; and its `prev` is not the hash this Mac holds for `seq` − 1, so the entry is built on another branch: `MSG-GROUP-FORK`. Such an entry shows that a current member's Mac took another entry at `seq` − 1 into its list than this Mac did, so two Macs are on two lists. Three kinds of entry are no proof and never meet the five: a sibling (an entry on this Mac's `prev` with another hash: the loser of a 412 race is signed too, and a hostile server can answer 412 falsely so that a Mac signs again at the same `seq`, SHR-02.7); another group's entry (one identity key per account, SHR-03.4); and a removed member's entry, whose old signatures a hostile server may still hold;
+3. every other failure: `MSG-GROUP-BAD-LIST`. This includes a reply `head` field that does not fit the reply: its `seq` is below the `seq` of the reply's last entry; it names the `seq` of the reply's last entry with another hash than that entry's, or, when the reply holds no entry, this Mac's head `seq` with another hash than this Mac's; or the reply holds no entry and its `seq` is above this Mac's head `seq`. It also includes a sibling, another group's entry, an entry whose signature fails (whatever its `prev`), any other entry that fails SHR-02.6, and a record that cannot be read (SHR-02.4).
+A refused reply changes nothing: the Mac keeps its old state and head, uploads nothing to the group's vaults, and makes no entry or wrap until a later reply passes; after `MSG-GROUP-ROLLBACK` or `MSG-GROUP-BAD-LIST` the next run tries again, and a good reply puts the group back in use. After `MSG-GROUP-FORK` App stops using the group on this Mac (status Error): it syncs, uploads, wraps and signs nothing more in it, except the `leave` of SHR-04.11. Its local vaults still unlock (SHR-01.8) and open on this Mac, with the keys the device store holds, so the user can copy from them before Leave wipes those keys (SHR-04.10). Two branches are never merged: the members compare the list code (SHR-02.13) to see who is on which, and the way on is that each leaves the group on their Macs (SHR-04.11) and an Organizer, Owner or Admin makes a new group and invites again.
+
+SHR-02.10 **Which groups a Mac takes for its account** (the ETH paper on BW08: "The client will silently accept the new organisation at the next sync"). A Mac uses a group only when its verified list holds either the `create` entry signed by this Mac's own account, or an `add` entry naming this account whose `consent` this account made (SHR-03.8). A group in `GET /v1/groups` that has neither is never shown, opened, wrapped to or written to; App logs its count only. This holds for a new Mac of the account too (SYN-06.11, SYN-06.12), so the server cannot put an account into a group it never agreed to join.
+
+SHR-02.11 **Pinned keys** (P10: "Both sides pin each other's identity key. A changed pinned key shows a loud warning and needs a new compare"). Each Mac keeps one table, in local state never synced, from account id to identity key and X25519 key: its own account's (SYN-06.6), each key compared in an invite (SHR-03.7) and each key of a member in a verified state. After each verified entry, App compares the pins with the members of the current state only (SHR-02.5), never with the history: a member whose account id is pinned with another key, or whose identity key is pinned under another account id, blocks the group on this Mac with `MSG-GROUP-KEY-CHANGED`. While a group is blocked, App keeps reading and checking its list (SHR-02.9), but it opens no version or wrap from the server, and uploads, wraps and signs nothing in it, with two exceptions: a member who may remove that account (SHR-03.3) may sign its `remove` (SHR-04.1 to SHR-04.8: only the sync of SHR-04.2 is left out, and each affected vault must still be unlocked, with no unsaved changes and no open editor; SHR-04.4 step 3, SHR-04.6 and SHR-04.7 use the last version this Mac accepted or uploaded, SHR-01.16, in place of the version of SHR-04.2's run), and the user may leave (SHR-04.11). The block lifts when a later verified entry takes that account out of the current state (a `remove`, or its own `leave`); the entry with the other key stays in the history. The person then joins again through an invite and a compare (SHR-03.7): a key that both people compared, and found the codes match, replaces the old pin, and any group whose current members then differ from the pins is blocked as above. In this build an account's keys never change (SYN-06.6), so no honest list ever blocks.
+
+SHR-02.12 **Heads in uploads** (D-SHR02-1 (a), decided: spec/decisions.md LD-290 (3); sync-server.md section 12, the first later fix of LD-266 (4); SUNDR: "either user will detect the attack upon seeing a subsequent operation by the other"). Every upload of a shared vault names the uploader's head (`Upload-List-Head`, SHR-03.10), and the signature covers it. A Mac checks the named head only after the upload's signature verified with a member's key (SHR-03.12 step 2, which first updates the list when the named `seq` is above this Mac's head), so the head it checks is one a member signed:
+- the named `seq` is still above this Mac's head: the server is holding entries back. The version is refused with `MSG-GROUP-BAD-VERSION`, nothing changes, and the next run tries again; the gap shows in the list code (SHR-02.13);
+- otherwise the hash this Mac holds for the named `seq` must equal the named hash. When it differs and the signer is a member in the state at this Mac's head, a member signed an upload on another branch: the version is refused with `MSG-GROUP-FORK`, as SHR-02.9 says. When the signer is no longer a member, the version is refused with `MSG-GROUP-BAD-VERSION` only.
+So a server that keeps two members on two branches is found as soon as one of them reads a version the other uploaded. A server that changes `Upload-List-Head` on an honest version breaks its signature and gets `MSG-GROUP-BAD-VERSION` only (SHR-03.12 step 2).
+
+SHR-02.13 **The list code** (D-SHR02-1 (b), decided: spec/decisions.md LD-290 (3); sync-server.md section 12, the second later fix; SYN-05.4's code format). The members page shows `MSG-GROUP-LIST-CODE`: the head's `seq` and a 6-digit code, the first 8 bytes of `SHA-256(field list ("sync-member-list-code-v1", group_id, seq as u64, head hash))` read as a u64 big endian, modulo 1,000,000, in two groups of 3. To compare, both members pick Sync now (each Mac then updates its list, SHR-02.9), then read the entry number and the code to each other. After that, a different entry number or a different code means the server shows them different lists: a server that holds entries back from one of them shows up as a lower entry number on that Mac, and one that shows two branches as different codes. An entry that an honest member makes between the two syncs also changes the number, so on a difference both sync and compare once more (the words say so). Neither Mac can tell by itself which one is held back; the members then treat the group as forked (SHR-02.9's way on). The server cannot pick a branch that gives a chosen code: every entry needs a member's signature.
+
+SHR-02.14 **Local state** (P4; SYN-03.3). Per group, in app-sync `state.rs`, never synced, written atomically with mode 0600: the server it lives on, the group id and kind, every verified entry's `seq` and hash, the derived state of SHR-02.5 and the head. SYN-03.3's per-vault state for a shared vault holds the named head of the last version it accepted or uploaded (SHR-01.16, SHR-03.12). The head only moves forward.
+
+SHR-02.15 **A former member** (P12). A former member is an account that an earlier entry added and the state at the server's head does not list; an `add` from a new invite makes it a member again (SHR-03.8). The server answers a former member's `GET …/entries/{from}` with the entries up to and including the latest entry that took it out (its `remove` or its `leave`), and nothing after (the reply's `head` is that entry; a `from` above its `seq` gets 403, SHR-04 T01), so its Mac can verify that entry (SHR-04.10). Every other route of the group answers it 403 (SHR-04.5).
+
+## Edge cases and errors
+
+- Two Organizers sign entry 5 at once: one POST gets 201, the other 412; that Mac reads entry 5, checks its own action again (SHR-03.3, SHR-03.4) and makes it as entry 6 if it still holds.
+- A server that later serves the 412's loser, or the first of two entries a Mac signed at one `seq` after a false 412, to a Mac that holds the other: a sibling on this Mac's `prev`, so `MSG-GROUP-BAD-LIST`, never `MSG-GROUP-FORK` (SHR-02.9 step 2).
+- A reply with 0 new entries and the same head: nothing changes.
+- A reply whose 32 entries end below the head: the Mac reads on from the next `seq`.
+- An entry with `action` `Add` (capital A), or a `keys` list not sorted by `vault_id`: refused at step 1.
+- A `create` at seq 2: refused at step 3.
+- An entry signed by a member removed in an earlier entry: refused at step 4 (the signer is not in the state before).
+- `time` far in the future or the past: accepted; the date shown is the signer's.
+- The server lists a group this account was never asked to join: not shown (SHR-02.10).
+
+## Lead decisions
+
+D-SHR02-1 **Forks across members** (amends the "later work" of LD-266 (4); the lead's note for E18-S1: a hostile server must not fork two members onto different lists). (a) Each signed upload names the uploader's head and every reader checks it (SHR-02.12), and (b) the members page shows a list code two members can compare (SHR-02.13). (c) Neither, as LD-266 (4) wrote. Recommended: (a) and (b). Why: SUNDR shows a server can keep two members apart only while neither sees the other's later operations; (a) turns every upload into that check at the cost of two headers, and (b) is the out-of-band compare that catches a server that also splits the vault, the one case (a) cannot see (sync-server.md sections 2 and 12; the ETH paper section 6: only local state or a trusted third party stops a full rollback). With both, the "known limit" text of plan/architecture.md "What the server sees", section 12 and E18-S8's check change; the lead writes the new texts. Taken: (a) and (b); decided: spec/decisions.md LD-290 (3).
+
+D-SHR02-2 **App's own sizes** (no proven product publishes these; each is one constant in `limits.rs`, as LD-273 (1) took for sync). An entry record at most 16 KiB; at most 32 entries in one reply; a team group at most 100 vaults. Why: 32 entries of 16 KiB stay under SYN-01.10's 1 MiB JSON limit, and a `remove` that names 100 vaults (106 bytes of `keys` JSON each) plus the other fields stays under 16 KiB. A family has one vault, so only teams meet the vault limit. Taken as written; decided: spec/decisions.md LD-290 (4).
+
+## Security notes
+
+- **The server cannot add a member (SV-05, AT-L15, AT-L16).** Each entry needs the signature of a member whose role allows it in the state before; the server holds no member key. This is the paper's "correctly signed list of admins", which with the code compare of SHR-03 fixes BW01, BW03 and LP01, and with SHR-02.10 the injection BW08 (sync-server.md section 6).
+- **Rollback and fork (AT-L19, AT-L20).** Local state keeps the head and refuses anything shorter or not grown from it (P4); uploads carry heads (SHR-02.12); the list code, compared after both members pick Sync now, catches the rest, entries held back from one member included (SHR-02.13). A Mac with no state for a group (the first time it reads it) trusts the newest list it can verify that SHR-02.10 lets it take: a server can show such a Mac an older list, as P4 says for any first download; an invite binds the newcomer to the inviter's own signed add entry (SHR-03.8), and the list code covers the rest.
+- **Only a member on another branch stops a group (AT-L20, AT-L22).** `MSG-GROUP-FORK`, the one message that stops a group for good, needs an entry of this group that a current member signed on another entry than this Mac holds at the `seq` before it, or an upload that a current member signed on a head this Mac holds with another hash (SHR-02.9 step 2, SHR-02.12). Each shows that a member's Mac took another list than this Mac did. What the server can make or replay alone gives `MSG-GROUP-BAD-LIST` or `MSG-GROUP-BAD-VERSION`, and the next good reply puts the group back in use: a `head` field, an edited header, an entry with a bad signature, entries held back, a removed member's old entry, another group's entry, and a sibling at one `seq` on this Mac's `prev` (the loser of a 412, true or false). A server that shows two such siblings to two members, so that each goes on along its own branch, really keeps them on two lists: that is found at the first entry or upload either Mac reads from the other branch, and stopping is then right. It costs the members no more than a server that stops answering, which a hostile server can always do (RFC 9420 section 16.9: a compromised Delivery Service can delay or drop messages). A current member who signs an entry with a `prev` of their own choosing can still stop the group, as a member can harm the shared vault in other ways.
+- **One change per head.** The `If-Match` on the head is the server's half of "one canonical change per epoch" (RFC 9420 section 14). Two signed entries at one `seq` on one `prev` show only that both were sent, since the loser of a 412 is signed too, not that the server took both; so a client calls a fork only on an entry built on another entry than its own (SHR-02.9 step 2).
+- **Nothing secret in the list.** Entries hold public keys, roles, ids, times and key checks only; the server sees "who is in which group and with which role" (plan/architecture.md, "What the server sees"), never a name.
+
+## Test cases
+
+Accounts A (creator), B, C, D, E, F, G, demo keys; an in-process server on 127.0.0.1:0; family group G1 unless named.
+
+| Case | Given | When | Then |
+|---|---|---|---|
+| T01 SHR-02.2, SHR-02.3 known value | An `add` entry with fixed fields (ids of 0x01 to 0x04 bytes, seq 2, time 1,800,000,000, demo keys and signatures from fixed seeds) | Build `M`, the signature and the hash with App, and with an independent script (Python `struct` and `hashlib`, the RFC 8032 reference Ed25519) | Equal bytes, signature and hash |
+| T02 SHR-02.6 step 6 non-admin (E18-S2) | A list where B is a Member | B signs `add C`; send to the server; give it to a client through a test server that accepts anything | Server 403, nothing stored; the client refuses it with `MSG-GROUP-BAD-LIST` |
+| T03 SHR-02.6 step 2 gap (E18-S2) | Head at seq 3 | An entry with seq 5, signed by A, sent with `If-Match: "3"` | Refused by server (400) and client (`MSG-GROUP-BAD-LIST`) |
+| T04 SHR-02.6 step 2 prev (E18-S2) | Head at seq 3 | Entry 4 with one changed byte of `prev`, signed by A | Refused by the server (400) and the client (`MSG-GROUP-FORK`, SHR-02.9's order) |
+| T05 SHR-02.9 older list (E18-S2) | B's Mac has seen seq 6 | A test server answers with head seq 4 | `MSG-GROUP-ROLLBACK`; B's state unchanged; no upload to V |
+| T06 SHR-02.9 fork seen by one client (E18-S2, E18-S8) | Organizers A and C both sign entry 5 on head 4 (neither entry is about C); a test server keeps both, gives B A's entry 5 and C's Mac C's own, and C then signs entry 6 on C's entry 5 | B reads A's entry 5; then, in separate runs from that state, the server gives B: C's entry 5 alone; C's entry 6 alone; C's entries 5 and 6 in one reply | A's entry 5 accepted. C's entry 5 alone: `MSG-GROUP-BAD-LIST` (a sibling on B's `prev`), B's state unchanged and G1 still in use. C's entry 6, alone or after C's entry 5: `MSG-GROUP-FORK`; B stops using G1 (no further request for G1, test proxy); V still unlocks and opens on B |
+| T07 SHR-02.7 one change per head | A and C send entry 5 at once to the honest server | — | One 201, one 412; C's Mac reads entry 5 and sends its entry as 6 |
+| T08 SHR-02.7 server with every row (E18-S2: BW08, BW09) | A test server that holds every database row and file but no member key, and tries: an `add` signed by its own key; an `add` copied from another group; A's old `add B` replayed at a new seq; a changed role in an existing entry | Each client reads the list | Every one refused; no client's state gains a member or a role |
+| T09 SHR-02.10 injected group (BW08) | A test server makes group G9 with its own `create` and an `add A` signed by its key, plus a wrap to A's X25519 key | A, and a new Mac of A's account (approved by SYN-06.11), sync | G9 is never shown or opened on either; no upload, wrap or entry for G9; the log names one group by count |
+| T10 SHR-02.10 consent | A real `add D` signed by A with a `consent` made for another group | Clients check | Refused at step 5 |
+| T11 SHR-02.11 changed key (E18-S4) | B pinned C's identity key in G1; B is G2's Organizer, and G2's list (made with test keys for this case) adds C's account id with another identity key | B reads G2; B syncs twice more; B signs `remove` of that account in G2; later C is invited to G2 again and both pick Codes match | `MSG-GROUP-KEY-CHANGED`; while blocked B reads and checks G2's list each run, but opens no vault of G2 and sends no upload, wrap or other entry (test proxy); G1 is unchanged; the `remove` is accepted, B's list for that account (SHR-04.6) holds the entries of the last V2 version B accepted before the block, and B then uses G2 again (opens V2, uploads); after the compare B's pin for C is the compared key and neither group is blocked |
+| T12 SHR-02.12 upload from another branch (D-SHR02-1 (a)) | As T06 up to B's first read (A's entry 5); C's Mac is on C's branch and uploads V naming head (5, hash of C's entry) | B syncs V | Refused with `MSG-GROUP-FORK`; nothing merged; B stops using G1 (no further request for G1, test proxy); V still opens on B |
+| T13 SHR-02.12 head the server will not give | B at seq 4; a version signed by A names seq 6 | A test server serves the version but answers `entries/5` with head 4; later it serves entries 5 and 6 | First refused with `MSG-GROUP-BAD-VERSION`, B's state unchanged and G1 still in use; after entries 5 and 6, B's next run accepts the version |
+| T14 SHR-02.13 list code (D-SHR02-1 (b)) | B and C on one honest list; then the fork of T06 before C signs entry 6 (B on A's entry 5, C on its own) | Read both members pages | Same seq and code on one list; same seq and different codes on the fork; the code equals an independent SHA-256 of the field list mod 10^6 |
+| T15 SHR-02.6 limits (E18-S3) | Family with 6 people; family with 2 Organizers | A signs `add G` (7th person); A signs `role B organizer` (3rd) | Both refused by server and every client (SHR-03.4) |
+| T16 SHR-02.6 step 8 keys | A `remove C` with an empty `keys`; one whose `keys` names V twice; one that names a vault C could not read (team) | Check | Each refused |
+| T17 SHR-02.6 property test (E18-S2) | Random lists of 1 to 50 entries from a generator of valid entries, each list then changed once at random (a byte, a field, an order, a signer, a dropped entry) | Run client and server checks | Every valid list is accepted by both with the same state; every changed list is refused by both at the same entry |
+| T18 SHR-02.4 fuzz (E18-S2) | The fuzz target for the entry record and the `entries` reply | 10 minutes each (gate G5) | No crash, no hang, no allocation over the limits |
+| T19 SHR-02.14 state | After T07 | Kill App while it writes the group state (test hook); restart; read the file | Mode 0600; the old state or the new one, never a mix; no private key, wrap or vault key in it |
+| T20 SHR-02.15, SHR-02.8 former member | C removed at seq 6, then entries 7 and 8 | C reads `entries/1`, then `entries/7` | Entries 1 to 6 only, and the reply's `head` is entry 6 (its `seq` and hash); `entries/7` and every other group route give C 403 |
+| T21 SHR-02.6 step 3 | A list with a second `create` at seq 4 | Check | Refused |
+| T22 SHR-02.8 preconditions and statuses | Head at seq 3, the entry that removes C | POST an entry with no `If-Match`; with `If-Match: "2"`; with `If-Match: "3"`; as C with `If-Match: "4"`; `POST /v1/groups` with a `create` at seq 2, and with one whose signature does not verify | 428; 412; 201 with `ETag: "4"`; 403; 400; 403 |
+| T23 SHR-02.1 group id | A makes G1; then a test client sends a `create` with G1's id, and one with a new id but V's vault id | Read the server's answers | G1's id came from app-crypto's random source (test seam counter); the two later `create` requests get 409 |
+| T24 SHR-02.5 the state | A list: create (A, Organizer, 10:00), add B (Member, 10:05), add C (Member, 10:10), role B Organizer, leave C, rotate V | Derive the state after each entry on client and server | Same on both: after entry 3, A Organizer, B and C Members, join times 10:00, 10:05, 10:10; after entry 4, B Organizer; after entry 5, C gone and V rotation due; after entry 6, V at epoch 2, rotation due cleared |
+| T25 SHR-02.13 entries held back (D-SHR02-1 (b)) | A signed entry 6 (`remove C`); a test server holds entry 6 back from B and keeps A's and B's uploads apart | A and B pick Sync now and read their members pages | A shows entry 6, B shows entry 5, so the compare shows the difference; after a second Sync now on both it still differs; B's Mac alone shows no message |
+| T26 SHR-02.7 made-up keys | Account E exists on the honest server with its keys; a test client of A signs `add` naming E's account id with an identity key and an X25519 key it made, and a consent made with that key | POST the entry; then the same with E's real keys and E's real consent | 403 and nothing stored; then 201 |
+| T27 SHR-02.9 order | B's head is (5, h5); entry 5 is A's `remove C` | A test server answers: head (5, another hash) and no entries; head (6, any hash) and no entries; A's entry 6 with head (5, h5); entry 6 with a wrong `prev` and a bad signature; entry 6 whose record is not JSON; head 4; as entry 5, a `leave` validly signed by C; as entry 6, A's entry 6 of another group G2, signed with A's one identity key; then, after each of these, an honest reply with A's entry 6. Next (the 412 replay): A signs entry 7 (`rotate V`), the server answers 412 with its head still at 6, A signs entry 7 again with a new `time` and gets 201, B takes that second entry 7, and the server then serves B the first entry 7. Separately, entry 6 validly signed by A with another `prev` | `MSG-GROUP-BAD-LIST`; `MSG-GROUP-BAD-LIST`; `MSG-GROUP-BAD-LIST`; `MSG-GROUP-BAD-LIST`; `MSG-GROUP-BAD-LIST`; `MSG-GROUP-ROLLBACK`; `MSG-GROUP-BAD-LIST` (C is no longer a member); `MSG-GROUP-BAD-LIST` (another `group_id`); one message each time and B's state unchanged, and each honest reply is accepted and B uses G1 again. The first entry 7: `MSG-GROUP-BAD-LIST` (a sibling on B's `prev`), and G1 stays in use. The entry signed by A with another `prev`: `MSG-GROUP-FORK` |
+| T28 SHR-02.5 a demoted Admin (E18-S6) | Team T1: Owner O1, Admin AD1 (no grant), and Admin AD2 who held `edit` on W as a Member before | O1 signs `role AD1 member` with empty `keys`; then with `keys` naming every vault; then `role AD2 member` naming every vault but W | Refused (step 8); accepted, AD1 has `none` on every vault and each vault moves to a new epoch (SHR-04.1); accepted, AD2 has `edit` on W and W keeps its epoch |
+| T29 SHR-02.12, SHR-03.12 an edited head (AT-L22) | B and A at head (5, h5); entry 5 removed C; A uploads an honest version of V | A test server changes its `Upload-List-Head` to (5, another hash), and to (4, B's hash of 4), before it serves it to B; serves a version signed by C, removed at entry 5, naming (4, another hash); then serves the honest version | `MSG-GROUP-BAD-VERSION` each time (the first two at step 2: the signature fails), never `MSG-GROUP-FORK`; G1 stays in use; the honest version is accepted |
+
+## How this was learned
+
+- Public sources only; the reference app has no server or sharing.
+- spec/research/sync-server.md P4, P9, P10, P11, sections 2 (SUNDR), 6 (the ETH paper's attacks and fixes) and 12 (the fork across members, decided in LD-290 (3)).
+- Scarlata, Torrisi, Backendal, Paterson, USENIX Security 2026, section 5.1 ("assuming that a correctly signed list of admins is published") and the BW08 text quoted in SHR-02.10: <https://www.usenix.org/system/files/conference/usenixsecurity26/sec26_prepub_scarlata.pdf>.
+- Li, Krohn, Mazières, Shasha, Secure Untrusted Data Repository (SUNDR), OSDI 2004, section 2 (fork consistency): <https://www.usenix.org/legacy/event/osdi04/tech/full_papers/li_j/li_j.pdf>.
+- RFC 9420 (MLS), read 2026-11-01: section 14 (each Commit is premised on one starting state; two members may commit on one state; the application decides which one is canonical) and section 16.9 (a compromised Delivery Service cannot forge messages but can delay or drop them): <https://www.rfc-editor.org/rfc/rfc9420.html>.
+- RFC 8032 (Ed25519): <https://www.rfc-editor.org/rfc/rfc8032.html>. RFC 9110 section 13.1.1 (If-Match against lost updates): <https://www.rfc-editor.org/rfc/rfc9110.html>.
+- Written by E18-S1 (2026-11-01).

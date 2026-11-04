@@ -1,0 +1,25 @@
+{
+  "images": [
+    {
+      "filename": "x.svg",
+      "idiom": "universal"
+    },
+    {
+      "filename": "x-dark.svg",
+      "idiom": "universal",
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "dark"
+        }
+      ]
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

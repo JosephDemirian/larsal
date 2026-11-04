@@ -1,0 +1,787 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        78,
+        29
+      ],
+      "label" : "Devices",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1043.5,
+        75,
+        117,
+        36
+      ],
+      "label" : "Generator",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1168.5,
+        75,
+        118.5,
+        36
+      ],
+      "label" : "New Entry",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        172,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "2 entries · 1 need attention"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            31,
+            38
+          ],
+          "label" : "All, 2",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            328,
+            143,
+            113.5,
+            38
+          ],
+          "label" : "Two-step codes, 0",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            465.5,
+            143,
+            71.5,
+            38
+          ],
+          "label" : "Passkeys, 0",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            561,
+            143,
+            114,
+            38
+          ],
+          "label" : "Needs attention, 1",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        402,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        1191,
+        147,
+        96,
+        28
+      ],
+      "label" : "Sort by Modified",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        283,
+        205.5,
+        32,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Name"
+    },
+    {
+      "frame" : [
+        565,
+        205.5,
+        28,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Code"
+    },
+    {
+      "frame" : [
+        633,
+        205.5,
+        23.5,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "11 s"
+    },
+    {
+      "frame" : [
+        685,
+        205.5,
+        52.5,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Password"
+    },
+    {
+      "frame" : [
+        838,
+        205.5,
+        47,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Modified"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                243.5,
+                23,
+                15
+              ],
+              "label" : "May",
+              "role" : "AXHeading"
+            },
+            {
+              "frame" : [
+                273,
+                265,
+                622,
+                56
+              ],
+              "label" : "Home Wi-Fi, Morgan-Home 5G, —, Good, May 3",
+              "role" : "AXButton",
+              "selected" : true
+            },
+            {
+              "frame" : [
+                283,
+                335.5,
+                50.5,
+                15
+              ],
+              "label" : "February",
+              "role" : "AXHeading"
+            },
+            {
+              "frame" : [
+                273,
+                357,
+                622,
+                56
+              ],
+              "label" : "Router admin, admin, —, Poor, Feb 14",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            243.5,
+            622,
+            169.5
+          ],
+          "role" : "AXOpaqueProviderGroup",
+          "subrole" : "AXOpaqueProviderList"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        229,
+        622,
+        583
+      ],
+      "label" : "Entries",
+      "role" : "AXScrollArea"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            983,
+            203.5,
+            98,
+            23
+          ],
+          "label" : "Home Wi-Fi",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            1219,
+            201,
+            32,
+            32
+          ],
+          "label" : "Edit entry (⌘E)",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1253,
+            201,
+            32,
+            32
+          ],
+          "label" : "More actions",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            983,
+            228.5,
+            45.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Devices"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                276.5,
+                79.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Network name"
+            },
+            {
+              "frame" : [
+                938,
+                295,
+                111.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Morgan-Home 5G"
+            },
+            {
+              "frame" : [
+                1244,
+                279,
+                32,
+                32
+              ],
+              "label" : "Copy username",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            276.5,
+            338,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                334.5,
+                83.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Wi-Fi password"
+            },
+            {
+              "frame" : [
+                938,
+                353,
+                151.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "••••••••••••••••••"
+            },
+            {
+              "frame" : [
+                938,
+                376.5,
+                193.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Good · 32 characters · about 79 bits"
+            },
+            {
+              "frame" : [
+                1208,
+                348,
+                32,
+                32
+              ],
+              "label" : "Show password",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1244,
+                348,
+                32,
+                32
+              ],
+              "label" : "Copy password",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            334.5,
+            338,
+            57
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                414,
+                44.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Security"
+            },
+            {
+              "frame" : [
+                938,
+                432.5,
+                96,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "WPA3 Personal"
+            },
+            {
+              "frame" : [
+                1244,
+                416.5,
+                32,
+                32
+              ],
+              "label" : "Show as QR code",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            414,
+            338,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                484.5,
+                33.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Group"
+            },
+            {
+              "frame" : [
+                968,
+                504,
+                49,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Devices"
+            }
+          ],
+          "frame" : [
+            938,
+            484.5,
+            79,
+            39.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                543.5,
+                25,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Tags"
+            },
+            {
+              "frame" : [
+                946,
+                568.5,
+                46,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "#shared"
+            }
+          ],
+          "frame" : [
+            938,
+            543.5,
+            62,
+            43.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                606.5,
+                32,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Notes"
+            },
+            {
+              "frame" : [
+                938,
+                626.90000000000146,
+                189,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Guest network: Morgan-Guest"
+            }
+          ],
+          "frame" : [
+            938,
+            606.5,
+            189,
+            38.4000244140625
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            925,
+            670.29999999999927,
+            120.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Modified May 3, 18:20"
+        },
+        {
+          "frame" : [
+            1180,
+            670.29999999999927,
+            101,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "No earlier versions"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        919,
+        197,
+        368,
+        615
+      ],
+      "label" : "Entry details",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

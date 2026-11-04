@@ -1,0 +1,75 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            311.5,
+            20
+          ],
+          "label" : "Personal was changed. Save the changes?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            267,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "You have 2 changes that are not saved yet."
+        },
+        {
+          "frame" : [
+            22,
+            98,
+            79,
+            36
+          ],
+          "label" : "Discard",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            295.5,
+            98,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            377,
+            98,
+            61,
+            36
+          ],
+          "label" : "Save",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        152
+      ],
+      "label" : "Personal was changed. Save the changes?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    152
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

@@ -1,0 +1,140 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            1062,
+            192,
+            232,
+            30
+          ],
+          "label" : "Copy Username, ⌘B",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            222,
+            232,
+            30
+          ],
+          "label" : "Copy Password, ⌘C",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            252,
+            232,
+            30
+          ],
+          "label" : "Copy URL, ⇧⌘U",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            282,
+            232,
+            30
+          ],
+          "label" : "Copy One-Time Code, ⌘T",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            1062,
+            325,
+            232,
+            30
+          ],
+          "help" : "Auto-Type comes in E7.",
+          "label" : "Type Login, ⇧⌘V",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            355,
+            232,
+            30
+          ],
+          "label" : "Open URL, ⌘U",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            1062,
+            385,
+            232,
+            30
+          ],
+          "help" : "This dialog comes with its story.",
+          "label" : "Show Code as QR",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            428,
+            232,
+            30
+          ],
+          "label" : "Clone Entry…, ⌘D",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            1062,
+            458,
+            232,
+            30
+          ],
+          "help" : "Editing comes with the entry editor (E5-S5).",
+          "label" : "Move to Group ▸",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            488,
+            232,
+            30
+          ],
+          "label" : "History",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1062,
+            531,
+            232,
+            30
+          ],
+          "label" : "Move to Recycle Bin, ⌘⌫",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        1056,
+        186,
+        244,
+        381
+      ],
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

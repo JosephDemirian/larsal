@@ -1,0 +1,324 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        326.75,
+        17,
+        66.5,
+        18
+      ],
+      "label" : "New Vault",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        36,
+        73,
+        648,
+        29.5
+      ],
+      "label" : "Step 3 of 3, Password",
+      "role" : "AXUnknown"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            36,
+            129.59999999999854,
+            177.5,
+            25
+          ],
+          "label" : "Password and keys",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            36,
+            160,
+            405,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Choose what opens this vault. Only you should know it or have it."
+        },
+        {
+          "frame" : [
+            36,
+            201.40000000000146,
+            174,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Password · Good, about 79 bits"
+        },
+        {
+          "frame" : [
+            49,
+            237.5,
+            548,
+            19
+          ],
+          "label" : "Password",
+          "role" : "AXTextField",
+          "value" : "orchid-meteor-pine-quartz-41"
+        },
+        {
+          "frame" : [
+            605,
+            231,
+            32,
+            32
+          ],
+          "label" : "Hide password",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            645,
+            231,
+            32,
+            32
+          ],
+          "label" : "Generate password",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            36,
+            296.40000000000146,
+            95.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Verify password"
+        },
+        {
+          "frame" : [
+            49,
+            332.5,
+            596,
+            19
+          ],
+          "label" : "Verify password",
+          "role" : "AXTextField",
+          "value" : "orchid-meteor-pine-quartz-41"
+        },
+        {
+          "frame" : [
+            653,
+            332.90000000000146,
+            18,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "The passwords match"
+        },
+        {
+          "frame" : [
+            38,
+            384.40000000000146,
+            149.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "More protection · optional"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                75,
+                421.90000000000146,
+                46,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Key file"
+            },
+            {
+              "frame" : [
+                51,
+                444.90000000000146,
+                357,
+                31
+              ],
+              "role" : "AXStaticText",
+              "value" : "Keep this file exactly as it is, and keep a copy somewhere safe: the vault opens only with this file, unchanged."
+            },
+            {
+              "frame" : [
+                424,
+                434.5,
+                110,
+                28
+              ],
+              "label" : "New Key File…",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                542,
+                434.5,
+                127,
+                28
+              ],
+              "label" : "Choose Key File…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            51,
+            421.89999389648438,
+            618,
+            54
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                51,
+                499.5,
+                16,
+                16
+              ],
+              "label" : "Yubico",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                75,
+                498.40000000000146,
+                76.5,
+                18.000000000000057
+              ],
+              "role" : "AXStaticText",
+              "value" : "Security key"
+            },
+            {
+              "frame" : [
+                51,
+                521.40000000000146,
+                253.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "A YubiKey or OnlyKey with challenge-response."
+            },
+            {
+              "frame" : [
+                612,
+                503,
+                57,
+                28
+              ],
+              "label" : "Add…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            51,
+            498.39999389648438,
+            618,
+            38.000030517578125
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                75,
+                558.90000000000146,
+                56.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Touch ID"
+            },
+            {
+              "frame" : [
+                51,
+                581.90000000000146,
+                227,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Unlock with your finger after the first time."
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                635,
+                567.5,
+                34,
+                20
+              ],
+              "help" : "Touch ID comes with quick unlock (E6-S3).",
+              "label" : "Touch ID",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            51,
+            558.9000244140625,
+            618,
+            38
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        8,
+        105,
+        704,
+        543
+      ],
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        28,
+        662,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        513,
+        662,
+        62,
+        36
+      ],
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        583,
+        662,
+        109,
+        36
+      ],
+      "label" : "Create Vault",
+      "role" : "AXButton"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    720,
+    720
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

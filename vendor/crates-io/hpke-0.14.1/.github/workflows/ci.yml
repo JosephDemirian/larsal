@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore: ["README.md"]
+  pull_request:
+    branches: ["**"]
+    paths-ignore: ["README.md"]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        toolchain:
+          - stable
+          - nightly
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Run cargo test with X25519 and ChaCha20-Poly1305
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings -A dead_code -A unused_imports
+        run: cargo test --no-default-features --features="x25519,chacha"
+
+      - name: Run cargo test with NIST-P curves and ChaCha20-Poly1305
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings -A dead_code -A unused_imports
+        run: cargo test --no-default-features --features="nistp,chacha"
+
+      - name: Run cargo test with X25519 and AES-GCM
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings -A dead_code -A unused_imports
+        run: cargo test --no-default-features --features="x25519,aes"
+
+      - name: Run cargo test with NIST-P curves and AES-GCM
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings -A dead_code -A unused_imports
+        run: cargo test --no-default-features --features="nistp,aes"
+
+      - name: Run cargo test with ML-KEM and ChaCha20-Poly1305
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings -A dead_code -A unused_imports
+        run: cargo test --no-default-features --features="mlkem,chacha"
+
+      - name: Run cargo test with all features enabled
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings -A dead_code -A unused_imports
+        run: cargo test --all-features
+
+      - name: Run cargo build with all features
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -D warnings
+        run: cargo build --all-features
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  docsrs:
+    name: Check docs-rs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: "--cfg docsrs -D warnings"
+
+  msrv:
+    name: rust-version is MSRV
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo +nightly install cargo-msrv --no-default-features
+      - run: cargo +nightly msrv --version
+      - run: cargo +nightly msrv verify --all-features
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+      - run: cargo clippy --all-features -- -D warnings
+
+  no_std:
+    name: no_std build test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv6m-none-eabi
+      - name: Build with all features but kat and getrandom
+        run: cargo build --target thumbv6m-none-eabi --no-default-features --features "alloc,x25519,nistp,mlkem,aes,chacha,hkdfsha2,shake"
+      - name: Build with no default features
+        run: cargo build --target thumbv6m-none-eabi --no-default-features --features "x25519,chacha"
+
+  kat:
+    name: Known-answer test build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build with just the kat feature
+        run: cargo build --no-default-features --features "kat"
+
+  pq:
+    name: PQ-only build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build just ML-KEM and make sure we have no dead code
+        run: cargo build --no-default-features --features "mlkem,chacha"
+        env:
+          RUSTFLAGS: -D warnings

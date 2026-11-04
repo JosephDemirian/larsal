@@ -1,0 +1,288 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        326.75,
+        17,
+        66.5,
+        18
+      ],
+      "label" : "New Vault",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        36,
+        73,
+        648,
+        29.5
+      ],
+      "label" : "Step 2 of 3, Encryption",
+      "role" : "AXUnknown"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            36,
+            129.5,
+            100.5,
+            25
+          ],
+          "label" : "Encryption",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            36,
+            159.90000000000146,
+            595.5,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "Choose how long an unlock takes. A longer unlock makes your password harder to guess. Vault Settings › Security can change it at any time."
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                81,
+                236.79999999999927,
+                97,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Recommended"
+            },
+            {
+              "frame" : [
+                81,
+                258.34999999999854,
+                520,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware."
+            }
+          ],
+          "frame" : [
+            36,
+            221,
+            648,
+            88.5
+          ],
+          "label" : "Recommended",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                81,
+                333.40000000000146,
+                49.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Custom"
+            },
+            {
+              "frame" : [
+                81,
+                354.95000000000073,
+                309.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Choose the cipher, memory and unlock time yourself."
+            }
+          ],
+          "frame" : [
+            36,
+            317.5,
+            648,
+            70
+          ],
+          "label" : "Custom",
+          "role" : "AXButton"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                51,
+                424.5,
+                41.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Cipher"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                576.5,
+                418.5,
+                92.5,
+                30
+              ],
+              "label" : "Cipher",
+              "role" : "AXButton",
+              "value" : "AES-256"
+            }
+          ],
+          "frame" : [
+            51,
+            418.5,
+            618,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                51,
+                475.5,
+                89.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Key derivation"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                576,
+                469.5,
+                93,
+                30
+              ],
+              "label" : "Key derivation",
+              "role" : "AXButton",
+              "value" : "Argon2id"
+            }
+          ],
+          "frame" : [
+            51,
+            469.5,
+            618,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                51,
+                524.5,
+                75.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Unlock time"
+            },
+            {
+              "frame" : [
+                638,
+                524.5,
+                31,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Unlock time, 1.0 s"
+            }
+          ],
+          "frame" : [
+            51,
+            524.5,
+            618,
+            18
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                51,
+                571.5,
+                51.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Memory"
+            },
+            {
+              "frame" : [
+                624.5,
+                571.5,
+                44.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "64 MiB"
+            }
+          ],
+          "frame" : [
+            51,
+            571.5,
+            618,
+            18
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        8,
+        105,
+        704,
+        543
+      ],
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        28,
+        662,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        534,
+        662,
+        62,
+        36
+      ],
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        604,
+        662,
+        88,
+        36
+      ],
+      "label" : "Continue",
+      "role" : "AXButton"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    720,
+    720
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

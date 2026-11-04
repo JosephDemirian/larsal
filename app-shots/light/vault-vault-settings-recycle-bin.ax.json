@@ -1,0 +1,210 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        300,
+        24.5,
+        80.5,
+        19
+      ],
+      "label" : "Recycle Bin",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        18,
+        49,
+        115.5,
+        36.5
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal, Vault settings"
+    },
+    {
+      "frame" : [
+        10,
+        102,
+        212,
+        32
+      ],
+      "label" : "General",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        136,
+        212,
+        32
+      ],
+      "label" : "Security",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        170,
+        212,
+        32
+      ],
+      "label" : "Recycle Bin",
+      "role" : "AXButton",
+      "selected" : true
+    },
+    {
+      "frame" : [
+        10,
+        204,
+        212,
+        32
+      ],
+      "label" : "History",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        238,
+        212,
+        32
+      ],
+      "label" : "Browser Keys",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                91,
+                111,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Use a Recycle Bin"
+            },
+            {
+              "frame" : [
+                270,
+                111.5,
+                235,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Deleted entries wait here until you empty it."
+            },
+            {
+              "frame" : [
+                820,
+                98.5,
+                34,
+                20
+              ],
+              "label" : "Bin",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            270,
+            91,
+            584,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                154,
+                155,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Empty entries older than"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                704,
+                154.5,
+                46,
+                17
+              ],
+              "help" : "Emptying the Recycle Bin by age comes later.",
+              "role" : "AXStaticText",
+              "value" : "90 days"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                760,
+                148,
+                26,
+                30
+              ],
+              "help" : "Emptying the Recycle Bin by age comes later.",
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                786,
+                148,
+                26,
+                30
+              ],
+              "help" : "Emptying the Recycle Bin by age comes later.",
+              "label" : "More",
+              "role" : "AXButton"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                820,
+                153,
+                34,
+                20
+              ],
+              "help" : "Emptying the Recycle Bin by age comes later.",
+              "label" : "Auto empty",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            270,
+            148,
+            584,
+            30
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        232,
+        60,
+        660,
+        572
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    640
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

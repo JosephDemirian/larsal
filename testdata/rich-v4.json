@@ -1,0 +1,933 @@
+{
+  "hex:4b65655061737346696c65": {
+    "Meta": {
+      "Color": "#3366CC",
+      "CustomData": {
+        "Item": [
+          {
+            "Key": "hex:4b5058435f52414e444f4d5f534c5547",
+            "LastModificationTime": "normalized",
+            "Value": "normalized"
+          },
+          {
+            "Key": "_LAST_MODIFIED",
+            "Value": "normalized"
+          },
+          {
+            "Key": "demo-meta-key",
+            "LastModificationTime": "gPcj3Q4AAAA=",
+            "Value": "demo-meta-value"
+          }
+        ]
+      },
+      "CustomIcons": {
+        "Icon": {
+          "Data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+          "LastModificationTime": "gPcj3Q4AAAA=",
+          "Name": "Demo icon",
+          "UUID": "AAAAAAAAAAAAAAAAAAADIA=="
+        }
+      },
+      "DatabaseDescription": "Demo vault with every feature.",
+      "DatabaseDescriptionChanged": "gPcj3Q4AAAA=",
+      "DatabaseName": "Rich demo",
+      "DatabaseNameChanged": "gPcj3Q4AAAA=",
+      "DefaultUserName": "demo-user",
+      "DefaultUserNameChanged": "gPcj3Q4AAAA=",
+      "EntryTemplatesGroup": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "EntryTemplatesGroupChanged": "gPcj3Q4AAAA=",
+      "HistoryMaxItems": "10",
+      "HistoryMaxSize": "6291456",
+      "LastSelectedGroup": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "LastTopVisibleGroup": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "MaintenanceHistoryDays": "30",
+      "MasterKeyChangeForce": "-1",
+      "MasterKeyChangeRec": "-1",
+      "MasterKeyChanged": "gPcj3Q4AAAA=",
+      "MemoryProtection": {
+        "ProtectNotes": "False",
+        "ProtectPassword": "True",
+        "ProtectTitle": "False",
+        "ProtectURL": "False",
+        "ProtectUserName": "False"
+      },
+      "RecycleBinChanged": "gPcj3Q4AAAA=",
+      "RecycleBinEnabled": "True",
+      "RecycleBinUUID": "AAAAAAAAAAAAAAAAAAAAWg==",
+      "SettingsChanged": "gPcj3Q4AAAA="
+    },
+    "Root": {
+      "DeletedObjects": {
+        "DeletedObject": {
+          "DeletionTime": "ANZM3Q4AAAA=",
+          "UUID": "AAAAAAAAAAAAAAAAAAAAYw=="
+        }
+      },
+      "Group": {
+        "CustomData": {
+          "Item": [
+            {
+              "Key": "_LAST_MODIFIED",
+              "Value": "normalized"
+            },
+            {
+              "Key": "demo-group-key",
+              "Value": "demo-group-value"
+            }
+          ]
+        },
+        "DefaultAutoTypeSequence": "",
+        "EnableAutoType": "null",
+        "EnableSearching": "null",
+        "Entry": [
+          {
+            "AutoType": {
+              "Association": {
+                "KeystrokeSequence": "{PASSWORD}{ENTER}",
+                "Window": "Demo Login - Browser"
+              },
+              "DataTransferObfuscation": "0",
+              "DefaultSequence": "{USERNAME}{TAB}{PASSWORD}{ENTER}",
+              "Enabled": "True"
+            },
+            "BackgroundColor": "#00AA00",
+            "Binary": [
+              {
+                "Key": "bytes.bin",
+                "Value": {
+                  "#text": "",
+                  "@Ref": "0"
+                }
+              },
+              {
+                "Key": "empty.bin",
+                "Value": {
+                  "#text": "",
+                  "@Ref": "0"
+                }
+              },
+              {
+                "Key": "notes.txt",
+                "Value": {
+                  "#text": "",
+                  "@Ref": "0"
+                }
+              }
+            ],
+            "CustomData": {
+              "Item": [
+                {
+                  "Key": "_LAST_MODIFIED",
+                  "Value": "normalized"
+                },
+                {
+                  "Key": "demo-entry-key",
+                  "Value": "demo-entry-value"
+                }
+              ]
+            },
+            "CustomIconUUID": "AAAAAAAAAAAAAAAAAAADIA==",
+            "ForegroundColor": "#AA0000",
+            "History": {
+              "Entry": [
+                {
+                  "AutoType": {
+                    "DataTransferObfuscation": "0",
+                    "DefaultSequence": "",
+                    "Enabled": "True"
+                  },
+                  "BackgroundColor": "",
+                  "ForegroundColor": "",
+                  "IconID": "0",
+                  "OverrideURL": "",
+                  "String": [
+                    {
+                      "Key": "Notes",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "Password",
+                      "Value": {
+                        "#text": "demo-old-pass-1",
+                        "@ProtectInMemory": "True"
+                      }
+                    },
+                    {
+                      "Key": "Title",
+                      "Value": "Full demo entry v1"
+                    },
+                    {
+                      "Key": "URL",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "UserName",
+                      "Value": "demo-user"
+                    }
+                  ],
+                  "Tags": "",
+                  "Times": {
+                    "CreationTime": "ANZM3Q4AAAA=",
+                    "Expires": "False",
+                    "ExpiryTime": "ANZM3Q4AAAA=",
+                    "LastAccessTime": "ANZM3Q4AAAA=",
+                    "LastModificationTime": "ANZM3Q4AAAA=",
+                    "LocationChanged": "ANZM3Q4AAAA=",
+                    "UsageCount": "0"
+                  },
+                  "UUID": "AAAAAAAAAAAAAAAAAAAACg=="
+                },
+                {
+                  "AutoType": {
+                    "DataTransferObfuscation": "0",
+                    "DefaultSequence": "",
+                    "Enabled": "True"
+                  },
+                  "BackgroundColor": "",
+                  "ForegroundColor": "",
+                  "IconID": "0",
+                  "OverrideURL": "",
+                  "String": [
+                    {
+                      "Key": "Notes",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "Password",
+                      "Value": {
+                        "#text": "demo-old-pass-2",
+                        "@ProtectInMemory": "True"
+                      }
+                    },
+                    {
+                      "Key": "Title",
+                      "Value": "Full demo entry v2"
+                    },
+                    {
+                      "Key": "URL",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "UserName",
+                      "Value": "demo-user"
+                    }
+                  ],
+                  "Tags": "",
+                  "Times": {
+                    "CreationTime": "gBFz3Q4AAAA=",
+                    "Expires": "False",
+                    "ExpiryTime": "gBFz3Q4AAAA=",
+                    "LastAccessTime": "gBFz3Q4AAAA=",
+                    "LastModificationTime": "gBFz3Q4AAAA=",
+                    "LocationChanged": "gBFz3Q4AAAA=",
+                    "UsageCount": "0"
+                  },
+                  "UUID": "AAAAAAAAAAAAAAAAAAAACg=="
+                },
+                {
+                  "AutoType": {
+                    "DataTransferObfuscation": "0",
+                    "DefaultSequence": "",
+                    "Enabled": "True"
+                  },
+                  "BackgroundColor": "",
+                  "ForegroundColor": "",
+                  "IconID": "0",
+                  "OverrideURL": "",
+                  "String": [
+                    {
+                      "Key": "Notes",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "Password",
+                      "Value": {
+                        "#text": "demo-old-pass-3",
+                        "@ProtectInMemory": "True"
+                      }
+                    },
+                    {
+                      "Key": "Title",
+                      "Value": "Full demo entry v3"
+                    },
+                    {
+                      "Key": "URL",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "UserName",
+                      "Value": "demo-user"
+                    }
+                  ],
+                  "Tags": "",
+                  "Times": {
+                    "CreationTime": "APCb3Q4AAAA=",
+                    "Expires": "False",
+                    "ExpiryTime": "APCb3Q4AAAA=",
+                    "LastAccessTime": "APCb3Q4AAAA=",
+                    "LastModificationTime": "APCb3Q4AAAA=",
+                    "LocationChanged": "APCb3Q4AAAA=",
+                    "UsageCount": "0"
+                  },
+                  "UUID": "AAAAAAAAAAAAAAAAAAAACg=="
+                }
+              ]
+            },
+            "IconID": "0",
+            "OverrideURL": "https://override.example.com",
+            "QualityCheck": "False",
+            "String": [
+              {
+                "Key": "Demo PIN",
+                "Value": {
+                  "#text": "0000",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Demo hint",
+                "Value": "not protected"
+              },
+              {
+                "Key": "Empty custom field",
+                "Value": ""
+              },
+              {
+                "Key": "Notes",
+                "Value": "Line one\nLine two\n\nLine four after an empty line"
+              },
+              {
+                "Key": "Password",
+                "Value": {
+                  "#text": "demo-entry-pass-2",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Spaces",
+                "Value": "  leading and trailing  "
+              },
+              {
+                "Key": "Title",
+                "Value": "Full demo entry"
+              },
+              {
+                "Key": "URL",
+                "Value": "https://example.com/full"
+              },
+              {
+                "Key": "UserName",
+                "Value": "demo-user"
+              },
+              {
+                "Key": "otp",
+                "Value": {
+                  "#text": "otpauth://totp/Demo:demo-user?secret=JBSWY3DPEHPK3PXP&period=30&digits=6&issuer=Demo",
+                  "@ProtectInMemory": "True"
+                }
+              }
+            ],
+            "Tags": "demo,work",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "True",
+              "ExpiryTime": "QHP03w4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAACg=="
+          },
+          {
+            "AutoType": {
+              "DataTransferObfuscation": "0",
+              "DefaultSequence": "",
+              "Enabled": "True"
+            },
+            "BackgroundColor": "",
+            "Binary": {
+              "Key": "shared.txt",
+              "Value": {
+                "#text": "",
+                "@Ref": "0"
+              }
+            },
+            "ForegroundColor": "",
+            "History": "",
+            "IconID": "0",
+            "OverrideURL": "",
+            "String": [
+              {
+                "Key": "Notes",
+                "Value": ""
+              },
+              {
+                "Key": "Password",
+                "Value": {
+                  "#text": "",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Title",
+                "Value": "Shared attachment 1"
+              },
+              {
+                "Key": "URL",
+                "Value": ""
+              },
+              {
+                "Key": "UserName",
+                "Value": ""
+              }
+            ],
+            "Tags": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAACw=="
+          },
+          {
+            "AutoType": {
+              "DataTransferObfuscation": "0",
+              "DefaultSequence": "",
+              "Enabled": "True"
+            },
+            "BackgroundColor": "",
+            "Binary": {
+              "Key": "shared.txt",
+              "Value": {
+                "#text": "",
+                "@Ref": "0"
+              }
+            },
+            "ForegroundColor": "",
+            "History": "",
+            "IconID": "0",
+            "OverrideURL": "",
+            "String": [
+              {
+                "Key": "Notes",
+                "Value": ""
+              },
+              {
+                "Key": "Password",
+                "Value": {
+                  "#text": "",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Title",
+                "Value": "Shared attachment 2"
+              },
+              {
+                "Key": "URL",
+                "Value": ""
+              },
+              {
+                "Key": "UserName",
+                "Value": ""
+              }
+            ],
+            "Tags": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAADA=="
+          },
+          {
+            "AutoType": {
+              "DataTransferObfuscation": "0",
+              "DefaultSequence": "",
+              "Enabled": "True"
+            },
+            "BackgroundColor": "",
+            "ForegroundColor": "",
+            "History": "",
+            "IconID": "0",
+            "OverrideURL": "",
+            "String": [
+              {
+                "Key": "Notes",
+                "Value": ""
+              },
+              {
+                "Key": "Password",
+                "Value": {
+                  "#text": "пароль-密码-🔑",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Title",
+                "Value": "Grüße · Ελληνικά · Русский · עברית · العربية · हिन्दी · 日本語 · 한국어 · 中文 · 🔑"
+              },
+              {
+                "Key": "URL",
+                "Value": ""
+              },
+              {
+                "Key": "UserName",
+                "Value": "Zoë Ñúñez"
+              }
+            ],
+            "Tags": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAADQ=="
+          },
+          {
+            "AutoType": {
+              "DataTransferObfuscation": "0",
+              "DefaultSequence": "",
+              "Enabled": "True"
+            },
+            "BackgroundColor": "",
+            "ForegroundColor": "",
+            "History": "",
+            "IconID": "0",
+            "OverrideURL": "",
+            "String": [
+              {
+                "Key": "Notes",
+                "Value": "a < b && c > d"
+              },
+              {
+                "Key": "Password",
+                "Value": {
+                  "#text": "p&ss<w>rd\"'",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Title",
+                "Value": "Specials <tag> & \"quotes\" 'apos' ]]>"
+              },
+              {
+                "Key": "URL",
+                "Value": ""
+              },
+              {
+                "Key": "UserName",
+                "Value": ""
+              }
+            ],
+            "Tags": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAADg=="
+          },
+          {
+            "AutoType": {
+              "DataTransferObfuscation": "0",
+              "DefaultSequence": "",
+              "Enabled": "True"
+            },
+            "BackgroundColor": "",
+            "ForegroundColor": "",
+            "History": "",
+            "IconID": "0",
+            "OverrideURL": "",
+            "String": [
+              {
+                "Key": "Notes",
+                "Value": ""
+              },
+              {
+                "Key": "Password",
+                "Value": {
+                  "#text": "",
+                  "@ProtectInMemory": "True"
+                }
+              },
+              {
+                "Key": "Title",
+                "Value": ""
+              },
+              {
+                "Key": "URL",
+                "Value": ""
+              },
+              {
+                "Key": "UserName",
+                "Value": ""
+              }
+            ],
+            "Tags": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAADw=="
+          }
+        ],
+        "Group": [
+          {
+            "CustomIconUUID": "AAAAAAAAAAAAAAAAAAADIA==",
+            "DefaultAutoTypeSequence": "{PASSWORD}{ENTER}",
+            "EnableAutoType": "false",
+            "EnableSearching": "false",
+            "Group": {
+              "DefaultAutoTypeSequence": "",
+              "EnableAutoType": "null",
+              "EnableSearching": "null",
+              "Entry": {
+                "AutoType": {
+                  "DataTransferObfuscation": "0",
+                  "DefaultSequence": "",
+                  "Enabled": "True"
+                },
+                "BackgroundColor": "",
+                "ForegroundColor": "",
+                "History": "",
+                "IconID": "0",
+                "OverrideURL": "",
+                "String": [
+                  {
+                    "Key": "Notes",
+                    "Value": ""
+                  },
+                  {
+                    "Key": "Password",
+                    "Value": {
+                      "#text": "demo-server-pass",
+                      "@ProtectInMemory": "True"
+                    }
+                  },
+                  {
+                    "Key": "Title",
+                    "Value": "Server login"
+                  },
+                  {
+                    "Key": "URL",
+                    "Value": ""
+                  },
+                  {
+                    "Key": "UserName",
+                    "Value": "admin"
+                  }
+                ],
+                "Tags": "",
+                "Times": {
+                  "CreationTime": "gPcj3Q4AAAA=",
+                  "Expires": "False",
+                  "ExpiryTime": "gPcj3Q4AAAA=",
+                  "LastAccessTime": "gPcj3Q4AAAA=",
+                  "LastModificationTime": "gPcj3Q4AAAA=",
+                  "LocationChanged": "gPcj3Q4AAAA=",
+                  "UsageCount": "0"
+                },
+                "UUID": "AAAAAAAAAAAAAAAAAAAAFA=="
+              },
+              "Group": {
+                "DefaultAutoTypeSequence": "",
+                "EnableAutoType": "null",
+                "EnableSearching": "null",
+                "Entry": {
+                  "AutoType": {
+                    "DataTransferObfuscation": "0",
+                    "DefaultSequence": "",
+                    "Enabled": "True"
+                  },
+                  "BackgroundColor": "",
+                  "ForegroundColor": "",
+                  "History": "",
+                  "IconID": "0",
+                  "OverrideURL": "",
+                  "String": [
+                    {
+                      "Key": "Notes",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "Password",
+                      "Value": {
+                        "#text": "demo-old-server-pass",
+                        "@ProtectInMemory": "True"
+                      }
+                    },
+                    {
+                      "Key": "Title",
+                      "Value": "Old server"
+                    },
+                    {
+                      "Key": "URL",
+                      "Value": ""
+                    },
+                    {
+                      "Key": "UserName",
+                      "Value": ""
+                    }
+                  ],
+                  "Tags": "",
+                  "Times": {
+                    "CreationTime": "gPcj3Q4AAAA=",
+                    "Expires": "False",
+                    "ExpiryTime": "gPcj3Q4AAAA=",
+                    "LastAccessTime": "gPcj3Q4AAAA=",
+                    "LastModificationTime": "gPcj3Q4AAAA=",
+                    "LocationChanged": "gPcj3Q4AAAA=",
+                    "UsageCount": "0"
+                  },
+                  "UUID": "AAAAAAAAAAAAAAAAAAAAFQ=="
+                },
+                "IconID": "48",
+                "IsExpanded": "True",
+                "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+                "Name": "Old servers",
+                "Notes": "",
+                "Times": {
+                  "CreationTime": "gPcj3Q4AAAA=",
+                  "Expires": "False",
+                  "ExpiryTime": "gPcj3Q4AAAA=",
+                  "LastAccessTime": "gPcj3Q4AAAA=",
+                  "LastModificationTime": "gPcj3Q4AAAA=",
+                  "LocationChanged": "gPcj3Q4AAAA=",
+                  "UsageCount": "0"
+                },
+                "UUID": "AAAAAAAAAAAAAAAAAAAABA=="
+              },
+              "IconID": "48",
+              "IsExpanded": "True",
+              "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+              "Name": "Servers",
+              "Notes": "",
+              "Times": {
+                "CreationTime": "gPcj3Q4AAAA=",
+                "Expires": "False",
+                "ExpiryTime": "gPcj3Q4AAAA=",
+                "LastAccessTime": "gPcj3Q4AAAA=",
+                "LastModificationTime": "gPcj3Q4AAAA=",
+                "LocationChanged": "gPcj3Q4AAAA=",
+                "UsageCount": "0"
+              },
+              "UUID": "AAAAAAAAAAAAAAAAAAAAAw=="
+            },
+            "IconID": "0",
+            "IsExpanded": "False",
+            "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+            "Name": "Work",
+            "Notes": "",
+            "Tags": "demo-group-tag",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAAAg=="
+          },
+          {
+            "DefaultAutoTypeSequence": "",
+            "EnableAutoType": "null",
+            "EnableSearching": "null",
+            "IconID": "48",
+            "IsExpanded": "True",
+            "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+            "Name": "Personal",
+            "Notes": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAABQ=="
+          },
+          {
+            "DefaultAutoTypeSequence": "",
+            "EnableAutoType": "false",
+            "EnableSearching": "false",
+            "Entry": {
+              "AutoType": {
+                "DataTransferObfuscation": "0",
+                "DefaultSequence": "",
+                "Enabled": "True"
+              },
+              "BackgroundColor": "",
+              "ForegroundColor": "",
+              "History": "",
+              "IconID": "0",
+              "OverrideURL": "",
+              "PreviousParentGroup": "AAAAAAAAAAAAAAAAAAAAAg==",
+              "String": [
+                {
+                  "Key": "Notes",
+                  "Value": ""
+                },
+                {
+                  "Key": "Password",
+                  "Value": {
+                    "#text": "demo-deleted-pass",
+                    "@ProtectInMemory": "True"
+                  }
+                },
+                {
+                  "Key": "Title",
+                  "Value": "Deleted demo entry"
+                },
+                {
+                  "Key": "URL",
+                  "Value": ""
+                },
+                {
+                  "Key": "UserName",
+                  "Value": ""
+                }
+              ],
+              "Tags": "",
+              "Times": {
+                "CreationTime": "gPcj3Q4AAAA=",
+                "Expires": "False",
+                "ExpiryTime": "gPcj3Q4AAAA=",
+                "LastAccessTime": "gPcj3Q4AAAA=",
+                "LastModificationTime": "gPcj3Q4AAAA=",
+                "LocationChanged": "gPcj3Q4AAAA=",
+                "UsageCount": "0"
+              },
+              "UUID": "AAAAAAAAAAAAAAAAAAAAHg=="
+            },
+            "Group": {
+              "DefaultAutoTypeSequence": "",
+              "EnableAutoType": "null",
+              "EnableSearching": "null",
+              "Entry": {
+                "AutoType": {
+                  "DataTransferObfuscation": "0",
+                  "DefaultSequence": "",
+                  "Enabled": "True"
+                },
+                "BackgroundColor": "",
+                "ForegroundColor": "",
+                "History": "",
+                "IconID": "0",
+                "OverrideURL": "",
+                "String": [
+                  {
+                    "Key": "Notes",
+                    "Value": ""
+                  },
+                  {
+                    "Key": "Password",
+                    "Value": {
+                      "#text": "demo-deleted-pass-2",
+                      "@ProtectInMemory": "True"
+                    }
+                  },
+                  {
+                    "Key": "Title",
+                    "Value": "Entry in deleted group"
+                  },
+                  {
+                    "Key": "URL",
+                    "Value": ""
+                  },
+                  {
+                    "Key": "UserName",
+                    "Value": ""
+                  }
+                ],
+                "Tags": "",
+                "Times": {
+                  "CreationTime": "gPcj3Q4AAAA=",
+                  "Expires": "False",
+                  "ExpiryTime": "gPcj3Q4AAAA=",
+                  "LastAccessTime": "gPcj3Q4AAAA=",
+                  "LastModificationTime": "gPcj3Q4AAAA=",
+                  "LocationChanged": "gPcj3Q4AAAA=",
+                  "UsageCount": "0"
+                },
+                "UUID": "AAAAAAAAAAAAAAAAAAAAHw=="
+              },
+              "IconID": "48",
+              "IsExpanded": "True",
+              "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+              "Name": "Deleted demo group",
+              "Notes": "",
+              "PreviousParentGroup": "AAAAAAAAAAAAAAAAAAAAAQ==",
+              "Times": {
+                "CreationTime": "gPcj3Q4AAAA=",
+                "Expires": "False",
+                "ExpiryTime": "gPcj3Q4AAAA=",
+                "LastAccessTime": "gPcj3Q4AAAA=",
+                "LastModificationTime": "gPcj3Q4AAAA=",
+                "LocationChanged": "gPcj3Q4AAAA=",
+                "UsageCount": "0"
+              },
+              "UUID": "AAAAAAAAAAAAAAAAAAAAWw=="
+            },
+            "IconID": "43",
+            "IsExpanded": "True",
+            "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+            "Name": "Recycle Bin",
+            "Notes": "",
+            "Times": {
+              "CreationTime": "gPcj3Q4AAAA=",
+              "Expires": "False",
+              "ExpiryTime": "gPcj3Q4AAAA=",
+              "LastAccessTime": "gPcj3Q4AAAA=",
+              "LastModificationTime": "gPcj3Q4AAAA=",
+              "LocationChanged": "gPcj3Q4AAAA=",
+              "UsageCount": "0"
+            },
+            "UUID": "AAAAAAAAAAAAAAAAAAAAWg=="
+          }
+        ],
+        "IconID": "48",
+        "IsExpanded": "True",
+        "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+        "Name": "Rich demo",
+        "Notes": "Root group notes.",
+        "Times": {
+          "CreationTime": "gPcj3Q4AAAA=",
+          "Expires": "False",
+          "ExpiryTime": "gPcj3Q4AAAA=",
+          "LastAccessTime": "gPcj3Q4AAAA=",
+          "LastModificationTime": "gPcj3Q4AAAA=",
+          "LocationChanged": "gPcj3Q4AAAA=",
+          "UsageCount": "0"
+        },
+        "UUID": "AAAAAAAAAAAAAAAAAAAAAQ=="
+      }
+    }
+  }
+}

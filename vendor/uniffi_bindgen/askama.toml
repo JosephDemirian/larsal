@@ -1,0 +1,14 @@
+[general]
+# Directories to search for templates, relative to the crate root.
+# App change (E0-S7 step 5, change 1): the Kotlin, Python and Ruby template
+# folders and their syntaxes are gone with their generators.
+dirs = [ "src/scaffolding/templates", "src/bindings/swift/templates" ]
+
+[[syntax]]
+name = "swift"
+
+[[syntax]]
+name = "c"
+
+[[syntax]]
+name = "rs"

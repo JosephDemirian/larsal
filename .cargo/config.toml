@@ -1,0 +1,21 @@
+# Every outside package is App's own copy in this tree (LD-221, story E0-S7):
+# crates.io is replaced by the folder that `cargo vendor --versioned-dirs`
+# made, so no build reaches the network or the cargo cache. Cargo.lock still
+# names crates.io and its checksums; cargo checks each copy against them.
+# The patched copies stay path copies under [patch.crates-io]: vendor/zxcvbn
+# (LD-136) and vendor/ssh-key (LD-209) in Cargo.toml and fuzz/Cargo.toml,
+# vendor/uniffi and vendor/uniffi_core (E0-S7 step 4c), vendor/ureq and
+# vendor/ureq-proto (E0-S7 step 4d), vendor/uniffi_bindgen (E0-S7 step 5) in
+# Cargo.toml.
+# Packages never built on a Mac are not copied: their parents' copies lose
+# the optional feature or the other system's target table that named them,
+# and keep cargo vendor's checksum list beside the new one as
+# .cargo-checksum.upstream.json (E0-S7 step 2; scripts/check-vendor.sh).
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor/crates-io"
+
+[net]
+offline = true

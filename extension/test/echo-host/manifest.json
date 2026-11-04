@@ -1,0 +1,7 @@
+{
+  "name": "com.app.test.echo",
+  "description": "App test echo host",
+  "path": "",
+  "type": "stdio",
+  "allowed_origins": []
+}

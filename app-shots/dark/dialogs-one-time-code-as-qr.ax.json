@@ -1,0 +1,85 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            206,
+            20
+          ],
+          "label" : "One-time code for “GitHub”",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            358,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "Scan it with another authenticator app. Anyone who sees it can make sign-in codes, so close it when you are done."
+        },
+        {
+          "frame" : [
+            22,
+            114,
+            416,
+            202
+          ],
+          "label" : "QR code",
+          "role" : "AXImage"
+        },
+        {
+          "frame" : [
+            22,
+            348.5,
+            193.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "44 seconds until this window closes"
+        },
+        {
+          "frame" : [
+            304,
+            338,
+            62.5,
+            36
+          ],
+          "label" : "Copy",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            374.5,
+            338,
+            63.5,
+            36
+          ],
+          "label" : "Done",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        392
+      ],
+      "label" : "One-time code for “GitHub”",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    392
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

@@ -1,0 +1,25 @@
+[package]
+name = "app-sshagent"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# E9-S1: App as a client of the system SSH agent (spec INT-06). Keys are read
+# and decrypted in app-crypto (AGENTS rule 3: ssh-key lives there); the socket
+# peer check comes from app-platform.
+# E9-S2: keys from entries (app-model; the password resolved by app-core's
+# refs as Copy does), the settings attachment (quick-xml), App's own agent
+# (base64 and signing in app-crypto).
+[dependencies]
+app-core = { workspace = true }
+app-crypto = { workspace = true }
+app-model = { workspace = true }
+app-platform = { workspace = true }
+quick-xml = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[lints]
+workspace = true

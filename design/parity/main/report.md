@@ -1,0 +1,82 @@
+# Design parity: section `main`
+
+Date 2026-10-28. Reference: design/option-a/mockup.html (reference images exported again this run). App: offscreen snapshots of SnapshotTests.
+
+**Result: 2 of 2 built frames PASS** (2 frames in the section; 0 belong to later stories).
+
+Check tools: pixelmatch 8.0.0, pngjs 7.0.0 (installed under /tmp/parity-tools, not in the project). Pixel diff: threshold 0.1, anti-aliasing ignored. "Outside accepted" = changed pixels left after masking the areas of accepted differences and live values (window buttons, strength words and meters, counts, codes, countdowns, times, paths).
+
+| Frame | Light | Dark | Pixels light / dark (outside accepted) | Missing strings | Token mismatches | Boxes / text runs > 2 pt (light, dark) | Verdict |
+|---|---|---|---|---|---|---|---|
+| main-main-window-light | present | present | 1.36 % (0.87 %) / 1.37 % (0.88 %) | 0 | 0 / 0 | 0 + 0 / 0 + 0 | PASS |
+| main-main-window-dark | present | present | 1.39 % (0.91 %) / 1.37 % (0.9 %) | 0 | 0 / 0 | 0 + 0 / 0 + 0 | PASS |
+
+Token mismatches = colours whose share of the frame differs (missing or extra, at least 0.5 % of the pixels) plus Phosphor glyphs the app does not draw. Static token check (every colour asset against app.css): 45 of 45 equal.
+
+## Findings per frame
+
+### main-main-window-light: PASS
+
+- Font check passed: the large code is one run of IBMPlexMono-Medium 28 in the accessibility tree; 28.0 pt code: ink distance 0.016 to IBM Plex Mono 500 against 0.355 to the system face; 14.0 pt code: ink distance 0.082 to IBM Plex Mono 500 against 0.307 to the system face.
+- Focus check passed: the focused row, rendered offscreen in light and dark, has --accent exactly from 1 to 3 pt outside its edge (left and top), none when not focused; the mockup's .win :focus-visible is outline 2px --accent, offset 1px, radius 6 (outline radius 7 to 9), the app strokes radius 8 at 2 pt out (7 to 9). On a real key window: Mac QA (LD-169).
+- Keeps its own light theme in both sets. Accepted: FEA-05.4 levels, the attention count 7, the FEA-05 estimate (LD-163 (4), LD-166). Rows below the fold are clipped in the mockup and built lazily in the app.
+- Live, format only: codes, countdowns, the save and lock times, the test copies' paths; LD-166: the FEA-05 bits, the SSH fingerprint, "Saved just now".
+- Controls of later stories are drawn and disabled with their story in the help text (LD-163); their behaviour waits for those stories.
+- Closing menus with Escape or a click outside: Mac QA on a real screen (LD-166).
+
+Images: light `app/light/main-main-window-light.png` against `../../option-a/reference/light/main-main-window-light.png`, diff `diff/light/main-main-window-light.png`; dark likewise.
+
+### main-main-window-dark: PASS
+
+- Font check passed: the large code is one run of IBMPlexMono-Medium 28 in the accessibility tree; 28.0 pt code: ink distance 0.016 to IBM Plex Mono 500 against 0.355 to the system face; 14.0 pt code: ink distance 0.082 to IBM Plex Mono 500 against 0.307 to the system face.
+- Focus check passed: the focused row, rendered offscreen in light and dark, has --accent exactly from 1 to 3 pt outside its edge (left and top), none when not focused; the mockup's .win :focus-visible is outline 2px --accent, offset 1px, radius 6 (outline radius 7 to 9), the app strokes radius 8 at 2 pt out (7 to 9). On a real key window: Mac QA (LD-169).
+- The dark twin of main-main-window-light (own dark theme in both sets); behaviour cites the light frame's tests (same view).
+- Live, format only: codes, countdowns, the save and lock times, the test copies' paths; LD-166: the FEA-05 bits, the SSH fingerprint, "Saved just now".
+- Closing menus with Escape or a click outside: Mac QA on a real screen (LD-166).
+
+Images: light `app/light/main-main-window-dark.png` against `../../option-a/reference/light/main-main-window-dark.png`, diff `diff/light/main-main-window-dark.png`; dark likewise.
+
+## Contrast (check 7)
+
+Token pairs that carry words, WCAG ratio, both themes: 42 pairs, lowest 4.87:1; under 4.5:1: none.
+
+## Commands run
+
+Run from the project root on 2026-10-28, in this order. No window was opened: Chrome ran headless, the app views rendered in borderless windows at x −20000 that were never ordered front, and the test process is not a hosted app.
+
+1. `node design/option-a/tools/export-reference.mjs` (reference images and manifest from the current mockup)
+   → `light: 91 frames`, `dark: 91 frames`, `manifest.json: 91 frames` (5 min 23 s).
+2. `npm install --prefix /tmp/parity-tools pixelmatch pngjs` → `added 2 packages`; versions pixelmatch 8.0.0, pngjs 7.0.0 (outside the project).
+3. `scripts/build-core.sh` → `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift`, exit 0.
+4. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath target/xcode test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` (the check.sh G2 test step)
+   → `✔ Suite SnapshotTests passed`, `✔ Suite ParityLockTests passed`, `✔ Suite ParityMainTests passed`, `✔ Suite ParityStatesTests passed`, `✔ Suite ScreenTests passed`, `✔ Suite ParityFontTests passed`, `✔ Test run with 41 tests in 10 suites passed after 30.276 seconds`, `** TEST SUCCEEDED **`. SnapshotTests wrote app-shots/<theme>/<frame-id>.png and, new for this check, the accessibility tree next to each (`<frame-id>.ax.json`, test only). The Parity suites are new (test only, 27 tests): they press the mockup's controls through the accessibility tree. Log: target/parity/behaviour.log.
+5. `swift format lint --strict macos/AppTests/*.swift` and `swiftlint lint --strict --quiet AppTests/` (in macos/) → no findings.
+6. `node design/parity/tools/mockup-dom.mjs lock,main,states` (mockup boxes, text runs, fonts, glyphs, controls; headless) → `light: 21 frames, 2586 text runs`, `dark: 21 frames, 2586 text runs`.
+7. `swift design/parity/tools/ocr.swift app-shots/light/*.png app-shots/dark/*.png` (on-device text recognition, only for strings kept out of the accessibility tree) → 36 images read.
+8. `node design/parity/tools/compare.mjs <section>` (pixelmatch threshold 0.1, includeAA false; text, tokens, geometry, behaviour; writes this report).
+
+Measured looks (LD-169): `ParityFontTests` (new, test only). "Font check" reads the large code's font runs from the accessibility tree and compares the drawn glyphs of the large code and a row code with the same string set by Core Text in IBM Plex Mono 500 and in the system face. "Focus check" renders the focused row offscreen in light and dark and reads the outline back. A probe in /tmp showed that the font runs in the tree name the requested font even where the glyphs drawn differ, so the glyph comparison is the deciding check.
+
+E6-S1 re-run (Builder, 2026-10-28, sections lock, main and states; states-copied added): steps 1, 2 and 6 were not repeated (mockup.js and app.css are older than the reference images and target/parity/dom-*.json).
+3. `scripts/build-core.sh` → `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift` (bindings with `copyField`, `clearClipboard`, `Copied`).
+4. The check.sh G2 test step as above → `✔ Suite SnapshotTests passed`, `✔ Suite ParityStatesTests passed`, `✔ Test run with 45 tests in 10 suites passed after 32.980 seconds`, `** TEST SUCCEEDED **`. New: the states-copied snapshot and three "Parity states-copied" tests. The offscreen windows are now pinned to sRGB: on 2026-10-28 the Mac's screen gave Display P3 renders (accent #1b6c80 read as 53,107,126), which failed the Focus check and would shift every colour; the reference images are sRGB. Log: target/parity/behaviour.log.
+7. `swift design/parity/tools/ocr.swift app-shots/light/*.png app-shots/dark/*.png` → 38 images read.
+8. `node design/parity/tools/compare.mjs lock` → `lock: 4/4 PASS`; `node design/parity/tools/compare.mjs main` → `main: 2/2 PASS`; `node design/parity/tools/compare.mjs states` → `states: 13/13 PASS` (states-copied light 1.57 %, dark 1.6 %).
+
+E6-S1 second pass (Builder, 2026-10-28, LD-181): app-ffi `copy_code` and `copy_fingerprint`; Copy One-Time Code (⌘T), the code row's Copy and Copy fingerprint work; the unlock form's shown password is an AppKit field whose own field editor has no Copy or Cut (APP-03.19).
+3. `scripts/build-core.sh` → bindings with `copyCode` and `copyFingerprint`.
+4. The check.sh G2 test step → `✔ Test run with 47 tests in 10 suites passed after 30.581 seconds`, `** TEST SUCCEEDED **`; general pasteboard change count 10124 before and after the run. Log: target/parity/behaviour.log.
+7. OCR as above → 38 images read.
+8. `node design/parity/tools/compare.mjs lock`, `main`, `states`: counts in each report's result line.
+
+E6-S1 Checker fix (Builder, 2026-10-28): the shown password's editor matches the system's password editor (no writable pasteboard types, no single- or multi-type selection write, no Services send, no drag, no Writing Tools, no corrections, replacements or completion, a context menu of Paste, Delete, Select All only). Test moved to ShownPasswordFieldTests.swift with a plain text view as control.
+4. The G2 test step with `-derivedDataPath /tmp/e6s1/dd` → `✔ Test run with 47 tests in 11 suites passed after 31.305 seconds`, `** TEST SUCCEEDED **`; general pasteboard change count 10124 before and after. Log: target/parity/behaviour.log.
+8. `node design/parity/tools/compare.mjs lock` → result line of design/parity/lock/report.md.
+
+This report: `node design/parity/tools/compare.mjs main` printed:
+
+```
+main: 2/2 PASS
+main-main-window-light                         PASS                   L 1.36% (0.87) D 1.37% (0.88)
+main-main-window-dark                          PASS                   L 1.39% (0.91) D 1.37% (0.9)
+```

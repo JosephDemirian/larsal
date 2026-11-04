@@ -1,0 +1,259 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        300,
+        24.5,
+        95,
+        19
+      ],
+      "label" : "Browser Keys",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        18,
+        49,
+        115.5,
+        36.5
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal, Vault settings"
+    },
+    {
+      "frame" : [
+        10,
+        102,
+        212,
+        32
+      ],
+      "label" : "General",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        136,
+        212,
+        32
+      ],
+      "label" : "Security",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        170,
+        212,
+        32
+      ],
+      "label" : "Recycle Bin",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        204,
+        212,
+        32
+      ],
+      "label" : "History",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        238,
+        212,
+        32
+      ],
+      "label" : "Browser Keys",
+      "role" : "AXButton",
+      "selected" : true
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            258,
+            80.5,
+            124,
+            17
+          ],
+          "label" : "Connected browsers",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            271,
+            118,
+            18,
+            18
+          ],
+          "label" : "Firefox Browser",
+          "role" : "AXImage"
+        },
+        {
+          "frame" : [
+            299,
+            118,
+            124,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Firefox on MacBook"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                142,
+                97,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Connected Oct 12"
+            },
+            {
+              "frame" : [
+                764.5,
+                123.5,
+                88.5,
+                28
+              ],
+              "label" : "Disconnect Firefox on MacBook",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            271,
+            123.5,
+            582,
+            33.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            271,
+            179.5,
+            18,
+            18
+          ],
+          "label" : "Safari",
+          "role" : "AXImage"
+        },
+        {
+          "frame" : [
+            299,
+            179.5,
+            36.5,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Safari"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                203.5,
+                92,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Connected Sep 3"
+            },
+            {
+              "frame" : [
+                764.5,
+                185,
+                88.5,
+                28
+              ],
+              "label" : "Disconnect Safari",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            271,
+            185,
+            582,
+            33.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            258,
+            254.5,
+            116.5,
+            17
+          ],
+          "label" : "Stored permissions",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                292,
+                197,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Site permissions kept in entries"
+            },
+            {
+              "frame" : [
+                271,
+                312.5,
+                207,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "4 entries hold allowed or blocked sites"
+            },
+            {
+              "frame" : [
+                754,
+                295.5,
+                99,
+                28
+              ],
+              "label" : "Remove all…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            271,
+            292,
+            582,
+            35.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        232,
+        60,
+        660,
+        572
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    640
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

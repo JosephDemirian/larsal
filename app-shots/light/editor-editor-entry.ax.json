@@ -1,0 +1,823 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        75,
+        48,
+        48
+      ],
+      "label" : "GitHub",
+      "role" : "AXImage"
+    },
+    {
+      "frame" : [
+        337,
+        74.5,
+        97.5,
+        29
+      ],
+      "label" : "Edit entry",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1119.5,
+        75,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1201,
+        75,
+        86,
+        36
+      ],
+      "label" : "Save, ⌘S",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        337,
+        106,
+        88,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "GitHub · Work"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            145,
+            196,
+            32
+          ],
+          "label" : "Entry",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            273,
+            181,
+            196,
+            32
+          ],
+          "label" : "Advanced, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            217,
+            196,
+            32
+          ],
+          "label" : "Icon",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            253,
+            196,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            289,
+            196,
+            32
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            325,
+            196,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            361,
+            196,
+            32
+          ],
+          "label" : "Properties",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            397,
+            196,
+            32
+          ],
+          "label" : "History, 3",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        145,
+        196,
+        284
+      ],
+      "label" : "Editor pages",
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            501,
+            145.5,
+            49.5,
+            19
+          ],
+          "label" : "Sign-in",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            177.5,
+            27,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Title"
+        },
+        {
+          "frame" : [
+            514,
+            210,
+            762,
+            18
+          ],
+          "label" : "Title",
+          "placeholder" : "GitHub, Bank, Home Wi-Fi…",
+          "role" : "AXTextField",
+          "value" : "GitHub"
+        },
+        {
+          "frame" : [
+            501,
+            253.5,
+            61,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Username"
+        },
+        {
+          "frame" : [
+            900,
+            253.5,
+            202,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Password · Excellent, about 124 bits"
+        },
+        {
+          "frame" : [
+            538,
+            286,
+            339,
+            18
+          ],
+          "label" : "Username",
+          "placeholder" : "name@example…",
+          "role" : "AXTextField",
+          "value" : "alex-dev"
+        },
+        {
+          "frame" : [
+            913,
+            286,
+            291,
+            18
+          ],
+          "label" : "Password",
+          "role" : "AXButton",
+          "value" : "x9!Lq#4vT@m2Zr8&Wk5p"
+        },
+        {
+          "frame" : [
+            1212,
+            281,
+            28,
+            28
+          ],
+          "label" : "Hide password",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1248,
+            281,
+            28,
+            28
+          ],
+          "label" : "Open generator (⌥⌘G)",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            501,
+            340.5,
+            48.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Website"
+        },
+        {
+          "frame" : [
+            538,
+            373,
+            702,
+            18
+          ],
+          "label" : "Website",
+          "placeholder" : "https:\/\/…",
+          "role" : "AXTextField",
+          "value" : "https:\/\/github.com\/login"
+        },
+        {
+          "frame" : [
+            1248,
+            368,
+            28,
+            28
+          ],
+          "label" : "Open website",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            501,
+            406.5,
+            124.5,
+            15
+          ],
+          "label" : "+ Add another website",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            625.5,
+            406.5,
+            174.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : " · gist.github.com is also allowed"
+        },
+        {
+          "frame" : [
+            501,
+            450.5,
+            116.5,
+            19
+          ],
+          "label" : "Two-step sign-in",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                518,
+                493.5,
+                187.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "One-time code · 6 digits every 30 s"
+            },
+            {
+              "frame" : [
+                518,
+                509.5,
+                78.5,
+                23
+              ],
+              "role" : "AXStaticText",
+              "value" : "232 480"
+            },
+            {
+              "frame" : [
+                1094.5,
+                498,
+                98,
+                28
+              ],
+              "label" : "Show QR",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1196.5,
+                498,
+                77.5,
+                28
+              ],
+              "label" : "Change…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            518,
+            493.5,
+            756,
+            39
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                518,
+                552,
+                44,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Passkey"
+            },
+            {
+              "frame" : [
+                518,
+                570.5,
+                135.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "github.com · alex-dev"
+            },
+            {
+              "frame" : [
+                1204,
+                556.5,
+                70,
+                28
+              ],
+              "label" : "Remove",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            518,
+            552,
+            756,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            501,
+            628.5,
+            62,
+            19
+          ],
+          "label" : "Organize",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            660.5,
+            37,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Group"
+        },
+        {
+          "frame" : [
+            900,
+            660.5,
+            27.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Tags"
+        },
+        {
+          "frame" : [
+            501,
+            684,
+            383,
+            36
+          ],
+          "label" : "Group, Work",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            921,
+            694.5,
+            26.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "#2fa"
+        },
+        {
+          "frame" : [
+            951.5,
+            694,
+            16,
+            16
+          ],
+          "label" : "Remove #2fa",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            989.5,
+            694.5,
+            28,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "#dev"
+        },
+        {
+          "frame" : [
+            1021.5,
+            694,
+            16,
+            16
+          ],
+          "label" : "Remove #dev",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1051.5,
+            693,
+            224.5,
+            18
+          ],
+          "label" : "Add a tag",
+          "placeholder" : "Add a tag…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            501,
+            736.5,
+            44.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Expires"
+        },
+        {
+          "frame" : [
+            501,
+            768,
+            34,
+            20
+          ],
+          "label" : "Expires",
+          "role" : "AXCheckBox",
+          "subrole" : "AXToggle",
+          "value" : "0"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            580,
+            769,
+            156,
+            18
+          ],
+          "label" : "Expiry date",
+          "placeholder" : "Never",
+          "role" : "AXTextField"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            751,
+            762,
+            125.5,
+            32
+          ],
+          "label" : "In 3 months",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            501,
+            824.5,
+            41,
+            19
+          ],
+          "label" : "Notes",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            856,
+            782,
+            96
+          ],
+          "label" : "Notes",
+          "placeholder" : "Anything you want to keep with this entry",
+          "role" : "AXTextField",
+          "value" : "Recovery codes are in the attachment.\nOrganization: morgan-labs"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        501,
+        145,
+        786,
+        667
+      ],
+      "label" : "Entry",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

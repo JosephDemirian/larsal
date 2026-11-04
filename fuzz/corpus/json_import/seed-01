@@ -1,0 +1,1 @@
+{"folders":[{"id":"1","name":"A/B"},{"id":"2","name":"A//B"},{"id":"3","name":"/C"}],"items":[{"name":"i1","folderId":"1"},{"name":"i2","folderId":"2"},{"name":"i3","folderId":"3"}]}

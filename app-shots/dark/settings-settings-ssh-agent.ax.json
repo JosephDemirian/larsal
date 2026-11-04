@@ -1,0 +1,322 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            48,
+            55,
+            165,
+            18
+          ],
+          "label" : "Search settings",
+          "placeholder" : "Search settings…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            10,
+            94,
+            212,
+            32
+          ],
+          "label" : "General",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            128,
+            212,
+            32
+          ],
+          "label" : "Security",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            162,
+            212,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            196,
+            212,
+            32
+          ],
+          "label" : "Browser Integration",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            230,
+            212,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            10,
+            264,
+            212,
+            32
+          ],
+          "label" : "Shared Groups",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            298,
+            212,
+            32
+          ],
+          "label" : "Shortcuts",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        10,
+        16,
+        212,
+        314
+      ],
+      "label" : "Settings pages",
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        253,
+        27,
+        16,
+        16
+      ],
+      "help" : "Back",
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "disabled" : true,
+      "frame" : [
+        277,
+        27,
+        16,
+        16
+      ],
+      "help" : "Forward",
+      "label" : "Forward",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        301,
+        25.5,
+        73.5,
+        19
+      ],
+      "label" : "SSH Agent",
+      "role" : "AXHeading"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                93,
+                155,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Work with the SSH agent"
+            },
+            {
+              "frame" : [
+                272,
+                113.5,
+                235.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Adds keys from entries to the system agent."
+            },
+            {
+              "frame" : [
+                818,
+                100.5,
+                34,
+                20
+              ],
+              "label" : "SSH",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            93,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            164.5,
+            36,
+            17
+          ],
+          "label" : "Agent",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                202,
+                40.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Status"
+            },
+            {
+              "frame" : [
+                272,
+                222.5,
+                324,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "\/private\/tmp\/com.apple.launchd.Kp9w\/Listeners"
+            },
+            {
+              "frame" : [
+                784.5,
+                212,
+                59.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Connected"
+            }
+          ],
+          "frame" : [
+            272,
+            202,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                262.5,
+                137,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Use a different socket"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                261.5,
+                34,
+                20
+              ],
+              "help" : "Choosing a socket and a provider waits for the SSH page's new frames (W-05).",
+              "label" : "Socket",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            261.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                306,
+                132,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Security key provider"
+            },
+            {
+              "frame" : [
+                272,
+                326.5,
+                217.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "For sk-ed25519 keys on a hardware key."
+            },
+            {
+              "frame" : [
+                780,
+                315,
+                43,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Built-in"
+            }
+          ],
+          "frame" : [
+            272,
+            306,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        233,
+        61,
+        658,
+        610
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    680
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

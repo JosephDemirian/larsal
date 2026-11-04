@@ -1,0 +1,658 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 08:50 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        79,
+        29
+      ],
+      "label" : "Reports",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1157,
+        75,
+        130,
+        36
+      ],
+      "label" : "Check again",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        243,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal · 23 entries checked at 10:30"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            96,
+            38
+          ],
+          "label" : "Health check, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            393,
+            143,
+            85,
+            38
+          ],
+          "label" : "Breach check",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            502,
+            143,
+            58,
+            38
+          ],
+          "label" : "Statistics",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            584,
+            143,
+            58,
+            38
+          ],
+          "label" : "Passkeys",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            666,
+            143,
+            53.5,
+            38
+          ],
+          "label" : "Browser",
+          "role" : "AXButton",
+          "selected" : true
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        446.5,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            283,
+            203.5,
+            29,
+            15
+          ],
+          "label" : "Entry",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            563.5,
+            203.5,
+            85,
+            15
+          ],
+          "label" : "Also allowed on",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            890.5,
+            203.5,
+            48.5,
+            15
+          ],
+          "label" : "Never on",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            1113.5,
+            203.5,
+            42,
+            15
+          ],
+          "label" : "Options",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                241,
+                89.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Amazon, www.amazon.de"
+            },
+            {
+              "frame" : [
+                563.5,
+                250,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            },
+            {
+              "frame" : [
+                898.5,
+                251.5,
+                99.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "www.amazon.com"
+            },
+            {
+              "frame" : [
+                1113.5,
+                250,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            }
+          ],
+          "frame" : [
+            273,
+            229,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                306,
+                24,
+                24
+              ],
+              "label" : "Figma",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                300,
+                87,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Figma, www.figma.com"
+            },
+            {
+              "frame" : [
+                571.5,
+                310.5,
+                87,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "www.figma.com"
+            },
+            {
+              "frame" : [
+                890.5,
+                309,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            },
+            {
+              "frame" : [
+                1113.5,
+                309,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            }
+          ],
+          "frame" : [
+            273,
+            288,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                365,
+                24,
+                24
+              ],
+              "label" : "GitHub",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                359,
+                60.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "GitHub, github.com"
+            },
+            {
+              "frame" : [
+                571.5,
+                369.5,
+                83,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "gist.github.com"
+            },
+            {
+              "frame" : [
+                674,
+                369.5,
+                60.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "github.com"
+            },
+            {
+              "frame" : [
+                890.5,
+                368,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            },
+            {
+              "frame" : [
+                1121.5,
+                369.5,
+                75.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "fill, no submit"
+            }
+          ],
+          "frame" : [
+            273,
+            347,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                424,
+                24,
+                24
+              ],
+              "label" : "Google",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                418,
+                114,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Google, accounts.google.com"
+            },
+            {
+              "frame" : [
+                571.5,
+                428.5,
+                114,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "accounts.google.com"
+            },
+            {
+              "frame" : [
+                890.5,
+                427,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            },
+            {
+              "frame" : [
+                1113.5,
+                427,
+                11,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "—"
+            }
+          ],
+          "frame" : [
+            273,
+            406,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            283,
+            482.5,
+            635.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Connected browsers: Firefox on MacBook (since Oct 12) · Safari (since Sep 3). Manage them in Vault Settings."
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        181,
+        1014,
+        631
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

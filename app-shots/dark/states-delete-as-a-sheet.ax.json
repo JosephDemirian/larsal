@@ -1,0 +1,76 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            510,
+            81,
+            263,
+            20
+          ],
+          "label" : "Move “Amazon” to the Recycle Bin?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            510,
+            109,
+            314,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "You can restore it until you empty the Recycle Bin."
+        },
+        {
+          "frame" : [
+            452,
+            146,
+            416,
+            32
+          ],
+          "label" : "Do not ask again",
+          "role" : "AXButton",
+          "value" : "off"
+        },
+        {
+          "frame" : [
+            628.5,
+            200,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            710,
+            200,
+            158,
+            36
+          ],
+          "label" : "Move to Recycle Bin",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        430,
+        52,
+        460,
+        202
+      ],
+      "label" : "Move “Amazon” to the Recycle Bin?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

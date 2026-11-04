@@ -1,0 +1,65 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            182,
+            20
+          ],
+          "label" : "Join “Morgan-Home 5G”",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            334.5,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Point a phone camera at the code to join the network."
+        },
+        {
+          "frame" : [
+            22,
+            94,
+            416,
+            202
+          ],
+          "label" : "QR code",
+          "role" : "AXImage"
+        },
+        {
+          "frame" : [
+            374.5,
+            318,
+            63.5,
+            36
+          ],
+          "label" : "Done",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        372
+      ],
+      "label" : "Join “Morgan-Home 5G”",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    372
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

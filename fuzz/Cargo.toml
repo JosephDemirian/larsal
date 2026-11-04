@@ -1,0 +1,270 @@
+# cargo-fuzz targets (plan/architecture.md, fuzz/). Run from the project
+# root: cargo +nightly fuzz run <target>. Not a member of the main
+# workspace: it has its own, so the pinned stable toolchain never builds it.
+[package]
+name = "app-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "GPL-3.0-or-later"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "=0.4.13"
+app-format = { path = "../crates/app-format" }
+app-model = { path = "../crates/app-model" }
+app-crypto = { path = "../crates/app-crypto" }
+app-core = { path = "../crates/app-core" }
+app-autotype = { path = "../crates/app-autotype" }
+app-sshagent = { path = "../crates/app-sshagent" }
+app-share = { path = "../crates/app-share" }
+# E16-S3: the sync wire format (SYN-01.15).
+app-proto = { path = "../crates/app-proto" }
+# E7-S1: App's side of the browser bridge (INT-01.48).
+app-browser = { path = "../crates/app-browser" }
+png = { version = "=0.18.1", default-features = false }
+# E4-S13: the import targets build ZIP files from fuzz input (base64 from app-crypto).
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+
+[workspace]
+members = ["."]
+
+# LD-136: App's patched copy of zxcvbn, as in the root workspace.
+[patch.crates-io]
+zxcvbn = { path = "../vendor/zxcvbn" }
+# LD-209: App's patched copy of ssh-key, as in the root workspace.
+ssh-key = { path = "../vendor/ssh-key" }
+
+# Outer header, KDF map and public custom data map (FMT-02, FMT-03; E3-S2).
+[[bin]]
+name = "vault_header"
+path = "fuzz_targets/vault_header.rs"
+test = false
+doc = false
+bench = false
+
+# Whole open of a vault file with a fixed password and cheap key settings (FMT-01 to FMT-17; E3-S10).
+[[bin]]
+name = "vault_open"
+path = "fuzz_targets/vault_open.rs"
+test = false
+doc = false
+bench = false
+
+# Key file reader on arbitrary bytes (FMT-18; E3-S10).
+[[bin]]
+name = "key_file"
+path = "fuzz_targets/key_file.rs"
+test = false
+doc = false
+bench = false
+
+# KDF parameter map and typed map, read and written back (FMT-03; E3-S10).
+[[bin]]
+name = "kdf_map"
+path = "fuzz_targets/kdf_map.rs"
+test = false
+doc = false
+bench = false
+
+# Vault document reader, then the writer and a second read (FMT-10 to FMT-15; E3-S10).
+[[bin]]
+name = "document"
+path = "fuzz_targets/document.rs"
+test = false
+doc = false
+bench = false
+
+# Inner header reader and gunzip (FMT-08, FMT-09; E3-S10).
+[[bin]]
+name = "inner_header"
+path = "fuzz_targets/inner_header.rs"
+test = false
+doc = false
+bench = false
+
+# Placeholder and reference resolver on arbitrary text against a demo vault (MOD-08; E4-S6).
+[[bin]]
+name = "references"
+path = "fuzz_targets/references.rs"
+test = false
+doc = false
+bench = false
+
+# App's icon decoder on arbitrary bytes (MOD-06.7, LD-109, LD-115; E4-S5).
+[[bin]]
+name = "icon_decode"
+path = "fuzz_targets/icon_decode.rs"
+test = false
+doc = false
+bench = false
+
+# The search language on arbitrary query text against a demo vault (FEA-01; E4-S8).
+[[bin]]
+name = "search_query"
+path = "fuzz_targets/search_query.rs"
+test = false
+doc = false
+bench = false
+
+# One-time password settings from arbitrary storage forms (FEA-04; E4-S10).
+[[bin]]
+name = "totp_link"
+path = "fuzz_targets/totp_link.rs"
+test = false
+doc = false
+bench = false
+
+# The passphrase word list reader on arbitrary file bytes (FEA-03 D-03-3; E4-S9).
+[[bin]]
+name = "word_list"
+path = "fuzz_targets/word_list.rs"
+test = false
+doc = false
+bench = false
+
+# The breach check's range answer reader and hash file record reader on arbitrary bytes (FEA-06; E4-S11).
+[[bin]]
+name = "breach_lines"
+path = "fuzz_targets/breach_lines.rs"
+test = false
+doc = false
+bench = false
+
+# The strength estimate on any password and user inputs (FEA-05.1, LD-134 (2); E4-S11).
+[[bin]]
+name = "strength_estimate"
+path = "fuzz_targets/strength_estimate.rs"
+test = false
+doc = false
+bench = false
+
+# The CSV import on arbitrary file bytes and screen options (FEA-08 section B; E4-S13).
+[[bin]]
+name = "csv_import"
+path = "fuzz_targets/csv_import.rs"
+test = false
+doc = false
+bench = false
+
+# The Bitwarden and Proton Pass JSON imports on arbitrary bytes (FEA-08 sections E, F; E4-S13).
+[[bin]]
+name = "json_import"
+path = "fuzz_targets/json_import.rs"
+test = false
+doc = false
+bench = false
+
+# The .1pux import: App's ZIP reader and the export.data mapping (FEA-08 section C; E4-S13).
+[[bin]]
+name = "onepux_import"
+path = "fuzz_targets/onepux_import.rs"
+test = false
+doc = false
+bench = false
+
+# The OPVault import: layout, opdata01, items, sections, attachments (FEA-08 section D; E4-S13).
+[[bin]]
+name = "opvault_import"
+path = "fuzz_targets/opvault_import.rs"
+test = false
+doc = false
+bench = false
+
+# The version 1 import: header, key tries, records, tree, meta records (FEA-08 section G; E4-S13).
+[[bin]]
+name = "v1_import"
+path = "fuzz_targets/v1_import.rs"
+test = false
+doc = false
+bench = false
+
+# The Auto-Type sequence reader and planner on arbitrary text (INT-05 T40, AT-G03; E8-S1).
+[[bin]]
+name = "autotype_sequence"
+path = "fuzz_targets/autotype_sequence.rs"
+test = false
+doc = false
+bench = false
+
+# Auto-Type window matching and the picker model (INT-05.19 to INT-05.27, AT-G03; E8-S2).
+[[bin]]
+name = "autotype_match"
+path = "fuzz_targets/autotype_match.rs"
+test = false
+doc = false
+bench = false
+
+# SSH key reading, then unlocking unprotected keys (INT-06.5 to INT-06.9; E9-S1, LD-182 (4)).
+[[bin]]
+name = "ssh_key_read"
+path = "fuzz_targets/ssh_key_read.rs"
+test = false
+doc = false
+bench = false
+
+# An entry's SSH settings attachment (INT-06.2, INT-06.3; E9-S2).
+[[bin]]
+name = "ssh_settings_read"
+path = "fuzz_targets/ssh_settings_read.rs"
+test = false
+doc = false
+bench = false
+
+# App's own JSON reader and writer on arbitrary bytes (settings, saved searches, the instance line; E0-S7 R12).
+[[bin]]
+name = "json_reader"
+path = "fuzz_targets/json_reader.rs"
+test = false
+doc = false
+bench = false
+
+# The share settings item: base64, then its XML (INT-08.2, INT-08.3; E11-S2).
+[[bin]]
+name = "share_settings"
+path = "fuzz_targets/share_settings.rs"
+test = false
+doc = false
+bench = false
+
+# A share container by its first bytes: unsigned, or zip through app-core's ZIP reader (INT-08.9, INT-08.36; E11-S2).
+[[bin]]
+name = "share_container"
+path = "fuzz_targets/share_container.rs"
+test = false
+doc = false
+bench = false
+
+# app-proto's record reader, the health record and the route match on arbitrary bytes (SYN-01.15; E16-S3).
+[[bin]]
+name = "proto_messages"
+path = "fuzz_targets/proto_messages.rs"
+test = false
+doc = false
+bench = false
+
+# app-proto's route match and the If-Match and If-None-Match readers on arbitrary bytes (SYN-01.6, SYN-01.15; E16-S4).
+[[bin]]
+name = "proto_routes"
+path = "fuzz_targets/proto_routes.rs"
+test = false
+doc = false
+bench = false
+
+# The browser bridge: the frame reader, the JSON reader with its limits and the request decoder (INT-01.48, T65; E7-S1).
+[[bin]]
+name = "browser_message"
+path = "fuzz_targets/browser_message.rs"
+test = false
+doc = false
+bench = false
+
+# URL matching: page and entry URLs, patterns, allowed hosts and the editor's notes (INT-03, Rust rule 10; E7-S3).
+[[bin]]
+name = "url_match"
+path = "fuzz_targets/url_match.rs"
+test = false
+doc = false
+bench = false

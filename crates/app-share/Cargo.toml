@@ -1,0 +1,26 @@
+[package]
+name = "app-share"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# E11-S2: shared groups (spec INT-08). The share settings item is app-format's
+# (`share_item`, E11-S3: app-core's references read it too); containers
+# read through app-core's own ZIP reader and app-format's vault reader, and
+# written by app-format and app-core's storage (LD-142 (2), LD-267 (5)).
+# No signatures (D-INT08-1 (a)), no new outside crate.
+[dependencies]
+app-core = { workspace = true }
+app-crypto = { workspace = true }
+app-format = { workspace = true }
+app-model = { workspace = true }
+
+[dev-dependencies]
+# The tests build zip archives (deflate members, CRC-32).
+flate2 = { workspace = true }
+# Rust rule 10: the settings item round trip.
+proptest = { workspace = true }
+
+[lints]
+workspace = true

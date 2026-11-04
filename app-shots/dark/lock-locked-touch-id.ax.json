@@ -1,0 +1,116 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        182,
+        10,
+        133.5,
+        32
+      ],
+      "label" : "Switch vault",
+      "role" : "AXButton",
+      "value" : "Personal"
+    },
+    {
+      "frame" : [
+        577.25,
+        327.5,
+        165.5,
+        29
+      ],
+      "label" : "Unlock Personal",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        470.75,
+        361.5,
+        378.5,
+        17
+      ],
+      "role" : "AXStaticText",
+      "value" : "\/Users\/josephilhan\/Documents\/Code\/KeyPass\/target\/option-a\/Passwords\/Personal.appvault"
+    },
+    {
+      "disabled" : true,
+      "frame" : [
+        622,
+        408,
+        76,
+        76
+      ],
+      "help" : "Touch ID comes with quick unlock (E6-S3).",
+      "label" : "Unlock with Touch ID",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        512.5,
+        499,
+        295,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "Touch ID or enter your Mac password to unlock"
+    },
+    {
+      "frame" : [
+        470,
+        546,
+        380,
+        44
+      ],
+      "label" : "Use password instead",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        33,
+        778.5,
+        87,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Locked at 23:16"
+    },
+    {
+      "frame" : [
+        1104,
+        778.5,
+        72,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Other vaults: "
+    },
+    {
+      "frame" : [
+        1176,
+        778.5,
+        31,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Work "
+    },
+    {
+      "frame" : [
+        1223,
+        778.5,
+        48,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : " · Family "
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

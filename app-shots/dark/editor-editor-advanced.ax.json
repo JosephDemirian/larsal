@@ -1,0 +1,749 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        75,
+        48,
+        48
+      ],
+      "label" : "GitHub",
+      "role" : "AXImage"
+    },
+    {
+      "frame" : [
+        337,
+        74.5,
+        97.5,
+        29
+      ],
+      "label" : "Edit entry",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1119.5,
+        75,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1201,
+        75,
+        86,
+        36
+      ],
+      "label" : "Save, ⌘S",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        337,
+        106,
+        88,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "GitHub · Work"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            145,
+            196,
+            32
+          ],
+          "label" : "Entry",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            181,
+            196,
+            32
+          ],
+          "label" : "Advanced, 4",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            273,
+            217,
+            196,
+            32
+          ],
+          "label" : "Icon",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            253,
+            196,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            289,
+            196,
+            32
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            325,
+            196,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            361,
+            196,
+            32
+          ],
+          "label" : "Properties",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            397,
+            196,
+            32
+          ],
+          "label" : "History, 3",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        145,
+        196,
+        284
+      ],
+      "label" : "Editor pages",
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            501,
+            145.5,
+            95.5,
+            19
+          ],
+          "label" : "Custom fields",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            172.5,
+            513.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Extra values kept with the entry. Protected values stay hidden and encrypted in memory."
+        },
+        {
+          "frame" : [
+            518,
+            214.5,
+            32,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Name"
+        },
+        {
+          "frame" : [
+            748,
+            214.5,
+            30.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Value"
+        },
+        {
+          "frame" : [
+            1091,
+            214.5,
+            53,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Protected"
+        },
+        {
+          "frame" : [
+            518,
+            255.5,
+            210,
+            17
+          ],
+          "label" : "Name of API token",
+          "role" : "AXTextField",
+          "value" : "API token"
+        },
+        {
+          "frame" : [
+            748,
+            255.5,
+            156,
+            17
+          ],
+          "label" : "Show API token",
+          "role" : "AXButton",
+          "value" : "••••••••••••••••••••"
+        },
+        {
+          "frame" : [
+            1091,
+            254,
+            34,
+            20
+          ],
+          "label" : "Protect API token",
+          "role" : "AXCheckBox",
+          "subrole" : "AXToggle",
+          "value" : "1"
+        },
+        {
+          "frame" : [
+            1210,
+            250,
+            28,
+            28
+          ],
+          "label" : "Copy",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1238,
+            250,
+            28,
+            28
+          ],
+          "label" : "Remove field",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            518,
+            303.5,
+            210,
+            17
+          ],
+          "label" : "Name of Organization",
+          "role" : "AXTextField",
+          "value" : "Organization"
+        },
+        {
+          "frame" : [
+            748,
+            303.5,
+            323,
+            17
+          ],
+          "label" : "Value of Organization",
+          "role" : "AXTextField",
+          "value" : "morgan-labs"
+        },
+        {
+          "frame" : [
+            1091,
+            302,
+            34,
+            20
+          ],
+          "label" : "Protect Organization",
+          "role" : "AXCheckBox",
+          "subrole" : "AXToggle",
+          "value" : "0"
+        },
+        {
+          "frame" : [
+            1210,
+            298,
+            28,
+            28
+          ],
+          "label" : "Copy",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1238,
+            298,
+            28,
+            28
+          ],
+          "label" : "Remove field",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            518,
+            351.5,
+            210,
+            17
+          ],
+          "label" : "Name of Recovery email",
+          "role" : "AXTextField",
+          "value" : "Recovery email"
+        },
+        {
+          "frame" : [
+            748,
+            351.5,
+            323,
+            17
+          ],
+          "label" : "Value of Recovery email",
+          "role" : "AXTextField",
+          "value" : "alex.backup@posteo.de"
+        },
+        {
+          "frame" : [
+            1091,
+            350,
+            34,
+            20
+          ],
+          "label" : "Protect Recovery email",
+          "role" : "AXCheckBox",
+          "subrole" : "AXToggle",
+          "value" : "0"
+        },
+        {
+          "frame" : [
+            1210,
+            346,
+            28,
+            28
+          ],
+          "label" : "Copy",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1238,
+            346,
+            28,
+            28
+          ],
+          "label" : "Remove field",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            501,
+            399,
+            106,
+            32
+          ],
+          "label" : "Add field",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            501,
+            459.5,
+            89.5,
+            19
+          ],
+          "label" : "Attachments",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            518,
+            500.5,
+            20,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "File"
+        },
+        {
+          "frame" : [
+            1073.5,
+            500.5,
+            22.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Size"
+        },
+        {
+          "frame" : [
+            534,
+            543.5,
+            152,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "github-recovery-codes.txt"
+        },
+        {
+          "frame" : [
+            1057,
+            543.5,
+            39,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "1.2 KB"
+        },
+        {
+          "frame" : [
+            1116.5,
+            540,
+            54,
+            28
+          ],
+          "help" : "The file is decrypted on disk while it is open.",
+          "label" : "Open",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1173.5,
+            540,
+            61.5,
+            28
+          ],
+          "label" : "Save…",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1238,
+            540,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            741.25,
+            615,
+            118.5,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : " Drop files here, or "
+        },
+        {
+          "frame" : [
+            859.75,
+            615,
+            88,
+            18
+          ],
+          "label" : "choose files…",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            947.75,
+            615,
+            111,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : " · up to 1 GB each"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        501,
+        145,
+        786,
+        667
+      ],
+      "label" : "Advanced",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

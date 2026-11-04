@@ -1,0 +1,5 @@
+https://app-eu.example.com/
+
+https://app-*.example.com
+http*://example.com
+https://**.example.com

@@ -1,0 +1,65 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            301,
+            20
+          ],
+          "label" : "Allow ssh to use “Server root · web-01”?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            314,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "ssh wants to sign in to 203.0.113.10 with this key."
+        },
+        {
+          "frame" : [
+            264.5,
+            98,
+            63,
+            36
+          ],
+          "label" : "Deny",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            335.5,
+            98,
+            102.5,
+            36
+          ],
+          "label" : "Allow Once",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        152
+      ],
+      "label" : "Allow ssh to use “Server root · web-01”?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    152
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

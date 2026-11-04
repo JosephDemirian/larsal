@@ -1,0 +1,988 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 08:50 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        79,
+        29
+      ],
+      "label" : "Reports",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1157,
+        75,
+        130,
+        36
+      ],
+      "label" : "Check again",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        243,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal · 23 entries checked at 10:30"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            97.5,
+            38
+          ],
+          "label" : "Health check, 7",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            394.5,
+            143,
+            85,
+            38
+          ],
+          "label" : "Breach check",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            503.5,
+            143,
+            58,
+            38
+          ],
+          "label" : "Statistics",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            585.5,
+            143,
+            58,
+            38
+          ],
+          "label" : "Passkeys",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            667.5,
+            143,
+            52.5,
+            38
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        447,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            292,
+            217.5,
+            96,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Need attention, 7, of 21 passwords"
+        },
+        {
+          "frame" : [
+            545.25,
+            217.5,
+            125.5,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Reused, 2, 1 password, 2 entries"
+        },
+        {
+          "frame" : [
+            798.5,
+            217.5,
+            78,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Weak, 4, under 75 bits"
+        },
+        {
+          "frame" : [
+            1051.75,
+            217.5,
+            85,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Expired, 1, past their date"
+        },
+        {
+          "frame" : [
+            283,
+            329.5,
+            29,
+            15
+          ],
+          "label" : "Entry",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            510.5,
+            329.5,
+            46,
+            15
+          ],
+          "label" : "Problem",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            936,
+            329.5,
+            46.5,
+            15
+          ],
+          "label" : "Strength",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            1051,
+            329.5,
+            47.5,
+            15
+          ],
+          "label" : "Changed",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                373,
+                24,
+                24
+              ],
+              "label" : "Zalando",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                367,
+                130.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Zalando, alex.morgan@posteo.de"
+            },
+            {
+              "frame" : [
+                510.5,
+                374,
+                327,
+                22
+              ],
+              "help" : "Bad. Replace this password now.\nEstimated strength: 71.34 bits\nExpiry date Sep 30, 2026, 23:00 has passed, Bad. Replace this password now.\nEstimated strength: 71.34 bits\nExpiry date Sep 30, 2026, 23:00 has passed",
+              "role" : "AXStaticText",
+              "value" : "Expired, Somewhat easy to guess. Past its expiry date."
+            },
+            {
+              "frame" : [
+                936,
+                373.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "71 bits"
+            },
+            {
+              "frame" : [
+                1065,
+                376.5,
+                33.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Sep 2"
+            },
+            {
+              "frame" : [
+                1118.5,
+                374,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Zalando",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                371,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            355,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                426,
+                130.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Amazon, alex.morgan@posteo.de"
+            },
+            {
+              "frame" : [
+                510.5,
+                433,
+                343.5,
+                22
+              ],
+              "help" : "Poor. Replace this password soon.\nEstimated strength: 16.07 bits\n• Personal\/Shopping\/Amazon\n• Personal\/Shopping\/eBay, Poor. Replace this password soon.\nEstimated strength: 16.07 bits\n• Personal\/Shopping\/Amazon\n• Personal\/Shopping\/eBay",
+              "role" : "AXStaticText",
+              "value" : "Reused, Very easy to guess. Same password on 2 entries."
+            },
+            {
+              "frame" : [
+                936,
+                432.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "16 bits"
+            },
+            {
+              "frame" : [
+                1057,
+                435.5,
+                41.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Aug 27"
+            },
+            {
+              "frame" : [
+                1118.5,
+                433,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Amazon",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                430,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            414,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                491,
+                24,
+                24
+              ],
+              "label" : "eBay",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                485,
+                77.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "eBay, alexmorgan88"
+            },
+            {
+              "frame" : [
+                510.5,
+                492,
+                343.5,
+                22
+              ],
+              "help" : "Poor. Replace this password soon.\nEstimated strength: 16.07 bits\n• Personal\/Shopping\/Amazon\n• Personal\/Shopping\/eBay, Poor. Replace this password soon.\nEstimated strength: 16.07 bits\n• Personal\/Shopping\/Amazon\n• Personal\/Shopping\/eBay",
+              "role" : "AXStaticText",
+              "value" : "Reused, Very easy to guess. Same password on 2 entries."
+            },
+            {
+              "frame" : [
+                936,
+                491.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "16 bits"
+            },
+            {
+              "frame" : [
+                1062,
+                494.5,
+                36.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Jul 21"
+            },
+            {
+              "frame" : [
+                1118.5,
+                492,
+                127.5,
+                28
+              ],
+              "label" : "Change password of eBay",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                489,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            473,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                550,
+                24,
+                24
+              ],
+              "label" : "Reddit",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                544,
+                42.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Reddit, alex_m"
+            },
+            {
+              "frame" : [
+                510.5,
+                551,
+                157,
+                22
+              ],
+              "help" : "Poor. Replace this password soon.\nEstimated strength: 11.29 bits, Poor. Replace this password soon.\nEstimated strength: 11.29 bits",
+              "role" : "AXStaticText",
+              "value" : "Poor, Very easy to guess."
+            },
+            {
+              "frame" : [
+                936,
+                550.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "11 bits"
+            },
+            {
+              "frame" : [
+                1058,
+                553.5,
+                40.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Jun 12"
+            },
+            {
+              "frame" : [
+                1118.5,
+                551,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Reddit",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                548,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            532,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                603,
+                87,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Router admin, admin"
+            },
+            {
+              "frame" : [
+                510.5,
+                610,
+                157,
+                22
+              ],
+              "help" : "Poor. Replace this password soon.\nEstimated strength: 11.29 bits, Poor. Replace this password soon.\nEstimated strength: 11.29 bits",
+              "role" : "AXStaticText",
+              "value" : "Poor, Very easy to guess."
+            },
+            {
+              "frame" : [
+                936,
+                609.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "11 bits"
+            },
+            {
+              "frame" : [
+                1058,
+                612.5,
+                40.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Feb 14"
+            },
+            {
+              "frame" : [
+                1118.5,
+                610,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Router admin",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                607,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            591,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                662,
+                123.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Slack, alex@morgan-labs.dev"
+            },
+            {
+              "frame" : [
+                510.5,
+                669,
+                157,
+                22
+              ],
+              "help" : "Poor. Replace this password soon.\nEstimated strength: 23.76 bits, Poor. Replace this password soon.\nEstimated strength: 23.76 bits",
+              "role" : "AXStaticText",
+              "value" : "Poor, Very easy to guess."
+            },
+            {
+              "frame" : [
+                936,
+                668.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "24 bits"
+            },
+            {
+              "frame" : [
+                1065,
+                671.5,
+                33.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Aug 4"
+            },
+            {
+              "frame" : [
+                1118.5,
+                669,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Slack",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                666,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            650,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                721,
+                132.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Server root · web-01, root"
+            },
+            {
+              "frame" : [
+                510.5,
+                728,
+                198.5,
+                22
+              ],
+              "help" : "Weak. A stronger password would be better.\nEstimated strength: 70.92 bits, Weak. A stronger password would be better.\nEstimated strength: 70.92 bits",
+              "role" : "AXStaticText",
+              "value" : "Weak, Somewhat easy to guess."
+            },
+            {
+              "frame" : [
+                936,
+                727.5,
+                38,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "71 bits"
+            },
+            {
+              "frame" : [
+                1059.5,
+                730.5,
+                39,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Oct 11"
+            },
+            {
+              "frame" : [
+                1118.5,
+                728,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Server root · web-01",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1249,
+                725,
+                28,
+                28
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            709,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            283,
+            785.5,
+            588,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "14 other passwords are strong, unique and current. Entries you exclude are listed under the ⋯ menu."
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        181,
+        1014,
+        631
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

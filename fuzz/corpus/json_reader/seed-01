@@ -1,0 +1,16 @@
+{
+  "format": "app-settings",
+  "settings": {
+    "X-99": true,
+    "clipboard.clear.seconds": 45,
+    "ssh.socket_override": "/x",
+    "state.key_files": {
+      "/a": "/k"
+    },
+    "state.recent": [
+      "/a",
+      "/b"
+    ]
+  },
+  "version": 1
+}

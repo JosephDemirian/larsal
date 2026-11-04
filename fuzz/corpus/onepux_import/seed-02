@@ -1,0 +1,6 @@
+{"accounts":[{"attrs":{"name":"Demo"},"vaults":[{"attrs":{"name":"Personal","avatar":"avatar.png"},"items":[
+      {"favIndex":1,"createdAt":1700000000,"updatedAt":1700000100,"state":"archived","overview":{"title":"Login","url":"https://example.com/","urls":[{"url":"https://example.org/"}],"tags":["work"]},
+       "details":{"loginFields":[{"value":"u","designation":"username"},{"value":"p","designation":"password"}],"notesPlain":"n","password":"x",
+        "sections":[{"title":"","fields":[{"title":"otp","id":"t1","value":{"totp":"otpauth://totp/demo?secret=JBSWY3DPEHPK3PXP"}},{"title":"two","id":"t2","value":{"totp":"JBSWY3DP"}},{"id":"pin","value":{"concealed":"1234"}}]},
+         {"title":"More","fields":[{"title":"born","value":{"date":1700000000}},{"title":"mail","value":{"email":{"email_address":"a@example.com"}}},{"title":"home","value":{"address":{"street":"s","city":"c","state":"st","zip":"z","country":"co"}}},{"title":"m","value":{"monthYear":202206}},{"title":"doc","value":{"file":{"documentId":"doc1","fileName":"note.txt"}}}]}],
+        "documentAttributes":{"documentId":"doc2","fileName":"note.txt"}}}]},{"attrs":{"name":"Shared"},"items":[]}]}]}‰PNGone

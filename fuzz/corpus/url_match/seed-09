@@ -1,0 +1,4 @@
+https://sub.x.example.com/a/second
+
+https://sub.*.example.com/*/second
+"https://sub.x.example.com/a/second"

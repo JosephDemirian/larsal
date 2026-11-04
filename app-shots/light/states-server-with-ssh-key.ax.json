@@ -1,0 +1,944 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        76.5,
+        29
+      ],
+      "label" : "Servers",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1043.5,
+        75,
+        117,
+        36
+      ],
+      "label" : "Generator",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1168.5,
+        75,
+        118.5,
+        36
+      ],
+      "label" : "New Entry",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        172,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "3 entries · 1 need attention"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            31,
+            38
+          ],
+          "label" : "All, 3",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            328,
+            143,
+            113.5,
+            38
+          ],
+          "label" : "Two-step codes, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            465.5,
+            143,
+            71.5,
+            38
+          ],
+          "label" : "Passkeys, 0",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            561,
+            143,
+            114,
+            38
+          ],
+          "label" : "Needs attention, 1",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        402,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        1191,
+        147,
+        96,
+        28
+      ],
+      "label" : "Sort by Modified",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        283,
+        205.5,
+        32,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Name"
+    },
+    {
+      "frame" : [
+        565,
+        205.5,
+        28,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Code"
+    },
+    {
+      "frame" : [
+        633,
+        205.5,
+        23.5,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "15 s"
+    },
+    {
+      "frame" : [
+        685,
+        205.5,
+        52.5,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Password"
+    },
+    {
+      "frame" : [
+        838,
+        205.5,
+        47,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Modified"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                243.5,
+                45,
+                15
+              ],
+              "label" : "October",
+              "role" : "AXHeading"
+            },
+            {
+              "frame" : [
+                273,
+                265,
+                622,
+                56
+              ],
+              "label" : "Hetzner Cloud, alex@morgan-labs.dev, Hetzner, 344 141, Excellent, Oct 18",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                273,
+                321,
+                622,
+                56
+              ],
+              "label" : "Server root · web-01, root, —, Weak, Oct 11",
+              "role" : "AXButton",
+              "selected" : true
+            },
+            {
+              "frame" : [
+                283,
+                391.5,
+                23.5,
+                15
+              ],
+              "label" : "July",
+              "role" : "AXHeading"
+            },
+            {
+              "frame" : [
+                273,
+                413,
+                622,
+                56
+              ],
+              "label" : "AWS root account, alex@morgan-labs.dev, 630 468, Excellent, Jul 8",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            243.5,
+            622,
+            225.5
+          ],
+          "role" : "AXOpaqueProviderGroup",
+          "subrole" : "AXOpaqueProviderList"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        229,
+        622,
+        583
+      ],
+      "label" : "Entries",
+      "role" : "AXScrollArea"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            983,
+            203.5,
+            172.5,
+            23
+          ],
+          "label" : "Server root · web-01",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            1219,
+            201,
+            32,
+            32
+          ],
+          "label" : "Edit entry (⌘E)",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1253,
+            201,
+            32,
+            32
+          ],
+          "label" : "More actions",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            983,
+            228.5,
+            44.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Servers"
+        },
+        {
+          "frame" : [
+            921,
+            265,
+            178,
+            32
+          ],
+          "label" : "Copy password",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            1107,
+            265,
+            178,
+            32
+          ],
+          "help" : "The SSH agent comes in E9.",
+          "label" : "Load key",
+          "role" : "AXButton"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                961,
+                325.54999999999927,
+                250,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Weak password. Somewhat easy to guess."
+            },
+            {
+              "frame" : [
+                961,
+                349.04999999999927,
+                107,
+                17
+              ],
+              "label" : "Change password",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1080,
+                349.04999999999927,
+                72.5,
+                17
+              ],
+              "label" : "Open report",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            921,
+            313,
+            364,
+            66
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                402.59999999999854,
+                55.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Username"
+            },
+            {
+              "frame" : [
+                938,
+                421.09999999999854,
+                26,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "root"
+            },
+            {
+              "frame" : [
+                1244,
+                405,
+                32,
+                32
+              ],
+              "label" : "Copy username",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            402.60000610351562,
+            338,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                460.59999999999854,
+                52.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Password"
+            },
+            {
+              "frame" : [
+                938,
+                479.09999999999854,
+                252,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "glacier pepper canyon ribbon falcon"
+            },
+            {
+              "frame" : [
+                938,
+                502.59999999999854,
+                194.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Weak · 35 characters · about 71 bits"
+            },
+            {
+              "frame" : [
+                1208,
+                474,
+                32,
+                32
+              ],
+              "label" : "Hide password",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1244,
+                474,
+                32,
+                32
+              ],
+              "label" : "Copy password",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            460.60000610351562,
+            338,
+            56.999969482421875
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                540.09999999999854,
+                104.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "SSH key · ED25519"
+            },
+            {
+              "frame" : [
+                938,
+                559.09999999999854,
+                298.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "SHA256:HcIVc9zwwjD8lnpxADs5mQMGnCOBDUkP9dC\/28u+FDA"
+            },
+            {
+              "frame" : [
+                1244,
+                542.5,
+                32,
+                32
+              ],
+              "label" : "Copy fingerprint",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            540.0999755859375,
+            338,
+            36
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                610.59999999999854,
+                33.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Group"
+            },
+            {
+              "frame" : [
+                968,
+                630.09999999999854,
+                48,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Servers"
+            }
+          ],
+          "frame" : [
+            938,
+            610.5999755859375,
+            78,
+            39.4000244140625
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                670.09999999999854,
+                44.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Address"
+            },
+            {
+              "frame" : [
+                938,
+                688.59999999999854,
+                122,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "ssh:\/\/203.0.113.10"
+            }
+          ],
+          "frame" : [
+            938,
+            670.0999755859375,
+            122,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                727.59999999999854,
+                25,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Tags"
+            },
+            {
+              "frame" : [
+                946,
+                752.59999999999854,
+                28,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "#dev"
+            },
+            {
+              "frame" : [
+                996,
+                752.59999999999854,
+                27,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "#ssh"
+            }
+          ],
+          "frame" : [
+            938,
+            727.5999755859375,
+            93,
+            43.4000244140625
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                790.59999999999854,
+                69.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Attachments"
+            },
+            {
+              "frame" : [
+                938,
+                813.0999755859375,
+                141,
+                18
+              ],
+              "help" : "Preview",
+              "label" : "id_ed25519, 464 B",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                938,
+                837.0999755859375,
+                162,
+                18
+              ],
+              "help" : "Preview",
+              "label" : "id_ed25519.pub, 98 B",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            790.5999755859375,
+            162,
+            64.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                875.59999999999854,
+                32,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Notes"
+            },
+            {
+              "frame" : [
+                938,
+                896,
+                238.5,
+                38
+              ],
+              "role" : "AXStaticText",
+              "value" : "Falkenstein, 2 vCPU.\nThe password unlocks the private key."
+            }
+          ],
+          "frame" : [
+            938,
+            875.5999755859375,
+            238.5,
+            58.4000244140625
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            925,
+            959.40000000000146,
+            124,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Modified Oct 11, 16:20"
+        },
+        {
+          "frame" : [
+            1180,
+            959.40000000000146,
+            101,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "No earlier versions"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        919,
+        197,
+        368,
+        615
+      ],
+      "label" : "Entry details",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

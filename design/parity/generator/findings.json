@@ -1,0 +1,7815 @@
+{
+ "section": "generator",
+ "versions": [
+  "pixelmatch 8.0.0",
+  "pngjs 7.0.0"
+ ],
+ "tokensStatic": [
+  {
+   "name": "ground",
+   "light": "#f0f2f2",
+   "app_light": "#f0f2f2",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "surface",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#131315",
+   "app_dark": "#131315",
+   "ok": true
+  },
+  {
+   "name": "raised",
+   "light": "#f5f7f7",
+   "app_light": "#f5f7f7",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "active",
+   "light": "#e7eaeb",
+   "app_light": "#e7eaeb",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "hover",
+   "light": "#f3f5f5",
+   "app_light": "#f3f5f5",
+   "dark": "#1a1a1d",
+   "app_dark": "#1a1a1d",
+   "ok": true
+  },
+  {
+   "name": "border",
+   "light": "#e2e5e6",
+   "app_light": "#e2e5e6",
+   "dark": "#222226",
+   "app_dark": "#222226",
+   "ok": true
+  },
+  {
+   "name": "rule",
+   "light": "#edeff0",
+   "app_light": "#edeff0",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "control",
+   "light": "#cdd0d3",
+   "app_light": "#cdd0d3",
+   "dark": "#3a3a40",
+   "app_dark": "#3a3a40",
+   "ok": true
+  },
+  {
+   "name": "field",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "tile",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "text",
+   "light": "#131416",
+   "app_light": "#131416",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "muted",
+   "light": "#5d6062",
+   "app_light": "#5d6062",
+   "dark": "#9b9ba2",
+   "app_dark": "#9b9ba2",
+   "ok": true
+  },
+  {
+   "name": "primary",
+   "light": "#1d1f20",
+   "app_light": "#1d1f20",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "on-primary",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "primary-hover",
+   "light": "#34373a",
+   "app_light": "#34373a",
+   "dark": "#ffffff",
+   "app_dark": "#ffffff",
+   "ok": true
+  },
+  {
+   "name": "accent",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#52b6c9",
+   "app_dark": "#52b6c9",
+   "ok": true
+  },
+  {
+   "name": "accent-soft",
+   "light": "#e2eff2",
+   "app_light": "#e2eff2",
+   "dark": "#10303a",
+   "app_dark": "#10303a",
+   "ok": true
+  },
+  {
+   "name": "digit",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#6ccadb",
+   "app_dark": "#6ccadb",
+   "ok": true
+  },
+  {
+   "name": "symbol",
+   "light": "#a3620a",
+   "app_light": "#a3620a",
+   "dark": "#f2ab4f",
+   "app_dark": "#f2ab4f",
+   "ok": true
+  },
+  {
+   "name": "positive",
+   "light": "#1e7b4f",
+   "app_light": "#1e7b4f",
+   "dark": "#3dd68c",
+   "app_dark": "#3dd68c",
+   "ok": true
+  },
+  {
+   "name": "negative",
+   "light": "#c4242a",
+   "app_light": "#c4242a",
+   "dark": "#ff6b70",
+   "app_dark": "#ff6b70",
+   "ok": true
+  },
+  {
+   "name": "warning",
+   "light": "#8a4a06",
+   "app_light": "#8a4a06",
+   "dark": "#f5b14c",
+   "app_dark": "#f5b14c",
+   "ok": true
+  },
+  {
+   "name": "neg-bg",
+   "light": "#ffedea",
+   "app_light": "#ffedea",
+   "dark": "#2c1517",
+   "app_dark": "#2c1517",
+   "ok": true
+  },
+  {
+   "name": "neg-ink",
+   "light": "#831c1e",
+   "app_light": "#831c1e",
+   "dark": "#ffa3a5",
+   "app_dark": "#ffa3a5",
+   "ok": true
+  },
+  {
+   "name": "warn-bg",
+   "light": "#fff4e0",
+   "app_light": "#fff4e0",
+   "dark": "#2a1f0f",
+   "app_dark": "#2a1f0f",
+   "ok": true
+  },
+  {
+   "name": "warn-ink",
+   "light": "#7a4105",
+   "app_light": "#7a4105",
+   "dark": "#f6c47f",
+   "app_dark": "#f6c47f",
+   "ok": true
+  },
+  {
+   "name": "pos-bg",
+   "light": "#dcfae5",
+   "app_light": "#dcfae5",
+   "dark": "#0f2a1b",
+   "app_dark": "#0f2a1b",
+   "ok": true
+  },
+  {
+   "name": "pos-ink",
+   "light": "#0b4a26",
+   "app_light": "#0b4a26",
+   "dark": "#74e4a9",
+   "app_dark": "#74e4a9",
+   "ok": true
+  },
+  {
+   "name": "chip-bg",
+   "light": "#eceeef",
+   "app_light": "#eceeef",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "chip-ink",
+   "light": "#353736",
+   "app_light": "#353736",
+   "dark": "#d0d0d5",
+   "app_dark": "#d0d0d5",
+   "ok": true
+  },
+  {
+   "name": "scrim",
+   "light": "rgba(24, 26, 28, .26)",
+   "app_light": "#181a1c α0.26",
+   "dark": "rgba(0, 0, 0, .55)",
+   "app_dark": "#000000 α0.55",
+   "ok": true
+  },
+  {
+   "name": "blue",
+   "light": "#007aff",
+   "app_light": "#007aff",
+   "dark": "#007aff",
+   "app_dark": "#007aff",
+   "ok": true
+  },
+  {
+   "name": "orange",
+   "light": "#ff9500",
+   "app_light": "#ff9500",
+   "dark": "#ff9500",
+   "app_dark": "#ff9500",
+   "ok": true
+  },
+  {
+   "name": "green",
+   "light": "#28b14c",
+   "app_light": "#28b14c",
+   "dark": "#28b14c",
+   "app_dark": "#28b14c",
+   "ok": true
+  },
+  {
+   "name": "teal",
+   "light": "#22a6bd",
+   "app_light": "#22a6bd",
+   "dark": "#22a6bd",
+   "app_dark": "#22a6bd",
+   "ok": true
+  },
+  {
+   "name": "purple",
+   "light": "#a550d6",
+   "app_light": "#a550d6",
+   "dark": "#a550d6",
+   "app_dark": "#a550d6",
+   "ok": true
+  },
+  {
+   "name": "pink",
+   "light": "#f2385a",
+   "app_light": "#f2385a",
+   "dark": "#f2385a",
+   "app_dark": "#f2385a",
+   "ok": true
+  },
+  {
+   "name": "red",
+   "light": "#f04438",
+   "app_light": "#f04438",
+   "dark": "#f04438",
+   "app_dark": "#f04438",
+   "ok": true
+  },
+  {
+   "name": "brown",
+   "light": "#a2845e",
+   "app_light": "#a2845e",
+   "dark": "#a2845e",
+   "app_dark": "#a2845e",
+   "ok": true
+  },
+  {
+   "name": "gray",
+   "light": "#8e8e93",
+   "app_light": "#8e8e93",
+   "dark": "#8e8e93",
+   "app_dark": "#8e8e93",
+   "ok": true
+  },
+  {
+   "name": "slate",
+   "light": "#5a6b7d",
+   "app_light": "#5a6b7d",
+   "dark": "#5a6b7d",
+   "app_dark": "#5a6b7d",
+   "ok": true
+  },
+  {
+   "name": "mint",
+   "light": "#00b5ad",
+   "app_light": "#00b5ad",
+   "dark": "#00b5ad",
+   "app_dark": "#00b5ad",
+   "ok": true
+  },
+  {
+   "name": "cyan",
+   "light": "#2f9fd8",
+   "app_light": "#2f9fd8",
+   "dark": "#2f9fd8",
+   "app_dark": "#2f9fd8",
+   "ok": true
+  },
+  {
+   "name": "yellow",
+   "light": "#f5b800",
+   "app_light": "#f5b800",
+   "dark": "#f5b800",
+   "app_dark": "#f5b800",
+   "ok": true
+  },
+  {
+   "name": "graphite",
+   "light": "#4b5057",
+   "app_light": "#4b5057",
+   "dark": "#4b5057",
+   "app_dark": "#4b5057",
+   "ok": true
+  }
+ ],
+ "contrast": [
+  {
+   "theme": "light",
+   "pair": "text on ground",
+   "ratio": 16.4
+  },
+  {
+   "theme": "light",
+   "pair": "text on surface",
+   "ratio": 18.43
+  },
+  {
+   "theme": "light",
+   "pair": "text on raised",
+   "ratio": 17.14
+  },
+  {
+   "theme": "light",
+   "pair": "text on active",
+   "ratio": 15.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on ground",
+   "ratio": 5.64
+  },
+  {
+   "theme": "light",
+   "pair": "muted on surface",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "muted on raised",
+   "ratio": 5.89
+  },
+  {
+   "theme": "light",
+   "pair": "muted on active",
+   "ratio": 5.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on field",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "accent on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "accent on accent-soft",
+   "ratio": 5.1
+  },
+  {
+   "theme": "light",
+   "pair": "negative on surface",
+   "ratio": 5.78
+  },
+  {
+   "theme": "light",
+   "pair": "positive on surface",
+   "ratio": 5.25
+  },
+  {
+   "theme": "light",
+   "pair": "warning on surface",
+   "ratio": 6.86
+  },
+  {
+   "theme": "light",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.63
+  },
+  {
+   "theme": "light",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 7.45
+  },
+  {
+   "theme": "light",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.32
+  },
+  {
+   "theme": "light",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.3
+  },
+  {
+   "theme": "light",
+   "pair": "on-primary on primary",
+   "ratio": 16.55
+  },
+  {
+   "theme": "light",
+   "pair": "digit on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "symbol on surface",
+   "ratio": 4.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on ground",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "text on surface",
+   "ratio": 15.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on raised",
+   "ratio": 15
+  },
+  {
+   "theme": "dark",
+   "pair": "text on active",
+   "ratio": 13.39
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on ground",
+   "ratio": 7.12
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on surface",
+   "ratio": 6.72
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on raised",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on active",
+   "ratio": 5.67
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on field",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on surface",
+   "ratio": 7.86
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on accent-soft",
+   "ratio": 5.91
+  },
+  {
+   "theme": "dark",
+   "pair": "negative on surface",
+   "ratio": 6.71
+  },
+  {
+   "theme": "dark",
+   "pair": "positive on surface",
+   "ratio": 9.89
+  },
+  {
+   "theme": "dark",
+   "pair": "warning on surface",
+   "ratio": 9.96
+  },
+  {
+   "theme": "dark",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.99
+  },
+  {
+   "theme": "dark",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 10.08
+  },
+  {
+   "theme": "dark",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.81
+  },
+  {
+   "theme": "dark",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.19
+  },
+  {
+   "theme": "dark",
+   "pair": "on-primary on primary",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "digit on surface",
+   "ratio": 9.82
+  },
+  {
+   "theme": "dark",
+   "pair": "symbol on surface",
+   "ratio": 9.47
+  }
+ ],
+ "results": [
+  {
+   "id": "generator-generator-in-the-window",
+   "title": "Generator in the window",
+   "note": "Popover under the toolbar button",
+   "size": [
+    1320,
+    820
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/generator-generator-in-the-window.png",
+     "present": true,
+     "appImg": "app/light/generator-generator-in-the-window.png",
+     "diffImg": "diff/light/generator-generator-in-the-window.png",
+     "text": {
+      "found": [
+       {
+        "m": "⌘F",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Lock",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘L",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "All entries",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "23",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Favorites",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "5",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "One-time codes",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "7",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Passkeys",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "4",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Password health",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Groups",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Email",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "2",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Banking",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "3",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Social",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Shopping",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Work",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Servers",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Devices",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Tags",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Settings",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘,",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Generator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New Entry",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "All",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Two-step codes",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Needs attention",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Modified",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Code",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "October",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "alex-dev ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "passkey",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "5 days",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Apple Account",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@icloud.com ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "—",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "6 days",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Google",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@gmail.com",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 20",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Hetzner Cloud",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex@morgan-labs.dev",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 18",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Proton Mail",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@proton.me",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 14",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Server root · web-01",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "root",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 11",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "PayPal",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@posteo.de",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 9",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Instagram",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan.photos",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 2",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "September",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Wise",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 28",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Figma",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 22",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Mastodon",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "@alex@mastodon.social ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Passkey only",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 18",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Linear",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex@morgan-labs.dev ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 15",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Visa Debit",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Card ending 1111",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 10",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Zalando",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Expired",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 2",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "August",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Amazon",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Reused",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Aug 27",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Deutsche Bahn",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Aug 19",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Slack",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Weak",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Aug 4",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "July",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "eBay",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alexmorgan88",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Jul 21",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "AWS root account",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Jul 8",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "github.com",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Copy password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Open site",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Type login",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Username",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "alex-dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "••••••••••••••••••",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "One-time code",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passkey",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "github.com · alex-dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Group",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "#2fa",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "#dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Attachments",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "github-recovery-codes.txt",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "1.2 KB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Notes",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recovery codes are in the attachment.",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Organization: morgan-labs",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Modified Oct 22, 08:49",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "3 earlier versions",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passphrase",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Excellent",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Length",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "20",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A–Z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "a–z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "0–9",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "!@#$",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Äéß",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Leave out look-alikes l I 1 O 0",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New entry with it",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Hide sidebar (⌃⌘S)",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Search entries",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Sidebar",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Switch vault",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New group",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Entries",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Apple",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Google",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Hetzner",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Proton Mail",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "PayPal",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Instagram",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Wise",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Figma",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Mastodon",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Linear",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Visa",
+        "kind": "name",
+        "how": "inside"
+       },
+       {
+        "m": "Zalando",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Deutsche Bahn",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "eBay",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Entry details",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Edit entry (⌘E)",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More actions",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy username",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Show password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy one-time code",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Password generator",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Search Personal…",
+        "kind": "placeholder",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "6",
+        "kind": "text",
+        "why": "needs-attention count by the card rules (7, mockup 6)",
+        "ref": "LD-163 (4)",
+        "app": "7"
+       },
+       {
+        "m": "23 entries · 6 need attention",
+        "kind": "text",
+        "why": "needs-attention count by the card rules (7, mockup 6)",
+        "ref": "LD-163 (4)",
+        "app": "7"
+       },
+       {
+        "m": "Strong",
+        "kind": "text",
+        "why": "FEA-05.4 strength level (card words)",
+        "ref": "LD-163 (4)",
+        "app": "Excellent"
+       },
+       {
+        "m": "Strong · 20 characters · about 131 bits",
+        "kind": "text",
+        "why": "FEA-05.4 level and the FEA-05 estimate (bits from the card estimator, characters from LD-164)",
+        "ref": "LD-163 (4), LD-164, LD-166",
+        "app": "Excellent · 20 characters · about 124 bits"
+       }
+      ],
+      "live": [
+       {
+        "m": "Saved at 08:50 · encrypted",
+        "kind": "text",
+        "why": "save time of the demo file",
+        "app": "Saved at 12:46 · encrypted"
+       },
+       {
+        "m": "20 s",
+        "kind": "text",
+        "why": "live countdown",
+        "app": "28 s"
+       },
+       {
+        "m": "803 130",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "296 502",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "906 079",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "204 523",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "227 360",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "006 795",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "016 230",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "New code in 20 s",
+        "kind": "text",
+        "why": "live countdown",
+        "app": "New code in 28 s"
+       },
+       {
+        "m": "M2ciPKJtX7UctFAAQMGf",
+        "kind": "text",
+        "why": "generated password: 20 printable characters, one of each chosen type at least (FEA-02.8)",
+        "app": "e2m_!u<HQ5]v%'p}ufNX"
+       },
+       {
+        "m": "126 bits",
+        "kind": "text",
+        "why": "strength of the live value in whole bits (FEA-05 estimate, FEA-03.7 formula)",
+        "app": "128 bits"
+       }
+      ],
+      "clipped": [
+       {
+        "m": "A",
+        "kind": "text"
+       },
+       {
+        "m": "S",
+        "kind": "text"
+       },
+       {
+        "m": "June",
+        "kind": "text"
+       },
+       {
+        "m": "Netflix",
+        "kind": "text"
+       },
+       {
+        "m": "family.morgan@posteo.de",
+        "kind": "text"
+       },
+       {
+        "m": "Jun 30",
+        "kind": "text"
+       },
+       {
+        "m": "Reddit",
+        "kind": "text"
+       },
+       {
+        "m": "alex_m",
+        "kind": "text"
+       },
+       {
+        "m": "Jun 12",
+        "kind": "text"
+       },
+       {
+        "m": "May",
+        "kind": "text"
+       },
+       {
+        "m": "Home Wi-Fi",
+        "kind": "text"
+       },
+       {
+        "m": "Morgan-Home 5G",
+        "kind": "text"
+       },
+       {
+        "m": "May 3",
+        "kind": "text"
+       },
+       {
+        "m": "February",
+        "kind": "text"
+       },
+       {
+        "m": "Router admin",
+        "kind": "text"
+       },
+       {
+        "m": "admin",
+        "kind": "text"
+       },
+       {
+        "m": "Feb 14",
+        "kind": "text"
+       },
+       {
+        "m": "Netflix",
+        "kind": "name"
+       },
+       {
+        "m": "Reddit",
+        "kind": "name"
+       }
+      ],
+      "drawnOnly": [
+       {
+        "m": "Personal.appvault",
+        "kind": "text",
+        "ocr": "Personal.appvault"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "7 need attention",
+       "closed",
+       "Generated password"
+      ],
+      "help": [
+       "Reports come in E5-S7.",
+       "Settings come in E5-S9.",
+       "Auto-Type comes in E7."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 62.4,
+        "app": 64.1
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 20.7,
+        "app": 21.1
+       },
+       {
+        "hex": "#e7eaeb",
+        "token": "active",
+        "ref": 3,
+        "app": 3.5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "sidebar-simple",
+       "magnifying-glass",
+       "lock-simple",
+       "fill keyhole",
+       "caret-up-down",
+       "fill tray",
+       "fill star",
+       "fill clock-countdown",
+       "fill fingerprint",
+       "fill shield-warning",
+       "plus",
+       "fill envelope-simple",
+       "fill bank",
+       "fill users-three",
+       "fill shopping-bag",
+       "fill briefcase",
+       "fill hard-drives",
+       "fill wifi-high",
+       "caret-right",
+       "fill trash",
+       "fill gear-six",
+       "check-circle",
+       "password",
+       "sort-descending",
+       "fingerprint",
+       "fill terminal-window",
+       "arrow-square-out",
+       "pencil-simple",
+       "dots-three",
+       "copy",
+       "keyboard",
+       "eye",
+       "paperclip",
+       "arrows-clockwise"
+      ],
+      "missing": [],
+      "logos": [
+       "GitHub",
+       "Apple",
+       "Google",
+       "Hetzner",
+       "Proton Mail",
+       "PayPal",
+       "Instagram",
+       "Wise",
+       "GitHub"
+      ],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "vaultswitch",
+       "text": "Personal Personal.appvault",
+       "dom": [
+        12,
+        52,
+        224,
+        52
+       ],
+       "app": [
+        12,
+        52,
+        224,
+        52
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "GitHub alex-dev · passkey 803 130 Strong 5 days",
+       "dom": [
+        273,
+        266,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        265,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Apple Account alex.morgan@icloud.com · passkey — Strong 6 da",
+       "dom": [
+        273,
+        322,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        321,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Google alex.morgan@gmail.com 296 502 Strong Oct 20",
+       "dom": [
+        273,
+        378,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        377,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Hetzner Cloud alex@morgan-labs.dev 906 079 Strong Oct 18",
+       "dom": [
+        273,
+        434,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        433,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Proton Mail alex.morgan@proton.me 204 523 Strong Oct 14",
+       "dom": [
+        273,
+        490,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        489,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Server root · web-01 root — Strong Oct 11",
+       "dom": [
+        273,
+        546,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        545,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "PayPal alex.morgan@posteo.de — Strong Oct 9",
+       "dom": [
+        273,
+        602,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        601,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Instagram alex.morgan.photos 227 360 Strong Oct 2",
+       "dom": [
+        273,
+        658,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        657,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Wise alex.morgan@posteo.de 006 795 Strong Sep 28",
+       "dom": [
+        273,
+        750,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        749,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Figma alex@morgan-labs.dev — Strong Sep 22",
+       "dom": [
+        273,
+        806,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        805,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "All entries 23",
+       "dom": [
+        12,
+        118,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        118,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Favorites 5",
+       "dom": [
+        12,
+        152,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        152,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "One-time codes 7",
+       "dom": [
+        12,
+        186,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        186,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Passkeys 4",
+       "dom": [
+        12,
+        220,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        220,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Password health 6",
+       "dom": [
+        12,
+        254,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        254,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Email 2",
+       "dom": [
+        12,
+        336,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        336,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Banking 3",
+       "dom": [
+        12,
+        370,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        370,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Social 3",
+       "dom": [
+        12,
+        404,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        404,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Shopping 3",
+       "dom": [
+        12,
+        438,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        438,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Work 7",
+       "dom": [
+        12,
+        472,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        472,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Servers 3",
+       "dom": [
+        12,
+        506,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        506,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Devices 2",
+       "dom": [
+        12,
+        540,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        540,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin 2",
+       "dom": [
+        12,
+        712,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        712,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Settings ⌘,",
+       "dom": [
+        12,
+        746,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        746,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "All 23",
+       "dom": [
+        273,
+        143,
+        37.5,
+        38
+       ],
+       "app": [
+        273,
+        143,
+        38,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "Two-step codes 7",
+       "dom": [
+        334.5,
+        143,
+        113,
+        38
+       ],
+       "app": [
+        335,
+        143,
+        113.5,
+        38
+       ],
+       "d": [
+        0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "Passkeys 4",
+       "dom": [
+        471.5,
+        143,
+        71,
+        38
+       ],
+       "app": [
+        472.5,
+        143,
+        71.5,
+        38
+       ],
+       "d": [
+        1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "Needs attention 6",
+       "dom": [
+        566.5,
+        143,
+        113.5,
+        38
+       ],
+       "app": [
+        568,
+        143,
+        114,
+        38
+       ],
+       "d": [
+        1.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Lock ⌘L",
+       "dom": [
+        1207,
+        10,
+        101,
+        32
+       ],
+       "app": [
+        1205.5,
+        10,
+        102.5,
+        32
+       ],
+       "d": [
+        -1.5,
+        0,
+        1.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Generator",
+       "dom": [
+        1044,
+        75,
+        116.5,
+        36
+       ],
+       "app": [
+        1043.5,
+        75,
+        117,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New Entry",
+       "dom": [
+        1168.5,
+        75,
+        118.5,
+        36
+       ],
+       "app": [
+        1168.5,
+        75,
+        118.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Modified",
+       "dom": [
+        1191,
+        147,
+        96,
+        28
+       ],
+       "app": null
+      },
+      {
+       "kind": "button",
+       "text": "Copy password",
+       "dom": [
+        921,
+        266,
+        130.5,
+        32
+       ],
+       "app": [
+        921,
+        265,
+        131,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Open site",
+       "dom": [
+        1059.5,
+        266,
+        108.5,
+        32
+       ],
+       "app": [
+        1060,
+        265,
+        108.5,
+        32
+       ],
+       "d": [
+        0.5,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Type login",
+       "dom": [
+        1176.5,
+        266,
+        108.5,
+        32
+       ],
+       "app": [
+        1176.5,
+        265,
+        108.5,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Copy",
+       "dom": [
+        766,
+        410,
+        182,
+        32
+       ],
+       "app": [
+        766,
+        410,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New entry with it",
+       "dom": [
+        956,
+        410,
+        182,
+        32
+       ],
+       "app": [
+        956,
+        410,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Hide sidebar (⌃⌘S)",
+       "dom": [
+        206,
+        10,
+        32,
+        32
+       ],
+       "app": [
+        206,
+        10,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New group",
+       "dom": [
+        206,
+        308,
+        22,
+        22
+       ],
+       "app": [
+        206,
+        308,
+        22,
+        22
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Edit entry (⌘E)",
+       "dom": [
+        1219,
+        202,
+        32,
+        32
+       ],
+       "app": [
+        1219,
+        201,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "More actions",
+       "dom": [
+        1253,
+        202,
+        32,
+        32
+       ],
+       "app": [
+        1253,
+        201,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy username",
+       "dom": [
+        1244,
+        328,
+        32,
+        32
+       ],
+       "app": [
+        1244,
+        327,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Show password",
+       "dom": [
+        1208,
+        397,
+        32,
+        32
+       ],
+       "app": [
+        1208,
+        396,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy password",
+       "dom": [
+        1244,
+        397,
+        32,
+        32
+       ],
+       "app": [
+        1244,
+        396,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy one-time code",
+       "dom": [
+        1244,
+        492,
+        32,
+        32
+       ],
+       "app": [
+        1244,
+        491,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New password",
+       "dom": [
+        1064,
+        192,
+        32,
+        32
+       ],
+       "app": [
+        1064,
+        192,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy",
+       "dom": [
+        1100,
+        192,
+        32,
+        32
+       ],
+       "app": [
+        1100,
+        192,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "link",
+       "text": "github.com",
+       "dom": [
+        983,
+        230,
+        85,
+        18
+       ],
+       "app": null
+      },
+      {
+       "kind": "sidebar",
+       "text": "Personal Personal.appvault All",
+       "dom": [
+        0,
+        52,
+        248,
+        768
+       ],
+       "app": [
+        0,
+        52,
+        248,
+        768
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "rail",
+       "text": "GitHub github.com Copy passwor",
+       "dom": [
+        919,
+        198,
+        368,
+        613
+       ],
+       "app": [
+        919,
+        197,
+        368,
+        615
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        2
+       ]
+      },
+      {
+       "kind": "list",
+       "text": "October GitHub alex-dev · pass",
+       "dom": [
+        273,
+        230,
+        622,
+        581
+       ],
+       "app": [
+        273,
+        229,
+        622,
+        583
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        2
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "⌘F",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        949,
+        18,
+        18,
+        15
+       ],
+       "app": [
+        947.8,
+        18.5,
+        19,
+        15
+       ],
+       "d": [
+        -1.3,
+        0.5,
+        1,
+        0
+       ]
+      },
+      {
+       "text": "Groups",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        20,
+        311,
+        40,
+        15
+       ],
+       "app": [
+        20,
+        311.5,
+        40.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "All entries",
+       "font": "IBM Plex Sans 22/600",
+       "dom": [
+        273,
+        74,
+        101.5,
+        29
+       ],
+       "app": [
+        273,
+        74.5,
+        102,
+        29
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        283,
+        206,
+        32,
+        15
+       ],
+       "app": [
+        283,
+        205.5,
+        32,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Code",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        565,
+        206,
+        27.5,
+        15
+       ],
+       "app": [
+        565,
+        205.5,
+        28,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        685,
+        206,
+        52.5,
+        15
+       ],
+       "app": [
+        685,
+        205.5,
+        52.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Modified",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        838,
+        206,
+        47,
+        15
+       ],
+       "app": [
+        838,
+        205.5,
+        47,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "October",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        283,
+        244,
+        44.5,
+        15
+       ],
+       "app": [
+        283,
+        243.5,
+        45,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "September",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        283,
+        728,
+        61.5,
+        15
+       ],
+       "app": [
+        283,
+        727.5,
+        62,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "GitHub",
+       "font": "IBM Plex Sans 18/600",
+       "dom": [
+        983,
+        204,
+        59,
+        23
+       ],
+       "app": [
+        983,
+        204.5,
+        59,
+        23
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Username",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        325,
+        55.5,
+        15
+       ],
+       "app": [
+        938,
+        324.5,
+        55.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "alex-dev",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        938,
+        344,
+        53.5,
+        18
+       ],
+       "app": [
+        938,
+        343,
+        54,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        383,
+        52.5,
+        15
+       ],
+       "app": [
+        938,
+        382.5,
+        52.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "••••••••••••••••••",
+       "font": "IBM Plex Mono 14/400",
+       "dom": [
+        938,
+        402,
+        156.5,
+        18
+       ],
+       "app": [
+        938,
+        401,
+        151.5,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        -5,
+        0
+       ]
+      },
+      {
+       "text": "One-time code",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        462,
+        80,
+        15
+       ],
+       "app": [
+        938,
+        461.5,
+        80.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Passkey",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        573.5,
+        44,
+        15
+       ],
+       "app": [
+        938,
+        573,
+        44,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "github.com · alex-dev",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        938,
+        592.5,
+        135,
+        18
+       ],
+       "app": [
+        938,
+        591.5,
+        135.5,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Group",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        644,
+        33,
+        15
+       ],
+       "app": [
+        938,
+        643.5,
+        33.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Work",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        968,
+        664,
+        32.5,
+        18
+       ],
+       "app": [
+        968,
+        663,
+        33,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Tags",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        703,
+        24.5,
+        15
+       ],
+       "app": [
+        938,
+        702.5,
+        25,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "#2fa",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        946,
+        728,
+        26,
+        15
+       ],
+       "app": [
+        946,
+        727.5,
+        26.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "#dev",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        994,
+        728,
+        28,
+        15
+       ],
+       "app": [
+        994.5,
+        727.5,
+        28,
+        15
+       ],
+       "d": [
+        0.5,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Attachments",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        766,
+        69,
+        15
+       ],
+       "app": [
+        938,
+        765.5,
+        69.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "github-recovery-codes.txt",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        962,
+        789,
+        163,
+        18
+       ],
+       "app": [
+        962,
+        788,
+        163.5,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "1.2 KB",
+       "font": "IBM Plex Sans 11.6667/400",
+       "dom": [
+        1133,
+        790,
+        35,
+        15
+       ],
+       "app": [
+        1133.5,
+        789.5,
+        36,
+        15
+       ],
+       "d": [
+        0.5,
+        -0.5,
+        1,
+        0
+       ]
+      },
+      {
+       "text": "Generator",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        766,
+        140,
+        70,
+        19
+       ],
+       "app": [
+        766,
+        140.5,
+        70.5,
+        19
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Excellent",
+       "font": "IBM Plex Sans 12/500",
+       "dom": [
+        766,
+        248,
+        51,
+        15
+       ],
+       "app": [
+        766,
+        248.5,
+        51,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "sheet": {
+      "ref": {
+       "left": 249.5,
+       "right": 1310,
+       "top": 52,
+       "bottom": 811.5
+      },
+      "app": {
+       "left": 250,
+       "right": 1309.5,
+       "top": 52,
+       "bottom": 811.5
+      }
+     },
+     "pixels": 1.28,
+     "residual": 0.75,
+     "unnamed": [],
+     "disabled": [
+      "Password health, 7 need attention (Reports come in E5-S7.)",
+      "Settings, ⌘, (Settings come in E5-S9.)",
+      "Type login (Auto-Type comes in E7.)"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/generator-generator-in-the-window.png",
+     "present": true,
+     "appImg": "app/dark/generator-generator-in-the-window.png",
+     "diffImg": "diff/dark/generator-generator-in-the-window.png",
+     "text": {
+      "found": [
+       {
+        "m": "⌘F",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Lock",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘L",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "All entries",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "23",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Favorites",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "5",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "One-time codes",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "7",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Passkeys",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "4",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Password health",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Groups",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Email",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "2",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Banking",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "3",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Social",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Shopping",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Work",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Servers",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Devices",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Tags",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Settings",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘,",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Generator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New Entry",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "All",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Two-step codes",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Needs attention",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Modified",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Code",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "October",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "alex-dev ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "passkey",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "5 days",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Apple Account",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@icloud.com ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "—",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "6 days",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Google",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@gmail.com",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 20",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Hetzner Cloud",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex@morgan-labs.dev",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 18",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Proton Mail",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@proton.me",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 14",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Server root · web-01",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "root",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 11",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "PayPal",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan@posteo.de",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 9",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Instagram",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex.morgan.photos",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Oct 2",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "September",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Wise",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 28",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Figma",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 22",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Mastodon",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "@alex@mastodon.social ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Passkey only",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 18",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Linear",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex@morgan-labs.dev ·",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 15",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Visa Debit",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Card ending 1111",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 10",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Zalando",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Expired",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Sep 2",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "August",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Amazon",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Reused",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Aug 27",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Deutsche Bahn",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Aug 19",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Slack",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Weak",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Aug 4",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "July",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "eBay",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alexmorgan88",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Jul 21",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "AWS root account",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Jul 8",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "github.com",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Copy password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Open site",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Type login",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Username",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "alex-dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "••••••••••••••••••",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "One-time code",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passkey",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "github.com · alex-dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Group",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "#2fa",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "#dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Attachments",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "github-recovery-codes.txt",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "1.2 KB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Notes",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recovery codes are in the attachment.",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Organization: morgan-labs",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Modified Oct 22, 08:49",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "3 earlier versions",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passphrase",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Excellent",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Length",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "20",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A–Z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "a–z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "0–9",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "!@#$",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Äéß",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Leave out look-alikes l I 1 O 0",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New entry with it",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Hide sidebar (⌃⌘S)",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Search entries",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Sidebar",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Switch vault",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New group",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Entries",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Apple",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Google",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Hetzner",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Proton Mail",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "PayPal",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Instagram",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Wise",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Figma",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Mastodon",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Linear",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Visa",
+        "kind": "name",
+        "how": "inside"
+       },
+       {
+        "m": "Zalando",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Deutsche Bahn",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "eBay",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Entry details",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Edit entry (⌘E)",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More actions",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy username",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Show password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy one-time code",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Password generator",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Search Personal…",
+        "kind": "placeholder",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "6",
+        "kind": "text",
+        "why": "needs-attention count by the card rules (7, mockup 6)",
+        "ref": "LD-163 (4)",
+        "app": "7"
+       },
+       {
+        "m": "23 entries · 6 need attention",
+        "kind": "text",
+        "why": "needs-attention count by the card rules (7, mockup 6)",
+        "ref": "LD-163 (4)",
+        "app": "7"
+       },
+       {
+        "m": "Strong",
+        "kind": "text",
+        "why": "FEA-05.4 strength level (card words)",
+        "ref": "LD-163 (4)",
+        "app": "Excellent"
+       },
+       {
+        "m": "Strong · 20 characters · about 131 bits",
+        "kind": "text",
+        "why": "FEA-05.4 level and the FEA-05 estimate (bits from the card estimator, characters from LD-164)",
+        "ref": "LD-163 (4), LD-164, LD-166",
+        "app": "Excellent · 20 characters · about 124 bits"
+       }
+      ],
+      "live": [
+       {
+        "m": "Saved at 08:50 · encrypted",
+        "kind": "text",
+        "why": "save time of the demo file",
+        "app": "Saved at 12:46 · encrypted"
+       },
+       {
+        "m": "20 s",
+        "kind": "text",
+        "why": "live countdown",
+        "app": "27 s"
+       },
+       {
+        "m": "803 130",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "296 502",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "906 079",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "204 523",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "227 360",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "006 795",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "016 230",
+        "kind": "text",
+        "why": "live one-time code",
+        "app": "394 324"
+       },
+       {
+        "m": "New code in 20 s",
+        "kind": "text",
+        "why": "live countdown",
+        "app": "New code in 27 s"
+       },
+       {
+        "m": "M2ciPKJtX7UctFAAQMGf",
+        "kind": "text",
+        "why": "generated password: 20 printable characters, one of each chosen type at least (FEA-02.8)",
+        "app": "e2m_!u<HQ5]v%'p}ufNX"
+       },
+       {
+        "m": "126 bits",
+        "kind": "text",
+        "why": "strength of the live value in whole bits (FEA-05 estimate, FEA-03.7 formula)",
+        "app": "128 bits"
+       }
+      ],
+      "clipped": [
+       {
+        "m": "A",
+        "kind": "text"
+       },
+       {
+        "m": "S",
+        "kind": "text"
+       },
+       {
+        "m": "June",
+        "kind": "text"
+       },
+       {
+        "m": "Netflix",
+        "kind": "text"
+       },
+       {
+        "m": "family.morgan@posteo.de",
+        "kind": "text"
+       },
+       {
+        "m": "Jun 30",
+        "kind": "text"
+       },
+       {
+        "m": "Reddit",
+        "kind": "text"
+       },
+       {
+        "m": "alex_m",
+        "kind": "text"
+       },
+       {
+        "m": "Jun 12",
+        "kind": "text"
+       },
+       {
+        "m": "May",
+        "kind": "text"
+       },
+       {
+        "m": "Home Wi-Fi",
+        "kind": "text"
+       },
+       {
+        "m": "Morgan-Home 5G",
+        "kind": "text"
+       },
+       {
+        "m": "May 3",
+        "kind": "text"
+       },
+       {
+        "m": "February",
+        "kind": "text"
+       },
+       {
+        "m": "Router admin",
+        "kind": "text"
+       },
+       {
+        "m": "admin",
+        "kind": "text"
+       },
+       {
+        "m": "Feb 14",
+        "kind": "text"
+       },
+       {
+        "m": "Netflix",
+        "kind": "name"
+       },
+       {
+        "m": "Reddit",
+        "kind": "name"
+       }
+      ],
+      "drawnOnly": [
+       {
+        "m": "Personal.appvault",
+        "kind": "text",
+        "ocr": "Personal.appvault"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "7 need attention",
+       "closed",
+       "Generated password"
+      ],
+      "help": [
+       "Reports come in E5-S7.",
+       "Settings come in E5-S9.",
+       "Auto-Type comes in E7."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 52.2,
+        "app": 55.6
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 20.7,
+        "app": 20.7
+       },
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 8.1,
+        "app": 12.3
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 3.3,
+        "app": 11.4
+       },
+       {
+        "hex": "#232327",
+        "token": "active/border/chip-bg",
+        "ref": 3.1,
+        "app": 4.1
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "sidebar-simple",
+       "magnifying-glass",
+       "lock-simple",
+       "fill keyhole",
+       "caret-up-down",
+       "fill tray",
+       "fill star",
+       "fill clock-countdown",
+       "fill fingerprint",
+       "fill shield-warning",
+       "plus",
+       "fill envelope-simple",
+       "fill bank",
+       "fill users-three",
+       "fill shopping-bag",
+       "fill briefcase",
+       "fill hard-drives",
+       "fill wifi-high",
+       "caret-right",
+       "fill trash",
+       "fill gear-six",
+       "check-circle",
+       "password",
+       "sort-descending",
+       "fingerprint",
+       "fill terminal-window",
+       "arrow-square-out",
+       "pencil-simple",
+       "dots-three",
+       "copy",
+       "keyboard",
+       "eye",
+       "paperclip",
+       "arrows-clockwise"
+      ],
+      "missing": [],
+      "logos": [
+       "GitHub",
+       "Apple",
+       "Google",
+       "Hetzner",
+       "Proton Mail",
+       "PayPal",
+       "Instagram",
+       "Wise",
+       "GitHub"
+      ],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "vaultswitch",
+       "text": "Personal Personal.appvault",
+       "dom": [
+        12,
+        52,
+        224,
+        52
+       ],
+       "app": [
+        12,
+        52,
+        224,
+        52
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "GitHub alex-dev · passkey 803 130 Strong 5 days",
+       "dom": [
+        273,
+        266,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        265,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Apple Account alex.morgan@icloud.com · passkey — Strong 6 da",
+       "dom": [
+        273,
+        322,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        321,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Google alex.morgan@gmail.com 296 502 Strong Oct 20",
+       "dom": [
+        273,
+        378,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        377,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Hetzner Cloud alex@morgan-labs.dev 906 079 Strong Oct 18",
+       "dom": [
+        273,
+        434,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        433,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Proton Mail alex.morgan@proton.me 204 523 Strong Oct 14",
+       "dom": [
+        273,
+        490,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        489,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Server root · web-01 root — Strong Oct 11",
+       "dom": [
+        273,
+        546,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        545,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "PayPal alex.morgan@posteo.de — Strong Oct 9",
+       "dom": [
+        273,
+        602,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        601,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Instagram alex.morgan.photos 227 360 Strong Oct 2",
+       "dom": [
+        273,
+        658,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        657,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Wise alex.morgan@posteo.de 006 795 Strong Sep 28",
+       "dom": [
+        273,
+        750,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        749,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "row",
+       "text": "Figma alex@morgan-labs.dev — Strong Sep 22",
+       "dom": [
+        273,
+        806,
+        622,
+        56
+       ],
+       "app": [
+        273,
+        805,
+        622,
+        56
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "All entries 23",
+       "dom": [
+        12,
+        118,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        118,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Favorites 5",
+       "dom": [
+        12,
+        152,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        152,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "One-time codes 7",
+       "dom": [
+        12,
+        186,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        186,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Passkeys 4",
+       "dom": [
+        12,
+        220,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        220,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Password health 6",
+       "dom": [
+        12,
+        254,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        254,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Email 2",
+       "dom": [
+        12,
+        336,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        336,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Banking 3",
+       "dom": [
+        12,
+        370,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        370,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Social 3",
+       "dom": [
+        12,
+        404,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        404,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Shopping 3",
+       "dom": [
+        12,
+        438,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        438,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Work 7",
+       "dom": [
+        12,
+        472,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        472,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Servers 3",
+       "dom": [
+        12,
+        506,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        506,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Devices 2",
+       "dom": [
+        12,
+        540,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        540,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin 2",
+       "dom": [
+        12,
+        712,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        712,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Settings ⌘,",
+       "dom": [
+        12,
+        746,
+        224,
+        32
+       ],
+       "app": [
+        12,
+        746,
+        224,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "All 23",
+       "dom": [
+        273,
+        143,
+        37.5,
+        38
+       ],
+       "app": [
+        273,
+        143,
+        38,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "Two-step codes 7",
+       "dom": [
+        334.5,
+        143,
+        113,
+        38
+       ],
+       "app": [
+        335,
+        143,
+        113.5,
+        38
+       ],
+       "d": [
+        0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "Passkeys 4",
+       "dom": [
+        471.5,
+        143,
+        71,
+        38
+       ],
+       "app": [
+        472.5,
+        143,
+        71.5,
+        38
+       ],
+       "d": [
+        1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "tab",
+       "text": "Needs attention 6",
+       "dom": [
+        566.5,
+        143,
+        113.5,
+        38
+       ],
+       "app": [
+        568,
+        143,
+        114,
+        38
+       ],
+       "d": [
+        1.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Lock ⌘L",
+       "dom": [
+        1207,
+        10,
+        101,
+        32
+       ],
+       "app": [
+        1205.5,
+        10,
+        102.5,
+        32
+       ],
+       "d": [
+        -1.5,
+        0,
+        1.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Generator",
+       "dom": [
+        1044,
+        75,
+        116.5,
+        36
+       ],
+       "app": [
+        1043.5,
+        75,
+        117,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New Entry",
+       "dom": [
+        1168.5,
+        75,
+        118.5,
+        36
+       ],
+       "app": [
+        1168.5,
+        75,
+        118.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Modified",
+       "dom": [
+        1191,
+        147,
+        96,
+        28
+       ],
+       "app": null
+      },
+      {
+       "kind": "button",
+       "text": "Copy password",
+       "dom": [
+        921,
+        266,
+        130.5,
+        32
+       ],
+       "app": [
+        921,
+        265,
+        131,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Open site",
+       "dom": [
+        1059.5,
+        266,
+        108.5,
+        32
+       ],
+       "app": [
+        1060,
+        265,
+        108.5,
+        32
+       ],
+       "d": [
+        0.5,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Type login",
+       "dom": [
+        1176.5,
+        266,
+        108.5,
+        32
+       ],
+       "app": [
+        1176.5,
+        265,
+        108.5,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Copy",
+       "dom": [
+        766,
+        410,
+        182,
+        32
+       ],
+       "app": [
+        766,
+        410,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New entry with it",
+       "dom": [
+        956,
+        410,
+        182,
+        32
+       ],
+       "app": [
+        956,
+        410,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Hide sidebar (⌃⌘S)",
+       "dom": [
+        206,
+        10,
+        32,
+        32
+       ],
+       "app": [
+        206,
+        10,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New group",
+       "dom": [
+        206,
+        308,
+        22,
+        22
+       ],
+       "app": [
+        206,
+        308,
+        22,
+        22
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Edit entry (⌘E)",
+       "dom": [
+        1219,
+        202,
+        32,
+        32
+       ],
+       "app": [
+        1219,
+        201,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "More actions",
+       "dom": [
+        1253,
+        202,
+        32,
+        32
+       ],
+       "app": [
+        1253,
+        201,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy username",
+       "dom": [
+        1244,
+        328,
+        32,
+        32
+       ],
+       "app": [
+        1244,
+        327,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Show password",
+       "dom": [
+        1208,
+        397,
+        32,
+        32
+       ],
+       "app": [
+        1208,
+        396,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy password",
+       "dom": [
+        1244,
+        397,
+        32,
+        32
+       ],
+       "app": [
+        1244,
+        396,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy one-time code",
+       "dom": [
+        1244,
+        492,
+        32,
+        32
+       ],
+       "app": [
+        1244,
+        491,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New password",
+       "dom": [
+        1064,
+        192,
+        32,
+        32
+       ],
+       "app": [
+        1064,
+        192,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy",
+       "dom": [
+        1100,
+        192,
+        32,
+        32
+       ],
+       "app": [
+        1100,
+        192,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "link",
+       "text": "github.com",
+       "dom": [
+        983,
+        230,
+        85,
+        18
+       ],
+       "app": null
+      },
+      {
+       "kind": "sidebar",
+       "text": "Personal Personal.appvault All",
+       "dom": [
+        0,
+        52,
+        248,
+        768
+       ],
+       "app": [
+        0,
+        52,
+        248,
+        768
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "rail",
+       "text": "GitHub github.com Copy passwor",
+       "dom": [
+        919,
+        198,
+        368,
+        613
+       ],
+       "app": [
+        919,
+        197,
+        368,
+        615
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        2
+       ]
+      },
+      {
+       "kind": "list",
+       "text": "October GitHub alex-dev · pass",
+       "dom": [
+        273,
+        230,
+        622,
+        581
+       ],
+       "app": [
+        273,
+        229,
+        622,
+        583
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        2
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "⌘F",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        949,
+        18,
+        18,
+        15
+       ],
+       "app": [
+        947.8,
+        18.5,
+        19,
+        15
+       ],
+       "d": [
+        -1.3,
+        0.5,
+        1,
+        0
+       ]
+      },
+      {
+       "text": "Groups",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        20,
+        311,
+        40,
+        15
+       ],
+       "app": [
+        20,
+        311.5,
+        40.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "All entries",
+       "font": "IBM Plex Sans 22/600",
+       "dom": [
+        273,
+        74,
+        101.5,
+        29
+       ],
+       "app": [
+        273,
+        74.5,
+        102,
+        29
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        283,
+        206,
+        32,
+        15
+       ],
+       "app": [
+        283,
+        205.5,
+        32,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Code",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        565,
+        206,
+        27.5,
+        15
+       ],
+       "app": [
+        565,
+        205.5,
+        28,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        685,
+        206,
+        52.5,
+        15
+       ],
+       "app": [
+        685,
+        205.5,
+        52.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Modified",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        838,
+        206,
+        47,
+        15
+       ],
+       "app": [
+        838,
+        205.5,
+        47,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "October",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        283,
+        244,
+        44.5,
+        15
+       ],
+       "app": [
+        283,
+        243.5,
+        45,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "September",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        283,
+        728,
+        61.5,
+        15
+       ],
+       "app": [
+        283,
+        727.5,
+        62,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "GitHub",
+       "font": "IBM Plex Sans 18/600",
+       "dom": [
+        983,
+        204,
+        59,
+        23
+       ],
+       "app": [
+        983,
+        204.5,
+        59,
+        23
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Username",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        325,
+        55.5,
+        15
+       ],
+       "app": [
+        938,
+        324.5,
+        55.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "alex-dev",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        938,
+        344,
+        53.5,
+        18
+       ],
+       "app": [
+        938,
+        343,
+        54,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        383,
+        52.5,
+        15
+       ],
+       "app": [
+        938,
+        382.5,
+        52.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "••••••••••••••••••",
+       "font": "IBM Plex Mono 14/400",
+       "dom": [
+        938,
+        402,
+        156.5,
+        18
+       ],
+       "app": [
+        938,
+        401,
+        151.5,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        -5,
+        0
+       ]
+      },
+      {
+       "text": "One-time code",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        462,
+        80,
+        15
+       ],
+       "app": [
+        938,
+        461.5,
+        80.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Passkey",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        573.5,
+        44,
+        15
+       ],
+       "app": [
+        938,
+        573,
+        44,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "github.com · alex-dev",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        938,
+        592.5,
+        135,
+        18
+       ],
+       "app": [
+        938,
+        591.5,
+        135.5,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Group",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        644,
+        33,
+        15
+       ],
+       "app": [
+        938,
+        643.5,
+        33.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Work",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        968,
+        664,
+        32.5,
+        18
+       ],
+       "app": [
+        968,
+        663,
+        33,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Tags",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        703,
+        24.5,
+        15
+       ],
+       "app": [
+        938,
+        702.5,
+        25,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "#2fa",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        946,
+        728,
+        26,
+        15
+       ],
+       "app": [
+        946,
+        727.5,
+        26.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "#dev",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        994,
+        728,
+        28,
+        15
+       ],
+       "app": [
+        994.5,
+        727.5,
+        28,
+        15
+       ],
+       "d": [
+        0.5,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Attachments",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        938,
+        766,
+        69,
+        15
+       ],
+       "app": [
+        938,
+        765.5,
+        69.5,
+        15
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "github-recovery-codes.txt",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        962,
+        789,
+        163,
+        18
+       ],
+       "app": [
+        962,
+        788,
+        163.5,
+        18
+       ],
+       "d": [
+        0,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "1.2 KB",
+       "font": "IBM Plex Sans 11.6667/400",
+       "dom": [
+        1133,
+        790,
+        35,
+        15
+       ],
+       "app": [
+        1133.5,
+        789.5,
+        36,
+        15
+       ],
+       "d": [
+        0.5,
+        -0.5,
+        1,
+        0
+       ]
+      },
+      {
+       "text": "Generator",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        766,
+        140,
+        70,
+        19
+       ],
+       "app": [
+        766,
+        140.5,
+        70.5,
+        19
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Excellent",
+       "font": "IBM Plex Sans 12/500",
+       "dom": [
+        766,
+        248,
+        51,
+        15
+       ],
+       "app": [
+        766,
+        248.5,
+        51,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "sheet": {
+      "ref": {
+       "left": 249.5,
+       "right": 1310,
+       "top": 52,
+       "bottom": 811.5
+      },
+      "app": {
+       "left": 249.5,
+       "right": 1310,
+       "top": 52,
+       "bottom": 811.5
+      }
+     },
+     "pixels": 1.28,
+     "residual": 0.77,
+     "unnamed": [],
+     "disabled": [
+      "Password health, 7 need attention (Reports come in E5-S7.)",
+      "Settings, ⌘, (Settings come in E5-S9.)",
+      "Type login (Auto-Type comes in E7.)"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Generator opens the popover with a value; again closes it"
+    },
+    {
+     "ok": true,
+     "name": "Copy copies the shown value in Rust and says so"
+    },
+    {
+     "ok": true,
+     "name": "New entry with it opens a new entry holding the value"
+    },
+    {
+     "ok": true,
+     "name": "a lock closes the popover and drops the value (D-02-5)"
+    }
+   ],
+   "controls": [
+    "q \"Search entries\"",
+    "lock \"Lock ⌘L\"",
+    "menu=vault \"Switch vault\"",
+    "view=all \"All entries 23\"",
+    "view=fav \"Favorites 5\"",
+    "view=codes \"One-time codes 7\"",
+    "view=passkeys \"Passkeys 4\"",
+    "view=health \"Password health 6\"",
+    "dialog=newGroup \"New group\"",
+    "view=email \"Email 2\"",
+    "view=banking \"Banking 3\"",
+    "view=social \"Social 3\"",
+    "view=shopping \"Shopping 3\"",
+    "view=work \"Work 7\"",
+    "view=servers \"Servers 3\"",
+    "view=devices \"Devices 2\"",
+    "tags \"Tags\"",
+    "view=bin \"Recycle Bin 2\"",
+    "settings \"Settings ⌘,\"",
+    "menu=gen \"Generator\"",
+    "new \"New Entry\"",
+    "tab=all \"All 23\"",
+    "tab=totp \"Two-step codes 7\"",
+    "tab=passkey \"Passkeys 4\"",
+    "tab=attention \"Needs attention 6\"",
+    "menu=sort \"Modified\"",
+    "sel=github \"GitHub alex-dev · passkey 803 130 Strong 5 days\"",
+    "sel=apple \"Apple Account alex.morgan@icloud.com · passkey — Strong 6 da\"",
+    "sel=google \"Google alex.morgan@gmail.com 296 502 Strong Oct 20\"",
+    "sel=hetzner \"Hetzner Cloud alex@morgan-labs.dev 906 079 Strong Oct 18\"",
+    "sel=proton \"Proton Mail alex.morgan@proton.me 204 523 Strong Oct 14\"",
+    "sel=web01 \"Server root · web-01 root — Strong Oct 11\"",
+    "sel=paypal \"PayPal alex.morgan@posteo.de — Strong Oct 9\"",
+    "sel=instagram \"Instagram alex.morgan.photos 227 360 Strong Oct 2\"",
+    "sel=wise \"Wise alex.morgan@posteo.de 006 795 Strong Sep 28\"",
+    "sel=figma \"Figma alex@morgan-labs.dev — Strong Sep 22\"",
+    "copy=open \"github.com\"",
+    "edit \"Edit entry (⌘E)\"",
+    "menu=more \"More actions\"",
+    "copy=password \"Copy password\"",
+    "copy=open \"Open site\"",
+    "copy=type \"Type login\"",
+    "copy=username \"Copy username\"",
+    "reveal \"Show password\"",
+    "copy=password \"Copy password\"",
+    "copy=code \"Copy one-time code\"",
+    "gmode=pw \"Password\"",
+    "gmode=phrase \"Passphrase\"",
+    "regen \"New password\"",
+    "copy=generated \"Copy\"",
+    "glen \"\"",
+    "gset=upper \"A–Z\"",
+    "gset=lower \"a–z\"",
+    "gset=digits \"0–9\"",
+    "gset=symbols \"!@#$\"",
+    "copy=generated \"Copy\"",
+    "new \"New entry with it\""
+   ],
+   "hasCodes": true,
+   "hasList": true,
+   "measured": [
+    "Font check passed: the large code is one run of IBMPlexMono-Medium 28 in the accessibility tree; 28.0 pt code: ink distance 0.016 to IBM Plex Mono 500 against 0.402 to the system face; 14.0 pt code: ink distance 0.084 to IBM Plex Mono 500 against 0.285 to the system face.",
+    "Focus check passed: the focused row, rendered offscreen in light and dark, has --accent exactly from 1 to 3 pt outside its edge (left and top), none when not focused; the mockup's .win :focus-visible is outline 2px --accent, offset 1px, radius 6 (outline radius 7 to 9), the app strokes radius 8 at 2 pt out (7 to 9). On a real key window: Mac QA (LD-169)."
+   ],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "generator-password",
+   "title": "Password",
+   "note": "Popover alone",
+   "size": [
+    436,
+    420
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/generator-password.png",
+     "present": true,
+     "appImg": "app/light/generator-password.png",
+     "diffImg": "diff/light/generator-password.png",
+     "text": {
+      "found": [
+       {
+        "m": "Generator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passphrase",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Excellent",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Length",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "20",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A–Z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "a–z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "0–9",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "!@#$",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Äéß",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Leave out look-alikes l I 1 O 0",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New entry with it",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password generator",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [
+       {
+        "m": "M2ciPKJtX7UctFAAQMGf",
+        "kind": "text",
+        "why": "generated password: 20 printable characters, one of each chosen type at least (FEA-02.8)",
+        "app": "bx(2%Vha;c]o]S$g<~5'"
+       },
+       {
+        "m": "126 bits",
+        "kind": "text",
+        "why": "strength of the live value in whole bits (FEA-05 estimate, FEA-03.7 formula)",
+        "app": "131 bits"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Generated password",
+       "on"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 68.5,
+        "app": 69
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 14.3,
+        "app": 14.3
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 3.8,
+        "app": 3.8
+       },
+       {
+        "hex": "#e2eff2",
+        "token": "accent-soft",
+        "ref": 3.6,
+        "app": 3.5
+       },
+       {
+        "hex": "#e7eaeb",
+        "token": "active",
+        "ref": 2,
+        "app": 2.1
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "arrows-clockwise",
+       "copy",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Copy",
+       "dom": [
+        16,
+        292,
+        182,
+        32
+       ],
+       "app": [
+        16,
+        292,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New entry with it",
+       "dom": [
+        206,
+        292,
+        182,
+        32
+       ],
+       "app": [
+        206,
+        292,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New password",
+       "dom": [
+        314,
+        74,
+        32,
+        32
+       ],
+       "app": [
+        314,
+        74,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy",
+       "dom": [
+        350,
+        74,
+        32,
+        32
+       ],
+       "app": [
+        350,
+        74,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Generator",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        16,
+        22,
+        70,
+        19
+       ],
+       "app": [
+        16,
+        22.5,
+        70.5,
+        19
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Excellent",
+       "font": "IBM Plex Sans 12/500",
+       "dom": [
+        16,
+        130,
+        51,
+        15
+       ],
+       "app": [
+        16,
+        130.5,
+        51,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.08,
+     "residual": 0.56,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/generator-password.png",
+     "present": true,
+     "appImg": "app/dark/generator-password.png",
+     "diffImg": "diff/dark/generator-password.png",
+     "text": {
+      "found": [
+       {
+        "m": "Generator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passphrase",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Excellent",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Length",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "20",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A–Z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "a–z",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "0–9",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "!@#$",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Äéß",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Leave out look-alikes l I 1 O 0",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New entry with it",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password generator",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [
+       {
+        "m": "M2ciPKJtX7UctFAAQMGf",
+        "kind": "text",
+        "why": "generated password: 20 printable characters, one of each chosen type at least (FEA-02.8)",
+        "app": "bx(2%Vha;c]o]S$g<~5'"
+       },
+       {
+        "m": "126 bits",
+        "kind": "text",
+        "why": "strength of the live value in whole bits (FEA-05 estimate, FEA-03.7 formula)",
+        "app": "131 bits"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Generated password",
+       "on"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 62.6,
+        "app": 77.9
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 15.4,
+        "app": 77.9
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 4.4,
+        "app": 4.8
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 3.7,
+        "app": 3.7
+       },
+       {
+        "hex": "#10303a",
+        "token": "accent-soft",
+        "ref": 3.6,
+        "app": 3.5
+       },
+       {
+        "hex": "#232327",
+        "token": "active/border/chip-bg",
+        "ref": 2.1,
+        "app": 2.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "arrows-clockwise",
+       "copy",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Copy",
+       "dom": [
+        16,
+        292,
+        182,
+        32
+       ],
+       "app": [
+        16,
+        292,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New entry with it",
+       "dom": [
+        206,
+        292,
+        182,
+        32
+       ],
+       "app": [
+        206,
+        292,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New password",
+       "dom": [
+        314,
+        74,
+        32,
+        32
+       ],
+       "app": [
+        314,
+        74,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy",
+       "dom": [
+        350,
+        74,
+        32,
+        32
+       ],
+       "app": [
+        350,
+        74,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Generator",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        16,
+        22,
+        70,
+        19
+       ],
+       "app": [
+        16,
+        22.5,
+        70.5,
+        19
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Excellent",
+       "font": "IBM Plex Sans 12/500",
+       "dom": [
+        16,
+        130,
+        51,
+        15
+       ],
+       "app": [
+        16,
+        130.5,
+        51,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.98,
+     "residual": 0.48,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "New password, the chips, the slider and look-alikes each make a new value"
+    },
+    {
+     "ok": true,
+     "name": "the editor's generate button opens it with Use password at the field's length"
+    },
+    {
+     "ok": true,
+     "name": "options that make nothing show the reason; Copy and Use are off (D-02-3)"
+    },
+    {
+     "ok": true,
+     "name": "a refused paste over 64 KiB shows the reason; Copy and Use are off (FEA-02.16)"
+    }
+   ],
+   "controls": [
+    "gmode=pw \"Password\"",
+    "gmode=phrase \"Passphrase\"",
+    "regen \"New password\"",
+    "copy=generated \"Copy\"",
+    "glen \"\"",
+    "gset=upper \"A–Z\"",
+    "gset=lower \"a–z\"",
+    "gset=digits \"0–9\"",
+    "gset=symbols \"!@#$\"",
+    "copy=generated \"Copy\"",
+    "new \"New entry with it\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "generator-passphrase",
+   "title": "Passphrase",
+   "note": "Popover alone",
+   "size": [
+    436,
+    420
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/generator-passphrase.png",
+     "present": true,
+     "appImg": "app/light/generator-passphrase.png",
+     "diffImg": "diff/light/generator-passphrase.png",
+     "text": {
+      "found": [
+       {
+        "m": "Generator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passphrase",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "65 bits",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Words",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "5",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Separator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "-",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": ".",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "space",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "_",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Case",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "lower",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Title",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "UPPER",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New entry with it",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password generator",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Strong",
+        "kind": "text",
+        "why": "FEA-05.4 strength level (card words)",
+        "ref": "LD-163 (4)",
+        "app": "Weak"
+       }
+      ],
+      "live": [
+       {
+        "m": "comet-raven-island-lantern-coral",
+        "kind": "text",
+        "why": "generated passphrase: 5 words of the built-in list joined with \"-\"",
+        "app": "output-theatrics-reselect-savage-disregard"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Generated password"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 66.5,
+        "app": 66.5
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 17.1,
+        "app": 16.6
+       },
+       {
+        "hex": "#e7eaeb",
+        "token": "active",
+        "ref": 6.9,
+        "app": 7.1
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 3.5,
+        "app": 3.5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "arrows-clockwise",
+       "copy",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Copy",
+       "dom": [
+        16,
+        320,
+        182,
+        32
+       ],
+       "app": [
+        16,
+        320,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New entry with it",
+       "dom": [
+        206,
+        320,
+        182,
+        32
+       ],
+       "app": [
+        206,
+        320,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New password",
+       "dom": [
+        314,
+        82,
+        32,
+        32
+       ],
+       "app": [
+        314,
+        82,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy",
+       "dom": [
+        350,
+        82,
+        32,
+        32
+       ],
+       "app": [
+        350,
+        82,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Generator",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        16,
+        22,
+        70,
+        19
+       ],
+       "app": [
+        16,
+        22.5,
+        70.5,
+        19
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "65 bits",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        351,
+        146,
+        37.5,
+        15
+       ],
+       "app": [
+        350.5,
+        146.5,
+        37.5,
+        15
+       ],
+       "d": [
+        -0.5,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Separator",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        16,
+        227,
+        59,
+        17
+       ],
+       "app": [
+        16,
+        227.5,
+        59,
+        17
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Case",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        16,
+        277,
+        29,
+        17
+       ],
+       "app": [
+        16,
+        277.5,
+        29.5,
+        17
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.53,
+     "residual": 0.38,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/generator-passphrase.png",
+     "present": true,
+     "appImg": "app/dark/generator-passphrase.png",
+     "diffImg": "diff/dark/generator-passphrase.png",
+     "text": {
+      "found": [
+       {
+        "m": "Generator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Passphrase",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "65 bits",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Words",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "5",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Separator",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "-",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": ".",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "space",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "_",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Case",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "lower",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Title",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "UPPER",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New entry with it",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password generator",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "New password",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Copy",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Strong",
+        "kind": "text",
+        "why": "FEA-05.4 strength level (card words)",
+        "ref": "LD-163 (4)",
+        "app": "Weak"
+       }
+      ],
+      "live": [
+       {
+        "m": "comet-raven-island-lantern-coral",
+        "kind": "text",
+        "why": "generated passphrase: 5 words of the built-in list joined with \"-\"",
+        "app": "output-theatrics-reselect-savage-disregard"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Generated password"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 60,
+        "app": 76.3
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 17.1,
+        "app": 76.3
+       },
+       {
+        "hex": "#232327",
+        "token": "active/border/chip-bg",
+        "ref": 7.1,
+        "app": 7.4
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 4.3,
+        "app": 5
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 3.4,
+        "app": 3.4
+       },
+       {
+        "hex": "#2e2e33",
+        "token": "",
+        "ref": 3,
+        "app": 3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "arrows-clockwise",
+       "copy",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Copy",
+       "dom": [
+        16,
+        320,
+        182,
+        32
+       ],
+       "app": [
+        16,
+        320,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "New entry with it",
+       "dom": [
+        206,
+        320,
+        182,
+        32
+       ],
+       "app": [
+        206,
+        320,
+        182,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "New password",
+       "dom": [
+        314,
+        82,
+        32,
+        32
+       ],
+       "app": [
+        314,
+        82,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Copy",
+       "dom": [
+        350,
+        82,
+        32,
+        32
+       ],
+       "app": [
+        350,
+        82,
+        32,
+        32
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Generator",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        16,
+        22,
+        70,
+        19
+       ],
+       "app": [
+        16,
+        22.5,
+        70.5,
+        19
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "65 bits",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        351,
+        146,
+        37.5,
+        15
+       ],
+       "app": [
+        350.5,
+        146.5,
+        37.5,
+        15
+       ],
+       "d": [
+        -0.5,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Separator",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        16,
+        227,
+        59,
+        17
+       ],
+       "app": [
+        16,
+        227.5,
+        59,
+        17
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Case",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        16,
+        277,
+        29,
+        17
+       ],
+       "app": [
+        16,
+        277.5,
+        29.5,
+        17
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.39,
+     "residual": 0.25,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Passphrase, the separator, the case and the words slider make new phrases"
+    },
+    {
+     "ok": true,
+     "name": "typing over the value rates the text; Use takes the edit (FEA-02.16, D-03-7)"
+    }
+   ],
+   "controls": [
+    "gmode=pw \"Password\"",
+    "gmode=phrase \"Passphrase\"",
+    "regen \"New password\"",
+    "copy=generated \"Copy\"",
+    "gwords \"\"",
+    "copy=generated \"Copy\"",
+    "new \"New entry with it\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  }
+ ]
+}

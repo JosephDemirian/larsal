@@ -1,0 +1,190 @@
+[workspace]
+members = ["crates/*"]
+# vendor/: patched third-party crates (LD-136), not members.
+exclude = ["vendor"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+# App's license (decision D2, LD-262 (3)): LICENSE, legal/README.md.
+license = "GPL-3.0-or-later"
+
+# Rust rule 2: covers every build target (lib, bins, tests, examples, benches).
+# Every crate opts in with [lints] workspace = true, except app-platform and
+# app-hwkey (deny, with unsafe only in their macos/ and usb/ modules).
+# app-ffi opts in too. The forbid covers a crate's own code and macros only:
+# rustc does not report the unsafe that UniFFI's scaffolding macros generate
+# (reviewed in LD-157), and refuses hand-written unsafe (E5-S1).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+# Every approved crate (plan/architecture.md, Approved crates), pinned exactly.
+# Not used by any crate yet: a story adds `name.workspace = true` when it needs one.
+# One RustCrypto generation: cipher 0.5, digest 0.11, crypto-common 0.2, rand_core 0.10.
+# The older one (cipher 0.4) has RUSTSEC-2026-0387 in p256 0.13 with no fix there.
+[workspace.dependencies]
+# Our own crates.
+app-crypto = { path = "crates/app-crypto" }
+app-model = { path = "crates/app-model" }
+app-format = { path = "crates/app-format" }
+app-core = { path = "crates/app-core" }
+# No default features: app-format takes only `memory` (libc, no AppKit, E6-S6);
+# app-cli and app-ffi add `appkit`.
+app-platform = { path = "crates/app-platform", default-features = false }
+app-autotype = { path = "crates/app-autotype" }
+app-sshagent = { path = "crates/app-sshagent" }
+app-hwkey = { path = "crates/app-hwkey" }
+app-share = { path = "crates/app-share" }
+# E7: the browser bridge (app-ffi from E7-S6). app-bridge, the host program,
+# is a workspace member that no crate depends on.
+app-browser = { path = "crates/app-browser" }
+# E16-S3: the sync wire format, shared by the server and (later) the client.
+app-proto = { path = "crates/app-proto" }
+# E16-S5 (LD-325 (2), LD-327 (2)): the sync server, a dev-dependency of
+# app-platform and of itself (its test seams); one entry for both, so the
+# deny gate sees one app-server.
+app-server = { path = "crates/app-server" }
+# E16-S7a (LD-266 (6)): the sync client; app-ffi `sync` only, and itself
+# (its `test-server` seam).
+app-sync = { path = "crates/app-sync" }
+aes = "=0.9.3"
+cbc = { version = "=0.2.1", default-features = false }
+chacha20 = "=0.10.2"
+salsa20 = "=0.11.0"
+twofish = "=0.8.0"
+argon2 = { version = "=0.6.0", default-features = false }
+# LD-142: encrypted imports (FEA-08); app-crypto only. Both on digest 0.11 / hmac 0.13.
+pbkdf2 = { version = "=0.13.0", default-features = false }
+hkdf = { version = "=0.13.0", default-features = false }
+sha2 = "=0.11.1"
+sha1 = "=0.11.0"
+hmac = "=0.13.0"
+subtle = "=2.6.1"
+getrandom = "=0.4.3"
+rand_core = "=0.10.1"
+zeroize = "=1.9.1"
+# E0-S7 R5 (LD-258 (2)): base64 for our crates, in app-crypto base64.rs only.
+base64ct = "=1.8.3"
+# E9-S2: App's own SSH agent signs and checks host keys with these (app-crypto ssh.rs);
+# crates pick features. AT-J03 at the E9-S2 Checker (E7 passkeys use them later).
+p256 = { version = "=0.14.0", default-features = false }
+ed25519-dalek = { version = "=3.0.0", default-features = false }
+# E9-S1 (2026-10-28): rc.11 is the newest release; no stable 0.7 exists. The stable 0.6.7 is
+# the older generation (cipher 0.4, p256 0.13 with RUSTSEC-2026-0387). Re-pin when 0.7.0 is out.
+ssh-key = { version = "=0.7.0-rc.11", default-features = false }
+# Named only to turn on its `zeroize` (the passphrase hash); it comes in through ssh-key.
+bcrypt-pbkdf = { version = "=0.11.0", default-features = false }
+quick-xml = "=0.42.0"
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] } # pure Rust (miniz_oxide)
+zxcvbn = { version = "=3.1.1", default-features = false } # LD-133: drops derive_builder; used only by app-core health.rs
+png = { version = "=0.18.1", default-features = false } # LD-109: icon images, PNG decode and encode
+regex-automata = { version = "=0.4.18", default-features = false, features = ["std", "syntax", "meta", "nfa-pikevm", "nfa-backtrack", "hybrid", "dfa-onepass", "perf-inline", "unicode-case", "unicode-perl", "unicode-word-boundary"] } # LD-110, LD-120: the linear-time engine of `regex`, used directly for its exact compiled size
+regex-syntax = { version = "=0.8.11", default-features = false, features = ["std", "unicode-case", "unicode-perl"] } # LD-110, LD-120: one parse per pattern, to bound case-folding work before translating
+uniffi = { version = "=0.32.2", default-features = false } # E5-S1, LD-156: Swift bindings; app-ffi and crates/uniffi-bindgen only
+qrcode = { version = "=0.14.1", default-features = false } # E5-S5, D-04-9: QR symbols for the one-time password and Wi-Fi screens, matrix only (no `image`, `svg`, `pic`); app-ffi edit.rs only; AT-J03 at the E5-S5 Checker
+objc2 = "=0.6.5" # latest 0.6.5, released 2026-10-05, maintained
+objc2-foundation = { version = "=0.3.2", default-features = false } # latest 0.3.2, released 2025-10-04, same project as objc2; crates pick features
+objc2-app-kit = { version = "=0.3.2", default-features = false } # latest 0.3.2, released 2025-10-04, same project as objc2; crates pick features
+# E10-S1 (LD-173, D-INT07-1): the IOKit HID manager for app-hwkey usb/ only; AT-J03 at the E10-S1 Checker.
+objc2-io-kit = { version = "=0.3.2", default-features = false }
+objc2-core-foundation = { version = "=0.3.2", default-features = false }
+libc = "=0.2.191" # E5-S1 (APP-09): app-platform macos/ only; already in the tree (getrandom)
+# E16-S6 (LD-303 (2)): app-platform `device_key.rs` only, behind its `device-key`
+# feature: the sign-in key (SYN-04.1). Only `OSX_10_15` (the data protection
+# keychain); no TLS features (`alpn`, `session-tickets`: App's TLS is rustls).
+security-framework = { version = "=3.7.0", default-features = false }
+# E6-S7 (LD-194): app-platform `net.rs` only, behind its `net` feature. ureq speaks HTTP/1.1
+# with no TLS feature of its own (no webpki-roots); net.rs puts rustls under it with App's
+# own verifier over macOS's trust evaluation (macos/trust.rs, LD-247 (2)). rustls on ring,
+# TLS 1.2 and 1.3; never OpenSSL. AT-J03 for ureq, rustls and rcgen at the E6-S7 Checker.
+ureq = { version = "=3.5.0", default-features = false }
+rustls = { version = "=0.23.46", default-features = false, features = ["std", "tls12", "ring"] }
+# Certificates: made at test time (E6-S7), and app-server's first-start demo
+# certificate (P17, E16-S3), its one normal use.
+rcgen = { version = "=0.14.10", default-features = false, features = ["crypto", "ring"] }
+# E16-S2 (LD-282, LD-301, LD-303): HPKE base mode for the wraps of P6 to P8, and
+# AES-256-GCM for the key wrap (CRY-04); app-crypto only. hpke pulls x25519-dalek
+# 3.0.0 and zeroize_derive 1.5.0. 14-day rule (LD-266 (5)).
+hpke = { version = "=0.14.1", default-features = false }
+aes-gcm = { version = "=0.11.1", default-features = false }
+# E7-S1 (LD-274 (1), LD-307): X25519 of the browser bridge channel (app-crypto bridge.rs);
+# already in the tree through hpke, with the same features.
+x25519-dalek = { version = "=3.0.0", default-features = false }
+# E16-S3 (LD-282, LD-301, LD-303): app-server only (P14, P15). 14-day rule
+# (LD-266 (5)); the 2026-11-01 versions. tokio-rustls on ring, never aws-lc.
+tokio = { version = "=1.53.3", default-features = false }
+hyper = { version = "=1.12.0", default-features = false }
+hyper-util = { version = "=0.1.21", default-features = false }
+http-body-util = { version = "=0.1.5", default-features = false }
+tokio-rustls = { version = "=0.26.6", default-features = false }
+rusqlite = { version = "=0.40.2", default-features = false }
+rpassword = "=7.5.4"
+proptest = "=1.12.0"
+libfuzzer-sys = "=0.4.13"
+arbitrary = "=1.5.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+overflow-checks = true
+strip = "symbols"
+
+# Dependencies (not our crates) are built optimized in debug and test builds:
+# the 13M-round AES-KDF of the demo vaults takes seconds unoptimized.
+[profile.dev.package."*"]
+opt-level = 3
+
+# Our crypto crate too: the AES-KDF round loop lives in it.
+[profile.dev.package.app-crypto]
+opt-level = 3
+
+# And the vault engine under the Mac app: unoptimized, a search of 10,000
+# entries takes about 50 ms in the debug app; optimized, a few (FEA-01.34).
+# Overflow checks and debug assertions stay on.
+[profile.dev.package.app-model]
+opt-level = 3
+[profile.dev.package.app-format]
+opt-level = 3
+[profile.dev.package.app-core]
+opt-level = 3
+[profile.dev.package.app-ffi]
+opt-level = 3
+# The Auto-Type reader's 10 MB memory test (LD-184 (1)) walks every character.
+[profile.dev.package.app-autotype]
+opt-level = 3
+# URL matching's bound (INT-03.17, T83): 10,000 entries in under 200 ms.
+[profile.dev.package.app-browser]
+opt-level = 3
+
+# LD-136: App's patched copy of zxcvbn 3.1.1 (f64 guesses, ordered maps, no
+# unsafe, one product-name entry removed). The fuzz workspace patches it too.
+[patch.crates-io]
+zxcvbn = { path = "vendor/zxcvbn" }
+# LD-209: App's patched copy of ssh-key 0.7.0-rc.11 (reads an ECDSA private
+# scalar shorter than 32 bytes). The fuzz workspace patches it too.
+ssh-key = { path = "vendor/ssh-key" }
+# E0-S7 R6: App's own `log` facade (crates/log), not a copy: ureq, ureq-proto
+# and goblin call it, and nothing they log goes anywhere.
+log = { path = "crates/log" }
+# E0-S7 step 4c (F6) and step 5: App's patched copy of uniffi 0.32.2 (no `cli`
+# feature, so no uniffi_pipeline in app-ffi and no clap in the tree; no
+# `bindgen-tests`). Not in the fuzz workspace, which has no uniffi.
+uniffi = { path = "vendor/uniffi" }
+# E0-S7 step 4c (R14): App's patched copy of uniffi_core 0.32.2 (the two
+# static_assertions macros of the generated scaffolding written with the
+# standard library; that crate is gone).
+uniffi_core = { path = "vendor/uniffi_core" }
+# E0-S7 step 4d (R13): App's patched copy of ureq 3.5.0 (no proxy, SOCKS,
+# cookies, JSON, charset, compression, lossy reader or query and form helpers;
+# so no base64, percent-encoding or utf8-zero). app-platform `net` only.
+ureq = { path = "vendor/ureq" }
+# E0-S7 step 4d (R13): App's patched copy of ureq-proto 0.6.5 (no Basic
+# authorization header from a user name in the URI; so no base64).
+ureq-proto = { path = "vendor/ureq-proto" }
+# E0-S7 step 5: App's patched copy of uniffi_bindgen 0.32.2 (only the Swift
+# generator, no UDL parser; so no uniffi_udl, weedle2, nom or minimal-lexical).
+# The bindings generator crates/uniffi-bindgen only. Not in the fuzz workspace.
+uniffi_bindgen = { path = "vendor/uniffi_bindgen" }

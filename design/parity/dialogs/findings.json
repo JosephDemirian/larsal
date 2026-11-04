@@ -1,0 +1,8987 @@
+{
+ "section": "dialogs",
+ "versions": [
+  "pixelmatch 8.0.0",
+  "pngjs 7.0.0"
+ ],
+ "tokensStatic": [
+  {
+   "name": "ground",
+   "light": "#f0f2f2",
+   "app_light": "#f0f2f2",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "surface",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#131315",
+   "app_dark": "#131315",
+   "ok": true
+  },
+  {
+   "name": "raised",
+   "light": "#f5f7f7",
+   "app_light": "#f5f7f7",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "active",
+   "light": "#e7eaeb",
+   "app_light": "#e7eaeb",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "hover",
+   "light": "#f3f5f5",
+   "app_light": "#f3f5f5",
+   "dark": "#1a1a1d",
+   "app_dark": "#1a1a1d",
+   "ok": true
+  },
+  {
+   "name": "border",
+   "light": "#e2e5e6",
+   "app_light": "#e2e5e6",
+   "dark": "#222226",
+   "app_dark": "#222226",
+   "ok": true
+  },
+  {
+   "name": "rule",
+   "light": "#edeff0",
+   "app_light": "#edeff0",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "control",
+   "light": "#cdd0d3",
+   "app_light": "#cdd0d3",
+   "dark": "#3a3a40",
+   "app_dark": "#3a3a40",
+   "ok": true
+  },
+  {
+   "name": "field",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "tile",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "text",
+   "light": "#131416",
+   "app_light": "#131416",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "muted",
+   "light": "#5d6062",
+   "app_light": "#5d6062",
+   "dark": "#9b9ba2",
+   "app_dark": "#9b9ba2",
+   "ok": true
+  },
+  {
+   "name": "primary",
+   "light": "#1d1f20",
+   "app_light": "#1d1f20",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "on-primary",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "primary-hover",
+   "light": "#34373a",
+   "app_light": "#34373a",
+   "dark": "#ffffff",
+   "app_dark": "#ffffff",
+   "ok": true
+  },
+  {
+   "name": "accent",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#52b6c9",
+   "app_dark": "#52b6c9",
+   "ok": true
+  },
+  {
+   "name": "accent-soft",
+   "light": "#e2eff2",
+   "app_light": "#e2eff2",
+   "dark": "#10303a",
+   "app_dark": "#10303a",
+   "ok": true
+  },
+  {
+   "name": "digit",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#6ccadb",
+   "app_dark": "#6ccadb",
+   "ok": true
+  },
+  {
+   "name": "symbol",
+   "light": "#a3620a",
+   "app_light": "#a3620a",
+   "dark": "#f2ab4f",
+   "app_dark": "#f2ab4f",
+   "ok": true
+  },
+  {
+   "name": "positive",
+   "light": "#1e7b4f",
+   "app_light": "#1e7b4f",
+   "dark": "#3dd68c",
+   "app_dark": "#3dd68c",
+   "ok": true
+  },
+  {
+   "name": "negative",
+   "light": "#c4242a",
+   "app_light": "#c4242a",
+   "dark": "#ff6b70",
+   "app_dark": "#ff6b70",
+   "ok": true
+  },
+  {
+   "name": "warning",
+   "light": "#8a4a06",
+   "app_light": "#8a4a06",
+   "dark": "#f5b14c",
+   "app_dark": "#f5b14c",
+   "ok": true
+  },
+  {
+   "name": "neg-bg",
+   "light": "#ffedea",
+   "app_light": "#ffedea",
+   "dark": "#2c1517",
+   "app_dark": "#2c1517",
+   "ok": true
+  },
+  {
+   "name": "neg-ink",
+   "light": "#831c1e",
+   "app_light": "#831c1e",
+   "dark": "#ffa3a5",
+   "app_dark": "#ffa3a5",
+   "ok": true
+  },
+  {
+   "name": "warn-bg",
+   "light": "#fff4e0",
+   "app_light": "#fff4e0",
+   "dark": "#2a1f0f",
+   "app_dark": "#2a1f0f",
+   "ok": true
+  },
+  {
+   "name": "warn-ink",
+   "light": "#7a4105",
+   "app_light": "#7a4105",
+   "dark": "#f6c47f",
+   "app_dark": "#f6c47f",
+   "ok": true
+  },
+  {
+   "name": "pos-bg",
+   "light": "#dcfae5",
+   "app_light": "#dcfae5",
+   "dark": "#0f2a1b",
+   "app_dark": "#0f2a1b",
+   "ok": true
+  },
+  {
+   "name": "pos-ink",
+   "light": "#0b4a26",
+   "app_light": "#0b4a26",
+   "dark": "#74e4a9",
+   "app_dark": "#74e4a9",
+   "ok": true
+  },
+  {
+   "name": "chip-bg",
+   "light": "#eceeef",
+   "app_light": "#eceeef",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "chip-ink",
+   "light": "#353736",
+   "app_light": "#353736",
+   "dark": "#d0d0d5",
+   "app_dark": "#d0d0d5",
+   "ok": true
+  },
+  {
+   "name": "scrim",
+   "light": "rgba(24, 26, 28, .26)",
+   "app_light": "#181a1c α0.26",
+   "dark": "rgba(0, 0, 0, .55)",
+   "app_dark": "#000000 α0.55",
+   "ok": true
+  },
+  {
+   "name": "blue",
+   "light": "#007aff",
+   "app_light": "#007aff",
+   "dark": "#007aff",
+   "app_dark": "#007aff",
+   "ok": true
+  },
+  {
+   "name": "orange",
+   "light": "#ff9500",
+   "app_light": "#ff9500",
+   "dark": "#ff9500",
+   "app_dark": "#ff9500",
+   "ok": true
+  },
+  {
+   "name": "green",
+   "light": "#28b14c",
+   "app_light": "#28b14c",
+   "dark": "#28b14c",
+   "app_dark": "#28b14c",
+   "ok": true
+  },
+  {
+   "name": "teal",
+   "light": "#22a6bd",
+   "app_light": "#22a6bd",
+   "dark": "#22a6bd",
+   "app_dark": "#22a6bd",
+   "ok": true
+  },
+  {
+   "name": "purple",
+   "light": "#a550d6",
+   "app_light": "#a550d6",
+   "dark": "#a550d6",
+   "app_dark": "#a550d6",
+   "ok": true
+  },
+  {
+   "name": "pink",
+   "light": "#f2385a",
+   "app_light": "#f2385a",
+   "dark": "#f2385a",
+   "app_dark": "#f2385a",
+   "ok": true
+  },
+  {
+   "name": "red",
+   "light": "#f04438",
+   "app_light": "#f04438",
+   "dark": "#f04438",
+   "app_dark": "#f04438",
+   "ok": true
+  },
+  {
+   "name": "brown",
+   "light": "#a2845e",
+   "app_light": "#a2845e",
+   "dark": "#a2845e",
+   "app_dark": "#a2845e",
+   "ok": true
+  },
+  {
+   "name": "gray",
+   "light": "#8e8e93",
+   "app_light": "#8e8e93",
+   "dark": "#8e8e93",
+   "app_dark": "#8e8e93",
+   "ok": true
+  },
+  {
+   "name": "slate",
+   "light": "#5a6b7d",
+   "app_light": "#5a6b7d",
+   "dark": "#5a6b7d",
+   "app_dark": "#5a6b7d",
+   "ok": true
+  },
+  {
+   "name": "mint",
+   "light": "#00b5ad",
+   "app_light": "#00b5ad",
+   "dark": "#00b5ad",
+   "app_dark": "#00b5ad",
+   "ok": true
+  },
+  {
+   "name": "cyan",
+   "light": "#2f9fd8",
+   "app_light": "#2f9fd8",
+   "dark": "#2f9fd8",
+   "app_dark": "#2f9fd8",
+   "ok": true
+  },
+  {
+   "name": "yellow",
+   "light": "#f5b800",
+   "app_light": "#f5b800",
+   "dark": "#f5b800",
+   "app_dark": "#f5b800",
+   "ok": true
+  },
+  {
+   "name": "graphite",
+   "light": "#4b5057",
+   "app_light": "#4b5057",
+   "dark": "#4b5057",
+   "app_dark": "#4b5057",
+   "ok": true
+  }
+ ],
+ "contrast": [
+  {
+   "theme": "light",
+   "pair": "text on ground",
+   "ratio": 16.4
+  },
+  {
+   "theme": "light",
+   "pair": "text on surface",
+   "ratio": 18.43
+  },
+  {
+   "theme": "light",
+   "pair": "text on raised",
+   "ratio": 17.14
+  },
+  {
+   "theme": "light",
+   "pair": "text on active",
+   "ratio": 15.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on ground",
+   "ratio": 5.64
+  },
+  {
+   "theme": "light",
+   "pair": "muted on surface",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "muted on raised",
+   "ratio": 5.89
+  },
+  {
+   "theme": "light",
+   "pair": "muted on active",
+   "ratio": 5.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on field",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "accent on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "accent on accent-soft",
+   "ratio": 5.1
+  },
+  {
+   "theme": "light",
+   "pair": "negative on surface",
+   "ratio": 5.78
+  },
+  {
+   "theme": "light",
+   "pair": "positive on surface",
+   "ratio": 5.25
+  },
+  {
+   "theme": "light",
+   "pair": "warning on surface",
+   "ratio": 6.86
+  },
+  {
+   "theme": "light",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.63
+  },
+  {
+   "theme": "light",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 7.45
+  },
+  {
+   "theme": "light",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.32
+  },
+  {
+   "theme": "light",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.3
+  },
+  {
+   "theme": "light",
+   "pair": "on-primary on primary",
+   "ratio": 16.55
+  },
+  {
+   "theme": "light",
+   "pair": "digit on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "symbol on surface",
+   "ratio": 4.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on ground",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "text on surface",
+   "ratio": 15.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on raised",
+   "ratio": 15
+  },
+  {
+   "theme": "dark",
+   "pair": "text on active",
+   "ratio": 13.39
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on ground",
+   "ratio": 7.12
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on surface",
+   "ratio": 6.72
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on raised",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on active",
+   "ratio": 5.67
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on field",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on surface",
+   "ratio": 7.86
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on accent-soft",
+   "ratio": 5.91
+  },
+  {
+   "theme": "dark",
+   "pair": "negative on surface",
+   "ratio": 6.71
+  },
+  {
+   "theme": "dark",
+   "pair": "positive on surface",
+   "ratio": 9.89
+  },
+  {
+   "theme": "dark",
+   "pair": "warning on surface",
+   "ratio": 9.96
+  },
+  {
+   "theme": "dark",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.99
+  },
+  {
+   "theme": "dark",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 10.08
+  },
+  {
+   "theme": "dark",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.81
+  },
+  {
+   "theme": "dark",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.19
+  },
+  {
+   "theme": "dark",
+   "pair": "on-primary on primary",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "digit on surface",
+   "ratio": 9.82
+  },
+  {
+   "theme": "dark",
+   "pair": "symbol on surface",
+   "ratio": 9.47
+  }
+ ],
+ "results": [
+  {
+   "id": "dialogs-move-to-recycle-bin",
+   "title": "Move to Recycle Bin",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-move-to-recycle-bin.png",
+     "present": true,
+     "appImg": "app/light/dialogs-move-to-recycle-bin.png",
+     "diffImg": "diff/light/dialogs-move-to-recycle-bin.png",
+     "text": {
+      "found": [
+       {
+        "m": "Move “Amazon” to the Recycle Bin?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "You can restore it until you empty the Recycle Bin.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Do not ask again",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Move to Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Move “Amazon” to the Recycle Bin?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "off"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 88.1,
+        "app": 88.3
+       },
+       {
+        "hex": "#c4242a",
+        "token": "negative",
+        "ref": 5.4,
+        "app": 5.3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill trash"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        199,
+        148,
+        73.5,
+        36
+       ],
+       "app": [
+        198.5,
+        148,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Move to Recycle Bin",
+       "dom": [
+        280.5,
+        148,
+        158,
+        36
+       ],
+       "app": [
+        280,
+        148,
+        158,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Move “Amazon” to the Recycle B",
+       "dom": [
+        0,
+        0,
+        460,
+        202
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        202
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Move “Amazon” to the Recycle Bin?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        262.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        263,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "You can restore it until you empty the Recycle Bin.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        313.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        314,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.35,
+     "residual": 0.35,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-move-to-recycle-bin.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-move-to-recycle-bin.png",
+     "diffImg": "diff/dark/dialogs-move-to-recycle-bin.png",
+     "text": {
+      "found": [
+       {
+        "m": "Move “Amazon” to the Recycle Bin?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "You can restore it until you empty the Recycle Bin.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Do not ask again",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Move to Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Move “Amazon” to the Recycle Bin?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "off"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 84.6,
+        "app": 85.3
+       },
+       {
+        "hex": "#ff6b70",
+        "token": "negative",
+        "ref": 5.3,
+        "app": 5.4
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 2.3,
+        "app": 2.3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill trash"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        199,
+        148,
+        73.5,
+        36
+       ],
+       "app": [
+        198.5,
+        148,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Move to Recycle Bin",
+       "dom": [
+        280.5,
+        148,
+        158,
+        36
+       ],
+       "app": [
+        280,
+        148,
+        158,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Move “Amazon” to the Recycle B",
+       "dom": [
+        0,
+        0,
+        460,
+        202
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        202
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Move “Amazon” to the Recycle Bin?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        262.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        263,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "You can restore it until you empty the Recycle Bin.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        313.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        314,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.36,
+     "residual": 0.36,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Do not ask again turns the question off; the entry moves"
+    }
+   ],
+   "controls": [
+    "cbx \"Do not ask again\"",
+    "dclose \"Cancel\"",
+    "dclose \"Move to Recycle Bin\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-delete-forever",
+   "title": "Delete forever",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-delete-forever.png",
+     "present": true,
+     "appImg": "app/light/dialogs-delete-forever.png",
+     "diffImg": "diff/light/dialogs-delete-forever.png",
+     "text": {
+      "found": [
+       {
+        "m": "Delete “MySpace” forever?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "The entry and its history leave the vault. You cannot undo this.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Delete Forever",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Delete “MySpace” forever?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 88.8,
+        "app": 88.5
+       },
+       {
+        "hex": "#c4242a",
+        "token": "negative",
+        "ref": 5,
+        "app": 4.9
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill trash"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        232.5,
+        118,
+        73.5,
+        36
+       ],
+       "app": [
+        232.5,
+        118,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Delete Forever",
+       "dom": [
+        314,
+        118,
+        124,
+        36
+       ],
+       "app": [
+        314,
+        118,
+        124,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Delete “MySpace” forever? The ",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Delete “MySpace” forever?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        200,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        200,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "The entry and its history leave the vault. You cannot undo this.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        323,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        327,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        4,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.3,
+     "residual": 0.3,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-delete-forever.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-delete-forever.png",
+     "diffImg": "diff/dark/dialogs-delete-forever.png",
+     "text": {
+      "found": [
+       {
+        "m": "Delete “MySpace” forever?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "The entry and its history leave the vault. You cannot undo this.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Delete Forever",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Delete “MySpace” forever?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 85.5,
+        "app": 85.1
+       },
+       {
+        "hex": "#ff6b70",
+        "token": "negative",
+        "ref": 5,
+        "app": 5
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 2.7,
+        "app": 2.7
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill trash"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        232.5,
+        118,
+        73.5,
+        36
+       ],
+       "app": [
+        232.5,
+        118,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Delete Forever",
+       "dom": [
+        314,
+        118,
+        124,
+        36
+       ],
+       "app": [
+        314,
+        118,
+        124,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Delete “MySpace” forever? The ",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Delete “MySpace” forever?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        200,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        200,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "The entry and its history leave the vault. You cannot undo this.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        323,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        327,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        4,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.34,
+     "residual": 0.34,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Delete forever asks; Delete Forever removes the entry from the bin"
+    }
+   ],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Delete Forever\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-empty-recycle-bin",
+   "title": "Empty Recycle Bin",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-empty-recycle-bin.png",
+     "present": true,
+     "appImg": "app/light/dialogs-empty-recycle-bin.png",
+     "diffImg": "diff/light/dialogs-empty-recycle-bin.png",
+     "text": {
+      "found": [
+       {
+        "m": "Empty the Recycle Bin?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "2 entries are deleted for good: Twitter (old account) and MySpace.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Empty Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Empty the Recycle Bin?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 87.1,
+        "app": 87.3
+       },
+       {
+        "hex": "#c4242a",
+        "token": "negative",
+        "ref": 6,
+        "app": 5.8
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill trash"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        208,
+        118,
+        73.5,
+        36
+       ],
+       "app": [
+        207.5,
+        118,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Empty Recycle Bin",
+       "dom": [
+        289.5,
+        118,
+        148.5,
+        36
+       ],
+       "app": [
+        289,
+        118,
+        149,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Empty the Recycle Bin? 2 entri",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Empty the Recycle Bin?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        173.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        173.5,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "2 entries are deleted for good: Twitter (old account) and MySpace.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        349.5,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        326.5,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        -23,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.56,
+     "residual": 0.56,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-empty-recycle-bin.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-empty-recycle-bin.png",
+     "diffImg": "diff/dark/dialogs-empty-recycle-bin.png",
+     "text": {
+      "found": [
+       {
+        "m": "Empty the Recycle Bin?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "2 entries are deleted for good: Twitter (old account) and MySpace.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Empty Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Empty the Recycle Bin?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 83.4,
+        "app": 83.8
+       },
+       {
+        "hex": "#ff6b70",
+        "token": "negative",
+        "ref": 5.8,
+        "app": 5.9
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 2.7,
+        "app": 2.7
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill trash"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        208,
+        118,
+        73.5,
+        36
+       ],
+       "app": [
+        207.5,
+        118,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Empty Recycle Bin",
+       "dom": [
+        289.5,
+        118,
+        148.5,
+        36
+       ],
+       "app": [
+        289,
+        118,
+        149,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Empty the Recycle Bin? 2 entri",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Empty the Recycle Bin?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        173.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        173.5,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "2 entries are deleted for good: Twitter (old account) and MySpace.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        349.5,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        326.5,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        -23,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.58,
+     "residual": 0.58,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Empty Recycle Bin asks, then empties the bin"
+    }
+   ],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Empty Recycle Bin\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-discard-changes",
+   "title": "Discard changes",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-discard-changes.png",
+     "present": true,
+     "appImg": "app/light/dialogs-discard-changes.png",
+     "diffImg": "diff/light/dialogs-discard-changes.png",
+     "text": {
+      "found": [
+       {
+        "m": "Discard your changes to “GitHub”?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Keep Editing",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Discard Changes",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Discard your changes to “GitHub”?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "You changed the password and added one tag.",
+        "kind": "text",
+        "why": "the discard sentence names the draft's real changes",
+        "ref": "LD-192 (5)",
+        "app": "You changed the password and the tags."
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 86.1,
+        "app": 86
+       },
+       {
+        "hex": "#c4242a",
+        "token": "negative",
+        "ref": 6.2,
+        "app": 6.1
+       },
+       {
+        "hex": "#ff9500",
+        "token": "orange",
+        "ref": 2.2,
+        "app": 2.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill pencil-simple"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Keep Editing",
+       "dom": [
+        182.5,
+        98,
+        110.5,
+        36
+       ],
+       "app": [
+        182,
+        98,
+        111,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Discard Changes",
+       "dom": [
+        301,
+        98,
+        137,
+        36
+       ],
+       "app": [
+        301,
+        98,
+        137,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Discard your changes to “GitHu",
+       "dom": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Discard your changes to “GitHub”?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        256.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        257,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.66,
+     "residual": 0.32,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-discard-changes.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-discard-changes.png",
+     "diffImg": "diff/dark/dialogs-discard-changes.png",
+     "text": {
+      "found": [
+       {
+        "m": "Discard your changes to “GitHub”?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Keep Editing",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Discard Changes",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Discard your changes to “GitHub”?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "You changed the password and added one tag.",
+        "kind": "text",
+        "why": "the discard sentence names the draft's real changes",
+        "ref": "LD-192 (5)",
+        "app": "You changed the password and the tags."
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 81,
+        "app": 80.7
+       },
+       {
+        "hex": "#ff6b70",
+        "token": "negative",
+        "ref": 6.2,
+        "app": 6.1
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 4.6,
+        "app": 4.5
+       },
+       {
+        "hex": "#ff9500",
+        "token": "orange",
+        "ref": 2.2,
+        "app": 2.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill pencil-simple"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Keep Editing",
+       "dom": [
+        182.5,
+        98,
+        110.5,
+        36
+       ],
+       "app": [
+        182,
+        98,
+        111,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Discard Changes",
+       "dom": [
+        301,
+        98,
+        137,
+        36
+       ],
+       "app": [
+        301,
+        98,
+        137,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Discard your changes to “GitHu",
+       "dom": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Discard your changes to “GitHub”?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        256.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        257,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.69,
+     "residual": 0.34,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Cancel with changes asks; Keep Editing stays; Discard Changes closes"
+    }
+   ],
+   "controls": [
+    "dclose \"Keep Editing\"",
+    "dclose \"Discard Changes\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-clone-entry",
+   "title": "Clone entry",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-clone-entry.png",
+     "present": true,
+     "appImg": "app/light/dialogs-clone-entry.png",
+     "diffImg": "diff/light/dialogs-clone-entry.png",
+     "text": {
+      "found": [
+       {
+        "m": "Clone “GitHub”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Makes a copy in the same group.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy the history",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Clone",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Clone “GitHub”",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Add “ - Clone” to the title",
+        "kind": "text",
+        "why": "clone labels in the card's words",
+        "ref": "LD-192 (5), MOD-10.1",
+        "app": "Mark the copy's title with ' - Clone'"
+       },
+       {
+        "m": "Link username and password to the original",
+        "kind": "text",
+        "why": "clone labels in the card's words",
+        "ref": "LD-192 (5), MOD-10.1",
+        "app": "Link user name and password to the original"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "The copy changes when the original changes.",
+        "kind": "text",
+        "ocr": "The copy changes when the original changes."
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "off"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 92.4,
+        "app": 92.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill copy-simple"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        290,
+        228,
+        73.5,
+        36
+       ],
+       "app": [
+        289.5,
+        228,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Clone",
+       "dom": [
+        371.5,
+        228,
+        66.5,
+        36
+       ],
+       "app": [
+        371,
+        228,
+        67,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Clone “GitHub” Makes a copy in",
+       "dom": [
+        0,
+        0,
+        460,
+        282
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        282
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Clone “GitHub”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        114,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        114,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Makes a copy in the same group.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        203.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        204,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.37,
+     "residual": 0.38,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-clone-entry.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-clone-entry.png",
+     "diffImg": "diff/dark/dialogs-clone-entry.png",
+     "text": {
+      "found": [
+       {
+        "m": "Clone “GitHub”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Makes a copy in the same group.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Copy the history",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Clone",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Clone “GitHub”",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Add “ - Clone” to the title",
+        "kind": "text",
+        "why": "clone labels in the card's words",
+        "ref": "LD-192 (5), MOD-10.1",
+        "app": "Mark the copy's title with ' - Clone'"
+       },
+       {
+        "m": "Link username and password to the original",
+        "kind": "text",
+        "why": "clone labels in the card's words",
+        "ref": "LD-192 (5), MOD-10.1",
+        "app": "Link user name and password to the original"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "The copy changes when the original changes.",
+        "kind": "text",
+        "ocr": "The copy changes when the original changes."
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "off"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 89.6,
+        "app": 90.1
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 2.4,
+        "app": 3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill copy-simple"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        290,
+        228,
+        73.5,
+        36
+       ],
+       "app": [
+        289.5,
+        228,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Clone",
+       "dom": [
+        371.5,
+        228,
+        66.5,
+        36
+       ],
+       "app": [
+        371,
+        228,
+        67,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Clone “GitHub” Makes a copy in",
+       "dom": [
+        0,
+        0,
+        460,
+        282
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        282
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Clone “GitHub”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        114,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        114,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Makes a copy in the same group.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        203.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        204,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.42,
+     "residual": 0.4,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Clone makes a copy named with ' - Clone' and selects it"
+    }
+   ],
+   "controls": [
+    "cbx \"Add “ - Clone” to the title\"",
+    "cbx \"Link username and password to the original The copy changes \"",
+    "cbx \"Copy the history\"",
+    "dclose \"Cancel\"",
+    "dclose \"Clone\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-add-one-time-code",
+   "title": "Add one-time code",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-add-one-time-code.png",
+     "present": true,
+     "appImg": "app/light/dialogs-add-one-time-code.png",
+     "diffImg": "diff/light/dialogs-add-one-time-code.png",
+     "text": {
+      "found": [
+       {
+        "m": "Paste the secret key or the otpauth:// link the website shows when you turn on two-step sign-in.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Spaces do not matter. Only letters A–Z and digits 2–7.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Digits",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "6",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "7",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "8",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New code every",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "30 s",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Algorithm",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "SHA-1",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Add Code",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Add a one-time code",
+        "kind": "text",
+        "why": "setup title in the card's words",
+        "ref": "LD-192 (5), FEA-04.22",
+        "app": "Set up one-time password"
+       },
+       {
+        "m": "Add a one-time code",
+        "kind": "name",
+        "why": "setup title in the card's words",
+        "ref": "LD-192 (5), FEA-04.22",
+        "app": "Set up one-time password"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "JBSW Y3DP EHPK 3PXP"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 63.8,
+        "app": 63.2
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 27.9,
+        "app": 28
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill clock-countdown",
+       "key",
+       "minus",
+       "plus",
+       "caret-up-down"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        264.5,
+        364,
+        73.5,
+        36
+       ],
+       "app": [
+        264.5,
+        363.5,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Add Code",
+       "dom": [
+        346,
+        364,
+        92,
+        36
+       ],
+       "app": [
+        346,
+        363.5,
+        92,
+        36
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Add a one-time code Paste the ",
+       "dom": [
+        0,
+        0,
+        460,
+        418
+       ],
+       "app": [
+        0,
+        0.5,
+        460,
+        417
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        -1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Paste the secret key or the otpauth:// link the website shows when you turn on two-step sign-in.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        334.5,
+        38
+       ],
+       "app": [
+        80,
+        57.3,
+        338.5,
+        38
+       ],
+       "d": [
+        0,
+        0.3,
+        4,
+        0
+       ]
+      },
+      {
+       "text": "Spaces do not matter. Only letters A–Z and digits 2–7.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        22,
+        156,
+        289,
+        15
+       ],
+       "app": [
+        22,
+        156.5,
+        289,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Digits",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        36,
+        205,
+        35.5,
+        18
+       ],
+       "app": [
+        36,
+        204.7,
+        36,
+        18
+       ],
+       "d": [
+        0,
+        -0.3,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "New code every",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        36,
+        257,
+        100,
+        18
+       ],
+       "app": [
+        36,
+        256.7,
+        100,
+        18
+       ],
+       "d": [
+        0,
+        -0.3,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "30 s",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        336,
+        257,
+        25,
+        17
+       ],
+       "app": [
+        337,
+        257.2,
+        25,
+        17
+       ],
+       "d": [
+        1,
+        0.2,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Algorithm",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        36,
+        308,
+        61.5,
+        18
+       ],
+       "app": [
+        36,
+        307.7,
+        62,
+        18
+       ],
+       "d": [
+        0,
+        -0.3,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.19,
+     "residual": 0,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-add-one-time-code.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-add-one-time-code.png",
+     "diffImg": "diff/dark/dialogs-add-one-time-code.png",
+     "text": {
+      "found": [
+       {
+        "m": "Paste the secret key or the otpauth:// link the website shows when you turn on two-step sign-in.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Spaces do not matter. Only letters A–Z and digits 2–7.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Digits",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "6",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "7",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "8",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New code every",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "30 s",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Algorithm",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "SHA-1",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Add Code",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Add a one-time code",
+        "kind": "text",
+        "why": "setup title in the card's words",
+        "ref": "LD-192 (5), FEA-04.22",
+        "app": "Set up one-time password"
+       },
+       {
+        "m": "Add a one-time code",
+        "kind": "name",
+        "why": "setup title in the card's words",
+        "ref": "LD-192 (5), FEA-04.22",
+        "app": "Set up one-time password"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "JBSW Y3DP EHPK 3PXP"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 52.6,
+        "app": 88.7
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 37,
+        "app": 88.7
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 2.1,
+        "app": 2.5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill clock-countdown",
+       "key",
+       "minus",
+       "plus",
+       "caret-up-down"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        264.5,
+        366,
+        73.5,
+        36
+       ],
+       "app": [
+        264.5,
+        365.5,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Add Code",
+       "dom": [
+        346,
+        366,
+        92,
+        36
+       ],
+       "app": [
+        346,
+        365.5,
+        92,
+        36
+       ],
+       "d": [
+        0,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Add a one-time code Paste the ",
+       "dom": [
+        0,
+        0,
+        460,
+        420
+       ],
+       "app": [
+        0,
+        0.5,
+        460,
+        419
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        -1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Paste the secret key or the otpauth:// link the website shows when you turn on two-step sign-in.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        334.5,
+        38
+       ],
+       "app": [
+        80,
+        57.3,
+        338.5,
+        38
+       ],
+       "d": [
+        0,
+        0.3,
+        4,
+        0
+       ]
+      },
+      {
+       "text": "Spaces do not matter. Only letters A–Z and digits 2–7.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        22,
+        156,
+        289,
+        15
+       ],
+       "app": [
+        22,
+        156.5,
+        289,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Digits",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        37,
+        206,
+        35.5,
+        18
+       ],
+       "app": [
+        37,
+        205.7,
+        36,
+        18
+       ],
+       "d": [
+        0,
+        -0.3,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "New code every",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        37,
+        258,
+        100,
+        18
+       ],
+       "app": [
+        37,
+        257.7,
+        100,
+        18
+       ],
+       "d": [
+        0,
+        -0.3,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "30 s",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        335,
+        258,
+        25,
+        17
+       ],
+       "app": [
+        336,
+        258.2,
+        25,
+        17
+       ],
+       "d": [
+        1,
+        0.2,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Algorithm",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        37,
+        309,
+        61.5,
+        18
+       ],
+       "app": [
+        37,
+        308.7,
+        62,
+        18
+       ],
+       "d": [
+        0,
+        -0.3,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.12,
+     "residual": 0,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Change… opens the setup filled in; Add Code keeps the code"
+    }
+   ],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Add Code\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-one-time-code-as-qr",
+   "title": "One-time code as QR",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-one-time-code-as-qr.png",
+     "present": true,
+     "appImg": "app/light/dialogs-one-time-code-as-qr.png",
+     "diffImg": "diff/light/dialogs-one-time-code-as-qr.png",
+     "text": {
+      "found": [
+       {
+        "m": "One-time code for “GitHub”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Scan it with another authenticator app. Anyone who sees it can make sign-in codes, so close it when you are done.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Done",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "One-time code for “GitHub”",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "QR code",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "44 seconds until this window closes",
+       "Copy"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 89.2,
+        "app": 90.1
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 2.5,
+        "app": 2.5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill qr-code"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Done",
+       "dom": [
+        374.5,
+        338,
+        63.5,
+        36
+       ],
+       "app": [
+        374.5,
+        338,
+        63.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "One-time code for “GitHub” Sca",
+       "dom": [
+        0,
+        0,
+        460,
+        392
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        392
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "One-time code for “GitHub”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        205.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        206,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Scan it with another authenticator app. Anyone who sees it can make sign-in codes, so close it when you are done.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        356,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        358,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        2,
+        0
+       ]
+      }
+     ],
+     "pixels": 7.42,
+     "residual": 0.14,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-one-time-code-as-qr.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-one-time-code-as-qr.png",
+     "diffImg": "diff/dark/dialogs-one-time-code-as-qr.png",
+     "text": {
+      "found": [
+       {
+        "m": "One-time code for “GitHub”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Scan it with another authenticator app. Anyone who sees it can make sign-in codes, so close it when you are done.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Done",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "One-time code for “GitHub”",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "QR code",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "44 seconds until this window closes",
+       "Copy"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 87.7,
+        "app": 89.6
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 3.1,
+        "app": 3.5
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 2,
+        "app": 89.5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill qr-code"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Done",
+       "dom": [
+        374.5,
+        338,
+        63.5,
+        36
+       ],
+       "app": [
+        374.5,
+        338,
+        63.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "One-time code for “GitHub” Sca",
+       "dom": [
+        0,
+        0,
+        460,
+        392
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        392
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "One-time code for “GitHub”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        205.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        206,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Scan it with another authenticator app. Anyone who sees it can make sign-in codes, so close it when you are done.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        356,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        358,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        2,
+        0
+       ]
+      }
+     ],
+     "pixels": 37.14,
+     "residual": 0.16,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Show QR opens the code as QR; Done closes it"
+    }
+   ],
+   "controls": [
+    "dclose \"Done\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-wi-fi-as-qr",
+   "title": "Wi-Fi as QR",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-wi-fi-as-qr.png",
+     "present": true,
+     "appImg": "app/light/dialogs-wi-fi-as-qr.png",
+     "diffImg": "diff/light/dialogs-wi-fi-as-qr.png",
+     "text": {
+      "found": [
+       {
+        "m": "Join “Morgan-Home 5G”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Point a phone camera at the code to join the network.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Done",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Join “Morgan-Home 5G”",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "QR code",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 92.9,
+        "app": 92.6
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 2.4,
+        "app": 2.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill wifi-high"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Done",
+       "dom": [
+        374.5,
+        318,
+        63.5,
+        36
+       ],
+       "app": [
+        374.5,
+        318,
+        63.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Join “Morgan-Home 5G” Point a ",
+       "dom": [
+        0,
+        0,
+        460,
+        372
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        372
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Join “Morgan-Home 5G”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        181.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        182,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Point a phone camera at the code to join the network.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        334.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        334.5,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 7.72,
+     "residual": 0.1,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-wi-fi-as-qr.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-wi-fi-as-qr.png",
+     "diffImg": "diff/dark/dialogs-wi-fi-as-qr.png",
+     "text": {
+      "found": [
+       {
+        "m": "Join “Morgan-Home 5G”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Point a phone camera at the code to join the network.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Done",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Join “Morgan-Home 5G”",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "QR code",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 92.5,
+        "app": 92.2
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 3,
+        "app": 3.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill wifi-high"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Done",
+       "dom": [
+        374.5,
+        318,
+        63.5,
+        36
+       ],
+       "app": [
+        374.5,
+        318,
+        63.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Join “Morgan-Home 5G” Point a ",
+       "dom": [
+        0,
+        0,
+        460,
+        372
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        372
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Join “Morgan-Home 5G”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        181.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        182,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Point a phone camera at the code to join the network.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        334.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        334.5,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 38.81,
+     "residual": 0.12,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Show as QR code opens the network as QR"
+    }
+   ],
+   "controls": [
+    "dclose \"Done\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-new-group",
+   "title": "New group",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-new-group.png",
+     "present": true,
+     "appImg": "app/light/dialogs-new-group.png",
+     "diffImg": "diff/light/dialogs-new-group.png",
+     "text": {
+      "found": [
+       {
+        "m": "New group",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Groups sort entries, like folders.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Inside",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Top level",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Colour",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Icon",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Create Group",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New group",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "blue",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "green",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "orange",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "pink",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "purple",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "cyan",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "airplane",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "suitcase",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "map-pin",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "globe-simple",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "house-line",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "car",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "train",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "boat",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Travel"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 90.8,
+        "app": 90.8
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 2,
+        "app": 2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill folder-simple",
+       "caret-up-down",
+       "airplane",
+       "suitcase",
+       "map-pin",
+       "globe-simple",
+       "house-line",
+       "car",
+       "train",
+       "boat"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        241.5,
+        339,
+        73.5,
+        36
+       ],
+       "app": [
+        240,
+        339,
+        73.5,
+        36
+       ],
+       "d": [
+        -1.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Create Group",
+       "dom": [
+        323,
+        339,
+        115,
+        36
+       ],
+       "app": [
+        321.5,
+        339,
+        115.5,
+        36
+       ],
+       "d": [
+        -1.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "New group Groups sort entries,",
+       "dom": [
+        0,
+        0,
+        460,
+        393
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        393
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "New group",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        80,
+        20
+       ],
+       "app": [
+        79,
+        29,
+        80.5,
+        20
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Groups sort entries, like folders.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        200.5,
+        18
+       ],
+       "app": [
+        79,
+        57,
+        201,
+        18
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        94,
+        35,
+        17
+       ],
+       "app": [
+        21,
+        94.5,
+        35.5,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Inside",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        170,
+        37.5,
+        17
+       ],
+       "app": [
+        21,
+        170.5,
+        38,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Colour",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        238,
+        170,
+        39,
+        17
+       ],
+       "app": [
+        237,
+        170.5,
+        39.5,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Icon",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        246,
+        26.5,
+        17
+       ],
+       "app": [
+        21,
+        246.5,
+        27,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.38,
+     "residual": 1.38,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-new-group.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-new-group.png",
+     "diffImg": "diff/dark/dialogs-new-group.png",
+     "text": {
+      "found": [
+       {
+        "m": "New group",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Groups sort entries, like folders.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Inside",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Top level",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Colour",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Icon",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Create Group",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "New group",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "blue",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "green",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "orange",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "pink",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "purple",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "cyan",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "airplane",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "suitcase",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "map-pin",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "globe-simple",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "house-line",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "car",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "train",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "boat",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Travel"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 77.8,
+        "app": 89.3
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 11.7,
+        "app": 89.3
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 2.4,
+        "app": 2.6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill folder-simple",
+       "caret-up-down",
+       "airplane",
+       "suitcase",
+       "map-pin",
+       "globe-simple",
+       "house-line",
+       "car",
+       "train",
+       "boat"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        241.5,
+        339,
+        73.5,
+        36
+       ],
+       "app": [
+        240,
+        339,
+        73.5,
+        36
+       ],
+       "d": [
+        -1.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Create Group",
+       "dom": [
+        323,
+        339,
+        115,
+        36
+       ],
+       "app": [
+        321.5,
+        339,
+        115.5,
+        36
+       ],
+       "d": [
+        -1.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "New group Groups sort entries,",
+       "dom": [
+        0,
+        0,
+        460,
+        393
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        393
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "New group",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        80,
+        20
+       ],
+       "app": [
+        79,
+        29,
+        80.5,
+        20
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Groups sort entries, like folders.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        200.5,
+        18
+       ],
+       "app": [
+        79,
+        57,
+        201,
+        18
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        94,
+        35,
+        17
+       ],
+       "app": [
+        21,
+        94.5,
+        35.5,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Inside",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        170,
+        37.5,
+        17
+       ],
+       "app": [
+        21,
+        170.5,
+        38,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Colour",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        238,
+        170,
+        39,
+        17
+       ],
+       "app": [
+        237,
+        170.5,
+        39.5,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Icon",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        246,
+        26.5,
+        17
+       ],
+       "app": [
+        21,
+        246.5,
+        27,
+        17
+       ],
+       "d": [
+        -1,
+        0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.36,
+     "residual": 1.36,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Create Group adds the group with its symbol and colour as a custom icon"
+    }
+   ],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Create Group\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-remove-passkey",
+   "title": "Remove passkey",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-remove-passkey.png",
+     "present": true,
+     "appImg": "app/light/dialogs-remove-passkey.png",
+     "diffImg": "diff/light/dialogs-remove-passkey.png",
+     "text": {
+      "found": [
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Remove Passkey",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Remove the passkey for github.com?",
+        "kind": "text",
+        "why": "MI04-34 in the card's words",
+        "ref": "LD-192 (5), INT-04.46",
+        "app": "Remove the passkey?"
+       },
+       {
+        "m": "You can no longer sign in to github.com with it. The password and the one-time code stay.",
+        "kind": "text",
+        "why": "MI04-34 in the card's words",
+        "ref": "LD-192 (5), INT-04.46",
+        "app": "You can no longer sign in to github.com with it. The password stays."
+       },
+       {
+        "m": "Remove the passkey for github.com?",
+        "kind": "name",
+        "why": "MI04-34 in the card's words",
+        "ref": "LD-192 (5), INT-04.46",
+        "app": "Remove the passkey?"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 86.7,
+        "app": 87.9
+       },
+       {
+        "hex": "#c4242a",
+        "token": "negative",
+        "ref": 5.5,
+        "app": 5.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill fingerprint"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        219,
+        118,
+        73.5,
+        36
+       ],
+       "app": [
+        219,
+        118,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Remove Passkey",
+       "dom": [
+        300.5,
+        118,
+        137.5,
+        36
+       ],
+       "app": [
+        300.5,
+        118,
+        137.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Remove the passkey for github.",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [],
+     "pixels": 1.04,
+     "residual": 0,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-remove-passkey.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-remove-passkey.png",
+     "diffImg": "diff/dark/dialogs-remove-passkey.png",
+     "text": {
+      "found": [
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Remove Passkey",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Remove the passkey for github.com?",
+        "kind": "text",
+        "why": "MI04-34 in the card's words",
+        "ref": "LD-192 (5), INT-04.46",
+        "app": "Remove the passkey?"
+       },
+       {
+        "m": "You can no longer sign in to github.com with it. The password and the one-time code stay.",
+        "kind": "text",
+        "why": "MI04-34 in the card's words",
+        "ref": "LD-192 (5), INT-04.46",
+        "app": "You can no longer sign in to github.com with it. The password stays."
+       },
+       {
+        "m": "Remove the passkey for github.com?",
+        "kind": "name",
+        "why": "MI04-34 in the card's words",
+        "ref": "LD-192 (5), INT-04.46",
+        "app": "Remove the passkey?"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 83.5,
+        "app": 84.5
+       },
+       {
+        "hex": "#ff6b70",
+        "token": "negative",
+        "ref": 5.5,
+        "app": 5.5
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 2.8,
+        "app": 2.7
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill fingerprint"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        219,
+        118,
+        73.5,
+        36
+       ],
+       "app": [
+        219,
+        118,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Remove Passkey",
+       "dom": [
+        300.5,
+        118,
+        137.5,
+        36
+       ],
+       "app": [
+        300.5,
+        118,
+        137.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Remove the passkey for github.",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [],
+     "pixels": 1.06,
+     "residual": 0,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Remove asks; Remove Passkey drops the passkey from the draft"
+    }
+   ],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Remove Passkey\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-earlier-version",
+   "title": "Earlier version",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-earlier-version.png",
+     "present": true,
+     "appImg": "app/light/dialogs-earlier-version.png",
+     "diffImg": "diff/light/dialogs-earlier-version.png",
+     "text": {
+      "found": [
+       {
+        "m": "GitHub, Jun 3, 2026 at 11:20",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "How the entry looked before the passkey was added.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Username",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "alex-dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Website",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "github.com/login",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Close",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Restore This Version",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub, Jun 3, 2026 at 11:20",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [
+       {
+        "m": "m8@Ty3!Kq6#Pv1$Zr4&",
+        "kind": "text"
+       }
+      ],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 90.5,
+        "app": 90.7
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 3.2,
+        "app": 3.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill clock-counter-clockwise"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Close",
+       "dom": [
+        203.5,
+        292,
+        65.5,
+        36
+       ],
+       "app": [
+        203,
+        292,
+        65.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Restore This Version",
+       "dom": [
+        277,
+        292,
+        161,
+        36
+       ],
+       "app": [
+        276.5,
+        292,
+        161.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "GitHub, Jun 3, 2026 at 11:20 H",
+       "dom": [
+        0,
+        0,
+        460,
+        346
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        346
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "GitHub, Jun 3, 2026 at 11:20",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        214.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        214.5,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "How the entry looked before the passkey was added.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        331,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        331.5,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Username",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        39,
+        105,
+        55.5,
+        15
+       ],
+       "app": [
+        39,
+        105.5,
+        55.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "alex-dev",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        39,
+        124,
+        53.5,
+        18
+       ],
+       "app": [
+        39,
+        124,
+        54,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        39,
+        163.5,
+        52.5,
+        15
+       ],
+       "app": [
+        39,
+        164,
+        52.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Website",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        39,
+        221.5,
+        43.5,
+        15
+       ],
+       "app": [
+        39,
+        222,
+        44,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.94,
+     "residual": 0.94,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-earlier-version.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-earlier-version.png",
+     "diffImg": "diff/dark/dialogs-earlier-version.png",
+     "text": {
+      "found": [
+       {
+        "m": "GitHub, Jun 3, 2026 at 11:20",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "How the entry looked before the passkey was added.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Username",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "alex-dev",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Website",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "github.com/login",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Close",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Restore This Version",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub, Jun 3, 2026 at 11:20",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [
+       {
+        "m": "m8@Ty3!Kq6#Pv1$Zr4&",
+        "kind": "text"
+       }
+      ],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 45.1,
+        "app": 46.6
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 44.7,
+        "app": 44.3
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 3.8,
+        "app": 4.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill clock-counter-clockwise"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Close",
+       "dom": [
+        203.5,
+        292,
+        65.5,
+        36
+       ],
+       "app": [
+        203,
+        292,
+        65.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Restore This Version",
+       "dom": [
+        277,
+        292,
+        161,
+        36
+       ],
+       "app": [
+        276.5,
+        292,
+        161.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "GitHub, Jun 3, 2026 at 11:20 H",
+       "dom": [
+        0,
+        0,
+        460,
+        346
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        346
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "GitHub, Jun 3, 2026 at 11:20",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        214.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        214.5,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "How the entry looked before the passkey was added.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        331,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        331.5,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Username",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        39,
+        105,
+        55.5,
+        15
+       ],
+       "app": [
+        39,
+        105.5,
+        55.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "alex-dev",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        39,
+        124,
+        53.5,
+        18
+       ],
+       "app": [
+        39,
+        124,
+        54,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        39,
+        163.5,
+        52.5,
+        15
+       ],
+       "app": [
+        39,
+        164,
+        52.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Website",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        39,
+        221.5,
+        43.5,
+        15
+       ],
+       "app": [
+        39,
+        222,
+        44,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.96,
+     "residual": 0.96,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Show opens an earlier version; Restore This Version puts it in the draft"
+    }
+   ],
+   "controls": [
+    "dclose \"Close\"",
+    "dclose \"Restore This Version\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-changed-on-disk",
+   "title": "Changed on disk",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-changed-on-disk.png",
+     "present": true,
+     "appImg": "app/light/dialogs-changed-on-disk.png",
+     "diffImg": "diff/light/dialogs-changed-on-disk.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal.appvault changed on disk",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Merge",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Keep both. For an entry changed in both places, the newer version wins and the other goes to its history.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Open the version on disk. Your 2 changes are lost.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save over the file on disk.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Personal.appvault changed on disk",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Another app saved it at 10:24, after you opened it. You have 2 changes that are not saved yet.",
+        "kind": "text",
+        "why": "APP-05.27 MSG-DISK-UNSAVED (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "“Personal.appvault” was changed by another program, and this vault has unsaved changes."
+       },
+       {
+        "m": "Reload",
+        "kind": "text",
+        "why": "APP-05.27 button Discard (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Discard"
+       },
+       {
+        "m": "Keep mine",
+        "kind": "text",
+        "why": "APP-05.27 button Ignore (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Ignore"
+       },
+       {
+        "m": "Decide Later",
+        "kind": "text",
+        "why": "APP-05.27 button Cancel (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Cancel"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": false,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 75.5,
+        "app": 75.7
+       },
+       {
+        "hex": "#e2eff2",
+        "token": "accent-soft",
+        "ref": 17.1,
+        "app": 16.6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill arrows-clockwise"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Decide Later",
+       "dom": [
+        350,
+        380,
+        110.5,
+        36
+       ],
+       "app": [
+        387,
+        381,
+        73.5,
+        36
+       ],
+       "d": [
+        37,
+        1,
+        -37,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Merge",
+       "dom": [
+        468.5,
+        380,
+        69.5,
+        36
+       ],
+       "app": [
+        468.5,
+        381,
+        69.5,
+        36
+       ],
+       "d": [
+        0,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Personal.appvault changed on d",
+       "dom": [
+        0,
+        0,
+        560,
+        434
+       ],
+       "app": [
+        0,
+        0,
+        560,
+        435
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Personal.appvault changed on disk",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        259.5,
+        20
+       ],
+       "app": [
+        80,
+        29.1,
+        259.5,
+        20
+       ],
+       "d": [
+        0,
+        0.1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Merge",
+       "font": "IBM Plex Sans 14/500",
+       "dom": [
+        67,
+        130,
+        39.5,
+        18
+       ],
+       "app": [
+        67,
+        130.1,
+        39.5,
+        18
+       ],
+       "d": [
+        0,
+        0.1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Keep both. For an entry changed in both places, the newer version wins and the other goes to its history.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        67,
+        151,
+        439,
+        35
+       ],
+       "app": [
+        67,
+        151.7,
+        442,
+        35.5
+       ],
+       "d": [
+        0,
+        0.7,
+        3,
+        0.5
+       ]
+      },
+      {
+       "text": "Open the version on disk. Your 2 changes are lost.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        67,
+        247,
+        289.5,
+        17
+       ],
+       "app": [
+        67,
+        248.3,
+        289.5,
+        17
+       ],
+       "d": [
+        0,
+        1.3,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Save over the file on disk.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        67,
+        325,
+        148,
+        17
+       ],
+       "app": [
+        67,
+        326.3,
+        148,
+        17
+       ],
+       "d": [
+        0,
+        1.3,
+        0,
+        0
+       ]
+      }
+     ],
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0,
+     "pixels": 2.14,
+     "residual": 1.01,
+     "commonArea": {
+      "appSize": [
+       1120,
+       870
+      ],
+      "refSize": [
+       1120,
+       868
+      ],
+      "offset": {
+       "dx": 0,
+       "dy": 1
+      }
+     }
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-changed-on-disk.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-changed-on-disk.png",
+     "diffImg": "diff/dark/dialogs-changed-on-disk.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal.appvault changed on disk",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Merge",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Keep both. For an entry changed in both places, the newer version wins and the other goes to its history.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Open the version on disk. Your 2 changes are lost.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save over the file on disk.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Personal.appvault changed on disk",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Another app saved it at 10:24, after you opened it. You have 2 changes that are not saved yet.",
+        "kind": "text",
+        "why": "APP-05.27 MSG-DISK-UNSAVED (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "“Personal.appvault” was changed by another program, and this vault has unsaved changes."
+       },
+       {
+        "m": "Reload",
+        "kind": "text",
+        "why": "APP-05.27 button Discard (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Discard"
+       },
+       {
+        "m": "Keep mine",
+        "kind": "text",
+        "why": "APP-05.27 button Ignore (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Ignore"
+       },
+       {
+        "m": "Decide Later",
+        "kind": "text",
+        "why": "APP-05.27 button Cancel (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Cancel"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": false,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 73.9,
+        "app": 74.7
+       },
+       {
+        "hex": "#10303a",
+        "token": "accent-soft",
+        "ref": 17.1,
+        "app": 16.6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill arrows-clockwise"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Decide Later",
+       "dom": [
+        350,
+        380,
+        110.5,
+        36
+       ],
+       "app": [
+        387,
+        381,
+        73.5,
+        36
+       ],
+       "d": [
+        37,
+        1,
+        -37,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Merge",
+       "dom": [
+        468.5,
+        380,
+        69.5,
+        36
+       ],
+       "app": [
+        468.5,
+        381,
+        69.5,
+        36
+       ],
+       "d": [
+        0,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Personal.appvault changed on d",
+       "dom": [
+        0,
+        0,
+        560,
+        434
+       ],
+       "app": [
+        0,
+        0,
+        560,
+        435
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Personal.appvault changed on disk",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        259.5,
+        20
+       ],
+       "app": [
+        80,
+        29.1,
+        259.5,
+        20
+       ],
+       "d": [
+        0,
+        0.1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Merge",
+       "font": "IBM Plex Sans 14/500",
+       "dom": [
+        67,
+        130,
+        39.5,
+        18
+       ],
+       "app": [
+        67,
+        130.1,
+        39.5,
+        18
+       ],
+       "d": [
+        0,
+        0.1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Keep both. For an entry changed in both places, the newer version wins and the other goes to its history.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        67,
+        151,
+        439,
+        35
+       ],
+       "app": [
+        67,
+        151.7,
+        442,
+        35.5
+       ],
+       "d": [
+        0,
+        0.7,
+        3,
+        0.5
+       ]
+      },
+      {
+       "text": "Open the version on disk. Your 2 changes are lost.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        67,
+        247,
+        289.5,
+        17
+       ],
+       "app": [
+        67,
+        248.3,
+        289.5,
+        17
+       ],
+       "d": [
+        0,
+        1.3,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Save over the file on disk.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        67,
+        325,
+        148,
+        17
+       ],
+       "app": [
+        67,
+        326.3,
+        148,
+        17
+       ],
+       "d": [
+        0,
+        1.3,
+        0,
+        0
+       ]
+      }
+     ],
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0,
+     "pixels": 2.13,
+     "residual": 1.02,
+     "commonArea": {
+      "appSize": [
+       1120,
+       870
+      ],
+      "refSize": [
+       1120,
+       868
+      ],
+      "offset": {
+       "dx": 0,
+       "dy": 1
+      }
+     }
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the watch sees another writer while changes wait; Merge keeps both (AT-I05)"
+    },
+    {
+     "ok": true,
+     "name": "a save that finds the change asks; Cancel keeps; Overwrite saves over it"
+    }
+   ],
+   "controls": [
+    "dclose \"Decide Later\"",
+    "dclose \"Merge\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS",
+   "verify": [
+    "Verify E5-S10 2026-10-28 (private copy): export-reference.mjs gave references and manifest byte-equal to the tree's; fresh offscreen shots (SavingSnapshotTests) are byte-equal to app/; compare.mjs dialogs gave this record unchanged (PASS). The app shot is 1120 × 870 px against 1120 × 868 px (0.5 pt per edge, inside the 2 pt geometry limit), so compare.mjs skipped checks 3 and 5 ('undefined %'). On the common area, the app shot 1 px down (the best offset), same pixelmatch settings: light 2.14 % (1.01 % outside accepted areas), dark 2.13 % (1.02 %); colour shares: no issue; diff images added. 9 of 9 strings (4 by card words), glyph arrows-clockwise, 0 boxes or text runs off (the Cancel button is narrower by the card's word, geoSkip), 0 unnamed controls. Behaviour: the 2 Parity tests pass, and the Verify AT-I05 screen tests (Merge, Merge then save, Discard, Ignore, Load and Keep, Overwrite only) pass. Proof: security/parity/E5-S10-saving.md.",
+    "Verify E5-S10 round 2, 2026-10-28 (private copy): unchanged PASS. Fresh references and manifest byte-equal; fresh shots byte-equal to app/ (light a33bfaf0, dark d9e35f8c); compare.mjs dialogs gave 'dialogs: 17/17 PASS' and this record equal to the stored one except the Verify notes; common area again light 2.14 %, dark 2.13 % (best offset dy 1 px). Behaviour: the 2 Parity tests and 6 Verify AT-I05 screen tests pass (the sheet 513 to 529 ms after the write). Proof: security/parity/E5-S10-saving.md, Round 2."
+   ]
+  },
+  {
+   "id": "dialogs-close-with-unsaved-changes",
+   "title": "Close with unsaved changes",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-close-with-unsaved-changes.png",
+     "present": true,
+     "appImg": "app/light/dialogs-close-with-unsaved-changes.png",
+     "diffImg": "diff/light/dialogs-close-with-unsaved-changes.png",
+     "text": {
+      "found": [
+       {
+        "m": "You have 2 changes that are not saved yet.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Save changes to “Personal” before closing?",
+        "kind": "text",
+        "why": "APP-02.15 step 8 MSG-LOCK-SAVE (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Personal was changed. Save the changes?"
+       },
+       {
+        "m": "Don’t Save",
+        "kind": "text",
+        "why": "APP-02.15 step 8 button Discard (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Discard"
+       },
+       {
+        "m": "Save changes to “Personal” before closing?",
+        "kind": "name",
+        "why": "APP-02.15 step 8 MSG-LOCK-SAVE (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Personal was changed. Save the changes?"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 88.5,
+        "app": 88.8
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 2.8,
+        "app": 2.8
+       },
+       {
+        "hex": "#22a6bd",
+        "token": "teal",
+        "ref": 2.2,
+        "app": 2.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill floppy-disk"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Don’t Save",
+       "dom": [
+        22,
+        98,
+        98.5,
+        36
+       ],
+       "app": [
+        22,
+        98,
+        79,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        -19.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        295.5,
+        98,
+        73.5,
+        36
+       ],
+       "app": [
+        295.5,
+        98,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Save",
+       "dom": [
+        377,
+        98,
+        61,
+        36
+       ],
+       "app": [
+        377,
+        98,
+        61,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Save changes to “Personal” bef",
+       "dom": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "You have 2 changes that are not saved yet.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        266.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        267,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.91,
+     "residual": 0,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-close-with-unsaved-changes.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-close-with-unsaved-changes.png",
+     "diffImg": "diff/dark/dialogs-close-with-unsaved-changes.png",
+     "text": {
+      "found": [
+       {
+        "m": "You have 2 changes that are not saved yet.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Save changes to “Personal” before closing?",
+        "kind": "text",
+        "why": "APP-02.15 step 8 MSG-LOCK-SAVE (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Personal was changed. Save the changes?"
+       },
+       {
+        "m": "Don’t Save",
+        "kind": "text",
+        "why": "APP-02.15 step 8 button Discard (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Discard"
+       },
+       {
+        "m": "Save changes to “Personal” before closing?",
+        "kind": "name",
+        "why": "APP-02.15 step 8 MSG-LOCK-SAVE (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S10 report",
+        "app": "Personal was changed. Save the changes?"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 80.5,
+        "app": 82
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 7.2,
+        "app": 6.3
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 4.2,
+        "app": 4.9
+       },
+       {
+        "hex": "#22a6bd",
+        "token": "teal",
+        "ref": 2.2,
+        "app": 2.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill floppy-disk"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Don’t Save",
+       "dom": [
+        22,
+        98,
+        98.5,
+        36
+       ],
+       "app": [
+        22,
+        98,
+        79,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        -19.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        295.5,
+        98,
+        73.5,
+        36
+       ],
+       "app": [
+        295.5,
+        98,
+        73.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Save",
+       "dom": [
+        377,
+        98,
+        61,
+        36
+       ],
+       "app": [
+        377,
+        98,
+        61,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Save changes to “Personal” bef",
+       "dom": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "You have 2 changes that are not saved yet.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        266.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        267,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.97,
+     "residual": 0,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Close Vault asks; Cancel keeps it open; Save saves and closes"
+    },
+    {
+     "ok": true,
+     "name": "Discard closes without saving"
+    }
+   ],
+   "controls": [
+    "dclose \"Don’t Save\"",
+    "dclose \"Cancel\"",
+    "dclose \"Save\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS",
+   "verify": [
+    "Verify E5-S10 2026-10-28 (private copy): reproduced PASS, light 1.91 % (0 %), dark 1.97 % (0 %); shots, record and diff images byte-equal to these. 5 of 5 strings (2 by card words), 0 unnamed controls. Behaviour: the 2 Parity tests pass; Verify T07 (save on lock on: ⌘L saves, then locks, no question) and T50 (⌘L meets a changed file: the disk question shows, Cancel keeps the vault unlocked and changed) pass. Proof: security/parity/E5-S10-saving.md.",
+    "Verify E5-S10 round 2, 2026-10-28 (private copy): unchanged PASS, light 1.91 % (0 %), dark 1.97 % (0 %); fresh shots byte-equal (656c1e67, 500ee513); the record equal except the Verify notes. Behaviour: the 2 Parity tests pass; Verify R-T07 and R-T57/T58 pass. Proof: security/parity/E5-S10-saving.md, Round 2."
+   ]
+  },
+  {
+   "id": "dialogs-save-failed",
+   "title": "Save failed",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-save-failed.png",
+     "present": true,
+     "appImg": "app/light/dialogs-save-failed.png",
+     "diffImg": "diff/light/dialogs-save-failed.png",
+     "text": {
+      "found": [
+       {
+        "m": "App could not save “Personal”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "The disk “Backup SSD” is not connected. Your changes are safe in memory until you quit.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save As…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Close",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Try Again",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "App could not save “Personal”",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 88.8,
+        "app": 88.3
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 3.7,
+        "app": 3.6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill warning-circle"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Save As…",
+       "dom": [
+        22,
+        118,
+        92,
+        36
+       ],
+       "app": [
+        22,
+        118,
+        92,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Close",
+       "dom": [
+        275,
+        118,
+        65.5,
+        36
+       ],
+       "app": [
+        274.5,
+        118,
+        65.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Try Again",
+       "dom": [
+        348.5,
+        118,
+        89.5,
+        36
+       ],
+       "app": [
+        348,
+        118,
+        90,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "App could not save “Personal” ",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "App could not save “Personal”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        225.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        226,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "The disk “Backup SSD” is not connected. Your changes are safe in memory until you quit.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        343,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        346.5,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        3.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.33,
+     "residual": 0.33,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-save-failed.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-save-failed.png",
+     "diffImg": "diff/dark/dialogs-save-failed.png",
+     "text": {
+      "found": [
+       {
+        "m": "App could not save “Personal”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "The disk “Backup SSD” is not connected. Your changes are safe in memory until you quit.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save As…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Close",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Try Again",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "App could not save “Personal”",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 82.4,
+        "app": 81.8
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 5.9,
+        "app": 5.8
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 4.6,
+        "app": 5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill warning-circle"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Save As…",
+       "dom": [
+        22,
+        118,
+        92,
+        36
+       ],
+       "app": [
+        22,
+        118,
+        92,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Close",
+       "dom": [
+        275,
+        118,
+        65.5,
+        36
+       ],
+       "app": [
+        274.5,
+        118,
+        65.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Try Again",
+       "dom": [
+        348.5,
+        118,
+        89.5,
+        36
+       ],
+       "app": [
+        348,
+        118,
+        90,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "App could not save “Personal” ",
+       "dom": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        172
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "App could not save “Personal”",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        225.5,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        226,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "The disk “Backup SSD” is not connected. Your changes are safe in memory until you quit.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        343,
+        38
+       ],
+       "app": [
+        80,
+        57,
+        346.5,
+        38
+       ],
+       "d": [
+        0,
+        0,
+        3.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.38,
+     "residual": 0.38,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "a failed save asks; Close keeps the changes; Try Again and Save As… save"
+    }
+   ],
+   "controls": [
+    "dclose \"Close\"",
+    "dclose \"Try Again\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS",
+   "verify": [
+    "Verify E5-S10 2026-10-28 (private copy): reproduced PASS, light 0.33 %, dark 0.38 %; shots, record and diff images byte-equal to these. 5 of 5 strings, 0 unnamed controls. Behaviour: the Parity test passes; Verify T19 (an unreadable file: 'The vault file cannot be read.', nothing written) and T26 (folder read-only, three failures with the reason, the sheet once, no unsafe-save question) pass. Proof: security/parity/E5-S10-saving.md.",
+    "Verify E5-S10 round 2, 2026-10-28 (private copy): unchanged PASS, light 0.33 %, dark 0.38 %; fresh shots byte-equal (9427765b, bbdc4cb6); the record equal except the Verify notes. Behaviour: the Parity test passes; Verify R-T47 (folder read-only: the failed-save sheet; an automatic lock then writes the recovery copy, 0600) passes. Proof: security/parity/E5-S10-saving.md, Round 2."
+   ]
+  },
+  {
+   "id": "dialogs-export-warning",
+   "title": "Export warning",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "later": "E5-S11 (FEA-09)",
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-export-warning.png",
+     "present": false
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-export-warning.png",
+     "present": false
+    }
+   },
+   "behaviour": [],
+   "controls": [
+    "cbx \"I understand. Export the 23 entries of “Personal”\"",
+    "dclose \"Cancel\"",
+    "dclose \"Export CSV…\""
+   ],
+   "verdict": "later story (E5-S11 (FEA-09))"
+  },
+  {
+   "id": "dialogs-import",
+   "title": "Import",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "later": "E5-S11 (FEA-08)",
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-import.png",
+     "present": false
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-import.png",
+     "present": false
+    }
+   },
+   "behaviour": [],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Import 61 Items\""
+   ],
+   "verdict": "later story (E5-S11 (FEA-08))"
+  },
+  {
+   "id": "dialogs-browser-asks-for-an-entry",
+   "title": "Browser asks for an entry",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "later": "E7",
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-browser-asks-for-an-entry.png",
+     "present": false
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-browser-asks-for-an-entry.png",
+     "present": false
+    }
+   },
+   "behaviour": [],
+   "controls": [
+    "cbx \"Remember for github.com\"",
+    "dclose \"Deny\"",
+    "dclose \"Allow Selected\""
+   ],
+   "verdict": "later story (E7)"
+  },
+  {
+   "id": "dialogs-connect-a-browser",
+   "title": "Connect a browser",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "later": "E7",
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-connect-a-browser.png",
+     "present": false
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-connect-a-browser.png",
+     "present": false
+    }
+   },
+   "behaviour": [],
+   "controls": [
+    "dclose \"Deny\"",
+    "dclose \"Connect\""
+   ],
+   "verdict": "later story (E7)"
+  },
+  {
+   "id": "dialogs-ssh-key-use",
+   "title": "SSH key use",
+   "verify": "E9-S2 Verify 2026-10-28: rerun in a private copy, PASS (light 0.38 %, dark 0.40 %), record equal; round 2 rerun in a new private copy: PASS (light 0.38 %, dark 0.40 %), record equal, images byte-equal; proof security/parity/E9-S2-ssh-keys.md",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-ssh-key-use.png",
+     "present": true,
+     "appImg": "app/light/dialogs-ssh-key-use.png",
+     "diffImg": "diff/light/dialogs-ssh-key-use.png",
+     "text": {
+      "found": [
+       {
+        "m": "Allow ssh to use “Server root · web-01”?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "ssh wants to sign in to 203.0.113.10 with this key.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Deny",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Allow Once",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Allow ssh to use “Server root · web-01”?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 87.8,
+        "app": 88
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 4.7,
+        "app": 4.6
+       },
+       {
+        "hex": "#4b5057",
+        "token": "graphite",
+        "ref": 2,
+        "app": 2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill terminal-window"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Deny",
+       "dom": [
+        265,
+        98,
+        62.5,
+        36
+       ],
+       "app": [
+        264.5,
+        98,
+        63,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Allow Once",
+       "dom": [
+        335.5,
+        98,
+        102.5,
+        36
+       ],
+       "app": [
+        335.5,
+        98,
+        102.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Allow ssh to use “Server root ",
+       "dom": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Allow ssh to use “Server root · web-01”?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        301,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        301,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "ssh wants to sign in to 203.0.113.10 with this key.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        313.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        314,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.38,
+     "residual": 0.38,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-ssh-key-use.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-ssh-key-use.png",
+     "diffImg": "diff/dark/dialogs-ssh-key-use.png",
+     "text": {
+      "found": [
+       {
+        "m": "Allow ssh to use “Server root · web-01”?",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "ssh wants to sign in to 203.0.113.10 with this key.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Deny",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Allow Once",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Allow ssh to use “Server root · web-01”?",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 84,
+        "app": 84.5
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 5.7,
+        "app": 6.3
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 2.7,
+        "app": 2.6
+       },
+       {
+        "hex": "#4b5057",
+        "token": "graphite",
+        "ref": 2,
+        "app": 2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill terminal-window"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Deny",
+       "dom": [
+        265,
+        98,
+        62.5,
+        36
+       ],
+       "app": [
+        264.5,
+        98,
+        63,
+        36
+       ],
+       "d": [
+        -0.5,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Allow Once",
+       "dom": [
+        335.5,
+        98,
+        102.5,
+        36
+       ],
+       "app": [
+        335.5,
+        98,
+        102.5,
+        36
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Allow ssh to use “Server root ",
+       "dom": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        152
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Allow ssh to use “Server root · web-01”?",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        301,
+        20
+       ],
+       "app": [
+        80,
+        29,
+        301,
+        20
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "ssh wants to sign in to 203.0.113.10 with this key.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        313.5,
+        18
+       ],
+       "app": [
+        80,
+        57,
+        314,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.4,
+     "residual": 0.4,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the question shows over the window; Deny and Allow Once answer and close it"
+    }
+   ],
+   "controls": [
+    "dclose \"Deny\"",
+    "dclose \"Allow Once\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-weak-vault-password",
+   "title": "Weak vault password",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-weak-vault-password.png",
+     "present": true,
+     "appImg": "app/light/dialogs-weak-vault-password.png",
+     "diffImg": "diff/light/dialogs-weak-vault-password.png",
+     "text": {
+      "found": [
+       {
+        "m": "This password is easy to guess",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "This password is easy to guess",
+        "kind": "name",
+        "how": "part"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "“family2026” could be guessed in about 2 hours on a graphics card. Anyone with a copy of the vault file could open it.",
+        "kind": "text",
+        "why": "FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)",
+        "ref": "FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report",
+        "app": "This password is easy to guess, so your vault is less safe. Use it anyway?"
+       },
+       {
+        "m": "Use It Anyway",
+        "kind": "text",
+        "why": "FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)",
+        "ref": "FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report",
+        "app": "Use this password"
+       },
+       {
+        "m": "Choose Another",
+        "kind": "text",
+        "why": "FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)",
+        "ref": "FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report",
+        "app": "Cancel"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "so your vault is less safe. Use it anyway?"
+      ],
+      "help": []
+     },
+     "sizeOk": false,
+     "colours": null,
+     "icons": {
+      "used": [
+       "fill warning"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Use It Anyway",
+       "dom": [
+        22,
+        138,
+        122,
+        36
+       ],
+       "app": [
+        22,
+        94,
+        147,
+        36
+       ],
+       "d": [
+        0,
+        -44,
+        25,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Choose Another",
+       "dom": [
+        305.5,
+        138,
+        132.5,
+        36
+       ],
+       "app": [
+        364.5,
+        94,
+        73.5,
+        36
+       ],
+       "d": [
+        59,
+        -44,
+        -59,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "This password is easy to guess",
+       "dom": [
+        0,
+        0,
+        460,
+        192
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        148
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        -44
+       ]
+      }
+     ],
+     "runs": [],
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-weak-vault-password.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-weak-vault-password.png",
+     "diffImg": "diff/dark/dialogs-weak-vault-password.png",
+     "text": {
+      "found": [
+       {
+        "m": "This password is easy to guess",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "This password is easy to guess",
+        "kind": "name",
+        "how": "part"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "“family2026” could be guessed in about 2 hours on a graphics card. Anyone with a copy of the vault file could open it.",
+        "kind": "text",
+        "why": "FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)",
+        "ref": "FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report",
+        "app": "This password is easy to guess, so your vault is less safe. Use it anyway?"
+       },
+       {
+        "m": "Use It Anyway",
+        "kind": "text",
+        "why": "FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)",
+        "ref": "FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report",
+        "app": "Use this password"
+       },
+       {
+        "m": "Choose Another",
+        "kind": "text",
+        "why": "FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)",
+        "ref": "FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report",
+        "app": "Cancel"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "so your vault is less safe. Use it anyway?"
+      ],
+      "help": []
+     },
+     "sizeOk": false,
+     "colours": null,
+     "icons": {
+      "used": [
+       "fill warning"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Use It Anyway",
+       "dom": [
+        22,
+        138,
+        122,
+        36
+       ],
+       "app": [
+        22,
+        94,
+        147,
+        36
+       ],
+       "d": [
+        0,
+        -44,
+        25,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Choose Another",
+       "dom": [
+        305.5,
+        138,
+        132.5,
+        36
+       ],
+       "app": [
+        364.5,
+        94,
+        73.5,
+        36
+       ],
+       "d": [
+        59,
+        -44,
+        -59,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "This password is easy to guess",
+       "dom": [
+        0,
+        0,
+        460,
+        192
+       ],
+       "app": [
+        0,
+        0,
+        460,
+        148
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        -44
+       ]
+      }
+     ],
+     "runs": [],
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Cancel keeps step 3; Use this password goes to the save panel"
+    }
+   ],
+   "controls": [
+    "dclose \"Use It Anyway\"",
+    "dclose \"Choose Another\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "dialogs-create-key-file",
+   "title": "Create key file",
+   "note": "",
+   "size": [
+    null,
+    null
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/dialogs-create-key-file.png",
+     "present": true,
+     "appImg": "app/light/dialogs-create-key-file.png",
+     "diffImg": "diff/light/dialogs-create-key-file.png",
+     "text": {
+      "found": [
+       {
+        "m": "Create a key file",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A key file is a second secret. Keep a copy somewhere safe: without it the vault does not open.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save as",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Change…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Do not keep it next to the vault in the same synced folder.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Create Key File",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Create a key file",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "family.appkey",
+        "kind": "text",
+        "ocr": "e] Family.appkey"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 90,
+        "app": 89.3
+       },
+       {
+        "hex": "#1d1f20",
+        "token": "primary",
+        "ref": 3.2,
+        "app": 3.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill file-lock",
+       "file-lock"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        353.5,
+        142,
+        77.5,
+        28
+       ],
+       "app": [
+        353.5,
+        142.5,
+        77.5,
+        28
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        230.5,
+        218,
+        73.5,
+        36
+       ],
+       "app": [
+        230,
+        217.5,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Create Key File",
+       "dom": [
+        312,
+        218,
+        126.5,
+        36
+       ],
+       "app": [
+        311.5,
+        217.5,
+        126.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Create a key file A key file i",
+       "dom": [
+        0,
+        0,
+        460,
+        272
+       ],
+       "app": [
+        0,
+        0.5,
+        460,
+        271
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        -1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Create a key file",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        119,
+        20
+       ],
+       "app": [
+        80,
+        29.3,
+        119,
+        20
+       ],
+       "d": [
+        0,
+        0.3,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "A key file is a second secret. Keep a copy somewhere safe: without it the vault does not open.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        332.5,
+        38
+       ],
+       "app": [
+        80,
+        57.3,
+        336,
+        38
+       ],
+       "d": [
+        0,
+        0.3,
+        3.5,
+        0
+       ]
+      },
+      {
+       "text": "Save as",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        114,
+        45,
+        17
+       ],
+       "app": [
+        22,
+        114.8,
+        45.5,
+        17
+       ],
+       "d": [
+        0,
+        0.8,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Do not keep it next to the vault in the same synced folder.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        22,
+        180,
+        307.5,
+        15
+       ],
+       "app": [
+        22,
+        180.5,
+        307.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.29,
+     "residual": 2.29,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/dialogs-create-key-file.png",
+     "present": true,
+     "appImg": "app/dark/dialogs-create-key-file.png",
+     "diffImg": "diff/dark/dialogs-create-key-file.png",
+     "text": {
+      "found": [
+       {
+        "m": "Create a key file",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A key file is a second secret. Keep a copy somewhere safe: without it the vault does not open.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save as",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Change…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Do not keep it next to the vault in the same synced folder.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Create Key File",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Create a key file",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "family.appkey",
+        "kind": "text",
+        "why": "APP-07.13: the new key file is named \"<vault name>.appkey\"",
+        "ref": "APP-07.13; E5-S8 report",
+        "app": "Family.appkey"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 77.6,
+        "app": 85.8
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 9.2,
+        "app": 85.8
+       },
+       {
+        "hex": "#ededef",
+        "token": "text/primary",
+        "ref": 3.8,
+        "app": 4
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 3.1,
+        "app": 3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill file-lock",
+       "file-lock"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        353.5,
+        142,
+        77.5,
+        28
+       ],
+       "app": [
+        353.5,
+        142.5,
+        77.5,
+        28
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        230.5,
+        218,
+        73.5,
+        36
+       ],
+       "app": [
+        230,
+        217.5,
+        73.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Create Key File",
+       "dom": [
+        312,
+        218,
+        126.5,
+        36
+       ],
+       "app": [
+        311.5,
+        217.5,
+        126.5,
+        36
+       ],
+       "d": [
+        -0.5,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Create a key file A key file i",
+       "dom": [
+        0,
+        0,
+        460,
+        272
+       ],
+       "app": [
+        0,
+        0.5,
+        460,
+        271
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        -1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Create a key file",
+       "font": "IBM Plex Sans 16/600",
+       "dom": [
+        80,
+        29,
+        119,
+        20
+       ],
+       "app": [
+        80,
+        29.3,
+        119,
+        20
+       ],
+       "d": [
+        0,
+        0.3,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "A key file is a second secret. Keep a copy somewhere safe: without it the vault does not open.",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        80,
+        57,
+        332.5,
+        38
+       ],
+       "app": [
+        80,
+        57.3,
+        336,
+        38
+       ],
+       "d": [
+        0,
+        0.3,
+        3.5,
+        0
+       ]
+      },
+      {
+       "text": "Save as",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        22,
+        114,
+        45,
+        17
+       ],
+       "app": [
+        22,
+        114.8,
+        45.5,
+        17
+       ],
+       "d": [
+        0,
+        0.8,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Do not keep it next to the vault in the same synced folder.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        22,
+        180,
+        307.5,
+        15
+       ],
+       "app": [
+        22,
+        180.5,
+        307.5,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.16,
+     "residual": 2.09,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Create Key File makes the file and fills the key file part (APP-07.13)"
+    }
+   ],
+   "controls": [
+    "dclose \"Cancel\"",
+    "dclose \"Create Key File\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  }
+ ]
+}

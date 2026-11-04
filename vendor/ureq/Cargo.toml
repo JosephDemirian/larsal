@@ -1,0 +1,190 @@
+# App's patched copy of ureq 3.5.0 (E0-S7 step 4d: spec/research/dependencies.md
+# section 8 step 4 item 7, R13). Upstream: https://github.com/algesten/ureq,
+# MIT OR Apache-2.0 (LICENSE-MIT, LICENSE-APACHE kept). Used through
+# [patch.crates-io] in the root workspace (app-platform `net` only); not a
+# workspace member. App takes it without default features, with its own
+# connector (TCP, then rustls with App's verifier, app-platform net.rs), so
+# none of the cut parts was ever compiled into App but the proxy, query and
+# lossy-reader code, which no App request reached. Cut, each with its feature,
+# its dependency and every line that named it (no other line changed; the
+# crate docs in src/lib.rs say so at their top):
+# 1. Proxies: HTTP CONNECT (src/proxy.rs, src/unversioned/transport/connect.rs,
+#    with its Basic proxy authorization: base64), SOCKS (`socks-proxy`,
+#    src/unversioned/transport/socks.rs) and the Windows system proxy
+#    (`win-system-proxy`, winreg): no `Proxy` type, no `proxy` setting, no
+#    proxy read from the environment (ALL_PROXY, HTTPS_PROXY, HTTP_PROXY,
+#    NO_PROXY), no proxy part of the pool key, no `InvalidProxyUrl` or
+#    `ConnectProxyFailed` error. Percent-encoding of proxy credentials went
+#    with src/proxy.rs.
+# 2. Cookies (`cookies`, cookie_store, src/cookies.rs, the `_url` feature and
+#    url, used only for cookies).
+# 3. JSON (`json`, serde, serde_json): `send_json`, `read_json`,
+#    `SendBody::from_json`.
+# 4. Charset decoding (`charset`, encoding_rs, src/body/charset.rs) and the
+#    lossy UTF-8 reader (src/body/lossy.rs, utf8-zero): no `lossy_utf8`
+#    setting; `read_to_string` now fails on bytes that are not UTF-8 instead
+#    of writing `?`. App reads bodies with `read_to_vec` only.
+# 5. Compression (`gzip`, flate2, src/body/gzip.rs; `brotli`,
+#    brotli-decompressor, src/body/brotli.rs): no Accept-Encoding by default
+#    (as before without the features), and a compressed body is passed on as it
+#    came (as before).
+# 6. Query and form helpers (src/query.rs, percent-encoding): no `query`,
+#    `query_raw`, `query_pairs`, `query_pairs_raw` or `send_form`.
+# 7. ureq's own tests: tests/, examples/, every test module in src/,
+#    src/io_timeout_tests.rs, src/shutdown_tests.rs, the `_test` feature and
+#    its test transport (src/unversioned/transport/test.rs): they need
+#    dev-dependencies that are not in this tree, and many test the parts cut
+#    above. Two small test-only hooks stay as published (`#[cfg(test)]`: a
+#    fixed clock in src/run.rs and src/timings.rs, `pool_count`).
+# 8. What the cuts left unused goes too: 5 imports, `ConsumeBuf::add_space` and
+#    `unconsumed_mut` (src/util.rs, used by the lossy and charset readers);
+#    `SendBody::with_content_type` is now under `multipart`, its last user.
+# 9. This manifest is the published, normalized one without the features,
+#    dependencies, examples, tests, dev-dependencies and README entry above;
+#    the copy leaves out README.md, README.tpl, CHANGELOG.md, CONTRIBUTING.md,
+#    MIGRATE-2-to-3.md, RELEASE.txt, Cargo.lock, Cargo.toml.orig and
+#    .cargo_vcs_info.json. Kept as published: TLS (`rustls`, `native-tls`,
+#    `platform-verifier`, src/tls/), `multipart`. No `publish = false`: cargo
+#    deny skips the license of an unpublished crate (deny.toml
+#    [licenses.private], F-137), and this copy stays checked.
+[package]
+edition = "2024"
+rust-version = "1.85"
+name = "ureq"
+version = "3.5.0"
+authors = [
+    "Martin Algesten <martin@algesten.se>",
+    "Jacob Hoffman-Andrews <ureq@hoffman-andrews.com>",
+]
+build = false
+exclude = [
+    "/cargo_deny.sh",
+    "/deny.toml",
+    "/test.sh",
+]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "Simple, safe HTTP client"
+keywords = [
+    "web",
+    "request",
+    "https",
+    "http",
+    "client",
+]
+categories = ["web-programming::http-client"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/algesten/ureq"
+
+[package.metadata.docs.rs]
+features = [
+    "rustls",
+    "platform-verifier",
+    "native-tls",
+    "multipart",
+    "_doc",
+]
+
+[features]
+_doc = ["rustls?/aws-lc-rs"]
+_ring = ["rustls?/ring"]
+_rustls = []
+_tls = ["dep:rustls-pki-types"]
+default = ["rustls"]
+multipart = [
+    "dep:mime_guess",
+    "dep:getrandom",
+]
+native-tls = [
+    "native-tls-no-default",
+    "dep:der",
+    "_tls",
+    "native-tls-webpki-roots",
+]
+native-tls-no-default = [
+    "dep:native-tls",
+    "dep:der",
+    "_tls",
+]
+native-tls-webpki-roots = ["dep:webpki-root-certs"]
+platform-verifier = ["dep:rustls-platform-verifier"]
+rustls = [
+    "rustls-no-provider",
+    "_ring",
+    "rustls-webpki-roots",
+]
+rustls-no-provider = [
+    "dep:rustls",
+    "_tls",
+    "_rustls",
+]
+rustls-webpki-roots = ["dep:webpki-roots"]
+vendored = ["native-tls?/vendored"]
+
+[lib]
+name = "ureq"
+path = "src/lib.rs"
+
+[dependencies.der]
+version = "0.8.0"
+features = [
+    "pem",
+    "std",
+]
+optional = true
+default-features = false
+
+[dependencies.getrandom]
+version = "0.4"
+optional = true
+
+[dependencies.log]
+version = "0.4.25"
+
+[dependencies.mime_guess]
+version = "2.0.5"
+optional = true
+
+[dependencies.native-tls]
+version = "0.2.14"
+optional = true
+default-features = false
+
+[dependencies.rustls]
+version = "0.23.46"
+features = [
+    "logging",
+    "std",
+    "tls12",
+]
+optional = true
+default-features = false
+
+[dependencies.rustls-pki-types]
+version = "1.11.0"
+features = ["std"]
+optional = true
+default-features = false
+
+[dependencies.rustls-platform-verifier]
+version = "0.7.0"
+optional = true
+default-features = false
+
+[dependencies.ureq-proto]
+version = "0.6.5"
+features = ["client"]
+default-features = false
+
+[dependencies.webpki-root-certs]
+version = "1.0.10"
+optional = true
+default-features = false
+
+[dependencies.webpki-roots]
+version = "1.0.10"
+optional = true
+default-features = false

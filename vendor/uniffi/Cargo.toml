@@ -1,0 +1,96 @@
+# App's patched copy of uniffi 0.32.2 (E0-S7 step 4c: spec/research/dependencies.md
+# section 8 step 4 item 6, finding F6). Upstream: https://github.com/mozilla/uniffi-rs,
+# MPL-2.0. The crate publishes no license file: its source files carry the
+# MPL-2.0 notice, and the release notices use scripts/licenses/MPL-2.0.txt
+# (LD-222 (3)). Used through [patch.crates-io] in the root workspace; not a
+# workspace member. App changes to this manifest (the published, normalized
+# one) and, from step 5, to src/lib.rs (each place marked `App change (E0-S7
+# step 5)`):
+# 1. (step 4c) The `uniffi_pipeline` dependency was made optional under the
+#    `cli` feature; since step 5 it is gone with that feature (change 3).
+# 2. The README entry, the `custom_types` test and the dev-dependencies are
+#    gone, as the copy leaves out their files (README.md, tests/), with
+#    Cargo.lock, Cargo.toml.orig, release.toml and .cargo_vcs_info.json. No
+#    `publish = false`: cargo deny skips the license of an unpublished crate
+#    (deny.toml [licenses.private]), and this MPL-2.0 copy stays checked.
+# 3. (E0-S7 step 5, item 1) No `cli` feature: the bindings generator
+#    (crates/uniffi-bindgen) has its own small main over the `bindgen`
+#    feature, so src/cli/, uniffi-bindgen.rs and uniffi-bindgen-swift.rs are
+#    cut with their two [[bin]] targets, the `cli` feature, its `clap`,
+#    `camino` and `uniffi_pipeline` dependencies, and the `#[cfg(feature =
+#    "cli")]` lines of src/lib.rs. clap, clap_builder, clap_derive, clap_lex,
+#    anstyle and strsim leave the tree.
+# 4. (E0-S7 step 5, item 2) No `bindgen-tests` feature: App's uniffi_bindgen
+#    copy (vendor/uniffi_bindgen) has no Kotlin, Python or Ruby generator and
+#    no test helpers, so the feature and its two re-export lines in src/lib.rs
+#    are cut.
+[package]
+edition = "2021"
+name = "uniffi"
+version = "0.32.2"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "a multi-language bindings generator for rust"
+homepage = "https://mozilla.github.io/uniffi-rs"
+documentation = "https://mozilla.github.io/uniffi-rs"
+keywords = [
+    "ffi",
+    "bindgen",
+]
+license = "MPL-2.0"
+repository = "https://github.com/mozilla/uniffi-rs"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]
+
+[features]
+bindgen = ["dep:uniffi_bindgen"]
+build = ["dep:uniffi_build"]
+cargo-metadata = [
+    "dep:cargo_metadata",
+    "uniffi_bindgen?/cargo-metadata",
+]
+default = ["cargo-metadata"]
+ffi-trace = [
+    "uniffi_core/ffi-trace",
+    "uniffi_bindgen?/ffi-trace",
+]
+scaffolding-ffi-buffer-fns = [
+    "uniffi_core/scaffolding-ffi-buffer-fns",
+    "uniffi_macros/scaffolding-ffi-buffer-fns",
+]
+tokio = ["uniffi_core/tokio"]
+wasm-unstable-single-threaded = [
+    "uniffi_core/wasm-unstable-single-threaded",
+    "uniffi_macros/wasm-unstable-single-threaded",
+]
+
+[lib]
+name = "uniffi"
+path = "src/lib.rs"
+
+[dependencies.anyhow]
+version = "1"
+
+[dependencies.cargo_metadata]
+version = "0.23.1"
+optional = true
+
+[dependencies.uniffi_bindgen]
+version = "=0.32.2"
+optional = true
+default-features = false
+
+[dependencies.uniffi_build]
+version = "=0.32.2"
+optional = true
+
+[dependencies.uniffi_core]
+version = "=0.32.2"
+
+[dependencies.uniffi_macros]
+version = "=0.32.2"

@@ -1,0 +1,118 @@
+{
+  "hex:4b65655061737346696c65": {
+    "Meta": {
+      "Binaries": "",
+      "Color": "",
+      "CustomData": {
+        "Item": [
+          {
+            "Key": "hex:4b5058435f52414e444f4d5f534c5547",
+            "Value": "normalized"
+          },
+          {
+            "Key": "_LAST_MODIFIED",
+            "Value": "normalized"
+          }
+        ]
+      },
+      "CustomIcons": "",
+      "DatabaseDescription": "",
+      "DatabaseDescriptionChanged": "2024-01-01T00:00:00Z",
+      "DatabaseName": "Demo",
+      "DatabaseNameChanged": "2024-01-01T00:00:00Z",
+      "DefaultUserName": "",
+      "DefaultUserNameChanged": "2024-01-01T00:00:00Z",
+      "EntryTemplatesGroup": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "EntryTemplatesGroupChanged": "2024-01-01T00:00:00Z",
+      "HistoryMaxItems": "10",
+      "HistoryMaxSize": "6291456",
+      "LastSelectedGroup": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "LastTopVisibleGroup": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "MaintenanceHistoryDays": "365",
+      "MasterKeyChangeForce": "-1",
+      "MasterKeyChangeRec": "-1",
+      "MasterKeyChanged": "2024-01-01T00:00:00Z",
+      "MemoryProtection": {
+        "ProtectNotes": "False",
+        "ProtectPassword": "True",
+        "ProtectTitle": "False",
+        "ProtectURL": "False",
+        "ProtectUserName": "False"
+      },
+      "RecycleBinChanged": "2024-01-01T00:00:00Z",
+      "RecycleBinEnabled": "True",
+      "RecycleBinUUID": "AAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "Root": {
+      "DeletedObjects": "",
+      "Group": {
+        "DefaultAutoTypeSequence": "",
+        "EnableAutoType": "null",
+        "EnableSearching": "null",
+        "Entry": {
+          "AutoType": {
+            "DataTransferObfuscation": "0",
+            "DefaultSequence": "",
+            "Enabled": "True"
+          },
+          "BackgroundColor": "",
+          "ForegroundColor": "",
+          "History": "",
+          "IconID": "0",
+          "OverrideURL": "",
+          "String": [
+            {
+              "Key": "Notes",
+              "Value": "A demo entry."
+            },
+            {
+              "Key": "Password",
+              "Value": {
+                "#text": "demo-entry-pass-1",
+                "@ProtectInMemory": "True"
+              }
+            },
+            {
+              "Key": "Title",
+              "Value": "Demo login"
+            },
+            {
+              "Key": "URL",
+              "Value": "https://example.com/login"
+            },
+            {
+              "Key": "UserName",
+              "Value": "demo-user"
+            }
+          ],
+          "Tags": "",
+          "Times": {
+            "CreationTime": "2024-01-01T00:00:00Z",
+            "Expires": "False",
+            "ExpiryTime": "2024-01-01T00:00:00Z",
+            "LastAccessTime": "2024-01-01T00:00:00Z",
+            "LastModificationTime": "2024-01-01T00:00:00Z",
+            "LocationChanged": "2024-01-01T00:00:00Z",
+            "UsageCount": "0"
+          },
+          "UUID": "AAAAAAAAAAAAAAAAAAAAAg=="
+        },
+        "IconID": "48",
+        "IsExpanded": "True",
+        "LastTopVisibleEntry": "AAAAAAAAAAAAAAAAAAAAAA==",
+        "Name": "Demo",
+        "Notes": "",
+        "Times": {
+          "CreationTime": "2024-01-01T00:00:00Z",
+          "Expires": "False",
+          "ExpiryTime": "2024-01-01T00:00:00Z",
+          "LastAccessTime": "2024-01-01T00:00:00Z",
+          "LastModificationTime": "2024-01-01T00:00:00Z",
+          "LocationChanged": "2024-01-01T00:00:00Z",
+          "UsageCount": "0"
+        },
+        "UUID": "AAAAAAAAAAAAAAAAAAAAAQ=="
+      }
+    }
+  }
+}

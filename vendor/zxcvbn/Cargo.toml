@@ -1,0 +1,42 @@
+# App's patched copy of zxcvbn 3.1.1 (spec/decisions.md LD-136). Upstream:
+# https://github.com/shssoichiro/zxcvbn-rs, MIT (LICENSE). Used through
+# [patch.crates-io] in the root and fuzz workspaces; not a workspace member.
+# App changes to this manifest: the wasm-only dependencies and the
+# `custom_wasm_env` feature, the benches and the dev-dependencies are gone.
+# 6. (LD-136 change 6, LD-247 (5)) The `itertools` dependency is gone: its
+# calls are standard-library code.
+# 7. (LD-136 change 7, E0-S7 R1) The `lazy_static` dependency is gone: the
+# statics are `std::sync::LazyLock`, so `rust-version` is 1.80.
+# 8. (LD-136 change 8, E0-S7 R3) The `time` dependency is gone: the year
+# comes from `std::time::SystemTime`.
+# 9. (LD-136 change 9, E0-S7 R7, R11) The `regex` and `fancy-regex`
+# dependencies are gone: their six patterns are hand-written matchers.
+# 10. (LD-255 (1)) `build = false`: no build script runs, as in vendor/ssh-key.
+[package]
+edition = "2021"
+rust-version = "1.80"
+name = "zxcvbn"
+version = "3.1.1"
+authors = ["Josh Holmer <jholmer.in@gmail.com>"]
+description = "An entropy-based password strength estimator, originally for Javascript by Dropbox."
+license = "MIT"
+publish = false
+build = false
+
+[features]
+builder = ["derive_builder"]
+default = ["builder"]
+ser = ["serde"]
+
+[lib]
+name = "zxcvbn"
+path = "src/lib.rs"
+
+[dependencies.derive_builder]
+version = "0.20"
+optional = true
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+optional = true

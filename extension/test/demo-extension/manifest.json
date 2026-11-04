@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "App driver demo",
+  "description": "Two-file demo extension for the headless Chrome driver's own tests.",
+  "version": "1.0",
+  "background": { "service_worker": "background.js" },
+  "permissions": ["nativeMessaging"]
+}

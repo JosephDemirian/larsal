@@ -1,0 +1,230 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            16,
+            22.5,
+            70.5,
+            19
+          ],
+          "label" : "Generator",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            211,
+            18,
+            82,
+            28
+          ],
+          "label" : "Password",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            293,
+            18,
+            93,
+            28
+          ],
+          "label" : "Passphrase",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            30,
+            74,
+            280,
+            48
+          ],
+          "label" : "Generated password",
+          "role" : "AXTextField",
+          "value" : "outfit-pesky-kite-subatomic-candle"
+        },
+        {
+          "frame" : [
+            314,
+            82,
+            32,
+            32
+          ],
+          "label" : "New password",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            350,
+            82,
+            32,
+            32
+          ],
+          "label" : "Copy",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            16,
+            146.5,
+            31,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Weak"
+        },
+        {
+          "frame" : [
+            350.5,
+            146.5,
+            37.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "65 bits"
+        },
+        {
+          "frame" : [
+            80.5,
+            182,
+            267.5,
+            20
+          ],
+          "label" : "Words",
+          "role" : "AXSlider",
+          "value" : "5"
+        },
+        {
+          "frame" : [
+            16,
+            227.5,
+            59,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Separator"
+        },
+        {
+          "frame" : [
+            100,
+            222,
+            32,
+            28
+          ],
+          "label" : "-",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            132,
+            222,
+            32,
+            28
+          ],
+          "label" : ".",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            164,
+            222,
+            63,
+            28
+          ],
+          "label" : "space",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            227,
+            222,
+            32,
+            28
+          ],
+          "label" : "_",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            16,
+            277.5,
+            29.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Case"
+        },
+        {
+          "frame" : [
+            100,
+            272,
+            57.5,
+            28
+          ],
+          "label" : "lower",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            157.5,
+            272,
+            51,
+            28
+          ],
+          "label" : "Title",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            208.5,
+            272,
+            65.5,
+            28
+          ],
+          "label" : "UPPER",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            16,
+            320,
+            182,
+            32
+          ],
+          "label" : "Copy",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            206,
+            320,
+            182,
+            32
+          ],
+          "label" : "New entry with it",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        404,
+        368
+      ],
+      "label" : "Password generator",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    404,
+    368
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

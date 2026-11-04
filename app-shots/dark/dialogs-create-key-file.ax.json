@@ -1,0 +1,105 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29.299999999999272,
+            119,
+            20
+          ],
+          "label" : "Create a key file",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57.299999999999272,
+            336,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "A key file is a second secret. Keep a copy somewhere safe: without it the vault does not open."
+        },
+        {
+          "frame" : [
+            22,
+            114.79999999999927,
+            45.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Save as"
+        },
+        {
+          "frame" : [
+            59,
+            147.29999999999927,
+            109.5,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Save as, Family.appkey"
+        },
+        {
+          "frame" : [
+            353.5,
+            142.5,
+            77.5,
+            28
+          ],
+          "label" : "Change…",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            22,
+            180.5,
+            307.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Do not keep it next to the vault in the same synced folder."
+        },
+        {
+          "frame" : [
+            230,
+            217.5,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            311.5,
+            217.5,
+            126.5,
+            36
+          ],
+          "label" : "Create Key File",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0.5,
+        460,
+        271
+      ],
+      "label" : "Create a key file",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    272
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

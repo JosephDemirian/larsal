@@ -1,0 +1,268 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            79,
+            29,
+            80.5,
+            20
+          ],
+          "label" : "New group",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            79,
+            57,
+            201,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Groups sort entries, like folders."
+        },
+        {
+          "frame" : [
+            21,
+            94.5,
+            35.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Name"
+        },
+        {
+          "frame" : [
+            34,
+            127,
+            396,
+            18
+          ],
+          "label" : "Name",
+          "role" : "AXTextField",
+          "value" : "Travel"
+        },
+        {
+          "frame" : [
+            21,
+            170.5,
+            38,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Inside"
+        },
+        {
+          "frame" : [
+            21,
+            194,
+            200,
+            36
+          ],
+          "label" : "Inside, Top level",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            237,
+            170.5,
+            39.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Colour"
+        },
+        {
+          "frame" : [
+            237,
+            200,
+            24,
+            24
+          ],
+          "label" : "blue",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            269,
+            200,
+            24,
+            24
+          ],
+          "label" : "green",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            301,
+            200,
+            24,
+            24
+          ],
+          "label" : "orange",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            333,
+            200,
+            24,
+            24
+          ],
+          "label" : "pink",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            365,
+            200,
+            24,
+            24
+          ],
+          "label" : "purple",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            393,
+            196,
+            32,
+            32
+          ],
+          "label" : "cyan",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            21,
+            246.5,
+            27,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Icon"
+        },
+        {
+          "frame" : [
+            21,
+            270,
+            47,
+            47
+          ],
+          "label" : "airplane",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            74,
+            270,
+            47,
+            47
+          ],
+          "label" : "suitcase",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            127,
+            270,
+            47,
+            47
+          ],
+          "label" : "map-pin",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            180,
+            270,
+            47,
+            47
+          ],
+          "label" : "globe-simple",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            233,
+            270,
+            47,
+            47
+          ],
+          "label" : "house-line",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            286,
+            270,
+            47,
+            47
+          ],
+          "label" : "car",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            339,
+            270,
+            47,
+            47
+          ],
+          "label" : "train",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            392,
+            270,
+            47,
+            47
+          ],
+          "label" : "boat",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            240,
+            339,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            321.5,
+            339,
+            115.5,
+            36
+          ],
+          "label" : "Create Group",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        393
+      ],
+      "label" : "New group",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    393
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

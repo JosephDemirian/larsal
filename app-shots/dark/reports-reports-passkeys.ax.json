@@ -1,0 +1,698 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 08:50 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        79,
+        29
+      ],
+      "label" : "Reports",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1157,
+        75,
+        130,
+        36
+      ],
+      "label" : "Check again",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        243,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal · 23 entries checked at 10:30"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            96,
+            38
+          ],
+          "label" : "Health check, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            393,
+            143,
+            85,
+            38
+          ],
+          "label" : "Breach check",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            502,
+            143,
+            58,
+            38
+          ],
+          "label" : "Statistics",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            584,
+            143,
+            59.5,
+            38
+          ],
+          "label" : "Passkeys",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            667.5,
+            143,
+            52.5,
+            38
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        447,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            283,
+            203.5,
+            21,
+            15
+          ],
+          "label" : "Site",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            522,
+            203.5,
+            25,
+            15
+          ],
+          "label" : "User",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            808.5,
+            203.5,
+            76,
+            15
+          ],
+          "label" : "Entry also has",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            1151.5,
+            203.5,
+            35.5,
+            15
+          ],
+          "label" : "Added",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                247,
+                24,
+                24
+              ],
+              "label" : "Apple",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                241,
+                93.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Apple Account, apple.com"
+            },
+            {
+              "frame" : [
+                522,
+                250,
+                159,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "alex.morgan@icloud.com"
+            },
+            {
+              "frame" : [
+                816.5,
+                251.5,
+                53.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "password"
+            },
+            {
+              "frame" : [
+                1148,
+                250.5,
+                39,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Oct 21"
+            },
+            {
+              "frame" : [
+                1207,
+                245,
+                70,
+                28
+              ],
+              "label" : "Remove the passkey of Apple Account",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            229,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                306,
+                24,
+                24
+              ],
+              "label" : "GitHub",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                300,
+                60.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "GitHub, github.com"
+            },
+            {
+              "frame" : [
+                522,
+                309,
+                54,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "alex-dev"
+            },
+            {
+              "frame" : [
+                816.5,
+                310.5,
+                53.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "password"
+            },
+            {
+              "frame" : [
+                890,
+                310.5,
+                79.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "one-time code"
+            },
+            {
+              "frame" : [
+                1148,
+                309.5,
+                39,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Oct 22"
+            },
+            {
+              "frame" : [
+                1207,
+                304,
+                70,
+                28
+              ],
+              "label" : "Remove the passkey of GitHub",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            288,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                365,
+                24,
+                24
+              ],
+              "label" : "Linear",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                359,
+                53.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Linear, linear.app"
+            },
+            {
+              "frame" : [
+                522,
+                368,
+                144,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "alex@morgan-labs.dev"
+            },
+            {
+              "frame" : [
+                816.5,
+                369.5,
+                53.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "password"
+            },
+            {
+              "frame" : [
+                1146,
+                368.5,
+                41,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Sep 15"
+            },
+            {
+              "frame" : [
+                1207,
+                363,
+                70,
+                28
+              ],
+              "label" : "Remove the passkey of Linear",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            347,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                424,
+                24,
+                24
+              ],
+              "label" : "Mastodon",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                418,
+                89,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Mastodon, mastodon.social"
+            },
+            {
+              "frame" : [
+                522,
+                427,
+                154.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "@alex@mastodon.social"
+            },
+            {
+              "frame" : [
+                808.5,
+                427,
+                81,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "passkey only"
+            },
+            {
+              "frame" : [
+                1146,
+                427.5,
+                41,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Sep 18"
+            },
+            {
+              "frame" : [
+                1207,
+                422,
+                70,
+                28
+              ],
+              "label" : "Remove the passkey of Mastodon",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            406,
+            1014,
+            47.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        181,
+        1014,
+        631
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

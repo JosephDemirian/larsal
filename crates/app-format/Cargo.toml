@@ -1,0 +1,32 @@
+[package]
+name = "app-format"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# Tests only (INT-07.29): the software challenge-response key, `keys::SoftwareKey`.
+# Never in product builds.
+software-key = []
+
+[dependencies]
+app-crypto = { workspace = true }
+app-model = { workspace = true }
+flate2 = { workspace = true }
+# No default features: no encoding_rs, no serde. DOCTYPE is rejected and
+# entities are never expanded by our reader (FMT-10.9, AT-A07).
+quick-xml = { workspace = true }
+
+# APP-11.9: the pages of held key material are locked (`memory::lock`).
+[target.'cfg(target_os = "macos")'.dependencies]
+app-platform = { workspace = true, features = ["memory"] }
+
+[dev-dependencies]
+# This crate's own integration tests use the software key.
+app-format = { workspace = true, features = ["software-key"] }
+# E3-S11: random valid vaults survive save and open (tests/property.rs).
+proptest = { workspace = true }

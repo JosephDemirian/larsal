@@ -1,0 +1,65 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            173.5,
+            20
+          ],
+          "label" : "Empty the Recycle Bin?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            326.5,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "2 entries are deleted for good: Twitter (old account) and MySpace."
+        },
+        {
+          "frame" : [
+            207.5,
+            118,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            289,
+            118,
+            149,
+            36
+          ],
+          "label" : "Empty Recycle Bin",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        172
+      ],
+      "label" : "Empty the Recycle Bin?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    172
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

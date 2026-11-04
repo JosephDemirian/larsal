@@ -1,0 +1,57 @@
+[package]
+name = "app-ffi"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# lib: Rust tests; staticlib: linked into the Mac app (scripts/build-core.sh).
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[lints]
+workspace = true
+
+# APP-09 cases that run the built App.app; check.sh runs them after the Xcode
+# build (`cargo test -p app-ffi --test app09`), not with `cargo test --workspace`.
+[[test]]
+name = "app09"
+test = false
+
+[features]
+# The breach check's HTTPS client (FEA-06, E5-S7): app-platform `net`.
+# Without it App links no network code (SN-05) and the online check answers
+# that this build has none; scripts/build-core.sh turns it on for the app.
+net = ["app-platform/net"]
+# Sync with App's own server (E16-S7a, SYN-03, SYN-04): app-sync and its
+# device key (`app-sync/sync`, app-platform `device-key`). Without it
+# app-ffi links nothing of app-sync and no keychain code.
+sync = ["net", "dep:app-sync", "app-sync/sync"]
+
+[dependencies]
+app-autotype = { workspace = true }
+# E7-S6: the browser bridge's sockets and setup files (INT-01), in browser.rs.
+app-browser = { workspace = true }
+app-core = { workspace = true }
+app-crypto = { workspace = true }
+app-format = { workspace = true }
+# F-107: hardware keys in unlock and save (INT-07, E10-S1).
+app-hwkey = { workspace = true }
+app-model = { workspace = true }
+# E11-S3: shared groups (INT-08), run off the main thread in share.rs.
+app-share = { workspace = true }
+app-platform = { workspace = true, features = ["appkit", "memory"] }
+app-sshagent = { workspace = true }
+app-sync = { workspace = true, optional = true }
+qrcode = { workspace = true }
+uniffi = { workspace = true }
+
+[dev-dependencies]
+# tests/memory.rs: the probe that tells the zeroing allocator from the system's (E6-S6).
+app-platform = { workspace = true, features = ["test-memory"] }
+# F-107: unit tests answer every hardware key choice with the software key
+# (OD-01, INT-07.29); never in a product build.
+app-format = { workspace = true, features = ["software-key"] }
+# E16-S7a: the sync tests' servers on 127.0.0.1 (app-server in process,
+# the test proxy), test clock and test-seam device key (LD-317 (2)).
+app-sync = { workspace = true, features = ["test-server"] }

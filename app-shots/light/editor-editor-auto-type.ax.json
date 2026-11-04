@@ -1,0 +1,657 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        75,
+        48,
+        48
+      ],
+      "label" : "GitHub",
+      "role" : "AXImage"
+    },
+    {
+      "frame" : [
+        337,
+        74.5,
+        97.5,
+        29
+      ],
+      "label" : "Edit entry",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1119.5,
+        75,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1201,
+        75,
+        86,
+        36
+      ],
+      "label" : "Save, ⌘S",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        337,
+        106,
+        88,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "GitHub · Work"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            145,
+            196,
+            32
+          ],
+          "label" : "Entry",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            181,
+            196,
+            32
+          ],
+          "label" : "Advanced, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            217,
+            196,
+            32
+          ],
+          "label" : "Icon",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            253,
+            196,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            273,
+            289,
+            196,
+            32
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            325,
+            196,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            361,
+            196,
+            32
+          ],
+          "label" : "Properties",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            397,
+            196,
+            32
+          ],
+          "label" : "History, 3",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        145,
+        196,
+        284
+      ],
+      "label" : "Editor pages",
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                516,
+                156.90000000000146,
+                176.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Let Auto-Type use this entry"
+            },
+            {
+              "frame" : [
+                516,
+                177.40000000000146,
+                343,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Types the sign-in into the window in front when you press ⌃⌥V."
+            },
+            {
+              "frame" : [
+                1234,
+                164.5,
+                34,
+                20
+              ],
+              "label" : "Auto-Type",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            516,
+            156.89999389648438,
+            752,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            501,
+            232.40000000000146,
+            69,
+            19
+          ],
+          "label" : "Sequence",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                546,
+                279.90000000000146,
+                164.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Use the group's sequence"
+            },
+            {
+              "frame" : [
+                546,
+                301.45000000000073,
+                250,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "{USERNAME}{TAB}{PASSWORD}{ENTER}"
+            }
+          ],
+          "frame" : [
+            501,
+            264,
+            782,
+            70
+          ],
+          "label" : "Use the group's sequence",
+          "role" : "AXButton"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                546,
+                358,
+                114.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Custom sequence"
+            },
+            {
+              "frame" : [
+                559,
+                386,
+                702,
+                18
+              ],
+              "label" : "Custom sequence",
+              "role" : "AXTextField",
+              "value" : "{USERNAME}{TAB}{PASSWORD}{TAB}{TOTP}{ENTER}"
+            },
+            {
+              "frame" : [
+                546,
+                419.54999999999927,
+                448,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Placeholders: {USERNAME} {PASSWORD} {TOTP} {TAB} {ENTER} {DELAY 500}"
+            }
+          ],
+          "frame" : [
+            501,
+            342,
+            782,
+            110
+          ],
+          "label" : "Custom sequence",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            501,
+            480.59999999999854,
+            64.5,
+            19
+          ],
+          "label" : "Windows",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            507.59999999999854,
+            375,
+            16.999999999999943
+          ],
+          "role" : "AXStaticText",
+          "value" : "Auto-Type also offers this entry in windows whose title matches."
+        },
+        {
+          "frame" : [
+            518,
+            549.59999999999854,
+            67.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Window title"
+        },
+        {
+          "frame" : [
+            906,
+            549.59999999999854,
+            53.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Sequence"
+        },
+        {
+          "frame" : [
+            518,
+            590.59999999999854,
+            62.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "*GitHub*"
+        },
+        {
+          "frame" : [
+            906,
+            590.59999999999854,
+            90.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Entry sequence"
+        },
+        {
+          "frame" : [
+            1238,
+            585,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            518,
+            638.59999999999854,
+            273.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Sign in to GitHub · GitHub — Safari"
+        },
+        {
+          "frame" : [
+            906,
+            639.59999999999854,
+            230.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "{USERNAME}{TAB}{PASSWORD}{ENTER}"
+        },
+        {
+          "frame" : [
+            1238,
+            633,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            501,
+            686,
+            127.5,
+            32
+          ],
+          "help" : "Adding windows comes with Auto-Type (E8).",
+          "label" : "Add window",
+          "role" : "AXButton"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        501,
+        145,
+        786,
+        667
+      ],
+      "label" : "Auto-Type",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

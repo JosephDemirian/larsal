@@ -1,0 +1,20 @@
+[package]
+name = "uniffi-bindgen"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# UniFFI's Swift bindings generator, pinned to the same UniFFI as app-ffi
+# (LD-156 (1)). Run by scripts/build-core.sh; never linked into the app.
+[[bin]]
+name = "uniffi-bindgen-swift"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+# `bindgen`, not `cli`: src/main.rs reads its own few options (E0-S7 step 5),
+# so clap and its crates are not in the tree.
+[dependencies]
+uniffi = { workspace = true, features = ["bindgen", "cargo-metadata"] }

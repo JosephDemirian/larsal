@@ -1,0 +1,65 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            160,
+            20
+          ],
+          "label" : "Remove the passkey?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            321,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "You can no longer sign in to github.com with it. The password stays."
+        },
+        {
+          "frame" : [
+            219,
+            118,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            300.5,
+            118,
+            137.5,
+            36
+          ],
+          "label" : "Remove Passkey",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        172
+      ],
+      "label" : "Remove the passkey?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    172
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

@@ -1,0 +1,75 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            226,
+            20
+          ],
+          "label" : "App could not save “Personal”",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            346.5,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "The disk “Backup SSD” is not connected. Your changes are safe in memory until you quit."
+        },
+        {
+          "frame" : [
+            22,
+            118,
+            92,
+            36
+          ],
+          "label" : "Save As…",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            274.5,
+            118,
+            65.5,
+            36
+          ],
+          "label" : "Close",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            348,
+            118,
+            90,
+            36
+          ],
+          "label" : "Try Again",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        172
+      ],
+      "label" : "App could not save “Personal”",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    172
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

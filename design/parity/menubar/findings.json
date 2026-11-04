@@ -1,0 +1,1973 @@
+{
+ "section": "menubar",
+ "versions": [
+  "pixelmatch 8.0.0",
+  "pngjs 7.0.0"
+ ],
+ "tokensStatic": [
+  {
+   "name": "ground",
+   "light": "#f0f2f2",
+   "app_light": "#f0f2f2",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "surface",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#131315",
+   "app_dark": "#131315",
+   "ok": true
+  },
+  {
+   "name": "raised",
+   "light": "#f5f7f7",
+   "app_light": "#f5f7f7",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "active",
+   "light": "#e7eaeb",
+   "app_light": "#e7eaeb",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "hover",
+   "light": "#f3f5f5",
+   "app_light": "#f3f5f5",
+   "dark": "#1a1a1d",
+   "app_dark": "#1a1a1d",
+   "ok": true
+  },
+  {
+   "name": "border",
+   "light": "#e2e5e6",
+   "app_light": "#e2e5e6",
+   "dark": "#222226",
+   "app_dark": "#222226",
+   "ok": true
+  },
+  {
+   "name": "rule",
+   "light": "#edeff0",
+   "app_light": "#edeff0",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "control",
+   "light": "#cdd0d3",
+   "app_light": "#cdd0d3",
+   "dark": "#3a3a40",
+   "app_dark": "#3a3a40",
+   "ok": true
+  },
+  {
+   "name": "field",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "tile",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "text",
+   "light": "#131416",
+   "app_light": "#131416",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "muted",
+   "light": "#5d6062",
+   "app_light": "#5d6062",
+   "dark": "#9b9ba2",
+   "app_dark": "#9b9ba2",
+   "ok": true
+  },
+  {
+   "name": "primary",
+   "light": "#1d1f20",
+   "app_light": "#1d1f20",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "on-primary",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "primary-hover",
+   "light": "#34373a",
+   "app_light": "#34373a",
+   "dark": "#ffffff",
+   "app_dark": "#ffffff",
+   "ok": true
+  },
+  {
+   "name": "accent",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#52b6c9",
+   "app_dark": "#52b6c9",
+   "ok": true
+  },
+  {
+   "name": "accent-soft",
+   "light": "#e2eff2",
+   "app_light": "#e2eff2",
+   "dark": "#10303a",
+   "app_dark": "#10303a",
+   "ok": true
+  },
+  {
+   "name": "digit",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#6ccadb",
+   "app_dark": "#6ccadb",
+   "ok": true
+  },
+  {
+   "name": "symbol",
+   "light": "#a3620a",
+   "app_light": "#a3620a",
+   "dark": "#f2ab4f",
+   "app_dark": "#f2ab4f",
+   "ok": true
+  },
+  {
+   "name": "positive",
+   "light": "#1e7b4f",
+   "app_light": "#1e7b4f",
+   "dark": "#3dd68c",
+   "app_dark": "#3dd68c",
+   "ok": true
+  },
+  {
+   "name": "negative",
+   "light": "#c4242a",
+   "app_light": "#c4242a",
+   "dark": "#ff6b70",
+   "app_dark": "#ff6b70",
+   "ok": true
+  },
+  {
+   "name": "warning",
+   "light": "#8a4a06",
+   "app_light": "#8a4a06",
+   "dark": "#f5b14c",
+   "app_dark": "#f5b14c",
+   "ok": true
+  },
+  {
+   "name": "neg-bg",
+   "light": "#ffedea",
+   "app_light": "#ffedea",
+   "dark": "#2c1517",
+   "app_dark": "#2c1517",
+   "ok": true
+  },
+  {
+   "name": "neg-ink",
+   "light": "#831c1e",
+   "app_light": "#831c1e",
+   "dark": "#ffa3a5",
+   "app_dark": "#ffa3a5",
+   "ok": true
+  },
+  {
+   "name": "warn-bg",
+   "light": "#fff4e0",
+   "app_light": "#fff4e0",
+   "dark": "#2a1f0f",
+   "app_dark": "#2a1f0f",
+   "ok": true
+  },
+  {
+   "name": "warn-ink",
+   "light": "#7a4105",
+   "app_light": "#7a4105",
+   "dark": "#f6c47f",
+   "app_dark": "#f6c47f",
+   "ok": true
+  },
+  {
+   "name": "pos-bg",
+   "light": "#dcfae5",
+   "app_light": "#dcfae5",
+   "dark": "#0f2a1b",
+   "app_dark": "#0f2a1b",
+   "ok": true
+  },
+  {
+   "name": "pos-ink",
+   "light": "#0b4a26",
+   "app_light": "#0b4a26",
+   "dark": "#74e4a9",
+   "app_dark": "#74e4a9",
+   "ok": true
+  },
+  {
+   "name": "chip-bg",
+   "light": "#eceeef",
+   "app_light": "#eceeef",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "chip-ink",
+   "light": "#353736",
+   "app_light": "#353736",
+   "dark": "#d0d0d5",
+   "app_dark": "#d0d0d5",
+   "ok": true
+  },
+  {
+   "name": "scrim",
+   "light": "rgba(24, 26, 28, .26)",
+   "app_light": "#181a1c α0.26",
+   "dark": "rgba(0, 0, 0, .55)",
+   "app_dark": "#000000 α0.55",
+   "ok": true
+  },
+  {
+   "name": "blue",
+   "light": "#007aff",
+   "app_light": "#007aff",
+   "dark": "#007aff",
+   "app_dark": "#007aff",
+   "ok": true
+  },
+  {
+   "name": "orange",
+   "light": "#ff9500",
+   "app_light": "#ff9500",
+   "dark": "#ff9500",
+   "app_dark": "#ff9500",
+   "ok": true
+  },
+  {
+   "name": "green",
+   "light": "#28b14c",
+   "app_light": "#28b14c",
+   "dark": "#28b14c",
+   "app_dark": "#28b14c",
+   "ok": true
+  },
+  {
+   "name": "teal",
+   "light": "#22a6bd",
+   "app_light": "#22a6bd",
+   "dark": "#22a6bd",
+   "app_dark": "#22a6bd",
+   "ok": true
+  },
+  {
+   "name": "purple",
+   "light": "#a550d6",
+   "app_light": "#a550d6",
+   "dark": "#a550d6",
+   "app_dark": "#a550d6",
+   "ok": true
+  },
+  {
+   "name": "pink",
+   "light": "#f2385a",
+   "app_light": "#f2385a",
+   "dark": "#f2385a",
+   "app_dark": "#f2385a",
+   "ok": true
+  },
+  {
+   "name": "red",
+   "light": "#f04438",
+   "app_light": "#f04438",
+   "dark": "#f04438",
+   "app_dark": "#f04438",
+   "ok": true
+  },
+  {
+   "name": "brown",
+   "light": "#a2845e",
+   "app_light": "#a2845e",
+   "dark": "#a2845e",
+   "app_dark": "#a2845e",
+   "ok": true
+  },
+  {
+   "name": "gray",
+   "light": "#8e8e93",
+   "app_light": "#8e8e93",
+   "dark": "#8e8e93",
+   "app_dark": "#8e8e93",
+   "ok": true
+  },
+  {
+   "name": "slate",
+   "light": "#5a6b7d",
+   "app_light": "#5a6b7d",
+   "dark": "#5a6b7d",
+   "app_dark": "#5a6b7d",
+   "ok": true
+  },
+  {
+   "name": "mint",
+   "light": "#00b5ad",
+   "app_light": "#00b5ad",
+   "dark": "#00b5ad",
+   "app_dark": "#00b5ad",
+   "ok": true
+  },
+  {
+   "name": "cyan",
+   "light": "#2f9fd8",
+   "app_light": "#2f9fd8",
+   "dark": "#2f9fd8",
+   "app_dark": "#2f9fd8",
+   "ok": true
+  },
+  {
+   "name": "yellow",
+   "light": "#f5b800",
+   "app_light": "#f5b800",
+   "dark": "#f5b800",
+   "app_dark": "#f5b800",
+   "ok": true
+  },
+  {
+   "name": "graphite",
+   "light": "#4b5057",
+   "app_light": "#4b5057",
+   "dark": "#4b5057",
+   "app_dark": "#4b5057",
+   "ok": true
+  }
+ ],
+ "contrast": [
+  {
+   "theme": "light",
+   "pair": "text on ground",
+   "ratio": 16.4
+  },
+  {
+   "theme": "light",
+   "pair": "text on surface",
+   "ratio": 18.43
+  },
+  {
+   "theme": "light",
+   "pair": "text on raised",
+   "ratio": 17.14
+  },
+  {
+   "theme": "light",
+   "pair": "text on active",
+   "ratio": 15.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on ground",
+   "ratio": 5.64
+  },
+  {
+   "theme": "light",
+   "pair": "muted on surface",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "muted on raised",
+   "ratio": 5.89
+  },
+  {
+   "theme": "light",
+   "pair": "muted on active",
+   "ratio": 5.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on field",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "accent on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "accent on accent-soft",
+   "ratio": 5.1
+  },
+  {
+   "theme": "light",
+   "pair": "negative on surface",
+   "ratio": 5.78
+  },
+  {
+   "theme": "light",
+   "pair": "positive on surface",
+   "ratio": 5.25
+  },
+  {
+   "theme": "light",
+   "pair": "warning on surface",
+   "ratio": 6.86
+  },
+  {
+   "theme": "light",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.63
+  },
+  {
+   "theme": "light",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 7.45
+  },
+  {
+   "theme": "light",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.32
+  },
+  {
+   "theme": "light",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.3
+  },
+  {
+   "theme": "light",
+   "pair": "on-primary on primary",
+   "ratio": 16.55
+  },
+  {
+   "theme": "light",
+   "pair": "digit on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "symbol on surface",
+   "ratio": 4.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on ground",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "text on surface",
+   "ratio": 15.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on raised",
+   "ratio": 15
+  },
+  {
+   "theme": "dark",
+   "pair": "text on active",
+   "ratio": 13.39
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on ground",
+   "ratio": 7.12
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on surface",
+   "ratio": 6.72
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on raised",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on active",
+   "ratio": 5.67
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on field",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on surface",
+   "ratio": 7.86
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on accent-soft",
+   "ratio": 5.91
+  },
+  {
+   "theme": "dark",
+   "pair": "negative on surface",
+   "ratio": 6.71
+  },
+  {
+   "theme": "dark",
+   "pair": "positive on surface",
+   "ratio": 9.89
+  },
+  {
+   "theme": "dark",
+   "pair": "warning on surface",
+   "ratio": 9.96
+  },
+  {
+   "theme": "dark",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.99
+  },
+  {
+   "theme": "dark",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 10.08
+  },
+  {
+   "theme": "dark",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.81
+  },
+  {
+   "theme": "dark",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.19
+  },
+  {
+   "theme": "dark",
+   "pair": "on-primary on primary",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "digit on surface",
+   "ratio": 9.82
+  },
+  {
+   "theme": "dark",
+   "pair": "symbol on surface",
+   "ratio": 9.47
+  }
+ ],
+ "results": [
+  {
+   "id": "menubar-menu-bar-icon",
+   "title": "Menu bar icon",
+   "note": "Lock state of every vault",
+   "size": [
+    720,
+    420
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/menubar-menu-bar-icon.png",
+     "present": true,
+     "appImg": "app/light/menubar-menu-bar-icon.png",
+     "diffImg": "diff/light/menubar-menu-bar-icon.png",
+     "text": {
+      "found": [
+       {
+        "m": "App",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vaults",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Unlocked",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Work",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Family",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Search Entries…",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌥⌘Space",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Password Generator",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌥⌘G",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Lock Everything",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⇧⌘L",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Settings…",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘,",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Quit App",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘Q",
+        "kind": "text",
+        "how": "part"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Show App",
+        "kind": "text",
+        "why": "APP-08.21 action.toggle_window: \"Show Window\" while the window is hidden, minimized or behind, \"Hide Window\" while in front (card words over mockup)",
+        "ref": "APP-08.21, LD-214 (2), BUILD-AND-VERIFY order 2",
+        "app": "Show Window"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "File",
+        "kind": "text",
+        "ocr": "App File Edit View Vault Entry"
+       },
+       {
+        "m": "Edit",
+        "kind": "text",
+        "ocr": "App File Edit View Vault Entry"
+       },
+       {
+        "m": "Entry",
+        "kind": "text",
+        "ocr": "App File Edit View Vault Entry"
+       },
+       {
+        "m": "View",
+        "kind": "text",
+        "ocr": "App File Edit View Vault Entry"
+       },
+       {
+        "m": "Tue 27 Oct 10:30",
+        "kind": "text",
+        "ocr": "Tue 27 Oct 10:30"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 30.5,
+        "app": 29.9
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 4.2,
+        "app": 6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "wifi-high",
+       "fill briefcase",
+       "lock-simple",
+       "fill users-three",
+       "magnifying-glass",
+       "password",
+       "lock-key",
+       "app-window",
+       "gear-six",
+       "power"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "menuitem",
+       "text": "Personal Unlocked",
+       "dom": [
+        318,
+        68,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        68,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Work",
+       "dom": [
+        318,
+        98,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        98,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Family",
+       "dom": [
+        318,
+        128,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        128,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Search Entries… ⌥⌘Space",
+       "dom": [
+        318,
+        171,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        171,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Password Generator ⌥⌘G",
+       "dom": [
+        318,
+        201,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        201,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Lock Everything ⇧⌘L",
+       "dom": [
+        318,
+        231,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        231,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Show App",
+       "dom": [
+        318,
+        274,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        274,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Settings… ⌘,",
+       "dom": [
+        318,
+        304,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        304,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Quit App ⌘Q",
+       "dom": [
+        318,
+        334,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        334,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menu",
+       "text": "Vaults Personal Unlocked Work ",
+       "dom": [
+        312,
+        32,
+        290,
+        338
+       ],
+       "app": [
+        312,
+        32,
+        290,
+        338
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Vaults",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        328,
+        46,
+        35,
+        15
+       ],
+       "app": [
+        328,
+        46.5,
+        35,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.54,
+     "residual": 0.5,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/menubar-menu-bar-icon.png",
+     "present": true,
+     "appImg": "app/dark/menubar-menu-bar-icon.png",
+     "diffImg": "diff/dark/menubar-menu-bar-icon.png",
+     "text": {
+      "found": [
+       {
+        "m": "App",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vaults",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Unlocked",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Work",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Family",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Search Entries…",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌥⌘Space",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Password Generator",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌥⌘G",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Lock Everything",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⇧⌘L",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Settings…",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘,",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Quit App",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "⌘Q",
+        "kind": "text",
+        "how": "part"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Show App",
+        "kind": "text",
+        "why": "APP-08.21 action.toggle_window: \"Show Window\" while the window is hidden, minimized or behind, \"Hide Window\" while in front (card words over mockup)",
+        "ref": "APP-08.21, LD-214 (2), BUILD-AND-VERIFY order 2",
+        "app": "Show Window"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "File",
+        "kind": "text",
+        "ocr": "File"
+       },
+       {
+        "m": "Edit",
+        "kind": "text",
+        "ocr": "Edit"
+       },
+       {
+        "m": "Entry",
+        "kind": "text",
+        "ocr": "View Vault Entry"
+       },
+       {
+        "m": "View",
+        "kind": "text",
+        "ocr": "View Vault Entry"
+       },
+       {
+        "m": "Tue 27 Oct 10:30",
+        "kind": "text",
+        "ocr": "Tue 27 Oct 10:30"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#1c1c1f",
+        "token": "rule/tile",
+        "ref": 30.5,
+        "app": 35.5
+       },
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 4.4,
+        "app": 35.5
+       },
+       {
+        "hex": "#10161a",
+        "token": "",
+        "ref": 3.9,
+        "app": 22.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "wifi-high",
+       "fill briefcase",
+       "lock-simple",
+       "fill users-three",
+       "magnifying-glass",
+       "password",
+       "lock-key",
+       "app-window",
+       "gear-six",
+       "power"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "menuitem",
+       "text": "Personal Unlocked",
+       "dom": [
+        318,
+        68,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        68,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Work",
+       "dom": [
+        318,
+        98,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        98,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Family",
+       "dom": [
+        318,
+        128,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        128,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Search Entries… ⌥⌘Space",
+       "dom": [
+        318,
+        171,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        171,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Password Generator ⌥⌘G",
+       "dom": [
+        318,
+        201,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        201,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Lock Everything ⇧⌘L",
+       "dom": [
+        318,
+        231,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        231,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Show App",
+       "dom": [
+        318,
+        274,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        274,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Settings… ⌘,",
+       "dom": [
+        318,
+        304,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        304,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menuitem",
+       "text": "Quit App ⌘Q",
+       "dom": [
+        318,
+        334,
+        278,
+        30
+       ],
+       "app": [
+        318,
+        334,
+        278,
+        30
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "menu",
+       "text": "Vaults Personal Unlocked Work ",
+       "dom": [
+        312,
+        32,
+        290,
+        338
+       ],
+       "app": [
+        312,
+        32,
+        290,
+        338
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Vaults",
+       "font": "IBM Plex Sans 12/600",
+       "dom": [
+        328,
+        46,
+        35,
+        15
+       ],
+       "app": [
+        328,
+        46.5,
+        35,
+        15
+       ],
+       "d": [
+        0,
+        0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.53,
+     "residual": 0.48,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the menu's items; Hide Window hides, then it reads Show Window (T38)"
+    }
+   ],
+   "controls": [],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "menubar-auto-type-picker",
+   "title": "Auto-Type picker",
+   "note": "Appears over the browser",
+   "size": [
+    720,
+    420
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/menubar-auto-type-picker.png",
+     "present": true,
+     "appImg": "app/light/menubar-auto-type-picker.png",
+     "diffImg": "diff/light/menubar-auto-type-picker.png",
+     "text": {
+      "found": [
+       {
+        "m": "Type into “Sign in to GitHub · GitHub — Safari”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex-dev",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Type login ⏎",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "GitHub (work bot)",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "morgan-labs-ci",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "↑↓ to choose · ⏎ types username, password and code · ⇧⏎ types the password only",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Search all entries…",
+        "kind": "placeholder",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [
+       {
+        "kind": "extra",
+        "hex": "#e2eff2",
+        "token": "accent-soft",
+        "ref": 0,
+        "app": 0.94
+       }
+      ],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 31.4,
+        "app": 30.1
+       },
+       {
+        "hex": "#e7eaeb",
+        "token": "active",
+        "ref": 8.3,
+        "app": 8.3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "keyboard",
+       "magnifying-glass"
+      ],
+      "missing": [],
+      "logos": [
+       "GitHub",
+       "GitHub"
+      ],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "recent",
+       "text": "GitHub alex-dev Type login ⏎",
+       "dom": [
+        136,
+        128,
+        448,
+        60
+       ],
+       "app": [
+        136,
+        128,
+        448,
+        60
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "recent",
+       "text": "GitHub (work bot) morgan-labs-ci",
+       "dom": [
+        136,
+        188,
+        448,
+        60
+       ],
+       "app": [
+        136,
+        188,
+        448,
+        60
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Type into “Sign in to GitHub ·",
+       "dom": [
+        120,
+        40,
+        480,
+        264
+       ],
+       "app": [
+        120,
+        40,
+        480,
+        263
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        -1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Type into “Sign in to GitHub · GitHub — Safari”",
+       "font": "IBM Plex Sans 14/600",
+       "dom": [
+        162,
+        57,
+        299.5,
+        18
+       ],
+       "app": [
+        162,
+        57,
+        300,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "↑↓ to choose · ⏎ types username, password and code · ⇧⏎ types the password only",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        136,
+        256,
+        437,
+        31
+       ],
+       "app": [
+        136,
+        256.2,
+        385.5,
+        30.5
+       ],
+       "d": [
+        0,
+        0.2,
+        -51.5,
+        -0.5
+       ]
+      }
+     ],
+     "pixels": 0.63,
+     "residual": 0.63,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/menubar-auto-type-picker.png",
+     "present": true,
+     "appImg": "app/dark/menubar-auto-type-picker.png",
+     "diffImg": "diff/dark/menubar-auto-type-picker.png",
+     "text": {
+      "found": [
+       {
+        "m": "Type into “Sign in to GitHub · GitHub — Safari”",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "alex-dev",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "Type login ⏎",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "GitHub (work bot)",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "morgan-labs-ci",
+        "kind": "text",
+        "how": "part"
+       },
+       {
+        "m": "↑↓ to choose · ⏎ types username, password and code · ⇧⏎ types the password only",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "GitHub",
+        "kind": "name",
+        "how": "part"
+       },
+       {
+        "m": "Search all entries…",
+        "kind": "placeholder",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [
+       {
+        "kind": "extra",
+        "hex": "#10303a",
+        "token": "accent-soft",
+        "ref": 0,
+        "app": 0.94
+       }
+      ],
+      "major": [
+       {
+        "hex": "#1a1a1d",
+        "token": "raised/hover/field",
+        "ref": 26.7,
+        "app": 30.1
+       },
+       {
+        "hex": "#232327",
+        "token": "active/border/chip-bg",
+        "ref": 8.3,
+        "app": 8.6
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 4.2,
+        "app": 31
+       },
+       {
+        "hex": "#10161a",
+        "token": "",
+        "ref": 3.2,
+        "app": 27.9
+       },
+       {
+        "hex": "#12171a",
+        "token": "",
+        "ref": 3.2,
+        "app": 32.4
+       },
+       {
+        "hex": "#13181b",
+        "token": "",
+        "ref": 3,
+        "app": 32.5
+       },
+       {
+        "hex": "#11171a",
+        "token": "",
+        "ref": 2.6,
+        "app": 31.5
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "keyboard",
+       "magnifying-glass"
+      ],
+      "missing": [],
+      "logos": [
+       "GitHub",
+       "GitHub"
+      ],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "recent",
+       "text": "GitHub alex-dev Type login ⏎",
+       "dom": [
+        136,
+        128,
+        448,
+        60
+       ],
+       "app": [
+        136,
+        128,
+        448,
+        60
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "recent",
+       "text": "GitHub (work bot) morgan-labs-ci",
+       "dom": [
+        136,
+        188,
+        448,
+        60
+       ],
+       "app": [
+        136,
+        188,
+        448,
+        60
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "dialog",
+       "text": "Type into “Sign in to GitHub ·",
+       "dom": [
+        120,
+        40,
+        480,
+        264
+       ],
+       "app": [
+        120,
+        40,
+        480,
+        263
+       ],
+       "d": [
+        0,
+        0,
+        0,
+        -1
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Type into “Sign in to GitHub · GitHub — Safari”",
+       "font": "IBM Plex Sans 14/600",
+       "dom": [
+        162,
+        57,
+        299.5,
+        18
+       ],
+       "app": [
+        162,
+        57,
+        300,
+        18
+       ],
+       "d": [
+        0,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "↑↓ to choose · ⏎ types username, password and code · ⇧⏎ types the password only",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        136,
+        256,
+        437,
+        31
+       ],
+       "app": [
+        136,
+        256.2,
+        385.5,
+        30.5
+       ],
+       "d": [
+        0,
+        0.2,
+        -51.5,
+        -0.5
+       ]
+      }
+     ],
+     "pixels": 1.41,
+     "residual": 1.41,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "keys move, typing searches all, Escape clears, then closes (T57, T64, T67)"
+    },
+    {
+     "ok": true,
+     "name": "Return confirms; the run checks the window per key; ⇧⌘2 copies"
+    }
+   ],
+   "controls": [],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  }
+ ]
+}

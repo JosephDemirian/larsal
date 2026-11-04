@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f5f5">
+<title>App · Option A · Framed sheet</title>
+<link rel="stylesheet" href="vendor/phosphor/regular.css">
+<link rel="stylesheet" href="vendor/phosphor/fill.css">
+<script src="vendor/simple-icons/brands.js"></script>
+<style>
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("vendor/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("vendor/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("vendor/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("vendor/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("vendor/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); }
+
+/* Style: framed-sheet (taste skill, seed 564374910). Face: IBM Plex Mono carries every secret
+   (passwords, codes, keys); the frame takes a cool stone tint. Signature: live one-time codes as a
+   table column with one shared countdown in its header.
+   Grid at 1440: sheet 1440 - 228 sidebar - 8 inset = 1204; minus 2 x 24 padding = 1156 = 748 table + 24 gap + 384 rail. */
+:root {
+  --ground: #f3f5f5; --surface: #ffffff; --raised: #f4f6f8; --active: #e9eced;
+  --border: #e6e9ea; --rule: #f0f1f2; --control: #cdced1;
+  --text: #131416; --muted: #5d5f60;
+  --primary: #1d1f20; --accent: #1b6c80; --digit: #1b6c80; --symbol: #a3620a;
+  --positive: #1e7b4f; --negative: #c4242a; --warning: #92400e;
+  --pill-negative-bg: #ffedea; --pill-negative-ink: #831c1e;
+  --pill-warning-bg: #fffbeb; --pill-warning-ink: #92400e;
+  --pill-neutral-bg: #ebedee; --pill-neutral-ink: #353736;
+  --radius-card: 8px; --radius-control: 6px; --radius-sheet: 16px; --inset: 8px;
+  --sidebar: 228px; --topbar: 48px; --gap: 24px; --pad: 24px; --control-h: 32px;
+  --font: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 400 14px/20px var(--font); color: var(--text); background: var(--ground); -webkit-font-smoothing: antialiased; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); }
+.ph, .ph-fill { font-size: 16px; line-height: 1; }
+
+/* Window: one tinted L-frame (sidebar + top bar), white sheet inset 8px right and bottom */
+.app { display: grid; grid-template-columns: var(--sidebar) 1fr; grid-template-rows: var(--topbar) 1fr; height: 100vh; }
+.top { grid-column: 1 / -1; display: grid; grid-template-columns: var(--sidebar) 1fr auto; align-items: center; padding-right: 16px; }
+.lights { display: flex; gap: 8px; padding-left: 16px; align-items: center; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+.lights .side-toggle { margin-left: auto; margin-right: 12px; color: var(--muted); width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-control); }
+.lights .side-toggle:hover { background: var(--active); }
+.search { justify-self: center; width: min(548px, 100%); height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--muted); }
+.search:focus-within { border-color: var(--control); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; font: inherit; color: var(--text); background: none; }
+.search input::placeholder { color: var(--muted); }
+.kbd { font-size: 12px; color: var(--muted); padding: 0 6px; height: 20px; line-height: 20px; border-radius: 4px; background: var(--raised); white-space: nowrap; }
+.top-actions { display: flex; gap: 8px; padding-left: 16px; }
+.btn { height: var(--control-h); padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-control); border: 1px solid var(--control); background: var(--surface); font-weight: 500; white-space: nowrap; transition: background-color .15s, border-color .15s; }
+.btn:hover { background: var(--raised); }
+.btn:active { background: var(--active); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn.primary:hover { background: #33363a; }
+.btn .kbd { background: var(--active); }
+
+.side { display: flex; flex-direction: column; padding: 4px 8px 16px; min-height: 0; overflow: auto; }
+.brand { display: flex; align-items: center; gap: 8px; padding: 4px 10px 14px; font-weight: 600; font-size: 15px; }
+.brand .ph-fill { color: var(--accent); font-size: 20px; }
+.vault { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 10px; border-radius: var(--radius-card); }
+.vault:hover { background: var(--active); }
+.vault b { display: block; font-weight: 500; }
+.vault small { display: block; font-size: 12px; line-height: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vault > span { min-width: 0; flex: 1; }
+.nav-label { font-size: 12px; color: var(--muted); padding: 22px 10px 6px; }
+.nav { list-style: none; margin: 0; padding: 0; }
+.nav button { width: 100%; height: 32px; margin-bottom: 2px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--radius-card); color: #3d3f41; text-align: left; }
+.nav button .ph { color: var(--muted); }
+.nav button:hover { background: #eceeef; }
+.nav button[aria-current="page"] { background: var(--active); color: var(--text); }
+.nav button[aria-current="page"] .ph { color: var(--text); }
+.nav .count { margin-left: auto; font-size: 12px; color: var(--muted); }
+.nav .sub { padding-left: 32px; }
+.side-foot { margin-top: auto; padding-top: 16px; }
+.saved { display: flex; gap: 8px; align-items: center; padding: 8px 10px 0; font-size: 12px; color: var(--muted); }
+.saved .ph { font-size: 14px; color: var(--positive); }
+
+.sheet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sheet); margin: 0 var(--inset) var(--inset) 0; padding: 20px var(--pad) 0; display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+.title-row { display: flex; align-items: flex-start; gap: 16px; }
+.title-row h1 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+.title-row p { margin: 2px 0 0; color: var(--muted); }
+.title-row p b { color: var(--negative); font-weight: 500; }
+.title-row .actions { margin-left: auto; display: flex; gap: 8px; }
+.title-row .btn { height: 36px; }
+
+.tabs { display: flex; gap: 24px; margin-top: 20px; border-bottom: 1px solid var(--border); }
+.tab { height: 36px; position: relative; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { color: var(--text); font-weight: 500; }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--text); }
+.tab .n { font-size: 12px; color: var(--muted); font-weight: 400; }
+.tab .n.alert { color: var(--negative); font-weight: 500; }
+
+.work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 384px; gap: var(--gap); }
+
+/* Table: rules and alignment, no card around it */
+.table { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 132px 112px 76px; gap: 16px; align-items: center; padding: 0 8px; }
+.thead { height: 40px; font-size: 12px; color: var(--muted); }
+.thead .r, .row .r { text-align: right; }
+.thead .code-h { display: flex; align-items: center; gap: 6px; }
+.thead .tick { width: 32px; height: 4px; border-radius: 2px; background: var(--active); overflow: hidden; }
+.thead .tick i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+.rows { flex: 1; overflow: auto; padding-bottom: 24px; margin: 0 -8px; padding-left: 8px; padding-right: 8px; }
+.row { position: relative; height: 56px; width: 100%; text-align: left; border-radius: var(--radius-card); }
+.row + .row::before { content: ""; position: absolute; left: 48px; right: 8px; top: 0; height: 1px; background: var(--rule); }
+.row[aria-selected="true"], .row[aria-selected="true"] + .row::before { background: var(--active); }
+.row[aria-selected="true"] + .row::before { background: transparent; }
+.row:hover:not([aria-selected="true"]) { background: #f8f9f9; }
+.who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.who > span { min-width: 0; }
+.who b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who small { display: flex; gap: 6px; align-items: center; font-size: 13px; line-height: 18px; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.who small .ph { font-size: 12px; }
+.logo { flex: none; width: 28px; height: 28px; border-radius: 7px; background: #fff; border: 1px solid var(--border); display: grid; place-items: center; color: var(--muted); }
+.logo svg { width: 16px; height: 16px; display: block; }
+.logo .mono-letter { font-weight: 600; font-size: 13px; color: #353736; }
+.logo.lg { width: 44px; height: 44px; border-radius: 10px; }
+.logo.lg svg { width: 24px; height: 24px; }
+.logo.lg .ph { font-size: 22px; }
+.logo.lg .mono-letter { font-size: 18px; }
+.code { font-family: var(--mono); font-weight: 500; font-size: 14px; letter-spacing: .02em; }
+.dash { color: var(--muted); }
+.health { display: flex; flex-direction: column; gap: 5px; font-size: 12px; line-height: 14px; color: var(--muted); }
+.meter { display: flex; gap: 2px; }
+.meter i { width: 14px; height: 3px; border-radius: 2px; background: var(--active); }
+.meter i.on { background: #8d9092; }
+.health.bad { color: var(--negative); font-weight: 500; }
+.health.bad .meter i.on { background: var(--negative); }
+.health.warn { color: var(--warning); font-weight: 500; }
+.health.warn .meter i.on { background: #c27a0e; }
+.mod { font-size: 13px; color: var(--muted); }
+.empty-rows { padding: 16px 8px; color: var(--muted); border: 1px dashed var(--control); border-radius: var(--radius-card); margin-top: 8px; }
+
+/* Detail rail */
+.rail { min-height: 0; overflow: auto; padding-bottom: 24px; }
+.rail-head { display: flex; gap: 14px; align-items: center; padding: 4px 0 16px; }
+.rail-head h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 600; }
+.rail-head a { font-size: 13px; color: var(--accent); text-decoration: none; display: inline-flex; gap: 4px; align-items: center; }
+.rail-head a:hover { text-decoration: underline; }
+.rail-head .tools { margin-left: auto; display: flex; gap: 4px; align-self: flex-start; }
+.ibtn { width: 32px; height: 32px; display: inline-grid; place-items: center; border-radius: var(--radius-control); color: var(--muted); flex: none; transition: background-color .15s, color .15s; }
+.ibtn:hover { background: var(--active); color: var(--text); }
+.ibtn:active { transform: scale(.96); }
+.panel { border: 1px solid var(--border); border-radius: var(--radius-card); }
+.panel + .panel { margin-top: 16px; }
+.field { display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 16px; min-height: 60px; }
+.field + .field { border-top: 1px solid var(--rule); }
+.field > div { flex: 1; min-width: 0; }
+.field label, .field .lbl { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
+.field .val { display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pw { font-family: var(--mono); font-size: 14px; letter-spacing: .02em; }
+.pw .d { color: var(--digit); } .pw .s { color: var(--symbol); }
+.pw-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.pw-meta.bad { color: var(--negative); }
+.otp { padding: 14px 8px 14px 16px; }
+.otp .big { font-family: var(--mono); font-size: 28px; line-height: 34px; font-weight: 500; letter-spacing: .04em; }
+.otp .bar { height: 4px; border-radius: 2px; background: var(--active); margin-top: 10px; overflow: hidden; }
+.otp .bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+.otp .secs { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip { flex: none; white-space: nowrap; height: 22px; padding: 0 8px; border-radius: 4px; background: var(--pill-neutral-bg); color: var(--pill-neutral-ink); font-size: 12px; display: inline-flex; align-items: center; }
+.file { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.file small { color: var(--muted); }
+.notes { white-space: pre-line; margin-top: 2px; }
+.rail-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 12px; padding: 0 2px; }
+.rail-foot button { color: var(--accent); font-size: 12px; }
+.rail-foot button:hover { text-decoration: underline; }
+.notice { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--radius-card); background: var(--pill-negative-bg); color: var(--pill-negative-ink); font-size: 13px; margin-bottom: 16px; }
+.notice .ph { font-size: 16px; margin-top: 2px; }
+.notice button { text-decoration: underline; font-weight: 500; color: inherit; }
+.back { display: none; }
+
+.toast { position: absolute; left: 50%; bottom: 24px; transform: translate(-50%, 12px); opacity: 0; pointer-events: none; background: var(--primary); color: #fff; border-radius: var(--radius-card); padding: 10px 14px; display: flex; gap: 8px; align-items: center; box-shadow: 0 8px 24px rgba(0,0,0,.18); transition: opacity .2s, transform .2s; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast .ph { color: #7fd1b0; }
+.toast small { color: #b9bcbe; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Narrow windows: the frame folds, one region at a time */
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 1fr; }
+  .side { display: none; }
+  .app.nav-open .side { display: flex; position: fixed; inset: var(--topbar) auto 0 0; width: 260px; background: var(--ground); z-index: 5; box-shadow: 8px 0 24px rgba(0,0,0,.08); }
+  .top { grid-template-columns: auto 1fr auto; }
+  .lights .side-toggle { margin-left: 12px; }
+  .sheet { margin-left: var(--inset); }
+  .work { grid-template-columns: minmax(0, 1fr) 340px; }
+  .cols { grid-template-columns: minmax(0, 1fr) 96px; }
+  .cols .health-c, .cols .mod-c { display: none; }
+}
+@media (max-width: 760px) {
+  .lights i, .top-actions .kbd, .top-actions .label { display: none; }
+  .search .kbd { display: none; }
+  .sheet { margin: 0; border-radius: 0; border-width: 1px 0 0; padding: 16px 16px 0; }
+  .title-row { flex-wrap: wrap; }
+  .title-row .actions .btn:not(.primary) { display: none; }
+  .tabs { overflow-x: auto; gap: 20px; }
+  .tab { white-space: nowrap; }
+  .work { grid-template-columns: 1fr; }
+  .cols { grid-template-columns: minmax(0, 1fr) auto; }
+  .cols .health-c, .cols .mod-c { display: none; }
+  .row { height: 60px; }
+  .rail { display: none; }
+  .app.detail-open .rail { display: block; position: fixed; inset: var(--topbar) 0 0 0; background: var(--surface); padding: 16px; z-index: 4; }
+  .back { display: inline-flex; margin-bottom: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="lights" aria-hidden="false"><i></i><i></i><i></i>
+      <button class="side-toggle" id="sideToggle" aria-label="Show sidebar"><span class="ph ph-sidebar-simple" aria-hidden="true"></span></button>
+    </div>
+    <label class="search"><span class="ph ph-magnifying-glass" aria-hidden="true"></span>
+      <input id="q" type="search" placeholder="Search Personal…" aria-label="Search entries" autocomplete="off" spellcheck="false">
+      <span class="kbd">⌘&nbsp;F</span>
+    </label>
+    <div class="top-actions">
+      <button class="btn" id="lock"><span class="ph ph-lock-simple" aria-hidden="true"></span><span class="label">Lock</span><span class="kbd">⌘&nbsp;L</span></button>
+    </div>
+  </header>
+
+  <aside class="side" aria-label="Vault">
+    <div class="brand"><span class="ph-fill ph-keyhole" aria-hidden="true"></span>App</div>
+    <button class="vault" aria-label="Switch vault, current: Personal">
+      <span><b>Personal</b><small title="~/Documents/Passwords/Personal.appvault">Personal.appvault</small></span>
+      <span class="ph ph-caret-down" aria-hidden="true"></span>
+    </button>
+    <ul class="nav" id="navMain" style="margin-top:12px"></ul>
+    <div class="nav-label">Groups</div>
+    <ul class="nav" id="navGroups"></ul>
+    <div class="side-foot">
+      <ul class="nav" id="navFoot"></ul>
+      <div class="saved num"><span class="ph ph-check-circle" aria-hidden="true"></span>Saved 08:50 · Argon2id</div>
+    </div>
+  </aside>
+
+  <main class="sheet">
+    <div class="title-row">
+      <div><h1 id="title">All entries</h1><p id="sub" class="num"></p></div>
+      <div class="actions">
+        <button class="btn"><span class="ph ph-password" aria-hidden="true"></span>Generator</button>
+        <button class="btn primary"><span class="ph ph-plus" aria-hidden="true"></span>New Entry</button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="work">
+      <section class="table" aria-label="Entries">
+        <div class="cols thead">
+          <span>Name</span>
+          <span class="code-h">Code <span class="tick" aria-hidden="true"><i id="tickHead"></i></span><span class="num" id="secsHead"></span></span>
+          <span class="health-c">Password</span>
+          <span class="r mod-c">Modified</span>
+        </div>
+        <div class="rows" id="rows" role="listbox" aria-label="Entries" tabindex="0"></div>
+      </section>
+      <aside class="rail" id="rail" aria-label="Entry details"></aside>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+</div>
+
+<script>
+// Demo vault. "Now" is fixed so the screen reads the same on every load.
+const NOW = new Date('2026-10-27T10:30:00');
+const GROUPS = [
+  { id: 'email', name: 'Email', icon: 'envelope-simple' }, { id: 'banking', name: 'Banking', icon: 'bank' },
+  { id: 'social', name: 'Social', icon: 'users-three' }, { id: 'shopping', name: 'Shopping', icon: 'shopping-bag' },
+  { id: 'work', name: 'Work', icon: 'briefcase' }, { id: 'servers', name: 'Servers', icon: 'hard-drives', parent: 'work' },
+  { id: 'devices', name: 'Devices', icon: 'wifi-high' },
+];
+const E = (o) => Object.assign({ username: '', password: '', url: '', tags: [], files: [], notes: '', group: 'root', hist: 0 }, o);
+const ENTRIES = [
+  E({ id: 'github', title: 'GitHub', brand: 'github', username: 'alex-dev', password: 'x9!Lq#4vT@m2Zr8&Wk5p', url: 'https://github.com/login', group: 'work', tags: ['2fa', 'dev'], modified: '2026-10-22T08:49', totp: 'github', passkey: 'github.com', notes: 'Recovery codes are in the attachment.\nOrganization: morgan-labs', files: [{ name: 'github-recovery-codes.txt', size: '1.2 KB' }], hist: 3 }),
+  E({ id: 'apple', title: 'Apple Account', brand: 'apple', username: 'alex.morgan@icloud.com', password: 'Ap4!Kz8@Rq2#Wn6$', url: 'https://account.apple.com', modified: '2026-10-21T18:02', passkey: 'apple.com', hist: 2 }),
+  E({ id: 'google', title: 'Google', brand: 'google', username: 'alex.morgan@gmail.com', password: 'Hn7$wQ2!cV9#tR4@yB6x', url: 'https://accounts.google.com', group: 'email', tags: ['2fa'], modified: '2026-10-20T14:31', totp: 'google', hist: 4 }),
+  E({ id: 'hetzner', title: 'Hetzner Cloud', brand: 'hetzner', username: 'alex@morgan-labs.dev', password: 'Vm2#Kq8!Rt5@Ls9$Xw', url: 'https://console.hetzner.cloud', group: 'servers', tags: ['2fa', 'dev'], modified: '2026-10-18T11:05', totp: 'hetzner', hist: 1 }),
+  E({ id: 'proton', title: 'Proton Mail', brand: 'protonmail', username: 'alex.morgan@proton.me', password: 'violet anchor mosaic tundra lantern quill harbor', url: 'https://account.proton.me/login', group: 'email', tags: ['2fa'], modified: '2026-10-14T20:40', totp: 'proton', hist: 1 }),
+  E({ id: 'web01', title: 'Server root · web-01', icon: 'terminal-window', username: 'root', password: 'glacier pepper canyon ribbon falcon', url: 'ssh://203.0.113.10', group: 'servers', tags: ['dev', 'ssh'], modified: '2026-10-11T16:20', notes: 'Falkenstein, 2 vCPU.\nThe password unlocks the private key.', files: [{ name: 'id_ed25519', size: '464 B' }, { name: 'id_ed25519.pub', size: '98 B' }], ssh: 'SHA256:3m5Jq1yZp8Xc0b7oV2kLr9sT4uWnE6dHfGa1iKoP+Qw' }),
+  E({ id: 'paypal', title: 'PayPal', brand: 'paypal', username: 'alex.morgan@posteo.de', password: 'Gk3@vN8!sL5#qT1$', url: 'https://www.paypal.com/signin', group: 'banking', tags: ['finance'], modified: '2026-10-09T09:15', hist: 2 }),
+  E({ id: 'instagram', title: 'Instagram', brand: 'instagram', username: 'alex.morgan.photos', password: 'Pb5$Lx9!Wd3@Nz7#', url: 'https://www.instagram.com', group: 'social', tags: ['2fa'], modified: '2026-10-02T19:44', totp: 'insta', hist: 1 }),
+  E({ id: 'wise', title: 'Wise', brand: 'wise', username: 'alex.morgan@posteo.de', password: 'Tz4#pW9@kM2!xF7&', url: 'https://wise.com/login', group: 'banking', tags: ['2fa', 'finance'], modified: '2026-09-28T17:05', totp: 'wise', hist: 1 }),
+  E({ id: 'figma', title: 'Figma', brand: 'figma', username: 'alex@morgan-labs.dev', password: 'Fy6@Tn1!Qp8#Hc4$', url: 'https://www.figma.com/login', group: 'work', modified: '2026-09-22T10:10' }),
+  E({ id: 'mastodon', title: 'Mastodon', brand: 'mastodon', username: '@alex@mastodon.social', url: 'https://mastodon.social', group: 'social', modified: '2026-09-18T22:00', passkey: 'mastodon.social' }),
+  E({ id: 'linear', title: 'Linear', brand: 'linear', username: 'alex@morgan-labs.dev', password: 'Lr3#Vb7!Mk1@Zp5$', url: 'https://linear.app/login', group: 'work', modified: '2026-09-15T14:00', passkey: 'linear.app', hist: 1 }),
+  E({ id: 'visa', title: 'Visa Debit', brand: 'visa', username: 'Card ending 1111', group: 'banking', tags: ['finance'], modified: '2026-09-10T08:30', notes: 'Lost card: call the number on the back.' }),
+  E({ id: 'zalando', title: 'Zalando', brand: 'zalando', username: 'alex.morgan@posteo.de', password: 'Rq8!nV3@hK6#', url: 'https://www.zalando.de/login', group: 'shopping', modified: '2026-09-02T12:30', expires: '2026-10-01' }),
+  E({ id: 'amazon', title: 'Amazon', username: 'alex.morgan@posteo.de', password: 'Summer2024!', url: 'https://www.amazon.de/ap/signin', group: 'shopping', modified: '2026-08-27T20:15', hist: 2 }),
+  E({ id: 'bahn', title: 'Deutsche Bahn', brand: 'deutschebahn', username: 'alex.morgan@posteo.de', password: 'Db5@Hx1!Mq7#Tv3$', url: 'https://www.bahn.de', modified: '2026-08-19T07:45' }),
+  E({ id: 'slack', title: 'Slack', username: 'alex@morgan-labs.dev', password: 'morganlabs2024', url: 'https://morgan-labs.slack.com', group: 'work', modified: '2026-08-04T09:30' }),
+  E({ id: 'ebay', title: 'eBay', brand: 'ebay', username: 'alexmorgan88', password: 'Summer2024!', url: 'https://signin.ebay.de', group: 'shopping', modified: '2026-07-21T18:00', hist: 1 }),
+  E({ id: 'aws', title: 'AWS root account', username: 'alex@morgan-labs.dev', password: 'Aw7$Pq3!Zr9@Lm5#Ty2&', url: 'https://console.aws.amazon.com', group: 'servers', tags: ['2fa', 'dev'], modified: '2026-07-08T13:20', totp: 'aws', notes: 'Use IAM users for daily work. Root only for billing.', hist: 2 }),
+  E({ id: 'netflix', title: 'Netflix', brand: 'netflix', username: 'family.morgan@posteo.de', password: 'Nf8#Qr2!Lz6@Pv4$', url: 'https://www.netflix.com/login', tags: ['shared'], modified: '2026-06-30T21:10' }),
+  E({ id: 'reddit', title: 'Reddit', brand: 'reddit', username: 'alex_m', password: 'sunshine2019', url: 'https://www.reddit.com/login', group: 'social', modified: '2026-06-12T22:40' }),
+  E({ id: 'wifi', title: 'Home Wi-Fi', icon: 'wifi-high', username: 'Morgan-Home 5G', password: 'harbor velvet orchid meteor pine', group: 'devices', tags: ['shared'], modified: '2026-05-03T18:20', notes: 'Guest network: Morgan-Guest' }),
+  E({ id: 'router', title: 'Router admin', icon: 'hard-drives', username: 'admin', password: 'admin1234', url: 'http://192.168.178.1', group: 'devices', modified: '2026-02-14T10:00' }),
+  E({ id: 'twitter', title: 'Twitter (old account)', brand: 'x', username: '@alexmorgan', password: 'Tw9!xK2@pL7#', url: 'https://x.com/login', group: 'bin', modified: '2026-10-03T19:00' }),
+  E({ id: 'myspace', title: 'MySpace', username: 'alexm1999', password: 'qwerty123', url: 'https://myspace.com', group: 'bin', modified: '2026-09-12T08:00' }),
+];
+
+// Password checks, computed from the rows. Common words and years are what make the short ones weak.
+const COMMON = /(summer|winter|password|qwerty|admin|sunshine|letmein|morgan|printer|1234|2019|2024)/i;
+function bits(pw) {
+  if (!pw) return 0;
+  const words = pw.trim().split(/\s+/);
+  if (words.length >= 4) return Math.round(words.length * 12.9); // passphrase: ~7,776-word list
+  let pool = 0;
+  if (/[a-z]/.test(pw)) pool += 26; if (/[A-Z]/.test(pw)) pool += 26; if (/\d/.test(pw)) pool += 10; if (/[^a-zA-Z0-9]/.test(pw)) pool += 33;
+  const raw = pw.length * Math.log2(pool);
+  return Math.round(COMMON.test(pw) ? Math.min(raw, 28) : raw);
+}
+const live = ENTRIES.filter((e) => e.group !== 'bin');
+const reuse = {};
+live.forEach((e) => { if (e.password) (reuse[e.password] = reuse[e.password] || []).push(e.id); });
+function check(e) {
+  if (!e.password) return { level: 'none', word: e.passkey ? 'Passkey only' : '—', seg: 0 };
+  const b = bits(e.password);
+  const others = (reuse[e.password] || []).filter((id) => id !== e.id);
+  if (e.expires && new Date(e.expires) < NOW) return { level: 'warn', word: 'Expired', seg: 2, b, why: `Expired on ${fmtDay(e.expires)}.` };
+  if (others.length) return { level: 'bad', word: 'Reused', seg: b < 40 ? 1 : 2, b, why: `Same password as ${others.map((id) => byId(id).title).join(', ')}.` };
+  if (b < 40) return { level: 'bad', word: 'Weak', seg: 1, b, why: 'Short and built from a common word.' };
+  if (b < 64) return { level: 'ok', word: 'Fair', seg: 3, b };
+  return { level: 'ok', word: 'Strong', seg: 4, b };
+}
+const byId = (id) => ENTRIES.find((e) => e.id === id);
+const attention = () => live.filter((e) => ['bad', 'warn'].includes(check(e).level));
+
+// One-time codes: demo values that change every 30 s from a seed (the app uses RFC 6238).
+function code(seed, step) { let h = 2166136261; for (const c of seed + ':' + step) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return String((h >>> 0) % 1e6).padStart(6, '0'); }
+const fmtCode = (c) => c.slice(0, 3) + ' ' + c.slice(3);
+
+const fmtDay = (s) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function fmtMod(s) {
+  const d = new Date(s), days = Math.floor((new Date(NOW.toDateString()) - new Date(d.toDateString())) / 864e5);
+  if (days === 0) return 'Today'; if (days === 1) return 'Yesterday'; if (days < 7) return days + ' days';
+  return fmtDay(s);
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const host = (u) => { try { return new URL(u).host || u; } catch { return u; } };
+
+function logo(e, lg) {
+  const b = e.brand && window.BRANDS[e.brand];
+  const inner = b ? `<svg viewBox="0 0 24 24" role="img" aria-label="${esc(b.title)}"><path fill="#${b.hex}" d="${b.path}"/></svg>`
+    : e.icon ? `<span class="ph ph-${e.icon}" aria-hidden="true"></span>`
+    : `<span class="mono-letter" aria-hidden="true">${esc(e.title[0])}</span>`;
+  return `<span class="logo${lg ? ' lg' : ''}">${inner}</span>`;
+}
+function pwHtml(pw) { return [...pw].map((c) => /\d/.test(c) ? `<span class="d">${c}</span>` : /[a-zA-Z\s]/.test(c) ? esc(c) : `<span class="s">${esc(c)}</span>`).join(''); }
+
+const S = { view: 'all', tab: 'all', q: '', sel: 'github', reveal: false };
+
+function scope() {
+  if (S.view === 'bin') return ENTRIES.filter((e) => e.group === 'bin');
+  if (S.view === 'all') return live;
+  const kids = GROUPS.filter((g) => g.parent === S.view).map((g) => g.id);
+  return live.filter((e) => e.group === S.view || kids.includes(e.group));
+}
+const TABS = [
+  ['all', 'All', () => true],
+  ['totp', 'Two-step codes', (e) => e.totp],
+  ['passkey', 'Passkeys', (e) => e.passkey],
+  ['attention', 'Needs attention', (e) => ['bad', 'warn'].includes(check(e).level)],
+];
+function visible() {
+  const f = TABS.find((t) => t[0] === S.tab)[2], q = S.q.toLowerCase();
+  return scope().filter(f).filter((e) => !q || (e.title + ' ' + e.username + ' ' + e.url).toLowerCase().includes(q));
+}
+
+function renderNav() {
+  const item = (id, label, icon, count, cls = '') => `<li><button class="${cls}" data-view="${id}"${S.view === id ? ' aria-current="page"' : ''}><span class="ph ph-${icon}" aria-hidden="true"></span>${label}${count != null ? `<span class="count num">${count}</span>` : ''}</button></li>`;
+  navMain.innerHTML = item('all', 'All entries', 'tray', live.length);
+  navGroups.innerHTML = GROUPS.map((g) => item(g.id, g.name, g.parent ? 'folder-simple' : g.icon, null, g.parent ? 'sub' : '')).join('');
+  navFoot.innerHTML = item('bin', 'Recycle Bin', 'trash') + item('settings', 'Settings', 'gear-six');
+}
+function renderHead() {
+  const g = GROUPS.find((x) => x.id === S.view);
+  title.textContent = S.view === 'all' ? 'All entries' : S.view === 'bin' ? 'Recycle Bin' : g.name;
+  const n = scope().length, bad = scope().filter((e) => ['bad', 'warn'].includes(check(e).level)).length;
+  sub.innerHTML = S.view === 'bin' ? `${n} entries · deleted entries stay here until you empty the bin`
+    : `${n} entries${bad ? ` · <b>${bad} need attention</b>` : ''}`;
+  tabs.innerHTML = TABS.map(([id, label, f]) => {
+    const c = scope().filter(f).length, alert = id === 'attention' && c > 0;
+    return `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}<span class="n num${alert ? ' alert' : ''}">${c}</span></button>`;
+  }).join('');
+}
+function renderRows() {
+  const list = visible();
+  if (!list.find((e) => e.id === S.sel)) S.sel = list[0] ? list[0].id : null;
+  const step = Math.floor(Date.now() / 30000);
+  rows.innerHTML = list.map((e) => {
+    const c = check(e), segs = [1, 2, 3, 4].map((i) => `<i class="${i <= c.seg ? 'on' : ''}"></i>`).join('');
+    const subl = [esc(e.username || host(e.url) || '—')];
+    if (e.passkey) subl.push('<span class="ph ph-fingerprint" aria-hidden="true"></span>passkey');
+    return `<button class="row cols" role="option" data-id="${e.id}" aria-selected="${S.sel === e.id}" tabindex="-1">
+      <span class="who">${logo(e)}<span><b>${esc(e.title)}</b><small>${subl.join(' · ')}</small></span></span>
+      <span>${e.totp ? `<span class="code num" data-totp="${e.totp}">${fmtCode(code(e.totp, step))}</span>` : '<span class="dash">—</span>'}</span>
+      <span class="health-c">${c.level === 'none' ? `<span class="health">${c.word}</span>` : `<span class="health ${c.level}">${c.word}<span class="meter" aria-hidden="true">${segs}</span></span>`}</span>
+      <span class="r mod num mod-c">${fmtMod(e.modified)}</span></button>`;
+  }).join('') || `<div class="empty-rows">${S.q ? `No entries match “${esc(S.q)}”.` : 'Nothing here.'}</div>`;
+}
+function renderRail() {
+  const e = S.sel && byId(S.sel);
+  if (!e) { rail.innerHTML = ''; return; }
+  const c = check(e), g = GROUPS.find((x) => x.id === e.group);
+  const step = Math.floor(Date.now() / 30000);
+  const copy = (what, label) => `<button class="ibtn" data-copy="${what}" aria-label="Copy ${label}"><span class="ph ph-copy" aria-hidden="true"></span></button>`;
+  let h = `<button class="btn back" data-back><span class="ph ph-arrow-left" aria-hidden="true"></span>Entries</button>
+    <div class="rail-head">${logo(e, true)}<div style="min-width:0"><h2>${esc(e.title)}</h2>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(host(e.url))}<span class="ph ph-arrow-square-out" aria-hidden="true" style="font-size:12px"></span></a>` : `<span class="pw-meta">${g ? g.name : 'Personal'}</span>`}</div>
+    <div class="tools"><button class="ibtn" aria-label="Edit entry"><span class="ph ph-pencil-simple" aria-hidden="true"></span></button><button class="ibtn" aria-label="More actions"><span class="ph ph-dots-three" aria-hidden="true"></span></button></div></div>`;
+  if (c.level === 'bad' || c.level === 'warn') h += `<div class="notice" role="note"><span class="ph ph-warning-circle" aria-hidden="true"></span><div>${c.why} <button>Change password</button></div></div>`;
+  h += `<div class="panel">`;
+  if (e.username) h += `<div class="field"><div><span class="lbl">${e.id === 'wifi' ? 'Network name' : 'Username'}</span><span class="val">${esc(e.username)}</span></div>${copy('username', 'username')}</div>`;
+  if (e.password) h += `<div class="field"><div><span class="lbl">Password</span><span class="val pw">${S.reveal ? pwHtml(e.password) : '•'.repeat(Math.min(e.password.length, 20))}</span>
+      <div class="pw-meta${c.level === 'bad' ? ' bad' : ''} num">${c.word} · ${e.password.length} characters · about ${c.b} bits</div></div>
+      <button class="ibtn" data-reveal aria-label="${S.reveal ? 'Hide' : 'Show'} password" aria-pressed="${S.reveal}"><span class="ph ph-${S.reveal ? 'eye-slash' : 'eye'}" aria-hidden="true"></span></button>${copy('password', 'password')}</div>`;
+  if (e.totp) h += `<div class="field otp"><div><span class="lbl">One-time code</span><span class="big num" data-totp="${e.totp}">${fmtCode(code(e.totp, step))}</span>
+      <div class="bar" aria-hidden="true"><i data-bar></i></div><div class="secs num" data-secs></div></div>${copy('code', 'one-time code')}</div>`;
+  if (e.passkey) h += `<div class="field"><div><span class="lbl">Passkey</span><span class="val">${esc(e.passkey)} · ${esc(e.username)}</span></div><span class="ph ph-fingerprint" aria-hidden="true" style="color:var(--muted);margin-right:8px"></span></div>`;
+  if (e.ssh) h += `<div class="field"><div><span class="lbl">SSH key · ED25519 · in agent</span><span class="val pw" style="font-size:13px">${esc(e.ssh)}</span></div>${copy('ssh', 'key fingerprint')}</div>`;
+  h += `</div><div class="panel">`;
+  h += `<div class="field"><div><span class="lbl">Group</span><span class="val">${g ? g.name : 'Personal'}</span></div></div>`;
+  if (e.tags.length) h += `<div class="field"><div><span class="lbl">Tags</span><div class="chips">${e.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</div></div></div>`;
+  if (e.files.length) h += `<div class="field"><div><span class="lbl">Attachments</span>${e.files.map((f) => `<div class="file"><span class="ph ph-paperclip" aria-hidden="true"></span>${esc(f.name)} <small class="num">${f.size}</small></div>`).join('')}</div></div>`;
+  if (e.notes) h += `<div class="field"><div><span class="lbl">Notes</span><div class="notes">${esc(e.notes)}</div></div></div>`;
+  h += `</div><div class="rail-foot num"><span>Modified ${fmtDay(e.modified)}, ${e.modified.slice(11, 16)}</span>${e.hist ? `<button>${e.hist} earlier ${e.hist === 1 ? 'version' : 'versions'}</button>` : '<span>No earlier versions</span>'}</div>`;
+  rail.innerHTML = h;
+  tick();
+}
+function render() { renderNav(); renderHead(); renderRows(); renderRail(); }
+
+// Countdown: one shared 30 s window, shown once in the column header and in the open entry.
+let lastStep = Math.floor(Date.now() / 30000);
+function tick() {
+  const now = Date.now(), step = Math.floor(now / 30000), left = 30 - Math.floor((now / 1000) % 30), ratio = ((now / 1000) % 30) / 30;
+  if (step !== lastStep) { lastStep = step; document.querySelectorAll('[data-totp]').forEach((n) => n.textContent = fmtCode(code(n.dataset.totp, step))); }
+  secsHead.textContent = left + ' s';
+  tickHead.style.transform = `scaleX(${1 - ratio})`;
+  const bar = rail.querySelector('[data-bar]'), secs = rail.querySelector('[data-secs]');
+  if (bar) bar.style.transform = `scaleX(${1 - ratio})`;
+  if (secs) secs.textContent = `New code in ${left} s`;
+}
+setInterval(tick, 250);
+
+let toastT;
+function toast(html) { const t = document.getElementById('toast'); t.innerHTML = html; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('button'); if (!t) return;
+  const app = document.getElementById('app');
+  if (t.dataset.view) {
+    if (t.dataset.view === 'settings') return toast('<span class="ph ph-gear-six"></span>Settings are not part of this option yet');
+    S.view = t.dataset.view; S.tab = 'all'; S.reveal = false; app.classList.remove('nav-open'); render();
+  } else if (t.dataset.tab) { S.tab = t.dataset.tab; render(); }
+  else if (t.dataset.id) { S.sel = t.dataset.id; S.reveal = false; app.classList.add('detail-open'); renderRows(); renderRail(); }
+  else if ('reveal' in t.dataset) { S.reveal = !S.reveal; renderRail(); }
+  else if ('back' in t.dataset) app.classList.remove('detail-open');
+  else if (t.dataset.copy) {
+    const what = { username: 'Username', password: 'Password', code: 'One-time code', ssh: 'Fingerprint' }[t.dataset.copy];
+    toast(`<span class="ph ph-check" aria-hidden="true"></span>${what} copied <small>· clipboard clears in 30 s</small>`);
+  } else if (t.id === 'sideToggle') app.classList.toggle('nav-open');
+  else if (t.id === 'lock') toast('<span class="ph ph-lock-simple" aria-hidden="true"></span>The lock screen is the next screen to design');
+});
+document.getElementById('q').addEventListener('input', (ev) => { S.q = ev.target.value; renderRows(); renderRail(); });
+document.addEventListener('keydown', (ev) => {
+  if (ev.metaKey && ev.key.toLowerCase() === 'f') { ev.preventDefault(); document.getElementById('q').focus(); return; }
+  if (!['ArrowDown', 'ArrowUp'].includes(ev.key) || ev.target.tagName === 'INPUT') return;
+  const list = visible(), i = list.findIndex((e) => e.id === S.sel), n = list[i + (ev.key === 'ArrowDown' ? 1 : -1)];
+  if (n) { ev.preventDefault(); S.sel = n.id; S.reveal = false; renderRows(); renderRail(); rows.querySelector(`[data-id="${n.id}"]`).scrollIntoView({ block: 'nearest' }); }
+});
+console.assert(attention().length === 6, 'needs-attention count');
+render();
+</script>
+</body>
+</html>

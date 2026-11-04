@@ -1,0 +1,727 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        75,
+        48,
+        48
+      ],
+      "label" : "GitHub",
+      "role" : "AXImage"
+    },
+    {
+      "frame" : [
+        337,
+        74.5,
+        97.5,
+        29
+      ],
+      "label" : "Edit entry",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1119.5,
+        75,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1201,
+        75,
+        86,
+        36
+      ],
+      "label" : "Save, ⌘S",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        337,
+        106,
+        88,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "GitHub · Work"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            145,
+            196,
+            32
+          ],
+          "label" : "Entry",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            181,
+            196,
+            32
+          ],
+          "label" : "Advanced, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            217,
+            196,
+            32
+          ],
+          "label" : "Icon",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            253,
+            196,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            289,
+            196,
+            32
+          ],
+          "label" : "Browser",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            273,
+            325,
+            196,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            361,
+            196,
+            32
+          ],
+          "label" : "Properties",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            397,
+            196,
+            32
+          ],
+          "label" : "History, 3",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        145,
+        196,
+        284
+      ],
+      "label" : "Editor pages",
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            501,
+            145.5,
+            35,
+            19
+          ],
+          "label" : "Sites",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            172.5,
+            411,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "The browser extension fills this entry on its website and on these sites."
+        },
+        {
+          "frame" : [
+            501,
+            205.5,
+            94,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Also allowed on"
+        },
+        {
+          "frame" : [
+            917,
+            205.5,
+            53.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Never on"
+        },
+        {
+          "frame" : [
+            522,
+            239.5,
+            83,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "gist.github.com"
+        },
+        {
+          "frame" : [
+            609,
+            239,
+            16,
+            16
+          ],
+          "label" : "Remove gist.github.com",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            647,
+            239.5,
+            60.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "github.com"
+        },
+        {
+          "frame" : [
+            711.5,
+            239,
+            16,
+            16
+          ],
+          "label" : "Remove github.com",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            741.5,
+            238,
+            152.5,
+            18
+          ],
+          "label" : "Also allowed on",
+          "placeholder" : "Add a site…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            930,
+            238,
+            346,
+            18
+          ],
+          "label" : "Never on",
+          "placeholder" : "Add a site…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            501,
+            293.5,
+            54.5,
+            19
+          ],
+          "label" : "Options",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                336,
+                210.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Never offer this entry to browsers"
+            },
+            {
+              "frame" : [
+                515,
+                356.5,
+                150,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "The extension never sees it."
+            },
+            {
+              "frame" : [
+                1235,
+                343.5,
+                34,
+                20
+              ],
+              "label" : "Hide from browser",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            515,
+            336,
+            754,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                394,
+                137.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Fill, but do not submit"
+            },
+            {
+              "frame" : [
+                515,
+                414.5,
+                200,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "You press the sign-in button yourself."
+            },
+            {
+              "frame" : [
+                1235,
+                401.5,
+                34,
+                20
+              ],
+              "label" : "Do not submit",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            515,
+            394,
+            754,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                452,
+                199,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Only for sign-in pop-ups (HTTP)"
+            },
+            {
+              "frame" : [
+                515,
+                472.5,
+                185.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "For routers and old intranet pages."
+            },
+            {
+              "frame" : [
+                1235,
+                459.5,
+                34,
+                20
+              ],
+              "label" : "HTTP only",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            515,
+            452,
+            754,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            501,
+            526.5,
+            204.5,
+            19
+          ],
+          "label" : "Browsers that used this entry",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            518,
+            576,
+            18,
+            18
+          ],
+          "label" : "Firefox Browser",
+          "role" : "AXImage"
+        },
+        {
+          "frame" : [
+            546,
+            576.5,
+            115,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Firefox on MacBook"
+        },
+        {
+          "frame" : [
+            1190,
+            576.5,
+            76,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Today, 09:12"
+        },
+        {
+          "frame" : [
+            518,
+            616,
+            18,
+            18
+          ],
+          "label" : "Safari",
+          "role" : "AXImage"
+        },
+        {
+          "frame" : [
+            546,
+            616.5,
+            34,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Safari"
+        },
+        {
+          "frame" : [
+            1227,
+            616.5,
+            39,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Oct 20"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        501,
+        145,
+        786,
+        667
+      ],
+      "label" : "Browser",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

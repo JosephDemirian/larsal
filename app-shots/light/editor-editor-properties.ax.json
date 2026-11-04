@@ -1,0 +1,803 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        75,
+        48,
+        48
+      ],
+      "label" : "GitHub",
+      "role" : "AXImage"
+    },
+    {
+      "frame" : [
+        337,
+        74.5,
+        97.5,
+        29
+      ],
+      "label" : "Edit entry",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1119.5,
+        75,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1201,
+        75,
+        86,
+        36
+      ],
+      "label" : "Save, ⌘S",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        337,
+        106,
+        88,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "GitHub · Work"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            145,
+            196,
+            32
+          ],
+          "label" : "Entry",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            181,
+            196,
+            32
+          ],
+          "label" : "Advanced, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            217,
+            196,
+            32
+          ],
+          "label" : "Icon",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            253,
+            196,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            289,
+            196,
+            32
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            325,
+            196,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            361,
+            196,
+            32
+          ],
+          "label" : "Properties",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            273,
+            397,
+            196,
+            32
+          ],
+          "label" : "History, 3",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        145,
+        196,
+        284
+      ],
+      "label" : "Editor pages",
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            501,
+            145.5,
+            73,
+            19
+          ],
+          "label" : "Properties",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                210.5,
+                54.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Identifier"
+            },
+            {
+              "frame" : [
+                696,
+                210.5,
+                281,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "3f2a9c1e-77b4-4c0d-9a51-6e0b2d8c4f17"
+            }
+          ],
+          "frame" : [
+            520,
+            210.5,
+            457,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                240.5,
+                46.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Created"
+            },
+            {
+              "frame" : [
+                696,
+                240.5,
+                113,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Mar 3, 2024, 10:12"
+            }
+          ],
+          "frame" : [
+            520,
+            240.5,
+            289,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                270.5,
+                51,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Modified"
+            },
+            {
+              "frame" : [
+                696,
+                270.5,
+                118.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Oct 22, 2026, 08:49"
+            }
+          ],
+          "frame" : [
+            520,
+            270.5,
+            294.5,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                300.5,
+                56,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Last used"
+            },
+            {
+              "frame" : [
+                696,
+                300.5,
+                76,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Today, 09:12"
+            }
+          ],
+          "frame" : [
+            520,
+            300.5,
+            252,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                330.5,
+                43.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Expires"
+            },
+            {
+              "frame" : [
+                696,
+                330.5,
+                34.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Never"
+            }
+          ],
+          "frame" : [
+            520,
+            330.5,
+            210.5,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                360.5,
+                67,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Times used"
+            },
+            {
+              "frame" : [
+                696,
+                360.5,
+                23.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "214"
+            }
+          ],
+          "frame" : [
+            520,
+            360.5,
+            199.5,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                520,
+                390.5,
+                42,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "History"
+            },
+            {
+              "frame" : [
+                696,
+                390.5,
+                109,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "3 versions · 4.5 KB"
+            }
+          ],
+          "frame" : [
+            520,
+            390.5,
+            285,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            501,
+            469.5,
+            88,
+            19
+          ],
+          "label" : "Custom data",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            501,
+            496.5,
+            384.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Values other apps and the browser extension store with this entry."
+        },
+        {
+          "frame" : [
+            518,
+            538.5,
+            20,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Key"
+        },
+        {
+          "frame" : [
+            906,
+            538.5,
+            30.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Value"
+        },
+        {
+          "frame" : [
+            518,
+            579.5,
+            133,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "browser.last_fill"
+        },
+        {
+          "frame" : [
+            906,
+            579.5,
+            111,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "2026-10-27 09:12"
+        },
+        {
+          "frame" : [
+            1238,
+            574,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            518,
+            627.5,
+            148.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Browser site access"
+        },
+        {
+          "frame" : [
+            906,
+            627.5,
+            310.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "{\"Allow\":[\"gist.github.com\",\"github.com\"],\"Deny\":[],\"Realm\":\"\"}"
+        },
+        {
+          "frame" : [
+            1238,
+            622,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            518,
+            675.5,
+            164,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "BrowserSkipAutoSubmit"
+        },
+        {
+          "frame" : [
+            906,
+            675.5,
+            24,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "true"
+        },
+        {
+          "frame" : [
+            1238,
+            670,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            518,
+            723.5,
+            109.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "BrowserLastUse"
+        },
+        {
+          "frame" : [
+            906,
+            723.5,
+            312,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "{\"Firefox on MacBook\":\"2026-10-27T08:12:00Z\",\"Safari\":\"2026-10-20T16:05:00Z\"}"
+        },
+        {
+          "frame" : [
+            1238,
+            718,
+            28,
+            28
+          ],
+          "label" : "Remove",
+          "role" : "AXButton"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        501,
+        145,
+        786,
+        667
+      ],
+      "label" : "Properties",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

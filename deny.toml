@@ -1,0 +1,175 @@
+# Dependency policy (story E0-S4, attack AT-J02). Run: cargo deny check
+
+[graph]
+# Mac first: check what we build. Add targets when Windows or Linux arrive.
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+# Off-by-default features whose crates the policy must still see: the HTTPS
+# client (E6-S7, LD-194).
+features = ["app-platform/net"]
+
+[advisories]
+# Vulnerabilities are always errors. Yanked versions too.
+yanked = "deny"
+ignore = [
+    # E5-S1: "unmaintained", not a vulnerability. basic-toml 0.1.10 is reached
+    # only through askama_derive, a proc macro inside uniffi_bindgen: build
+    # time, in crates/uniffi-bindgen only, never linked into the app. askama
+    # 0.16.1 (the latest) needs it for its "config" feature, which
+    # uniffi_bindgen 0.32.2 turns on. Remove when UniFFI moves off it.
+    { id = "RUSTSEC-2026-0374", reason = "build-time only, in the UniFFI bindings generator; no maintained release to move to (E5-S1)" },
+]
+
+[licenses]
+allow = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Zlib", "Unicode-3.0"]
+confidence-threshold = 0.9
+# The allowlist is policy, not a list of what is in use today.
+unused-allowed-license = "allow"
+# Named exceptions, one crate version each; MPL-2.0 is not on the allowlist.
+# The UniFFI 0.32.2 family (E5-S1, LD-156); AT-J03 reviews them. All used
+# unmodified but uniffi and uniffi_core, App's patched copies in vendor/uniffi
+# and vendor/uniffi_core since E0-S7 step 4c, and uniffi_bindgen, in
+# vendor/uniffi_bindgen since step 5 (their edited files stay MPL-2.0).
+# The release (E14) ships the MPL-2.0 notice for the linked ones.
+exceptions = [
+    # Linked into the app through app-ffi's static library: the runtime that
+    # moves values across the Swift-Rust boundary (`uniffi` re-exports it).
+    { crate = "uniffi@0.32.2", allow = ["MPL-2.0"] },
+    { crate = "uniffi_core@0.32.2", allow = ["MPL-2.0"] },
+    # For the interface metadata, build time only: uniffi_meta and its
+    # uniffi_pipeline, inside uniffi_macros and the bindings generator; uniffi
+    # itself no longer names uniffi_pipeline (E0-S7 steps 4c and 5). `ar t` on
+    # the static library lists only uniffi and uniffi_core of the family.
+    { crate = "uniffi_meta@0.32.2", allow = ["MPL-2.0"] },
+    { crate = "uniffi_pipeline@0.32.2", allow = ["MPL-2.0"] },
+    # Build time only: the proc macros that write app-ffi's scaffolding.
+    { crate = "uniffi_macros@0.32.2", allow = ["MPL-2.0"] },
+    { crate = "uniffi_internal_macros@0.32.2", allow = ["MPL-2.0"] },
+    # Only in crates/uniffi-bindgen, the generator scripts/build-core.sh runs;
+    # never linked into the app. Its UDL parser uniffi_udl is gone (step 5).
+    { crate = "uniffi_bindgen@0.32.2", allow = ["MPL-2.0"] },
+    # The fuzz workspace only (F-114; scripts/check.sh runs this file on
+    # fuzz/ too): libFuzzer's own C++ source is NCSA. A fuzz tool, never shipped.
+    { crate = "libfuzzer-sys@0.4.13", allow = ["NCSA"] },
+]
+
+[licenses.private]
+# Our own crates are publish = false, so cargo-deny skips them here. Their
+# license is GPL-3.0-or-later, app-server AGPL-3.0 (D2, LD-262, E14-S2).
+ignore = true
+
+[sources]
+# Only the vendored copies (E0-S7, LD-221): .cargo/config.toml replaces
+# crates.io with vendor/crates-io, and Cargo.lock keeps naming crates.io, so
+# that registry is the one source allowed here; no git, no other registry.
+# scripts/check-vendor.sh proves every package is read from this tree.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# Path dependencies between our own unpublished crates are not wildcards.
+allow-wildcard-paths = true
+deny = [
+    { crate = "openssl", reason = "no OpenSSL: TLS is rustls only" },
+    { crate = "openssl-sys", reason = "no OpenSSL: TLS is rustls only" },
+    { crate = "native-tls", reason = "no native TLS: TLS is rustls only" },
+    # Crypto crates: one version each, never two.
+    { crate = "aes", deny-multiple-versions = true },
+    { crate = "cbc", deny-multiple-versions = true },
+    { crate = "chacha20", deny-multiple-versions = true },
+    { crate = "salsa20", deny-multiple-versions = true },
+    { crate = "twofish", deny-multiple-versions = true },
+    { crate = "argon2", deny-multiple-versions = true },
+    { crate = "blake2", deny-multiple-versions = true },
+    { crate = "password-hash", deny-multiple-versions = true },
+    { crate = "sha2", deny-multiple-versions = true },
+    { crate = "sha1", deny-multiple-versions = true },
+    { crate = "hmac", deny-multiple-versions = true },
+    { crate = "subtle", deny-multiple-versions = true },
+    { crate = "zeroize", deny-multiple-versions = true },
+    # One random source (CRY-03, AT-B04, F-100): only app-crypto calls the
+    # OS. Named exceptions: tempfile (pulled in by uniffi_pipeline at build
+    # time and by proptest in tests, never called by App), ring's TLS
+    # handshake randomness (LD-194) and, in tests only, proptest's rand. A new
+    # caller of getrandom, fastrand or rand fails here.
+    { crate = "getrandom", wrappers = ["app-crypto", "tempfile", "ring", "rand"], reason = "one random source: app-crypto (F-100)" },
+    { crate = "fastrand", wrappers = ["tempfile"], reason = "one random source: app-crypto (F-100)" },
+    { crate = "rand", wrappers = ["proptest"], reason = "one random source: app-crypto; proptest's in tests only (F-100)" },
+    { crate = "rand_core", deny-multiple-versions = true },
+    { crate = "cipher", deny-multiple-versions = true },
+    { crate = "digest", deny-multiple-versions = true },
+    { crate = "crypto-common", deny-multiple-versions = true },
+    { crate = "block-buffer", deny-multiple-versions = true },
+    { crate = "block-padding", deny-multiple-versions = true },
+    { crate = "inout", deny-multiple-versions = true },
+    { crate = "universal-hash", deny-multiple-versions = true },
+    { crate = "poly1305", deny-multiple-versions = true },
+    { crate = "aead", deny-multiple-versions = true },
+    { crate = "curve25519-dalek", deny-multiple-versions = true },
+    { crate = "ed25519", deny-multiple-versions = true },
+    { crate = "ed25519-dalek", deny-multiple-versions = true },
+    { crate = "signature", deny-multiple-versions = true },
+    { crate = "elliptic-curve", deny-multiple-versions = true },
+    { crate = "ecdsa", deny-multiple-versions = true },
+    { crate = "p256", deny-multiple-versions = true },
+    { crate = "primeorder", deny-multiple-versions = true },
+    { crate = "crypto-bigint", deny-multiple-versions = true },
+    { crate = "ff", deny-multiple-versions = true },
+    { crate = "group", deny-multiple-versions = true },
+    { crate = "rfc6979", deny-multiple-versions = true },
+    { crate = "sec1", deny-multiple-versions = true },
+    { crate = "ssh-key", deny-multiple-versions = true },
+    { crate = "ssh-cipher", deny-multiple-versions = true },
+    { crate = "ssh-encoding", deny-multiple-versions = true },
+    { crate = "ring", deny-multiple-versions = true },
+    { crate = "rustls", deny-multiple-versions = true },
+    { crate = "rustls-webpki", deny-multiple-versions = true },
+    { crate = "aes-gcm", deny-multiple-versions = true },
+    { crate = "ctr", deny-multiple-versions = true },
+    { crate = "ghash", deny-multiple-versions = true },
+    { crate = "polyval", deny-multiple-versions = true },
+    { crate = "pbkdf2", deny-multiple-versions = true },
+    { crate = "hkdf", deny-multiple-versions = true },
+    { crate = "bcrypt-pbkdf", deny-multiple-versions = true },
+    { crate = "blowfish", deny-multiple-versions = true },
+    { crate = "primefield", deny-multiple-versions = true },
+    { crate = "wnaf", deny-multiple-versions = true },
+    { crate = "phc", deny-multiple-versions = true },
+    { crate = "x25519-dalek", deny-multiple-versions = true },
+    { crate = "hpke", deny-multiple-versions = true },
+    { crate = "hpke", wrappers = ["app-crypto"], reason = "only app-crypto imports hpke (CRY-04.1, E16-S2)" },
+    { crate = "hybrid-array", deny-multiple-versions = true },
+    { crate = "cmov", deny-multiple-versions = true },
+    { crate = "ctutils", deny-multiple-versions = true },
+    { crate = "cpufeatures", deny-multiple-versions = true },
+    { crate = "cpubits", deny-multiple-versions = true },
+    # Key encoding crates.
+    { crate = "der", deny-multiple-versions = true },
+    { crate = "spki", deny-multiple-versions = true },
+    { crate = "pkcs8", deny-multiple-versions = true },
+    { crate = "const-oid", deny-multiple-versions = true },
+    # LD-258 (2), LD-261 (4): base64ct is approved for app-crypto only (its
+    # base64.rs); argon2, pem-rfc7468 and ssh-encoding already use it. A new
+    # crate that names it fails here.
+    { crate = "base64ct", wrappers = ["app-crypto", "argon2", "pem-rfc7468", "ssh-encoding"], reason = "base64 for App's crates goes through app-crypto (LD-258 (2))" },
+    { crate = "base64ct", deny-multiple-versions = true },
+    { crate = "base16ct", deny-multiple-versions = true },
+    { crate = "pem-rfc7468", deny-multiple-versions = true },
+]
+# Named exceptions to "one version each" (LD-115). The miniz_oxide 0.8.9 one
+# is gone since E0-S7 step 4d: App's png copy drops its unused miniz_oxide
+# dependency, so flate2's 0.9.1 is the only one.
+skip = [
+    # E6-S7 (LD-194): ring 0.17.14, the newest, is rustls's crypto for TLS in
+    # app-platform `net.rs` (feature `net`) and for rcgen in its tests; it needs
+    # getrandom 0.2. Only TLS handshake randomness: App's keys and salts come
+    # from app-crypto through getrandom 0.4. Remove when ring moves on.
+    { crate = "getrandom@0.2.17", reason = "ring 0.17 (TLS in net.rs, LD-194) needs 0.2; TLS handshake randomness only (E6-S7)" },
+]
+
+[bans.workspace-dependencies]
+# Every approved crate is pinned in [workspace.dependencies] before any crate uses it.
+unused = "allow"

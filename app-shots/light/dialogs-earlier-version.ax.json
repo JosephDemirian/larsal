@@ -1,0 +1,158 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            214.5,
+            20
+          ],
+          "label" : "GitHub, Jun 3, 2026 at 11:20",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            331.5,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "How the entry looked before the passkey was added."
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                39,
+                105.5,
+                55.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Username"
+            },
+            {
+              "frame" : [
+                39,
+                124,
+                54,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "alex-dev"
+            }
+          ],
+          "frame" : [
+            39,
+            105.5,
+            55.5,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                39,
+                164,
+                52.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Password"
+            },
+            {
+              "frame" : [
+                39,
+                182.5,
+                174,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "x9!Lq#4vT@m2Zr8&Wk5p"
+            }
+          ],
+          "frame" : [
+            39,
+            164,
+            174,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                39,
+                222,
+                44,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Website"
+            },
+            {
+              "frame" : [
+                39,
+                240.5,
+                151.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "https:\/\/github.com\/login"
+            }
+          ],
+          "frame" : [
+            39,
+            222,
+            151.5,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            203,
+            292,
+            65.5,
+            36
+          ],
+          "label" : "Close",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            276.5,
+            292,
+            161.5,
+            36
+          ],
+          "label" : "Restore This Version",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        346
+      ],
+      "label" : "GitHub, Jun 3, 2026 at 11:20",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    346
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

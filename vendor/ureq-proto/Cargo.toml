@@ -1,0 +1,69 @@
+# App's patched copy of ureq-proto 0.6.5 (E0-S7 step 4d: spec/research/dependencies.md
+# section 8 step 4 item 7, R13). Upstream: https://github.com/algesten/ureq-proto,
+# MIT OR Apache-2.0 (LICENSE-MIT.txt, LICENSE-APACHE.txt kept). Used through
+# [patch.crates-io] in the root workspace (app-platform `net`, through the ureq
+# copy in vendor/ureq); not a workspace member. App changes, each marked
+# `App change (E0-S7 R13, change N)` in the source:
+# 1. No Basic authorization header from a user name and password in the URI
+#    (src/client/sendreq.rs; the unused `req_auth_header` flag in
+#    src/client/amended.rs, where an Authorization header is still checked,
+#    and the `AuthorityExt` trait in src/ext.rs go with it, and so do the 3
+#    unit tests of it in src/client/mod.rs). App refuses a URL with a user name
+#    or password before it reaches ureq (app-platform net.rs, LD-64). This was
+#    the crate's only use of base64, so the dependency is gone.
+# 2. This manifest is the published, normalized one without the base64
+#    dependency and the README entry; the copy leaves out README.md, Cargo.lock,
+#    Cargo.toml.orig, .cargo_vcs_info.json, .github/ and .vscode/. No
+#    `publish = false`: cargo deny skips the license of an unpublished crate
+#    (deny.toml [licenses.private], F-137), and this copy stays checked.
+[package]
+edition = "2024"
+rust-version = "1.85"
+name = "ureq-proto"
+version = "0.6.5"
+authors = ["Martin Algesten <martin@algesten.se>"]
+build = false
+exclude = [
+    "/cargo_deny.sh",
+    "/deny.toml",
+    "/doc/",
+    "/run-fuzz.sh",
+    "/test.sh",
+]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "ureq support crate"
+keywords = [
+    "http",
+    "server",
+    "web",
+]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/algesten/ureq-proto"
+
+[features]
+client = []
+default = [
+    "client",
+    "server",
+]
+server = []
+
+[lib]
+name = "ureq_proto"
+path = "src/lib.rs"
+
+[dependencies.http]
+version = "1.1.0"
+features = ["std"]
+default-features = false
+
+[dependencies.httparse]
+version = "1.8.0"
+default-features = false
+
+[dependencies.log]
+version = "0.4.22"

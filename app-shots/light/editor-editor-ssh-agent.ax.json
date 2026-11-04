@@ -1,0 +1,886 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        337,
+        74.5,
+        97.5,
+        29
+      ],
+      "label" : "Edit entry",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1119.5,
+        75,
+        73.5,
+        36
+      ],
+      "label" : "Cancel",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1201,
+        75,
+        86,
+        36
+      ],
+      "label" : "Save, ⌘S",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        337,
+        106,
+        189,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "Server root · web-01 · Servers"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            145,
+            196,
+            32
+          ],
+          "label" : "Entry",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            181,
+            196,
+            32
+          ],
+          "label" : "Advanced, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            217,
+            196,
+            32
+          ],
+          "label" : "Icon",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            253,
+            196,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            289,
+            196,
+            32
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            325,
+            196,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            273,
+            361,
+            196,
+            32
+          ],
+          "label" : "Properties",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            273,
+            397,
+            196,
+            32
+          ],
+          "label" : "History, 0",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        145,
+        196,
+        284
+      ],
+      "label" : "Editor pages",
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                516,
+                157,
+                244.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Use this entry's key with the SSH agent"
+            },
+            {
+              "frame" : [
+                516,
+                177.5,
+                320,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Server root · web-01 · the entry's password unlocks the key"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1234,
+                164.5,
+                34,
+                20
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "SSH agent",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            516,
+            157,
+            752,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            501,
+            232.5,
+            77.5,
+            19
+          ],
+          "label" : "Private key",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                546,
+                280,
+                130,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "From an attachment"
+            },
+            {
+              "frame" : [
+                577,
+                313.5,
+                116.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "id_ed25519 · 464 B"
+            }
+          ],
+          "frame" : [
+            501,
+            264,
+            782,
+            88
+          ],
+          "label" : "From an attachment",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "children" : [
+            {
+              "disabled" : true,
+              "frame" : [
+                546,
+                376,
+                144,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "From a file on this Mac"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                546,
+                397.54999999999927,
+                133,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "~\/.ssh\/id_ed25519"
+            }
+          ],
+          "disabled" : true,
+          "frame" : [
+            501,
+            360,
+            782,
+            70
+          ],
+          "help" : "The SSH agent comes in E9.",
+          "label" : "From a file on this Mac",
+          "role" : "AXButton"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                518,
+                472.09999999999854,
+                28.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Type"
+            },
+            {
+              "frame" : [
+                694,
+                472.09999999999854,
+                55.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "ED25519"
+            }
+          ],
+          "frame" : [
+            518,
+            472.10000610351562,
+            231.5,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                518,
+                502.09999999999854,
+                64.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Fingerprint"
+            },
+            {
+              "frame" : [
+                694,
+                502.09999999999854,
+                390.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "SHA256:HcIVc9zwwjD8lnpxADs5mQMGnCOBDUkP9dC\/28u+FDA"
+            }
+          ],
+          "frame" : [
+            518,
+            502.10000610351562,
+            566.5,
+            16.999969482421875
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                518,
+                532.09999999999854,
+                57.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Comment"
+            },
+            {
+              "frame" : [
+                694,
+                532.09999999999854,
+                109.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "alex@morgan-labs"
+            }
+          ],
+          "frame" : [
+            518,
+            532.0999755859375,
+            285.5,
+            17
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                518,
+                562.09999999999854,
+                59.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Public key"
+            },
+            {
+              "frame" : [
+                706,
+                573.29999999999927,
+                547.5,
+                32.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAswVXqfxOkOM1h9osfsETZbgKXK7xQ5XoOozfIXPGGG alex@morgan-labs"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                694,
+                625,
+                137.5,
+                28
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "Copy public key",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            518,
+            562,
+            748,
+            91
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            501,
+            711.5,
+            41,
+            19
+          ],
+          "label" : "Agent",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                757,
+                222,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Add the key when the vault unlocks"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1235,
+                756,
+                34,
+                20
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "Add on unlock",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            515,
+            756,
+            754,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                804,
+                231.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Remove the key when the vault locks"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1235,
+                803,
+                34,
+                20
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "Remove on lock",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            515,
+            803,
+            754,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                848,
+                127,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Ask before each use"
+            },
+            {
+              "frame" : [
+                515,
+                868.5,
+                379.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "App shows a question every time a program wants to sign with the key."
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1235,
+                855.5,
+                34,
+                20
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "Confirm",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            515,
+            848,
+            754,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                515,
+                911,
+                133,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Remove the key after"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1124,
+                911.5,
+                41,
+                17
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "role" : "AXStaticText",
+              "value" : "10 min"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1175,
+                905,
+                26,
+                30
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1201,
+                905,
+                26,
+                30
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "More",
+              "role" : "AXButton"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                1235,
+                910,
+                34,
+                20
+              ],
+              "help" : "The SSH agent comes in E9.",
+              "label" : "Lifetime",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            515,
+            905,
+            754,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            501,
+            957,
+            160,
+            32
+          ],
+          "help" : "The SSH agent comes in E9.",
+          "label" : "Add to agent now",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            669,
+            957,
+            173,
+            32
+          ],
+          "help" : "The SSH agent comes in E9.",
+          "label" : "Remove from agent",
+          "role" : "AXButton"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        501,
+        145,
+        786,
+        667
+      ],
+      "label" : "SSH Agent",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

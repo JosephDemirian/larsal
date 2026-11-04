@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 8bdd695e527a71fcc8689df73760d9772921db78ce4b61ba306a8562c21fb700 # shrinks to ops_a = [], ops_b = [Add { group: 0, at: 1 }]
+cc b3c1ec0a02210b2e58fed9ac806688981fa09698cc841ce0fc824c30336adc50 # shrinks to ops_a = [DeleteGroup { group: 0, at: 1 }, Delete { entry: 0, at: 1 }], ops_b = [Edit { entry: 0, value: 0, at: 24 }, Edit { entry: 0, value: 1, at: 1 }, Edit { entry: 0, value: 2, at: 1 }]
+cc a5ae23d48bcac17d795fcb8a75dcf85925c061ba37152666c750317884e8a7b0 # shrinks to ops_a = [MoveGroup { group: 1, parent: 3, at: 17 }], ops_b = [MoveGroup { group: 2, parent: 1, at: 1 }, MoveGroup { group: 3, parent: 4, at: 1 }]

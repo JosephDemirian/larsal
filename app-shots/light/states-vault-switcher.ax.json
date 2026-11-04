@@ -1,0 +1,126 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            28,
+            126.5,
+            66.5,
+            15
+          ],
+          "label" : "Open vaults",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            18,
+            148,
+            288,
+            30
+          ],
+          "label" : "Personal, open",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            178,
+            288,
+            30
+          ],
+          "label" : "Work, locked",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            208,
+            288,
+            30
+          ],
+          "label" : "Family, locked",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            251,
+            288,
+            30
+          ],
+          "label" : "New Vault…, ⇧⌘N",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            281,
+            288,
+            30
+          ],
+          "label" : "Open Vault…, ⌘O",
+          "role" : "AXButton"
+        },
+        {
+          "disabled" : true,
+          "frame" : [
+            18,
+            311,
+            288,
+            30
+          ],
+          "help" : "Import comes with the import assistant (FEA-08).",
+          "label" : "Import…",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            354,
+            288,
+            30
+          ],
+          "label" : "Vault Settings…, ⇧⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            384,
+            288,
+            30
+          ],
+          "label" : "Lock Personal, ⌘L",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            18,
+            414,
+            288,
+            30
+          ],
+          "label" : "Lock Everything, ⇧⌘L",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        12,
+        112,
+        300,
+        338
+      ],
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

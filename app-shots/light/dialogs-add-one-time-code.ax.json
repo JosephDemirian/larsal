@@ -1,0 +1,221 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29.299999999999272,
+            194.5,
+            20
+          ],
+          "label" : "Set up one-time password",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57.299999999999272,
+            338.5,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "Paste the secret key or the otpauth:\/\/ link the website shows when you turn on two-step sign-in."
+        },
+        {
+          "frame" : [
+            59,
+            123.5,
+            372,
+            18
+          ],
+          "label" : "Secret key",
+          "placeholder" : "JBSW Y3DP EHPK 3PXP",
+          "role" : "AXTextField",
+          "value" : "JBSW Y3DP EHPK 3PXP"
+        },
+        {
+          "frame" : [
+            22,
+            156.5,
+            289,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Spaces do not matter. Only letters A–Z and digits 2–7."
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                36,
+                204.70000000000073,
+                36,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Digits"
+            },
+            {
+              "frame" : [
+                326,
+                199.5,
+                32,
+                28
+              ],
+              "label" : "6",
+              "role" : "AXButton",
+              "selected" : true
+            },
+            {
+              "frame" : [
+                358,
+                199.5,
+                32,
+                28
+              ],
+              "label" : "7",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                390,
+                199.5,
+                32,
+                28
+              ],
+              "label" : "8",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            36,
+            197.5,
+            388,
+            32
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                36,
+                256.70000000000073,
+                100,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "New code every"
+            },
+            {
+              "frame" : [
+                337,
+                257.20000000000073,
+                25,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "30 s"
+            },
+            {
+              "frame" : [
+                372,
+                250.5,
+                26,
+                30
+              ],
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                398,
+                250.5,
+                26,
+                30
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            36,
+            250.5,
+            388,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                36,
+                307.70000000000073,
+                62,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Algorithm"
+            },
+            {
+              "frame" : [
+                346,
+                301.5,
+                78,
+                30
+              ],
+              "label" : "Algorithm, SHA-1",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            36,
+            301.5,
+            388,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            264.5,
+            363.5,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            346,
+            363.5,
+            92,
+            36
+          ],
+          "label" : "Add Code",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0.5,
+        460,
+        417
+      ],
+      "label" : "Set up one-time password",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    418
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

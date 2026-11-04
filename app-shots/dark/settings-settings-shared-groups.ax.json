@@ -1,0 +1,314 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            48,
+            55,
+            165,
+            18
+          ],
+          "label" : "Search settings",
+          "placeholder" : "Search settings…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            10,
+            94,
+            212,
+            32
+          ],
+          "label" : "General",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            128,
+            212,
+            32
+          ],
+          "label" : "Security",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            162,
+            212,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            196,
+            212,
+            32
+          ],
+          "label" : "Browser Integration",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            230,
+            212,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            264,
+            212,
+            32
+          ],
+          "label" : "Shared Groups",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            10,
+            298,
+            212,
+            32
+          ],
+          "label" : "Shortcuts",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        10,
+        16,
+        212,
+        314
+      ],
+      "label" : "Settings pages",
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        253,
+        27,
+        16,
+        16
+      ],
+      "help" : "Back",
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "disabled" : true,
+      "frame" : [
+        277,
+        27,
+        16,
+        16
+      ],
+      "help" : "Forward",
+      "label" : "Forward",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        301,
+        25.5,
+        103.5,
+        19
+      ],
+      "label" : "Shared Groups",
+      "role" : "AXHeading"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                93,
+                137,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Import shared groups"
+            },
+            {
+              "frame" : [
+                272,
+                113.5,
+                358,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Reads groups other people share with you through a synced folder."
+            },
+            {
+              "frame" : [
+                818,
+                100.5,
+                34,
+                20
+              ],
+              "label" : "Import",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            93,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                153.5,
+                134.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Export shared groups"
+            },
+            {
+              "frame" : [
+                818,
+                152.5,
+                34,
+                20
+              ],
+              "label" : "Export",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            152.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                199.5,
+                193.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Do not show sharing messages"
+            },
+            {
+              "frame" : [
+                818,
+                198.5,
+                34,
+                20
+              ],
+              "label" : "Quiet",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            198.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            256.5,
+            77,
+            17
+          ],
+          "label" : "Your identity",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                294,
+                78,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Alex Morgan"
+            },
+            {
+              "frame" : [
+                272,
+                314.5,
+                108.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "SHA256:Qm4…8sT1"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                716,
+                297.5,
+                136,
+                28
+              ],
+              "help" : "Shared groups come in E11.",
+              "label" : "Export certificate…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            272,
+            294,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        233,
+        61,
+        658,
+        610
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    680
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

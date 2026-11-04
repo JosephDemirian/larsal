@@ -1,0 +1,78 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            162,
+            57,
+            300,
+            18
+          ],
+          "label" : "Type into “Sign in to GitHub · GitHub — Safari”",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            174,
+            95,
+            401,
+            18
+          ],
+          "label" : "Search all entries",
+          "placeholder" : "Search all entries…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            136,
+            128,
+            448,
+            60
+          ],
+          "label" : "GitHub, alex-dev, GitHub, Type login ⏎",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            136,
+            188,
+            448,
+            60
+          ],
+          "label" : "GitHub (work bot), morgan-labs-ci, GitHub",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            136,
+            256.20000000000073,
+            385.5,
+            30.5
+          ],
+          "role" : "AXStaticText",
+          "value" : "↑↓ to choose · ⏎ types username, password and code · ⇧⏎ types the password only"
+        }
+      ],
+      "focused" : true,
+      "frame" : [
+        120,
+        40,
+        480,
+        263
+      ],
+      "label" : "Type into “Sign in to GitHub · GitHub — Safari”",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    720,
+    420
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

@@ -1,0 +1,22 @@
+# SwiftLint (Swift rule 2). check.sh runs `swiftlint lint --strict` in macos/.
+excluded:
+  - AppCore/Generated # made by scripts/build-core.sh
+# swift format adds a trailing comma to multi-line collections; agree with it.
+trailing_comma:
+  mandatory_comma: true
+# No log line may make a value public or bypass os.Logger (Swift rule 4):
+# redaction is not a guarantee, so no secret may reach a log call at all.
+custom_rules:
+  no_public_log_or_print:
+    name: "No public log values or print"
+    regex: 'privacy:\s*\.public|\b(print|debugPrint|dump|NSLog)\('
+    message: "Log through Logger.app without privacy: .public; never print a value (Swift rule 4)."
+    severity: error
+  # AT-E01: vault text is plain text. Markdown parsing and interpolation into
+  # a localized Text key are refused; vault text goes through
+  # Text(verbatim:) or a String initialiser.
+  no_markdown_text:
+    name: "No Markdown or interpolated Text keys"
+    regex: 'AttributedString\(\s*markdown|LocalizedStringKey\(|Text\(\s*"[^"\n]*\\\('
+    message: "Show vault text with Text(verbatim:) (AT-E01); never AttributedString(markdown:) or Text(\"…\\(…)\")."
+    severity: error

@@ -1,0 +1,62 @@
+# App's patched copy of uniffi_core 0.32.2 (E0-S7 step 4c: R14 and section 8
+# step 4 item 6 of spec/research/dependencies.md). Upstream:
+# https://github.com/mozilla/uniffi-rs, MPL-2.0. The crate publishes no license
+# file: its source files carry the MPL-2.0 notice, kept in the one file
+# changed, and the release notices use scripts/licenses/MPL-2.0.txt
+# (LD-222 (3)). Used through [patch.crates-io] in the root workspace; not a
+# workspace member. App changes:
+# 1. The `static_assertions` dependency is gone. In src/lib.rs (each place
+#    marked `App change (E0-S7 R14)`), `deps::static_assertions` is now a
+#    module with the only two macros the generated scaffolding calls there,
+#    `const_assert!` and `assert_impl_all!`, written with the standard
+#    library, and the crate's own version check calls `const_assert!` there.
+# 2. The README entry is gone, as the copy leaves out README.md, with
+#    Cargo.lock, Cargo.toml.orig, release.toml and .cargo_vcs_info.json. No
+#    `publish = false`: cargo deny skips the license of an unpublished crate
+#    (deny.toml [licenses.private]), and this MPL-2.0 copy stays checked.
+[package]
+edition = "2021"
+name = "uniffi_core"
+version = "0.32.2"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "a multi-language bindings generator for rust (runtime support code)"
+homepage = "https://mozilla.github.io/uniffi-rs"
+documentation = "https://mozilla.github.io/uniffi-rs"
+keywords = [
+    "ffi",
+    "bindgen",
+]
+license = "MPL-2.0"
+repository = "https://github.com/mozilla/uniffi-rs"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]
+
+[features]
+default = []
+ffi-trace = []
+scaffolding-ffi-buffer-fns = []
+tokio = ["dep:async-compat"]
+wasm-unstable-single-threaded = []
+
+[lib]
+name = "uniffi_core"
+path = "src/lib.rs"
+
+[dependencies.anyhow]
+version = "1"
+
+[dependencies.async-compat]
+version = "0.2.1"
+optional = true
+
+[dependencies.bytes]
+version = "1.11"
+
+[dependencies.once_cell]
+version = "1.10.0"

@@ -1,0 +1,272 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        300,
+        24.5,
+        50.5,
+        19
+      ],
+      "label" : "History",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        18,
+        49,
+        115.5,
+        36.5
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal, Vault settings"
+    },
+    {
+      "frame" : [
+        10,
+        102,
+        212,
+        32
+      ],
+      "label" : "General",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        136,
+        212,
+        32
+      ],
+      "label" : "Security",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        170,
+        212,
+        32
+      ],
+      "label" : "Recycle Bin",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        204,
+        212,
+        32
+      ],
+      "label" : "History",
+      "role" : "AXButton",
+      "selected" : true
+    },
+    {
+      "frame" : [
+        10,
+        238,
+        212,
+        32
+      ],
+      "label" : "Browser Keys",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                95,
+                194.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Keep earlier versions of entries"
+            },
+            {
+              "frame" : [
+                819,
+                94,
+                34,
+                20
+              ],
+              "label" : "History",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            271,
+            94,
+            582,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                144,
+                114.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Versions per entry"
+            },
+            {
+              "frame" : [
+                775,
+                144.5,
+                16,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "10"
+            },
+            {
+              "frame" : [
+                801,
+                138,
+                26,
+                30
+              ],
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                827,
+                138,
+                26,
+                30
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            271,
+            138,
+            582,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                195,
+                133.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "History size per entry"
+            },
+            {
+              "frame" : [
+                761,
+                195.5,
+                30,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "6 MB"
+            },
+            {
+              "frame" : [
+                801,
+                189,
+                26,
+                30
+              ],
+              "label" : "Less",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                827,
+                189,
+                26,
+                30
+              ],
+              "label" : "More",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            271,
+            189,
+            582,
+            30
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                271,
+                241,
+                102.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Space used now"
+            },
+            {
+              "frame" : [
+                271,
+                261.5,
+                114,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "8.4 KB in 21 versions"
+            },
+            {
+              "frame" : [
+                720,
+                244.5,
+                133,
+                28
+              ],
+              "label" : "Delete all history…",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            271,
+            241,
+            582,
+            35.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        232,
+        60,
+        660,
+        572
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    640
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

@@ -1,0 +1,100 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            114,
+            20
+          ],
+          "label" : "Clone “GitHub”",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            204,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "Makes a copy in the same group."
+        },
+        {
+          "frame" : [
+            22,
+            94,
+            416,
+            32
+          ],
+          "label" : "Mark the copy's title with ' - Clone'",
+          "role" : "AXButton",
+          "selected" : true,
+          "value" : "on"
+        },
+        {
+          "frame" : [
+            22,
+            126,
+            416,
+            48
+          ],
+          "label" : "Link user name and password to the original",
+          "role" : "AXButton",
+          "value" : "off"
+        },
+        {
+          "frame" : [
+            22,
+            174,
+            416,
+            32
+          ],
+          "label" : "Copy the history",
+          "role" : "AXButton",
+          "selected" : true,
+          "value" : "on"
+        },
+        {
+          "frame" : [
+            289.5,
+            228,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            371,
+            228,
+            67,
+            36
+          ],
+          "label" : "Clone",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        282
+      ],
+      "label" : "Clone “GitHub”",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    282
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

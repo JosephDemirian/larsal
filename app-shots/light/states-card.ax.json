@@ -1,0 +1,766 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 12:46 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        82,
+        29
+      ],
+      "label" : "Banking",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1043.5,
+        75,
+        117,
+        36
+      ],
+      "label" : "Generator",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        1168.5,
+        75,
+        118.5,
+        36
+      ],
+      "label" : "New Entry",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        55.5,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "3 entries"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            31,
+            38
+          ],
+          "label" : "All, 3",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            328,
+            143,
+            113.5,
+            38
+          ],
+          "label" : "Two-step codes, 1",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            465.5,
+            143,
+            71.5,
+            38
+          ],
+          "label" : "Passkeys, 0",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            561,
+            143,
+            114,
+            38
+          ],
+          "label" : "Needs attention, 0",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        402,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        1191,
+        147,
+        96,
+        28
+      ],
+      "label" : "Sort by Modified",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        283,
+        205.5,
+        32,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Name"
+    },
+    {
+      "frame" : [
+        565,
+        205.5,
+        28,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Code"
+    },
+    {
+      "frame" : [
+        633,
+        205.5,
+        23.5,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "23 s"
+    },
+    {
+      "frame" : [
+        685,
+        205.5,
+        52.5,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Password"
+    },
+    {
+      "frame" : [
+        838,
+        205.5,
+        47,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "Modified"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                243.5,
+                45,
+                15
+              ],
+              "label" : "October",
+              "role" : "AXHeading"
+            },
+            {
+              "frame" : [
+                273,
+                265,
+                622,
+                56
+              ],
+              "label" : "PayPal, alex.morgan@posteo.de, PayPal, —, Good, Oct 9",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                283,
+                335.5,
+                62,
+                15
+              ],
+              "label" : "September",
+              "role" : "AXHeading"
+            },
+            {
+              "frame" : [
+                273,
+                357,
+                622,
+                56
+              ],
+              "label" : "Wise, alex.morgan@posteo.de, Wise, 321 320, Excellent, Sep 28",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                273,
+                413,
+                622,
+                56
+              ],
+              "label" : "Visa Debit, Card ending 1111, —, —, Sep 10",
+              "role" : "AXButton",
+              "selected" : true
+            }
+          ],
+          "frame" : [
+            273,
+            243.5,
+            622,
+            225.5
+          ],
+          "role" : "AXOpaqueProviderGroup",
+          "subrole" : "AXOpaqueProviderList"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        229,
+        622,
+        583
+      ],
+      "label" : "Entries",
+      "role" : "AXScrollArea"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            983,
+            203.5,
+            85,
+            23
+          ],
+          "label" : "Visa Debit",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            1219,
+            201,
+            32,
+            32
+          ],
+          "label" : "Edit entry (⌘E)",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            1253,
+            201,
+            32,
+            32
+          ],
+          "label" : "More actions",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            983,
+            228.5,
+            47.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Banking"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                276.5,
+                60,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Cardholder"
+            },
+            {
+              "frame" : [
+                938,
+                295,
+                95,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "ALEX MORGAN"
+            }
+          ],
+          "frame" : [
+            938,
+            276.5,
+            95,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                335,
+                70.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Card number"
+            },
+            {
+              "frame" : [
+                938,
+                353.5,
+                165,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "•••• •••• •••• ••••"
+            },
+            {
+              "frame" : [
+                1208,
+                337.5,
+                32,
+                32
+              ],
+              "label" : "Show card number",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                1244,
+                337.5,
+                32,
+                32
+              ],
+              "label" : "Copy card number",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            938,
+            335,
+            338,
+            36.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            938,
+            393.5,
+            40,
+            36.5
+          ],
+          "role" : "AXStaticText",
+          "value" : "Expires, 09\/29"
+        },
+        {
+          "frame" : [
+            1054.6666259765625,
+            393.5,
+            73.5,
+            36.5
+          ],
+          "role" : "AXStaticText",
+          "value" : "Security code, •••"
+        },
+        {
+          "frame" : [
+            1171.3333740234375,
+            393.5,
+            34,
+            36.5
+          ],
+          "role" : "AXStaticText",
+          "value" : "PIN, ••••"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                464.5,
+                33.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Group"
+            },
+            {
+              "frame" : [
+                968,
+                484,
+                51,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Banking"
+            }
+          ],
+          "frame" : [
+            938,
+            464.5,
+            81,
+            39.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                523.5,
+                25,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Tags"
+            },
+            {
+              "frame" : [
+                946,
+                548.5,
+                48,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "#finance"
+            }
+          ],
+          "frame" : [
+            938,
+            523.5,
+            64,
+            43.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                938,
+                586.5,
+                32,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Notes"
+            },
+            {
+              "frame" : [
+                938,
+                606.90000000000146,
+                243.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Lost card: call the number on the back."
+            }
+          ],
+          "frame" : [
+            938,
+            586.5,
+            243.5,
+            38.4000244140625
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            925,
+            650.29999999999927,
+            126,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Modified Sep 10, 08:30"
+        },
+        {
+          "frame" : [
+            1180,
+            650.29999999999927,
+            101,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "No earlier versions"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        919,
+        197,
+        368,
+        615
+      ],
+      "label" : "Entry details",
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

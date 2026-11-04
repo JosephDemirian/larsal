@@ -1,0 +1,343 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        300,
+        24.5,
+        55,
+        19
+      ],
+      "label" : "General",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        18,
+        49,
+        115.5,
+        36.5
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal, Vault settings"
+    },
+    {
+      "frame" : [
+        10,
+        102,
+        212,
+        32
+      ],
+      "label" : "General",
+      "role" : "AXButton",
+      "selected" : true
+    },
+    {
+      "frame" : [
+        10,
+        136,
+        212,
+        32
+      ],
+      "label" : "Security",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        170,
+        212,
+        32
+      ],
+      "label" : "Recycle Bin",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        204,
+        212,
+        32
+      ],
+      "label" : "History",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        10,
+        238,
+        212,
+        32
+      ],
+      "label" : "Browser Keys",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            256,
+            80.5,
+            35.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Name"
+        },
+        {
+          "frame" : [
+            570,
+            80.5,
+            106.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Default username"
+        },
+        {
+          "frame" : [
+            269,
+            113,
+            278,
+            18
+          ],
+          "label" : "Name",
+          "role" : "AXTextField",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            583,
+            113,
+            278,
+            18
+          ],
+          "label" : "Default username",
+          "role" : "AXTextField",
+          "value" : "alex.morgan@posteo.de"
+        },
+        {
+          "frame" : [
+            256,
+            156.5,
+            68.5,
+            17
+          ],
+          "role" : "AXStaticText",
+          "value" : "Description"
+        },
+        {
+          "frame" : [
+            269,
+            191,
+            586,
+            36
+          ],
+          "label" : "Description",
+          "role" : "AXTextField",
+          "value" : "Everything that is mine, not work."
+        },
+        {
+          "frame" : [
+            258,
+            282,
+            94,
+            17
+          ],
+          "label" : "Colour and icon",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                321.5,
+                276.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Shown in the sidebar and on the lock screen"
+            },
+            {
+              "frame" : [
+                634,
+                314.5,
+                32,
+                32
+              ],
+              "label" : "teal",
+              "role" : "AXButton",
+              "selected" : true
+            },
+            {
+              "frame" : [
+                670,
+                318.5,
+                24,
+                24
+              ],
+              "label" : "blue",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                702,
+                318.5,
+                24,
+                24
+              ],
+              "label" : "green",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                734,
+                318.5,
+                24,
+                24
+              ],
+              "label" : "orange",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                766,
+                318.5,
+                24,
+                24
+              ],
+              "label" : "pink",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                798,
+                318.5,
+                24,
+                24
+              ],
+              "label" : "purple",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                830,
+                318.5,
+                24,
+                24
+              ],
+              "label" : "slate",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            314.5,
+            584,
+            32
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            258,
+            378,
+            22.5,
+            17
+          ],
+          "label" : "File",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                414.5,
+                53.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Location"
+            },
+            {
+              "frame" : [
+                270,
+                435,
+                454,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "\/Users\/josephilhan\/Documents\/Code\/KeyPass\/target\/option-a\/settings-shots\/Passwords\/Personal.appvault"
+            },
+            {
+              "frame" : [
+                743.5,
+                418,
+                110.5,
+                28
+              ],
+              "label" : "Show in Finder",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            270,
+            414.5,
+            584,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                270,
+                472.5,
+                45.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Format"
+            },
+            {
+              "frame" : [
+                270,
+                493,
+                106.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Version 4.1 · 9.7 KB"
+            }
+          ],
+          "frame" : [
+            270,
+            472.5,
+            106.5,
+            35.5
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        232,
+        60,
+        660,
+        572
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    640
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

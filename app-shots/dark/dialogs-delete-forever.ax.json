@@ -1,0 +1,65 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            200,
+            20
+          ],
+          "label" : "Delete “MySpace” forever?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            327,
+            38
+          ],
+          "role" : "AXStaticText",
+          "value" : "The entry and its history leave the vault. You cannot undo this."
+        },
+        {
+          "frame" : [
+            232.5,
+            118,
+            73.5,
+            36
+          ],
+          "label" : "Cancel",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            314,
+            118,
+            124,
+            36
+          ],
+          "label" : "Delete Forever",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        172
+      ],
+      "label" : "Delete “MySpace” forever?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    172
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

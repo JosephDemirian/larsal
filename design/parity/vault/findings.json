@@ -1,0 +1,9129 @@
+{
+ "section": "vault",
+ "versions": [
+  "pixelmatch 8.0.0",
+  "pngjs 7.0.0"
+ ],
+ "tokensStatic": [
+  {
+   "name": "ground",
+   "light": "#f0f2f2",
+   "app_light": "#f0f2f2",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "surface",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#131315",
+   "app_dark": "#131315",
+   "ok": true
+  },
+  {
+   "name": "raised",
+   "light": "#f5f7f7",
+   "app_light": "#f5f7f7",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "active",
+   "light": "#e7eaeb",
+   "app_light": "#e7eaeb",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "hover",
+   "light": "#f3f5f5",
+   "app_light": "#f3f5f5",
+   "dark": "#1a1a1d",
+   "app_dark": "#1a1a1d",
+   "ok": true
+  },
+  {
+   "name": "border",
+   "light": "#e2e5e6",
+   "app_light": "#e2e5e6",
+   "dark": "#222226",
+   "app_dark": "#222226",
+   "ok": true
+  },
+  {
+   "name": "rule",
+   "light": "#edeff0",
+   "app_light": "#edeff0",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "control",
+   "light": "#cdd0d3",
+   "app_light": "#cdd0d3",
+   "dark": "#3a3a40",
+   "app_dark": "#3a3a40",
+   "ok": true
+  },
+  {
+   "name": "field",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#19191c",
+   "app_dark": "#19191c",
+   "ok": true
+  },
+  {
+   "name": "tile",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#1c1c1f",
+   "app_dark": "#1c1c1f",
+   "ok": true
+  },
+  {
+   "name": "text",
+   "light": "#131416",
+   "app_light": "#131416",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "muted",
+   "light": "#5d6062",
+   "app_light": "#5d6062",
+   "dark": "#9b9ba2",
+   "app_dark": "#9b9ba2",
+   "ok": true
+  },
+  {
+   "name": "primary",
+   "light": "#1d1f20",
+   "app_light": "#1d1f20",
+   "dark": "#ededef",
+   "app_dark": "#ededef",
+   "ok": true
+  },
+  {
+   "name": "on-primary",
+   "light": "#ffffff",
+   "app_light": "#ffffff",
+   "dark": "#0b0b0d",
+   "app_dark": "#0b0b0d",
+   "ok": true
+  },
+  {
+   "name": "primary-hover",
+   "light": "#34373a",
+   "app_light": "#34373a",
+   "dark": "#ffffff",
+   "app_dark": "#ffffff",
+   "ok": true
+  },
+  {
+   "name": "accent",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#52b6c9",
+   "app_dark": "#52b6c9",
+   "ok": true
+  },
+  {
+   "name": "accent-soft",
+   "light": "#e2eff2",
+   "app_light": "#e2eff2",
+   "dark": "#10303a",
+   "app_dark": "#10303a",
+   "ok": true
+  },
+  {
+   "name": "digit",
+   "light": "#1b6c80",
+   "app_light": "#1b6c80",
+   "dark": "#6ccadb",
+   "app_dark": "#6ccadb",
+   "ok": true
+  },
+  {
+   "name": "symbol",
+   "light": "#a3620a",
+   "app_light": "#a3620a",
+   "dark": "#f2ab4f",
+   "app_dark": "#f2ab4f",
+   "ok": true
+  },
+  {
+   "name": "positive",
+   "light": "#1e7b4f",
+   "app_light": "#1e7b4f",
+   "dark": "#3dd68c",
+   "app_dark": "#3dd68c",
+   "ok": true
+  },
+  {
+   "name": "negative",
+   "light": "#c4242a",
+   "app_light": "#c4242a",
+   "dark": "#ff6b70",
+   "app_dark": "#ff6b70",
+   "ok": true
+  },
+  {
+   "name": "warning",
+   "light": "#8a4a06",
+   "app_light": "#8a4a06",
+   "dark": "#f5b14c",
+   "app_dark": "#f5b14c",
+   "ok": true
+  },
+  {
+   "name": "neg-bg",
+   "light": "#ffedea",
+   "app_light": "#ffedea",
+   "dark": "#2c1517",
+   "app_dark": "#2c1517",
+   "ok": true
+  },
+  {
+   "name": "neg-ink",
+   "light": "#831c1e",
+   "app_light": "#831c1e",
+   "dark": "#ffa3a5",
+   "app_dark": "#ffa3a5",
+   "ok": true
+  },
+  {
+   "name": "warn-bg",
+   "light": "#fff4e0",
+   "app_light": "#fff4e0",
+   "dark": "#2a1f0f",
+   "app_dark": "#2a1f0f",
+   "ok": true
+  },
+  {
+   "name": "warn-ink",
+   "light": "#7a4105",
+   "app_light": "#7a4105",
+   "dark": "#f6c47f",
+   "app_dark": "#f6c47f",
+   "ok": true
+  },
+  {
+   "name": "pos-bg",
+   "light": "#dcfae5",
+   "app_light": "#dcfae5",
+   "dark": "#0f2a1b",
+   "app_dark": "#0f2a1b",
+   "ok": true
+  },
+  {
+   "name": "pos-ink",
+   "light": "#0b4a26",
+   "app_light": "#0b4a26",
+   "dark": "#74e4a9",
+   "app_dark": "#74e4a9",
+   "ok": true
+  },
+  {
+   "name": "chip-bg",
+   "light": "#eceeef",
+   "app_light": "#eceeef",
+   "dark": "#232327",
+   "app_dark": "#232327",
+   "ok": true
+  },
+  {
+   "name": "chip-ink",
+   "light": "#353736",
+   "app_light": "#353736",
+   "dark": "#d0d0d5",
+   "app_dark": "#d0d0d5",
+   "ok": true
+  },
+  {
+   "name": "scrim",
+   "light": "rgba(24, 26, 28, .26)",
+   "app_light": "#181a1c α0.26",
+   "dark": "rgba(0, 0, 0, .55)",
+   "app_dark": "#000000 α0.55",
+   "ok": true
+  },
+  {
+   "name": "blue",
+   "light": "#007aff",
+   "app_light": "#007aff",
+   "dark": "#007aff",
+   "app_dark": "#007aff",
+   "ok": true
+  },
+  {
+   "name": "orange",
+   "light": "#ff9500",
+   "app_light": "#ff9500",
+   "dark": "#ff9500",
+   "app_dark": "#ff9500",
+   "ok": true
+  },
+  {
+   "name": "green",
+   "light": "#28b14c",
+   "app_light": "#28b14c",
+   "dark": "#28b14c",
+   "app_dark": "#28b14c",
+   "ok": true
+  },
+  {
+   "name": "teal",
+   "light": "#22a6bd",
+   "app_light": "#22a6bd",
+   "dark": "#22a6bd",
+   "app_dark": "#22a6bd",
+   "ok": true
+  },
+  {
+   "name": "purple",
+   "light": "#a550d6",
+   "app_light": "#a550d6",
+   "dark": "#a550d6",
+   "app_dark": "#a550d6",
+   "ok": true
+  },
+  {
+   "name": "pink",
+   "light": "#f2385a",
+   "app_light": "#f2385a",
+   "dark": "#f2385a",
+   "app_dark": "#f2385a",
+   "ok": true
+  },
+  {
+   "name": "red",
+   "light": "#f04438",
+   "app_light": "#f04438",
+   "dark": "#f04438",
+   "app_dark": "#f04438",
+   "ok": true
+  },
+  {
+   "name": "brown",
+   "light": "#a2845e",
+   "app_light": "#a2845e",
+   "dark": "#a2845e",
+   "app_dark": "#a2845e",
+   "ok": true
+  },
+  {
+   "name": "gray",
+   "light": "#8e8e93",
+   "app_light": "#8e8e93",
+   "dark": "#8e8e93",
+   "app_dark": "#8e8e93",
+   "ok": true
+  },
+  {
+   "name": "slate",
+   "light": "#5a6b7d",
+   "app_light": "#5a6b7d",
+   "dark": "#5a6b7d",
+   "app_dark": "#5a6b7d",
+   "ok": true
+  },
+  {
+   "name": "mint",
+   "light": "#00b5ad",
+   "app_light": "#00b5ad",
+   "dark": "#00b5ad",
+   "app_dark": "#00b5ad",
+   "ok": true
+  },
+  {
+   "name": "cyan",
+   "light": "#2f9fd8",
+   "app_light": "#2f9fd8",
+   "dark": "#2f9fd8",
+   "app_dark": "#2f9fd8",
+   "ok": true
+  },
+  {
+   "name": "yellow",
+   "light": "#f5b800",
+   "app_light": "#f5b800",
+   "dark": "#f5b800",
+   "app_dark": "#f5b800",
+   "ok": true
+  },
+  {
+   "name": "graphite",
+   "light": "#4b5057",
+   "app_light": "#4b5057",
+   "dark": "#4b5057",
+   "app_dark": "#4b5057",
+   "ok": true
+  }
+ ],
+ "contrast": [
+  {
+   "theme": "light",
+   "pair": "text on ground",
+   "ratio": 16.4
+  },
+  {
+   "theme": "light",
+   "pair": "text on surface",
+   "ratio": 18.43
+  },
+  {
+   "theme": "light",
+   "pair": "text on raised",
+   "ratio": 17.14
+  },
+  {
+   "theme": "light",
+   "pair": "text on active",
+   "ratio": 15.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on ground",
+   "ratio": 5.64
+  },
+  {
+   "theme": "light",
+   "pair": "muted on surface",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "muted on raised",
+   "ratio": 5.89
+  },
+  {
+   "theme": "light",
+   "pair": "muted on active",
+   "ratio": 5.24
+  },
+  {
+   "theme": "light",
+   "pair": "muted on field",
+   "ratio": 6.33
+  },
+  {
+   "theme": "light",
+   "pair": "accent on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "accent on accent-soft",
+   "ratio": 5.1
+  },
+  {
+   "theme": "light",
+   "pair": "negative on surface",
+   "ratio": 5.78
+  },
+  {
+   "theme": "light",
+   "pair": "positive on surface",
+   "ratio": 5.25
+  },
+  {
+   "theme": "light",
+   "pair": "warning on surface",
+   "ratio": 6.86
+  },
+  {
+   "theme": "light",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.63
+  },
+  {
+   "theme": "light",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 7.45
+  },
+  {
+   "theme": "light",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.32
+  },
+  {
+   "theme": "light",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.3
+  },
+  {
+   "theme": "light",
+   "pair": "on-primary on primary",
+   "ratio": 16.55
+  },
+  {
+   "theme": "light",
+   "pair": "digit on surface",
+   "ratio": 5.99
+  },
+  {
+   "theme": "light",
+   "pair": "symbol on surface",
+   "ratio": 4.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on ground",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "text on surface",
+   "ratio": 15.87
+  },
+  {
+   "theme": "dark",
+   "pair": "text on raised",
+   "ratio": 15
+  },
+  {
+   "theme": "dark",
+   "pair": "text on active",
+   "ratio": 13.39
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on ground",
+   "ratio": 7.12
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on surface",
+   "ratio": 6.72
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on raised",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on active",
+   "ratio": 5.67
+  },
+  {
+   "theme": "dark",
+   "pair": "muted on field",
+   "ratio": 6.35
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on surface",
+   "ratio": 7.86
+  },
+  {
+   "theme": "dark",
+   "pair": "accent on accent-soft",
+   "ratio": 5.91
+  },
+  {
+   "theme": "dark",
+   "pair": "negative on surface",
+   "ratio": 6.71
+  },
+  {
+   "theme": "dark",
+   "pair": "positive on surface",
+   "ratio": 9.89
+  },
+  {
+   "theme": "dark",
+   "pair": "warning on surface",
+   "ratio": 9.96
+  },
+  {
+   "theme": "dark",
+   "pair": "neg-ink on neg-bg",
+   "ratio": 8.99
+  },
+  {
+   "theme": "dark",
+   "pair": "warn-ink on warn-bg",
+   "ratio": 10.08
+  },
+  {
+   "theme": "dark",
+   "pair": "pos-ink on pos-bg",
+   "ratio": 9.81
+  },
+  {
+   "theme": "dark",
+   "pair": "chip-ink on chip-bg",
+   "ratio": 10.19
+  },
+  {
+   "theme": "dark",
+   "pair": "on-primary on primary",
+   "ratio": 16.82
+  },
+  {
+   "theme": "dark",
+   "pair": "digit on surface",
+   "ratio": 9.82
+  },
+  {
+   "theme": "dark",
+   "pair": "symbol on surface",
+   "ratio": 9.47
+  }
+ ],
+ "results": [
+  {
+   "id": "vault-new-vault-step-1",
+   "title": "New vault · step 1",
+   "note": "Name",
+   "size": [
+    720,
+    720
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-new-vault-step-1.png",
+     "present": true,
+     "appImg": "app/light/vault-new-vault-step-1.png",
+     "diffImg": "diff/light/vault-new-vault-step-1.png",
+     "text": {
+      "found": [
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Name your vault",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Description · optional",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save in",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "iCloud Drive › Passwords",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Change…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Family.appvault. A synced folder keeps it on your other Macs.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Continue",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "New vault",
+        "kind": "text",
+        "why": "APP-07 M07-01 window title (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Vault"
+       },
+       {
+        "m": "The name shows in the sidebar and on the lock screen.",
+        "kind": "text",
+        "why": "APP-07 M07-03 step 1 line (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "The name shows in the vault list. Name and description stay editable in Vault Settings."
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "ocr": "Encryption"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Step 1 of 3",
+       "Streaming, the router and the kids’ school accounts.",
+       "Optional"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [
+       {
+        "kind": "extra",
+        "hex": "#e2eff2",
+        "token": "accent-soft",
+        "ref": 0,
+        "app": 0.78
+       }
+      ],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 85.6,
+        "app": 84.4
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 10.2,
+        "app": 10.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "folder-simple"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        598.5,
+        430,
+        77.5,
+        28
+       ],
+       "app": [
+        599.5,
+        429.5,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        29,
+        661,
+        73.5,
+        36
+       ],
+       "app": [
+        28,
+        662,
+        73.5,
+        36
+       ],
+       "d": [
+        -1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Continue",
+       "dom": [
+        603.5,
+        661,
+        87.5,
+        36
+       ],
+       "app": [
+        604,
+        662,
+        88,
+        36
+       ],
+       "d": [
+        0.5,
+        1,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Name your vault",
+       "font": "IBM Plex Sans 20/600",
+       "dom": [
+        37,
+        129,
+        151.5,
+        25
+       ],
+       "app": [
+        36,
+        129.4,
+        152,
+        25
+       ],
+       "d": [
+        -1,
+        0.4,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        37,
+        201,
+        35,
+        17
+       ],
+       "app": [
+        36,
+        201.2,
+        35.5,
+        17
+       ],
+       "d": [
+        -1,
+        0.2,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Save in",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        37,
+        402,
+        42.5,
+        17
+       ],
+       "app": [
+        36,
+        402.2,
+        43,
+        17
+       ],
+       "d": [
+        -1,
+        0.2,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Family.appvault. A synced folder keeps it on your other Macs.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        37,
+        468,
+        327.5,
+        15
+       ],
+       "app": [
+        36,
+        467.9,
+        327.5,
+        15
+       ],
+       "d": [
+        -1,
+        -0.1,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.13,
+     "residual": 1.83,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-new-vault-step-1.png",
+     "present": true,
+     "appImg": "app/dark/vault-new-vault-step-1.png",
+     "diffImg": "diff/dark/vault-new-vault-step-1.png",
+     "text": {
+      "found": [
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Name your vault",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Description · optional",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Save in",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "iCloud Drive › Passwords",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Change…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Family.appvault. A synced folder keeps it on your other Macs.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Continue",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "New vault",
+        "kind": "text",
+        "why": "APP-07 M07-01 window title (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Vault"
+       },
+       {
+        "m": "The name shows in the sidebar and on the lock screen.",
+        "kind": "text",
+        "why": "APP-07 M07-03 step 1 line (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "The name shows in the vault list. Name and description stay editable in Vault Settings."
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "ocr": "Encryption"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Step 1 of 3",
+       "Streaming, the router and the kids’ school accounts.",
+       "Optional"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [
+       {
+        "kind": "extra",
+        "hex": "#10303a",
+        "token": "accent-soft",
+        "ref": 0,
+        "app": 0.78
+       }
+      ],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 68.3,
+        "app": 67.1
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 17.3,
+        "app": 17.2
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 10.3,
+        "app": 10.3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "folder-simple"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        598.5,
+        430,
+        77.5,
+        28
+       ],
+       "app": [
+        599.5,
+        429.5,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        29,
+        661,
+        73.5,
+        36
+       ],
+       "app": [
+        28,
+        662,
+        73.5,
+        36
+       ],
+       "d": [
+        -1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Continue",
+       "dom": [
+        603.5,
+        661,
+        87.5,
+        36
+       ],
+       "app": [
+        604,
+        662,
+        88,
+        36
+       ],
+       "d": [
+        0.5,
+        1,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Name your vault",
+       "font": "IBM Plex Sans 20/600",
+       "dom": [
+        37,
+        129,
+        151.5,
+        25
+       ],
+       "app": [
+        36,
+        129.4,
+        152,
+        25
+       ],
+       "d": [
+        -1,
+        0.4,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        37,
+        201,
+        35,
+        17
+       ],
+       "app": [
+        36,
+        201.2,
+        35.5,
+        17
+       ],
+       "d": [
+        -1,
+        0.2,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Save in",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        37,
+        402,
+        42.5,
+        17
+       ],
+       "app": [
+        36,
+        402.2,
+        43,
+        17
+       ],
+       "d": [
+        -1,
+        0.2,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Family.appvault. A synced folder keeps it on your other Macs.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        37,
+        468,
+        327.5,
+        15
+       ],
+       "app": [
+        36,
+        467.9,
+        327.5,
+        15
+       ],
+       "d": [
+        -1,
+        -0.1,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.83,
+     "residual": 2.53,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Continue, Back and Cancel move as APP-07.4 says; values kept"
+    }
+   ],
+   "controls": [],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-new-vault-step-2",
+   "title": "New vault · step 2",
+   "note": "Encryption",
+   "size": [
+    720,
+    720
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-new-vault-step-2.png",
+     "present": true,
+     "appImg": "app/light/vault-new-vault-step-2.png",
+     "diffImg": "diff/light/vault-new-vault-step-2.png",
+     "text": {
+      "found": [
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recommended",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Custom",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Choose the cipher, memory and unlock time yourself.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cipher",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "AES-256",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key derivation",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Argon2id",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Unlock time",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "1.0 s",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Memory",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "64 MiB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Back",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Continue",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "New vault",
+        "kind": "text",
+        "why": "APP-07 M07-01 window title (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Vault"
+       },
+       {
+        "m": "The defaults suit almost everyone. They match what security reviews recommend today.",
+        "kind": "text",
+        "why": "APP-07 M07-05 step 2 line (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Choose how long an unlock takes. A longer unlock makes your password harder to guess. Vault Settings › Security can change it at any time."
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "Name",
+        "kind": "text",
+        "ocr": "Name"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "ocr": "Password"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Step 2 of 3"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 52.7,
+        "app": 51.9
+       },
+       {
+        "hex": "#f9fafa",
+        "token": "",
+        "ref": 23.7,
+        "app": 24
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 10.8,
+        "app": 11
+       },
+       {
+        "hex": "#e2eff2",
+        "token": "accent-soft",
+        "ref": 8,
+        "app": 7.9
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "caret-up-down"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        29,
+        661,
+        73.5,
+        36
+       ],
+       "app": [
+        28,
+        662,
+        73.5,
+        36
+       ],
+       "d": [
+        -1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Back",
+       "dom": [
+        533.5,
+        661,
+        61.5,
+        36
+       ],
+       "app": [
+        534,
+        662,
+        62,
+        36
+       ],
+       "d": [
+        0.5,
+        1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Continue",
+       "dom": [
+        603.5,
+        661,
+        87.5,
+        36
+       ],
+       "app": [
+        604,
+        662,
+        88,
+        36
+       ],
+       "d": [
+        0.5,
+        1,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Encryption",
+       "font": "IBM Plex Sans 20/600",
+       "dom": [
+        37,
+        129,
+        100.5,
+        25
+       ],
+       "app": [
+        36,
+        129.5,
+        100.5,
+        25
+       ],
+       "d": [
+        -1,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Recommended",
+       "font": "IBM Plex Sans 14/500",
+       "dom": [
+        82,
+        217,
+        96.5,
+        18
+       ],
+       "app": [
+        81,
+        236.8,
+        97,
+        18
+       ],
+       "d": [
+        -1,
+        19.8,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        82,
+        238,
+        550.5,
+        35
+       ],
+       "app": [
+        81,
+        258.3,
+        520,
+        35.5
+       ],
+       "d": [
+        -1,
+        20.3,
+        -30.5,
+        0.5
+       ]
+      },
+      {
+       "text": "Custom",
+       "font": "IBM Plex Sans 14/500",
+       "dom": [
+        82,
+        313,
+        49,
+        18
+       ],
+       "app": [
+        81,
+        333.4,
+        49.5,
+        18
+       ],
+       "d": [
+        -1,
+        20.4,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Choose the cipher, memory and unlock time yourself.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        82,
+        334,
+        309,
+        17
+       ],
+       "app": [
+        81,
+        355,
+        309.5,
+        17
+       ],
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Cipher",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        51,
+        403,
+        41,
+        18
+       ],
+       "app": [
+        50,
+        423.5,
+        41.5,
+        18
+       ],
+       "d": [
+        -1,
+        20.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Key derivation",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        51,
+        454,
+        89.5,
+        18
+       ],
+       "app": [
+        50,
+        474.5,
+        89.5,
+        18
+       ],
+       "d": [
+        -1,
+        20.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Unlock time",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        51,
+        502.5,
+        75,
+        18
+       ],
+       "app": [
+        50,
+        523.5,
+        75.5,
+        18
+       ],
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Memory",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        51,
+        548.5,
+        51.5,
+        18
+       ],
+       "app": [
+        50,
+        570.5,
+        51.5,
+        18
+       ],
+       "d": [
+        -1,
+        22,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "64 MiB",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        625,
+        548.5,
+        44,
+        18
+       ],
+       "app": [
+        625.5,
+        570.5,
+        44.5,
+        18
+       ],
+       "d": [
+        0.5,
+        22,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.63,
+     "residual": 1.2,
+     "unnamed": [],
+     "disabled": [
+      "Cipher",
+      "Key derivation"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [
+      {
+       "text": "Recommended",
+       "d": [
+        -1,
+        19.8,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        -0.2
+       ]
+      },
+      {
+       "text": "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware.",
+       "d": [
+        -1,
+        20.3,
+        -30.5,
+        0.5
+       ],
+       "rest": [
+        -1,
+        0.3
+       ]
+      },
+      {
+       "text": "Custom",
+       "d": [
+        -1,
+        20.4,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        0.4
+       ]
+      },
+      {
+       "text": "Choose the cipher, memory and unlock time yourself.",
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        1
+       ]
+      },
+      {
+       "text": "Cipher",
+       "d": [
+        -1,
+        20.5,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        0.5
+       ]
+      },
+      {
+       "text": "Key derivation",
+       "d": [
+        -1,
+        20.5,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        0.5
+       ]
+      },
+      {
+       "text": "Unlock time",
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        1
+       ]
+      },
+      {
+       "text": "Memory",
+       "d": [
+        -1,
+        22,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        2
+       ]
+      },
+      {
+       "text": "64 MiB",
+       "d": [
+        0.5,
+        22,
+        0.5,
+        0
+       ],
+       "rest": [
+        0.5,
+        2
+       ]
+      }
+     ],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-new-vault-step-2.png",
+     "present": true,
+     "appImg": "app/dark/vault-new-vault-step-2.png",
+     "diffImg": "diff/dark/vault-new-vault-step-2.png",
+     "text": {
+      "found": [
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recommended",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Custom",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Choose the cipher, memory and unlock time yourself.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cipher",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "AES-256",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key derivation",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Argon2id",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Unlock time",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "1.0 s",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Memory",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "64 MiB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Back",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Continue",
+        "kind": "text",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "New vault",
+        "kind": "text",
+        "why": "APP-07 M07-01 window title (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Vault"
+       },
+       {
+        "m": "The defaults suit almost everyone. They match what security reviews recommend today.",
+        "kind": "text",
+        "why": "APP-07 M07-05 step 2 line (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Choose how long an unlock takes. A longer unlock makes your password harder to guess. Vault Settings › Security can change it at any time."
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "Name",
+        "kind": "text",
+        "ocr": "Name"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "ocr": "Password"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Step 2 of 3"
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 51.5,
+        "app": 50.6
+       },
+       {
+        "hex": "#171719",
+        "token": "",
+        "ref": 24.5,
+        "app": 24.8
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 10.9,
+        "app": 11
+       },
+       {
+        "hex": "#10303a",
+        "token": "accent-soft",
+        "ref": 8,
+        "app": 7.9
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "caret-up-down"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        29,
+        661,
+        73.5,
+        36
+       ],
+       "app": [
+        28,
+        662,
+        73.5,
+        36
+       ],
+       "d": [
+        -1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Back",
+       "dom": [
+        533.5,
+        661,
+        61.5,
+        36
+       ],
+       "app": [
+        534,
+        662,
+        62,
+        36
+       ],
+       "d": [
+        0.5,
+        1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Continue",
+       "dom": [
+        603.5,
+        661,
+        87.5,
+        36
+       ],
+       "app": [
+        604,
+        662,
+        88,
+        36
+       ],
+       "d": [
+        0.5,
+        1,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Encryption",
+       "font": "IBM Plex Sans 20/600",
+       "dom": [
+        37,
+        129,
+        100.5,
+        25
+       ],
+       "app": [
+        36,
+        129.5,
+        100.5,
+        25
+       ],
+       "d": [
+        -1,
+        0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Recommended",
+       "font": "IBM Plex Sans 14/500",
+       "dom": [
+        82,
+        217,
+        96.5,
+        18
+       ],
+       "app": [
+        81,
+        236.8,
+        97,
+        18
+       ],
+       "d": [
+        -1,
+        19.8,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        82,
+        238,
+        550.5,
+        35
+       ],
+       "app": [
+        81,
+        258.3,
+        520,
+        35.5
+       ],
+       "d": [
+        -1,
+        20.3,
+        -30.5,
+        0.5
+       ]
+      },
+      {
+       "text": "Custom",
+       "font": "IBM Plex Sans 14/500",
+       "dom": [
+        82,
+        313,
+        49,
+        18
+       ],
+       "app": [
+        81,
+        333.4,
+        49.5,
+        18
+       ],
+       "d": [
+        -1,
+        20.4,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Choose the cipher, memory and unlock time yourself.",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        82,
+        334,
+        309,
+        17
+       ],
+       "app": [
+        81,
+        355,
+        309.5,
+        17
+       ],
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Cipher",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        52,
+        404,
+        41,
+        18
+       ],
+       "app": [
+        51,
+        424.5,
+        41.5,
+        18
+       ],
+       "d": [
+        -1,
+        20.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Key derivation",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        52,
+        455,
+        89.5,
+        18
+       ],
+       "app": [
+        51,
+        475.5,
+        89.5,
+        18
+       ],
+       "d": [
+        -1,
+        20.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Unlock time",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        52,
+        503.5,
+        75,
+        18
+       ],
+       "app": [
+        51,
+        524.5,
+        75.5,
+        18
+       ],
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Memory",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        52,
+        549.5,
+        51.5,
+        18
+       ],
+       "app": [
+        51,
+        571.5,
+        51.5,
+        18
+       ],
+       "d": [
+        -1,
+        22,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "64 MiB",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        624,
+        549.5,
+        44,
+        18
+       ],
+       "app": [
+        624.5,
+        571.5,
+        44.5,
+        18
+       ],
+       "d": [
+        0.5,
+        22,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 7.07,
+     "residual": 1.24,
+     "unnamed": [],
+     "disabled": [
+      "Cipher",
+      "Key derivation"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [
+      {
+       "text": "Recommended",
+       "d": [
+        -1,
+        19.8,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        -0.2
+       ]
+      },
+      {
+       "text": "AES-256 with Argon2id. About 1 second to unlock on this Mac, and very slow to guess on other hardware.",
+       "d": [
+        -1,
+        20.3,
+        -30.5,
+        0.5
+       ],
+       "rest": [
+        -1,
+        0.3
+       ]
+      },
+      {
+       "text": "Custom",
+       "d": [
+        -1,
+        20.4,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        0.4
+       ]
+      },
+      {
+       "text": "Choose the cipher, memory and unlock time yourself.",
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        1
+       ]
+      },
+      {
+       "text": "Cipher",
+       "d": [
+        -1,
+        20.5,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        0.5
+       ]
+      },
+      {
+       "text": "Key derivation",
+       "d": [
+        -1,
+        20.5,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        0.5
+       ]
+      },
+      {
+       "text": "Unlock time",
+       "d": [
+        -1,
+        21,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        1
+       ]
+      },
+      {
+       "text": "Memory",
+       "d": [
+        -1,
+        22,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        2
+       ]
+      },
+      {
+       "text": "64 MiB",
+       "d": [
+        0.5,
+        22,
+        0.5,
+        0
+       ],
+       "rest": [
+        0.5,
+        2
+       ]
+      }
+     ],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Recommended and Custom choose; Custom's rows edit and measure again"
+    }
+   ],
+   "controls": [],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-new-vault-step-3",
+   "title": "New vault · step 3",
+   "note": "Password",
+   "size": [
+    720,
+    720
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-new-vault-step-3.png",
+     "present": true,
+     "appImg": "app/light/vault-new-vault-step-3.png",
+     "diffImg": "diff/light/vault-new-vault-step-3.png",
+     "text": {
+      "found": [
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "orchid-meteor-pine-quartz-41",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "More protection · optional",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key file",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security key",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A YubiKey or OnlyKey with challenge-response.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Add…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Unlock with your finger after the first time.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Back",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Hide",
+        "kind": "name",
+        "how": "inside"
+       },
+       {
+        "m": "Generate",
+        "kind": "name",
+        "how": "inside"
+       },
+       {
+        "m": "Yubico",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "New vault",
+        "kind": "text",
+        "why": "APP-07 M07-01 window title (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Vault"
+       },
+       {
+        "m": "Choose a password",
+        "kind": "text",
+        "why": "APP-07 step 3 title (Steps table) (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Password and keys"
+       },
+       {
+        "m": "You need it to open the vault. App cannot recover it.",
+        "kind": "text",
+        "why": "APP-07 M07-09 step 3 line (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Choose what opens this vault. Only you should know it or have it."
+       },
+       {
+        "m": "Password · Strong, about 78 bits",
+        "kind": "text",
+        "why": "FEA-05.4 strength words and the card estimator in the editor's password label",
+        "ref": "LD-192 (5), LD-163 (4)",
+        "app": "Password · Good, about 79 bits"
+       },
+       {
+        "m": "Repeat it",
+        "kind": "text",
+        "why": "APP-07 M07-10 repeat label (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Verify password"
+       },
+       {
+        "m": "••••••••••••••••••",
+        "kind": "text",
+        "why": "APP-07.11: Show shows both fields together (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "orchid-meteor-pine-quartz-41"
+       },
+       {
+        "m": "A second secret kept in a file. Without it the vault does not open.",
+        "kind": "text",
+        "why": "APP-07 M07-12 key file note (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Keep this file exactly as it is, and keep a copy somewhere safe: the vault opens only with this file, unchanged."
+       },
+       {
+        "m": "Create…",
+        "kind": "text",
+        "why": "APP-07 M07-12 button (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Key File…"
+       },
+       {
+        "m": "Choose…",
+        "kind": "text",
+        "why": "APP-07 M07-12 button (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Choose Key File…"
+       },
+       {
+        "m": "Create vault",
+        "kind": "text",
+        "why": "APP-07 M07-14 button (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Create Vault"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "Name",
+        "kind": "text",
+        "ocr": "Name"
+       },
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "ocr": "Encryption"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Step 3 of 3",
+       "The passwords match"
+      ],
+      "help": [
+       "Security keys come in E10.",
+       "Touch ID comes with quick unlock (E6-S3)."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [
+       {
+        "kind": "extra",
+        "hex": "#e2eff2",
+        "token": "accent-soft",
+        "ref": 0,
+        "app": 0.79
+       }
+      ],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 64.1,
+        "app": 61.1
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 20.2,
+        "app": 21.6
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 10.2,
+        "app": 10.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "eye-slash",
+       "password",
+       "fill check-circle",
+       "file-lock",
+       "fingerprint"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Create…",
+       "dom": [
+        512,
+        425.5,
+        72,
+        28
+       ],
+       "app": [
+        425,
+        433.5,
+        110,
+        28
+       ],
+       "d": [
+        -87,
+        8,
+        38,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Choose…",
+       "dom": [
+        592,
+        425.5,
+        77,
+        28
+       ],
+       "app": [
+        543,
+        433.5,
+        127,
+        28
+       ],
+       "d": [
+        -49,
+        8,
+        50,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Add…",
+       "dom": [
+        612,
+        486,
+        57,
+        28
+       ],
+       "app": [
+        613,
+        502,
+        57,
+        28
+       ],
+       "d": [
+        1,
+        16,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        29,
+        661,
+        73.5,
+        36
+       ],
+       "app": [
+        28,
+        662,
+        73.5,
+        36
+       ],
+       "d": [
+        -1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Back",
+       "dom": [
+        513.5,
+        661,
+        61.5,
+        36
+       ],
+       "app": [
+        513,
+        662,
+        62,
+        36
+       ],
+       "d": [
+        -0.5,
+        1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Create vault",
+       "dom": [
+        583.5,
+        661,
+        107.5,
+        36
+       ],
+       "app": [
+        583,
+        662,
+        109,
+        36
+       ],
+       "d": [
+        -0.5,
+        1,
+        1.5,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Hide",
+       "dom": [
+        604,
+        231,
+        32,
+        32
+       ],
+       "app": [
+        605,
+        231,
+        32,
+        32
+       ],
+       "d": [
+        1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Generate",
+       "dom": [
+        644,
+        231,
+        32,
+        32
+       ],
+       "app": [
+        645,
+        231,
+        32,
+        32
+       ],
+       "d": [
+        1,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Key file",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        75,
+        421,
+        46,
+        18
+       ],
+       "app": [
+        74,
+        420.9,
+        46,
+        18
+       ],
+       "d": [
+        -1,
+        -0.1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Security key",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        75,
+        481,
+        76.5,
+        18
+       ],
+       "app": [
+        74,
+        497.4,
+        76.5,
+        18
+       ],
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "A YubiKey or OnlyKey with challenge-response.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        51,
+        504,
+        253.5,
+        15
+       ],
+       "app": [
+        50,
+        520.4,
+        253.5,
+        15
+       ],
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Touch ID",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        75,
+        542,
+        56,
+        18
+       ],
+       "app": [
+        74,
+        557.9,
+        56.5,
+        18
+       ],
+       "d": [
+        -1,
+        15.9,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Unlock with your finger after the first time.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        51,
+        564,
+        226.5,
+        15
+       ],
+       "app": [
+        50,
+        580.9,
+        227,
+        15
+       ],
+       "d": [
+        -1,
+        16.9,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 2.36,
+     "residual": 1.16,
+     "unnamed": [],
+     "disabled": [
+      "Add… (Security keys come in E10.)",
+      "Touch ID (Touch ID comes with quick unlock (E6-S3).)"
+     ],
+     "shifted": [
+      {
+       "kind": "button",
+       "text": "Add…",
+       "d": [
+        1,
+        16,
+        0,
+        0
+       ],
+       "rest": [
+        1,
+        0,
+        0,
+        0
+       ],
+       "ref": "APP-07 M07-12: the card's key file note takes two lines"
+      }
+     ],
+     "geoFails": 0,
+     "shiftedRuns": [
+      {
+       "text": "Security key",
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        0.4
+       ]
+      },
+      {
+       "text": "A YubiKey or OnlyKey with challenge-response.",
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        0.4
+       ]
+      },
+      {
+       "text": "Touch ID",
+       "d": [
+        -1,
+        15.9,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        -0.1
+       ]
+      },
+      {
+       "text": "Unlock with your finger after the first time.",
+       "d": [
+        -1,
+        16.9,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        0.9
+       ]
+      }
+     ],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-new-vault-step-3.png",
+     "present": true,
+     "appImg": "app/dark/vault-new-vault-step-3.png",
+     "diffImg": "diff/dark/vault-new-vault-step-3.png",
+     "text": {
+      "found": [
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "orchid-meteor-pine-quartz-41",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "More protection · optional",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key file",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security key",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "A YubiKey or OnlyKey with challenge-response.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Add…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Unlock with your finger after the first time.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cancel",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Back",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Hide",
+        "kind": "name",
+        "how": "inside"
+       },
+       {
+        "m": "Generate",
+        "kind": "name",
+        "how": "inside"
+       },
+       {
+        "m": "Yubico",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "New vault",
+        "kind": "text",
+        "why": "APP-07 M07-01 window title (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Vault"
+       },
+       {
+        "m": "Choose a password",
+        "kind": "text",
+        "why": "APP-07 step 3 title (Steps table) (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Password and keys"
+       },
+       {
+        "m": "You need it to open the vault. App cannot recover it.",
+        "kind": "text",
+        "why": "APP-07 M07-09 step 3 line (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Choose what opens this vault. Only you should know it or have it."
+       },
+       {
+        "m": "Password · Strong, about 78 bits",
+        "kind": "text",
+        "why": "FEA-05.4 strength words and the card estimator in the editor's password label",
+        "ref": "LD-192 (5), LD-163 (4)",
+        "app": "Password · Good, about 79 bits"
+       },
+       {
+        "m": "Repeat it",
+        "kind": "text",
+        "why": "APP-07 M07-10 repeat label (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Verify password"
+       },
+       {
+        "m": "••••••••••••••••••",
+        "kind": "text",
+        "why": "APP-07.11: Show shows both fields together (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "orchid-meteor-pine-quartz-41"
+       },
+       {
+        "m": "A second secret kept in a file. Without it the vault does not open.",
+        "kind": "text",
+        "why": "APP-07 M07-12 key file note (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Keep this file exactly as it is, and keep a copy somewhere safe: the vault opens only with this file, unchanged."
+       },
+       {
+        "m": "Create…",
+        "kind": "text",
+        "why": "APP-07 M07-12 button (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "New Key File…"
+       },
+       {
+        "m": "Choose…",
+        "kind": "text",
+        "why": "APP-07 M07-12 button (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Choose Key File…"
+       },
+       {
+        "m": "Create vault",
+        "kind": "text",
+        "why": "APP-07 M07-14 button (card words over mockup)",
+        "ref": "BUILD-AND-VERIFY order 2, LD-163 (4); E5-S8 report",
+        "app": "Create Vault"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [
+       {
+        "m": "Name",
+        "kind": "text",
+        "ocr": "Name"
+       },
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "ocr": "Encryption"
+       }
+      ],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "Step 3 of 3",
+       "The passwords match"
+      ],
+      "help": [
+       "Security keys come in E10.",
+       "Touch ID comes with quick unlock (E6-S3)."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [
+       {
+        "kind": "extra",
+        "hex": "#10303a",
+        "token": "accent-soft",
+        "ref": 0,
+        "app": 0.79
+       }
+      ],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 53.6,
+        "app": 50.7
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 30.3,
+        "app": 31.5
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 10.3,
+        "app": 10.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "eye-slash",
+       "password",
+       "fill check-circle",
+       "file-lock",
+       "fingerprint"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "button",
+       "text": "Create…",
+       "dom": [
+        511,
+        426.5,
+        72,
+        28
+       ],
+       "app": [
+        424,
+        434.5,
+        110,
+        28
+       ],
+       "d": [
+        -87,
+        8,
+        38,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Choose…",
+       "dom": [
+        591,
+        426.5,
+        77,
+        28
+       ],
+       "app": [
+        542,
+        434.5,
+        127,
+        28
+       ],
+       "d": [
+        -49,
+        8,
+        50,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Add…",
+       "dom": [
+        611,
+        487,
+        57,
+        28
+       ],
+       "app": [
+        612,
+        503,
+        57,
+        28
+       ],
+       "d": [
+        1,
+        16,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Cancel",
+       "dom": [
+        29,
+        661,
+        73.5,
+        36
+       ],
+       "app": [
+        28,
+        662,
+        73.5,
+        36
+       ],
+       "d": [
+        -1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Back",
+       "dom": [
+        513.5,
+        661,
+        61.5,
+        36
+       ],
+       "app": [
+        513,
+        662,
+        62,
+        36
+       ],
+       "d": [
+        -0.5,
+        1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Create vault",
+       "dom": [
+        583.5,
+        661,
+        107.5,
+        36
+       ],
+       "app": [
+        583,
+        662,
+        109,
+        36
+       ],
+       "d": [
+        -0.5,
+        1,
+        1.5,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Hide",
+       "dom": [
+        604,
+        231,
+        32,
+        32
+       ],
+       "app": [
+        605,
+        231,
+        32,
+        32
+       ],
+       "d": [
+        1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "iconbutton",
+       "text": "Generate",
+       "dom": [
+        644,
+        231,
+        32,
+        32
+       ],
+       "app": [
+        645,
+        231,
+        32,
+        32
+       ],
+       "d": [
+        1,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Key file",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        76,
+        422,
+        46,
+        18
+       ],
+       "app": [
+        75,
+        421.9,
+        46,
+        18
+       ],
+       "d": [
+        -1,
+        -0.1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Security key",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        76,
+        482,
+        76.5,
+        18
+       ],
+       "app": [
+        75,
+        498.4,
+        76.5,
+        18
+       ],
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "A YubiKey or OnlyKey with challenge-response.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        52,
+        505,
+        253.5,
+        15
+       ],
+       "app": [
+        51,
+        521.4,
+        253.5,
+        15
+       ],
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Touch ID",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        76,
+        543,
+        56,
+        18
+       ],
+       "app": [
+        75,
+        558.9,
+        56.5,
+        18
+       ],
+       "d": [
+        -1,
+        15.9,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Unlock with your finger after the first time.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        52,
+        565,
+        226.5,
+        15
+       ],
+       "app": [
+        51,
+        581.9,
+        227,
+        15
+       ],
+       "d": [
+        -1,
+        16.9,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 3.24,
+     "residual": 2.02,
+     "unnamed": [],
+     "disabled": [
+      "Add… (Security keys come in E10.)",
+      "Touch ID (Touch ID comes with quick unlock (E6-S3).)"
+     ],
+     "shifted": [
+      {
+       "kind": "button",
+       "text": "Add…",
+       "d": [
+        1,
+        16,
+        0,
+        0
+       ],
+       "rest": [
+        1,
+        0,
+        0,
+        0
+       ],
+       "ref": "APP-07 M07-12: the card's key file note takes two lines"
+      }
+     ],
+     "geoFails": 0,
+     "shiftedRuns": [
+      {
+       "text": "Security key",
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        0.4
+       ]
+      },
+      {
+       "text": "A YubiKey or OnlyKey with challenge-response.",
+       "d": [
+        -1,
+        16.4,
+        0,
+        0
+       ],
+       "rest": [
+        -1,
+        0.4
+       ]
+      },
+      {
+       "text": "Touch ID",
+       "d": [
+        -1,
+        15.9,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        -0.1
+       ]
+      },
+      {
+       "text": "Unlock with your finger after the first time.",
+       "d": [
+        -1,
+        16.9,
+        0.5,
+        0
+       ],
+       "rest": [
+        -1,
+        0.9
+       ]
+      }
+     ],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Show, Generate, the match mark and M07-20 (APP-07.11, APP-07.16)"
+    }
+   ],
+   "controls": [
+    "sw \"Touch ID\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-vault-settings-general",
+   "title": "Vault settings · General",
+   "note": "⇧⌘,",
+   "size": [
+    900,
+    640
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-vault-settings-general.png",
+     "present": true,
+     "appImg": "app/light/vault-vault-settings-general.png",
+     "diffImg": "diff/light/vault-vault-settings-general.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Default username",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Description",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Colour and icon",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Shown in the sidebar and on the lock screen",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "File",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Location",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Show in Finder",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Format",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "teal",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "blue",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "green",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "orange",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "pink",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "purple",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "slate",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [
+       {
+        "m": "~/Documents/Passwords/Personal.appvault",
+        "kind": "text",
+        "why": "vault path: the test copies the demo vaults to target/option-a/Passwords",
+        "app": "~/option-a/settings-shots/Passwords/Personal.appvault"
+       },
+       {
+        "m": "Version 4.1 · 84 KB",
+        "kind": "text",
+        "why": "file version and size of the test copy",
+        "app": "Version 4.1 · 9.7 KB"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "alex.morgan@posteo.de",
+       "Everything that is mine, not work."
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 53.3,
+        "app": 53.2
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 26.5,
+        "app": 26.6
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 15.2,
+        "app": 15.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Show in Finder",
+       "dom": [
+        742.5,
+        418.5,
+        110.5,
+        28
+       ],
+       "app": [
+        743.5,
+        418,
+        110.5,
+        28
+       ],
+       "d": [
+        1,
+        -0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "General",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        55,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        55,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        257,
+        81,
+        35,
+        17
+       ],
+       "app": [
+        256,
+        80.5,
+        35.5,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Default username",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        570,
+        81,
+        106,
+        17
+       ],
+       "app": [
+        570,
+        80.5,
+        106.5,
+        17
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Description",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        257,
+        157,
+        68,
+        17
+       ],
+       "app": [
+        256,
+        156.5,
+        68.5,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Colour and icon",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        282,
+        93.5,
+        17
+       ],
+       "app": [
+        258,
+        282,
+        94,
+        17
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Shown in the sidebar and on the lock screen",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        322,
+        276,
+        18
+       ],
+       "app": [
+        270,
+        321.5,
+        276.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "File",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        378,
+        22,
+        17
+       ],
+       "app": [
+        258,
+        378,
+        22.5,
+        17
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Location",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        415,
+        53.5,
+        18
+       ],
+       "app": [
+        270,
+        414.5,
+        53.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Format",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        473,
+        45,
+        18
+       ],
+       "app": [
+        270,
+        472.5,
+        45.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.89,
+     "residual": 1.69,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-vault-settings-general.png",
+     "present": true,
+     "appImg": "app/dark/vault-vault-settings-general.png",
+     "diffImg": "diff/dark/vault-vault-settings-general.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Name",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Default username",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Description",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Colour and icon",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Shown in the sidebar and on the lock screen",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "File",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Location",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Show in Finder",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Format",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "teal",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "blue",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "green",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "orange",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "pink",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "purple",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "slate",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [
+       {
+        "m": "~/Documents/Passwords/Personal.appvault",
+        "kind": "text",
+        "why": "vault path: the test copies the demo vaults to target/option-a/Passwords",
+        "app": "~/option-a/settings-shots/Passwords/Personal.appvault"
+       },
+       {
+        "m": "Version 4.1 · 84 KB",
+        "kind": "text",
+        "why": "file version and size of the test copy",
+        "app": "Version 4.1 · 9.7 KB"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "alex.morgan@posteo.de",
+       "Everything that is mine, not work."
+      ],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 42.3,
+        "app": 42.1
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 26.5,
+        "app": 26.5
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 25.7,
+        "app": 25.6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Show in Finder",
+       "dom": [
+        741.5,
+        421.5,
+        110.5,
+        28
+       ],
+       "app": [
+        742.5,
+        421,
+        110.5,
+        28
+       ],
+       "d": [
+        1,
+        -0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "General",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        55,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        55,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Name",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        257,
+        81,
+        35,
+        17
+       ],
+       "app": [
+        256,
+        80.5,
+        35.5,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Default username",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        570,
+        81,
+        106,
+        17
+       ],
+       "app": [
+        570,
+        80.5,
+        106.5,
+        17
+       ],
+       "d": [
+        0,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Description",
+       "font": "IBM Plex Sans 13/500",
+       "dom": [
+        257,
+        157,
+        68,
+        17
+       ],
+       "app": [
+        256,
+        156.5,
+        68.5,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Colour and icon",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        282,
+        93.5,
+        17
+       ],
+       "app": [
+        258,
+        282,
+        94,
+        17
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Shown in the sidebar and on the lock screen",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        323,
+        276,
+        18
+       ],
+       "app": [
+        271,
+        322.5,
+        276.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "File",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        380,
+        22,
+        17
+       ],
+       "app": [
+        258,
+        380,
+        22.5,
+        17
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Location",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        418,
+        53.5,
+        18
+       ],
+       "app": [
+        271,
+        417.5,
+        53.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Format",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        476,
+        45,
+        18
+       ],
+       "app": [
+        271,
+        475.5,
+        45.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.89,
+     "residual": 1.69,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the pages switch; name, default username and colour apply"
+    }
+   ],
+   "controls": [
+    "spage=general \"General\"",
+    "spage=security \"Security\"",
+    "spage=bin \"Recycle Bin\"",
+    "spage=history \"History\"",
+    "spage=browser \"Browser Keys\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-vault-settings-security",
+   "title": "Vault settings · Security",
+   "note": "⇧⌘,",
+   "size": [
+    900,
+    640
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-vault-settings-security.png",
+     "present": true,
+     "appImg": "app/light/vault-vault-settings-security.png",
+     "diffImg": "diff/light/vault-vault-settings-security.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Credentials",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Change…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key file",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "personal.appkey",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Remove",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security key",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID for this vault",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cipher",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "AES-256",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key derivation",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Argon2id resists guessing on graphics cards.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Argon2id",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Unlock time on this Mac",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Higher means slower guessing for an attacker.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "1.0 s",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Memory",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "64 MiB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Parallel threads",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "2",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Changes take effect the next time App saves. Older apps may not open a vault that uses ChaCha20 or more than 1 GiB of memory.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Yubico",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "YubiKey 5 NFC · slot 2 · challenge-response",
+        "kind": "text",
+        "why": "security key row: E10 control, drawn and disabled; no key",
+        "ref": "LD-163",
+        "app": "Not used"
+       }
+      ],
+      "live": [
+       {
+        "m": "Changed Mar 3, 2024",
+        "kind": "text",
+        "why": "MasterKeyChanged of the test copy",
+        "app": "Changed Oct 28, 2026"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "10"
+      ],
+      "help": [
+       "Security keys come in E10.",
+       "Touch ID comes with quick unlock (E6-S3)."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 44.6,
+        "app": 44.8
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 26.5,
+        "app": 26.6
+       },
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 23.5,
+        "app": 23.1
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right",
+       "caret-up-down",
+       "minus",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        775.5,
+        121.5,
+        77.5,
+        28
+       ],
+       "app": [
+        776.5,
+        120.5,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        697.5,
+        179.5,
+        77.5,
+        28
+       ],
+       "app": [
+        698.5,
+        178.5,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Remove",
+       "dom": [
+        783,
+        179.5,
+        70,
+        28
+       ],
+       "app": [
+        784,
+        178.5,
+        70,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        775.5,
+        239,
+        77.5,
+        28
+       ],
+       "app": [
+        776.5,
+        238,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Security",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        57.5,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        58,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Credentials",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        81,
+        69.5,
+        17
+       ],
+       "app": [
+        258,
+        80.5,
+        69.5,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        118,
+        61,
+        18
+       ],
+       "app": [
+        270,
+        117,
+        61,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Key file",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        176,
+        46,
+        18
+       ],
+       "app": [
+        270,
+        175,
+        46,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "personal.appkey",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        271,
+        196,
+        89.5,
+        15
+       ],
+       "app": [
+        270,
+        195.5,
+        89.5,
+        15
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Security key",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        295,
+        234,
+        76.5,
+        18
+       ],
+       "app": [
+        294,
+        233,
+        76.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Touch ID for this vault",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        297.5,
+        137.5,
+        18
+       ],
+       "app": [
+        270,
+        296.5,
+        138,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Encryption",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        353,
+        65.5,
+        17
+       ],
+       "app": [
+        258,
+        353,
+        65.5,
+        17
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Cipher",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        395,
+        41,
+        18
+       ],
+       "app": [
+        270,
+        394.5,
+        41.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Key derivation",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        441,
+        89.5,
+        18
+       ],
+       "app": [
+        270,
+        440.5,
+        89.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Argon2id resists guessing on graphics cards.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        271,
+        461,
+        238,
+        15
+       ],
+       "app": [
+        270,
+        461,
+        238.5,
+        15
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Unlock time on this Mac",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        499,
+        150,
+        18
+       ],
+       "app": [
+        270,
+        498.5,
+        150,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Higher means slower guessing for an attacker.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        271,
+        519,
+        247,
+        15
+       ],
+       "app": [
+        270,
+        519,
+        247,
+        15
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Memory",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        562,
+        51.5,
+        18
+       ],
+       "app": [
+        270,
+        561.5,
+        51.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "64 MiB",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        749,
+        562,
+        41,
+        17
+       ],
+       "app": [
+        751,
+        562,
+        41,
+        17
+       ],
+       "d": [
+        2,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Parallel threads",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        613,
+        99,
+        18
+       ],
+       "app": [
+        270,
+        612.5,
+        99,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "2",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        782,
+        613,
+        8,
+        17
+       ],
+       "app": [
+        784,
+        613,
+        8,
+        17
+       ],
+       "d": [
+        2,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.77,
+     "residual": 1.61,
+     "unnamed": [],
+     "disabled": [
+      "Change… (Security keys come in E10.)",
+      "Touch ID (Touch ID comes with quick unlock (E6-S3).)"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-vault-settings-security.png",
+     "present": true,
+     "appImg": "app/dark/vault-vault-settings-security.png",
+     "diffImg": "diff/dark/vault-vault-settings-security.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Credentials",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Password",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Change…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key file",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "personal.appkey",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Remove",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security key",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID for this vault",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Encryption",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Cipher",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "AES-256",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Key derivation",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Argon2id resists guessing on graphics cards.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Argon2id",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Unlock time on this Mac",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Higher means slower guessing for an attacker.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "1.0 s",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Memory",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "64 MiB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Parallel threads",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "2",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Changes take effect the next time App saves. Older apps may not open a vault that uses ChaCha20 or more than 1 GiB of memory.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Yubico",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Touch ID",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "YubiKey 5 NFC · slot 2 · challenge-response",
+        "kind": "text",
+        "why": "security key row: E10 control, drawn and disabled; no key",
+        "ref": "LD-163",
+        "app": "Not used"
+       }
+      ],
+      "live": [
+       {
+        "m": "Changed Mar 3, 2024",
+        "kind": "text",
+        "why": "MasterKeyChanged of the test copy",
+        "app": "Changed Oct 28, 2026"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "10"
+      ],
+      "help": [
+       "Security keys come in E10.",
+       "Touch ID comes with quick unlock (E6-S3)."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 45.8,
+        "app": 45.9
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 26.5,
+        "app": 26.5
+       },
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 21.7,
+        "app": 21.4
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right",
+       "caret-up-down",
+       "minus",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        774.5,
+        122.5,
+        77.5,
+        28
+       ],
+       "app": [
+        775.5,
+        121.5,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        696.5,
+        180.5,
+        77.5,
+        28
+       ],
+       "app": [
+        697.5,
+        179.5,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Remove",
+       "dom": [
+        782,
+        180.5,
+        70,
+        28
+       ],
+       "app": [
+        783,
+        179.5,
+        70,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Change…",
+       "dom": [
+        774.5,
+        240,
+        77.5,
+        28
+       ],
+       "app": [
+        775.5,
+        239,
+        77.5,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Security",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        57.5,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        58,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Credentials",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        81,
+        69.5,
+        17
+       ],
+       "app": [
+        258,
+        80.5,
+        69.5,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Password",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        119,
+        61,
+        18
+       ],
+       "app": [
+        271,
+        118,
+        61,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Key file",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        177,
+        46,
+        18
+       ],
+       "app": [
+        271,
+        176,
+        46,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "personal.appkey",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        272,
+        197,
+        89.5,
+        15
+       ],
+       "app": [
+        271,
+        196.5,
+        89.5,
+        15
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Security key",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        296,
+        235,
+        76.5,
+        18
+       ],
+       "app": [
+        295,
+        234,
+        76.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Touch ID for this vault",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        298.5,
+        137.5,
+        18
+       ],
+       "app": [
+        271,
+        297.5,
+        138,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Encryption",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        355,
+        65.5,
+        17
+       ],
+       "app": [
+        258,
+        355,
+        65.5,
+        17
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Cipher",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        398,
+        41,
+        18
+       ],
+       "app": [
+        271,
+        397.5,
+        41.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Key derivation",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        444,
+        89.5,
+        18
+       ],
+       "app": [
+        271,
+        443.5,
+        89.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Argon2id resists guessing on graphics cards.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        272,
+        464,
+        238,
+        15
+       ],
+       "app": [
+        271,
+        464,
+        238.5,
+        15
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Unlock time on this Mac",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        502,
+        150,
+        18
+       ],
+       "app": [
+        271,
+        501.5,
+        150,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Higher means slower guessing for an attacker.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        272,
+        522,
+        247,
+        15
+       ],
+       "app": [
+        271,
+        522,
+        247,
+        15
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Memory",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        565,
+        51.5,
+        18
+       ],
+       "app": [
+        271,
+        564.5,
+        51.5,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "64 MiB",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        748,
+        565,
+        41,
+        17
+       ],
+       "app": [
+        750,
+        565,
+        41,
+        17
+       ],
+       "d": [
+        2,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Parallel threads",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        616,
+        99,
+        18
+       ],
+       "app": [
+        271,
+        615.5,
+        99,
+        18
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "2",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        781,
+        616,
+        8,
+        17
+       ],
+       "app": [
+        783,
+        616,
+        8,
+        17
+       ],
+       "d": [
+        2,
+        0,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.76,
+     "residual": 1.61,
+     "unnamed": [],
+     "disabled": [
+      "Change… (Security keys come in E10.)",
+      "Touch ID (Touch ID comes with quick unlock (E6-S3).)"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the password changes after Change…; a cipher change saves"
+    }
+   ],
+   "controls": [
+    "spage=general \"General\"",
+    "spage=security \"Security\"",
+    "spage=bin \"Recycle Bin\"",
+    "spage=history \"History\"",
+    "spage=browser \"Browser Keys\"",
+    "sw \"Touch ID\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-vault-settings-recycle-bin",
+   "title": "Vault settings · Recycle Bin",
+   "note": "⇧⌘,",
+   "size": [
+    900,
+    640
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-vault-settings-recycle-bin.png",
+     "present": true,
+     "appImg": "app/light/vault-vault-settings-recycle-bin.png",
+     "diffImg": "diff/light/vault-vault-settings-recycle-bin.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Use a Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Deleted entries wait here until you empty it.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Empty entries older than",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "90 days",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Bin",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Auto empty",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "1"
+      ],
+      "help": [
+       "Emptying the Recycle Bin by age comes later."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 60.1,
+        "app": 60
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 26.5,
+        "app": 26.6
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 10.2,
+        "app": 10.2
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right",
+       "minus",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Recycle Bin",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        80.5,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        80.5,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Use a Recycle Bin",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        92,
+        111,
+        18
+       ],
+       "app": [
+        270,
+        91,
+        111,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Deleted entries wait here until you empty it.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        271,
+        112,
+        235,
+        15
+       ],
+       "app": [
+        270,
+        111.5,
+        235,
+        15
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Empty entries older than",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        155,
+        155,
+        18
+       ],
+       "app": [
+        270,
+        154,
+        155,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "90 days",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        702,
+        155,
+        46,
+        17
+       ],
+       "app": [
+        704,
+        154.5,
+        46,
+        17
+       ],
+       "d": [
+        2,
+        -0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.68,
+     "residual": 0.63,
+     "unnamed": [],
+     "disabled": [
+      "Less (Emptying the Recycle Bin by age comes later.)",
+      "More (Emptying the Recycle Bin by age comes later.)",
+      "Auto empty (Emptying the Recycle Bin by age comes later.)"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-vault-settings-recycle-bin.png",
+     "present": true,
+     "appImg": "app/dark/vault-vault-settings-recycle-bin.png",
+     "diffImg": "diff/dark/vault-vault-settings-recycle-bin.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Use a Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Deleted entries wait here until you empty it.",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Empty entries older than",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "90 days",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Bin",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Auto empty",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [
+       "1"
+      ],
+      "help": [
+       "Emptying the Recycle Bin by age comes later."
+      ]
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 59.2,
+        "app": 59.2
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 26.5,
+        "app": 26.5
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 10.7,
+        "app": 10.6
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right",
+       "minus",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Recycle Bin",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        80.5,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        80.5,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Use a Recycle Bin",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        93,
+        111,
+        18
+       ],
+       "app": [
+        271,
+        92,
+        111,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Deleted entries wait here until you empty it.",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        272,
+        113,
+        235,
+        15
+       ],
+       "app": [
+        271,
+        112.5,
+        235,
+        15
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Empty entries older than",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        156,
+        155,
+        18
+       ],
+       "app": [
+        271,
+        155,
+        155,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "90 days",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        701,
+        156,
+        46,
+        17
+       ],
+       "app": [
+        703,
+        155.5,
+        46,
+        17
+       ],
+       "d": [
+        2,
+        -0.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.66,
+     "residual": 0.62,
+     "unnamed": [],
+     "disabled": [
+      "Less (Emptying the Recycle Bin by age comes later.)",
+      "More (Emptying the Recycle Bin by age comes later.)",
+      "Auto empty (Emptying the Recycle Bin by age comes later.)"
+     ],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the switch turns the bin off after MOD-04.12's question"
+    }
+   ],
+   "controls": [
+    "spage=general \"General\"",
+    "spage=security \"Security\"",
+    "spage=bin \"Recycle Bin\"",
+    "spage=history \"History\"",
+    "spage=browser \"Browser Keys\"",
+    "sw \"Bin\"",
+    "sw \"Auto empty\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-vault-settings-history",
+   "title": "Vault settings · History",
+   "note": "⇧⌘,",
+   "size": [
+    900,
+    640
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-vault-settings-history.png",
+     "present": true,
+     "appImg": "app/light/vault-vault-settings-history.png",
+     "diffImg": "diff/light/vault-vault-settings-history.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Keep earlier versions of entries",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Versions per entry",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "10",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History size per entry",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "6 MB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Space used now",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Delete all history…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [
+       {
+        "m": "4.8 KB in 18 versions",
+        "kind": "text",
+        "why": "history of the demo vault (MOD-03.7 sizes)",
+        "app": "8.4 KB in 21 versions"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 50.6,
+        "app": 50.5
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 26.5,
+        "app": 26.6
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 19.2,
+        "app": 19.3
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right",
+       "minus",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Delete all history…",
+       "dom": [
+        720,
+        244.5,
+        133,
+        28
+       ],
+       "app": [
+        721,
+        243.5,
+        133,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "History",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        50,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        50.5,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Keep earlier versions of entries",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        95,
+        194,
+        18
+       ],
+       "app": [
+        270,
+        94,
+        194.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Versions per entry",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        144,
+        114,
+        18
+       ],
+       "app": [
+        270,
+        143,
+        114.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "10",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        774.5,
+        144,
+        15.5,
+        17
+       ],
+       "app": [
+        776,
+        143.5,
+        16,
+        17
+       ],
+       "d": [
+        1.5,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "History size per entry",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        195,
+        133,
+        18
+       ],
+       "app": [
+        270,
+        194,
+        133.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "6 MB",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        760,
+        195,
+        30,
+        17
+       ],
+       "app": [
+        762,
+        194.5,
+        30,
+        17
+       ],
+       "d": [
+        2,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Space used now",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        241,
+        102,
+        18
+       ],
+       "app": [
+        270,
+        240,
+        102.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.95,
+     "residual": 0.85,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-vault-settings-history.png",
+     "present": true,
+     "appImg": "app/dark/vault-vault-settings-history.png",
+     "diffImg": "diff/dark/vault-vault-settings-history.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Keep earlier versions of entries",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Versions per entry",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "10",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History size per entry",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "6 MB",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Space used now",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Delete all history…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Less",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "More",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [],
+      "live": [
+       {
+        "m": "4.8 KB in 18 versions",
+        "kind": "text",
+        "why": "history of the demo vault (MOD-03.7 sizes)",
+        "app": "8.4 KB in 21 versions"
+       }
+      ],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 49.4,
+        "app": 49.3
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 26.5,
+        "app": 26.5
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 20.1,
+        "app": 20.1
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right",
+       "minus",
+       "plus"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Delete all history…",
+       "dom": [
+        719,
+        245.5,
+        133,
+        28
+       ],
+       "app": [
+        720,
+        244.5,
+        133,
+        28
+       ],
+       "d": [
+        1,
+        -1,
+        0,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "History",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        50,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        50.5,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Keep earlier versions of entries",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        96,
+        194,
+        18
+       ],
+       "app": [
+        271,
+        95,
+        194.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "Versions per entry",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        145,
+        114,
+        18
+       ],
+       "app": [
+        271,
+        144,
+        114.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "10",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        773.5,
+        145,
+        15.5,
+        17
+       ],
+       "app": [
+        775,
+        144.5,
+        16,
+        17
+       ],
+       "d": [
+        1.5,
+        -0.5,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "History size per entry",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        196,
+        133,
+        18
+       ],
+       "app": [
+        271,
+        195,
+        133.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "6 MB",
+       "font": "IBM Plex Sans 13/400",
+       "dom": [
+        759,
+        196,
+        30,
+        17
+       ],
+       "app": [
+        761,
+        195.5,
+        30,
+        17
+       ],
+       "d": [
+        2,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Space used now",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        242,
+        102,
+        18
+       ],
+       "app": [
+        271,
+        241,
+        102.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "pixels": 0.93,
+     "residual": 0.84,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "the steppers change the limits; Delete all history… asks first"
+    }
+   ],
+   "controls": [
+    "spage=general \"General\"",
+    "spage=security \"Security\"",
+    "spage=bin \"Recycle Bin\"",
+    "spage=history \"History\"",
+    "spage=browser \"Browser Keys\"",
+    "sw \"History\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  },
+  {
+   "id": "vault-vault-settings-browser-keys",
+   "title": "Vault settings · Browser Keys",
+   "note": "⇧⌘,",
+   "size": [
+    900,
+    640
+   ],
+   "themes": {
+    "light": {
+     "theme": "light",
+     "refImg": "../../option-a/reference/light/vault-vault-settings-browser-keys.png",
+     "present": true,
+     "appImg": "app/light/vault-vault-settings-browser-keys.png",
+     "diffImg": "diff/light/vault-vault-settings-browser-keys.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Connected browsers",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Firefox on MacBook",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Disconnect",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Safari",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Stored permissions",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Site permissions kept in entries",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "4 entries hold allowed or blocked sites",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Remove all…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Firefox Browser",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Safari",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Connected Oct 12 · last used today, 09:12",
+        "kind": "text",
+        "why": "connected browser: the vault stores when it was connected (INT-02 _CREATED_), no last use",
+        "ref": "MOD-12.18, INT-02; E5-S8 report",
+        "app": "Connected Oct 12"
+       },
+       {
+        "m": "Connected Sep 3 · last used Oct 20",
+        "kind": "text",
+        "why": "connected browser: the vault stores when it was connected (INT-02 _CREATED_), no last use",
+        "ref": "MOD-12.18, INT-02; E5-S8 report",
+        "app": "Connected Oct 12"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#ffffff",
+        "token": "surface/field/tile/on-primary",
+        "ref": 52.7,
+        "app": 52.7
+       },
+       {
+        "hex": "#f0f2f2",
+        "token": "ground",
+        "ref": 26.5,
+        "app": 26.6
+       },
+       {
+        "hex": "#f5f7f7",
+        "token": "raised",
+        "ref": 16.9,
+        "app": 17
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Disconnect",
+       "dom": [
+        765,
+        123.5,
+        88.5,
+        28
+       ],
+       "app": [
+        765.5,
+        122.5,
+        88.5,
+        28
+       ],
+       "d": [
+        0.5,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Disconnect",
+       "dom": [
+        765,
+        185.5,
+        88.5,
+        28
+       ],
+       "app": [
+        765.5,
+        184,
+        88.5,
+        28
+       ],
+       "d": [
+        0.5,
+        -1.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Remove all…",
+       "dom": [
+        754.5,
+        294.5,
+        98.5,
+        28
+       ],
+       "app": [
+        755,
+        292.5,
+        99,
+        28
+       ],
+       "d": [
+        0.5,
+        -2,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Browser Keys",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        95,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        95,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Connected browsers",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        81,
+        124,
+        17
+       ],
+       "app": [
+        258,
+        80.5,
+        124,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Firefox on MacBook",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        299,
+        118,
+        124,
+        18
+       ],
+       "app": [
+        298,
+        117,
+        124,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Safari",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        299,
+        180,
+        36.5,
+        18
+       ],
+       "app": [
+        298,
+        178.5,
+        36.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Stored permissions",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        254,
+        116.5,
+        17
+       ],
+       "app": [
+        258,
+        252.5,
+        116.5,
+        17
+       ],
+       "d": [
+        -1,
+        -1.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Site permissions kept in entries",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        271,
+        291,
+        196.5,
+        18
+       ],
+       "app": [
+        270,
+        289,
+        197,
+        18
+       ],
+       "d": [
+        -1,
+        -2,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "4 entries hold allowed or blocked sites",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        271,
+        311,
+        207,
+        15
+       ],
+       "app": [
+        270,
+        309.5,
+        207,
+        15
+       ],
+       "d": [
+        -1,
+        -1.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.08,
+     "residual": 0.9,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    },
+    "dark": {
+     "theme": "dark",
+     "refImg": "../../option-a/reference/dark/vault-vault-settings-browser-keys.png",
+     "present": true,
+     "appImg": "app/dark/vault-vault-settings-browser-keys.png",
+     "diffImg": "diff/dark/vault-vault-settings-browser-keys.png",
+     "text": {
+      "found": [
+       {
+        "m": "Personal",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Vault settings",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "General",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Security",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Recycle Bin",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "History",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Browser Keys",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Connected browsers",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Firefox on MacBook",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Disconnect",
+        "kind": "text",
+        "how": "inside"
+       },
+       {
+        "m": "Safari",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Stored permissions",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Site permissions kept in entries",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "4 entries hold allowed or blocked sites",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Remove all…",
+        "kind": "text",
+        "how": "exact"
+       },
+       {
+        "m": "Firefox Browser",
+        "kind": "name",
+        "how": "exact"
+       },
+       {
+        "m": "Safari",
+        "kind": "name",
+        "how": "exact"
+       }
+      ],
+      "accepted": [
+       {
+        "m": "Connected Oct 12 · last used today, 09:12",
+        "kind": "text",
+        "why": "connected browser: the vault stores when it was connected (INT-02 _CREATED_), no last use",
+        "ref": "MOD-12.18, INT-02; E5-S8 report",
+        "app": "Connected Oct 12"
+       },
+       {
+        "m": "Connected Sep 3 · last used Oct 20",
+        "kind": "text",
+        "why": "connected browser: the vault stores when it was connected (INT-02 _CREATED_), no last use",
+        "ref": "MOD-12.18, INT-02; E5-S8 report",
+        "app": "Connected Oct 12"
+       }
+      ],
+      "live": [],
+      "clipped": [],
+      "drawnOnly": [],
+      "behind": [],
+      "missing": [],
+      "extra": [],
+      "help": []
+     },
+     "sizeOk": true,
+     "colours": {
+      "issues": [],
+      "major": [
+       {
+        "hex": "#131315",
+        "token": "surface",
+        "ref": 52.2,
+        "app": 52.2
+       },
+       {
+        "hex": "#0b0b0d",
+        "token": "ground/on-primary",
+        "ref": 26.5,
+        "app": 26.6
+       },
+       {
+        "hex": "#19191c",
+        "token": "raised/hover/field",
+        "ref": 16.9,
+        "app": 16.9
+       }
+      ]
+     },
+     "icons": {
+      "used": [
+       "fill keyhole",
+       "fill lock-key",
+       "fill trash",
+       "fill clock-counter-clockwise",
+       "fill globe-simple",
+       "caret-left",
+       "caret-right"
+      ],
+      "missing": [],
+      "logos": [],
+      "noLogo": []
+     },
+     "geometry": [
+      {
+       "kind": "sideitem",
+       "text": "General",
+       "dom": [
+        10,
+        103,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        102,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Security",
+       "dom": [
+        10,
+        137,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        136,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Recycle Bin",
+       "dom": [
+        10,
+        171,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        170,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "History",
+       "dom": [
+        10,
+        205,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        204,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "sideitem",
+       "text": "Browser Keys",
+       "dom": [
+        10,
+        239,
+        212,
+        32
+       ],
+       "app": [
+        10,
+        238,
+        212,
+        32
+       ],
+       "d": [
+        0,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Disconnect",
+       "dom": [
+        764,
+        124.5,
+        88.5,
+        28
+       ],
+       "app": [
+        764.5,
+        123.5,
+        88.5,
+        28
+       ],
+       "d": [
+        0.5,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Disconnect",
+       "dom": [
+        764,
+        186.5,
+        88.5,
+        28
+       ],
+       "app": [
+        764.5,
+        185,
+        88.5,
+        28
+       ],
+       "d": [
+        0.5,
+        -1.5,
+        0,
+        0
+       ]
+      },
+      {
+       "kind": "button",
+       "text": "Remove all…",
+       "dom": [
+        753.5,
+        297.5,
+        98.5,
+        28
+       ],
+       "app": [
+        754,
+        295.5,
+        99,
+        28
+       ],
+       "d": [
+        0.5,
+        -2,
+        0.5,
+        0
+       ]
+      }
+     ],
+     "runs": [
+      {
+       "text": "Browser Keys",
+       "font": "IBM Plex Sans 15/600",
+       "dom": [
+        301,
+        24.5,
+        95,
+        19
+       ],
+       "app": [
+        300,
+        24.5,
+        95,
+        19
+       ],
+       "d": [
+        -1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Connected browsers",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        81,
+        124,
+        17
+       ],
+       "app": [
+        258,
+        80.5,
+        124,
+        17
+       ],
+       "d": [
+        -1,
+        -0.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Firefox on MacBook",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        300,
+        119,
+        124,
+        18
+       ],
+       "app": [
+        299,
+        118,
+        124,
+        18
+       ],
+       "d": [
+        -1,
+        -1,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Safari",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        300,
+        181,
+        36.5,
+        18
+       ],
+       "app": [
+        299,
+        179.5,
+        36.5,
+        18
+       ],
+       "d": [
+        -1,
+        -1.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Stored permissions",
+       "font": "IBM Plex Sans 13/600",
+       "dom": [
+        259,
+        256,
+        116.5,
+        17
+       ],
+       "app": [
+        258,
+        254.5,
+        116.5,
+        17
+       ],
+       "d": [
+        -1,
+        -1.5,
+        0,
+        0
+       ]
+      },
+      {
+       "text": "Site permissions kept in entries",
+       "font": "IBM Plex Sans 14/400",
+       "dom": [
+        272,
+        294,
+        196.5,
+        18
+       ],
+       "app": [
+        271,
+        292,
+        197,
+        18
+       ],
+       "d": [
+        -1,
+        -2,
+        0.5,
+        0
+       ]
+      },
+      {
+       "text": "4 entries hold allowed or blocked sites",
+       "font": "IBM Plex Sans 12/400",
+       "dom": [
+        272,
+        314,
+        207,
+        15
+       ],
+       "app": [
+        271,
+        312.5,
+        207,
+        15
+       ],
+       "d": [
+        -1,
+        -1.5,
+        0,
+        0
+       ]
+      }
+     ],
+     "pixels": 1.07,
+     "residual": 0.9,
+     "unnamed": [],
+     "disabled": [],
+     "shifted": [],
+     "geoFails": 0,
+     "shiftedRuns": [],
+     "runFails": 0
+    }
+   },
+   "behaviour": [
+    {
+     "ok": true,
+     "name": "Disconnect and Remove all… ask, then act (MOD-12.18)"
+    }
+   ],
+   "controls": [
+    "spage=general \"General\"",
+    "spage=security \"Security\"",
+    "spage=bin \"Recycle Bin\"",
+    "spage=history \"History\"",
+    "spage=browser \"Browser Keys\""
+   ],
+   "hasCodes": false,
+   "hasList": false,
+   "measured": [],
+   "fails": [],
+   "verdict": "PASS"
+  }
+ ]
+}

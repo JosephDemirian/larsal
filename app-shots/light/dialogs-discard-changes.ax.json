@@ -1,0 +1,65 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            80,
+            29,
+            257,
+            20
+          ],
+          "label" : "Discard your changes to “GitHub”?",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            80,
+            57,
+            252.5,
+            18
+          ],
+          "role" : "AXStaticText",
+          "value" : "You changed the password and the tags."
+        },
+        {
+          "frame" : [
+            182,
+            98,
+            111,
+            36
+          ],
+          "label" : "Keep Editing",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            301,
+            98,
+            137,
+            36
+          ],
+          "label" : "Discard Changes",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        0,
+        0,
+        460,
+        152
+      ],
+      "label" : "Discard your changes to “GitHub”?",
+      "role" : "AXGroup"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    460,
+    152
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}
