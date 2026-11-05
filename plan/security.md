@@ -215,3 +215,16 @@ FILE-P1–4 are the adopted final E22 parity identifiers, all still todo; all or
 | FILE-P2 | Complete syntax/credential/header/payload/final-marker/EOF validation before final output/plaintext; no plaintext temp, bounded RAM. Ciphertext-only custody/replay/cleanup candidate unproved. Handled cancel with incomplete residual fails unchanged S4 even when warned; later I/O/crash faults report actual residues separately, no universal crash transaction | files/platform/CLI/FFI | FIL-03, AT-FILE-02/03/05/06/07/08; retain original S3/S4 acceptance | todo |
 | FILE-P3 | Protected generated credentials saved first, explicit readable destination, originals/existing files preserved, no automatic execution/network | files/CLI/macOS | FIL-02, AT-FILE-09/10/11/14 | todo |
 | FILE-P4 | Accurate sender/metadata/quantum/erasure limits and portable-password offline guesses; owner-chosen USB/cloud/email local output authorized. E22 has no service path; every LD-340 Larsal-service no-verifier obligation remains, any future route requires reviewed compliance | all E22 surfaces | FIL-01.20 to .22, FIL-03.21, AT-FILE-12 | todo |
+
+
+## Encrypted-folder parity (E23-S1 reviewed specification; runtime proof OPEN)
+
+FOLD-P1–5 are the final encrypted-folder parity identifiers, all todo; every runtime row remains OPEN and no existing row gains sign-off. Original S3/S4 acceptance is unchanged; first-party Open requires named API review and successful no-disk/own-view close/lock proof. Shared header-key GCM budget/unknown peer history and encrypted recovery-name/journal custody remain implementing proof. LD-340/371 are unchanged. Specification/catalog adoption signs no runtime row. Proof: the encrypted-folder research Review and proof footer.
+
+| ID | Scope | Runtime status |
+|---|---|---|
+| FOLD-P1 | Exact classic profile and successful foreign-vault CRUD interoperability, FIL-04 | todo; E23-S3 OPEN |
+| FOLD-P2 | Authentication, limits, custody, names/TOCTOU, FIL-04/06 | todo; E23-S3/S6 OPEN; documented authentic-cut/replay limits; exact changed-byte check OPEN; both GCM budgets unproved |
+| FOLD-P3 | Deterministic observed conflicts, durable ciphertext-only recovery with encrypted names/parent IDs and marker-absence/name-recovery contrasts, no silent loss, FIL-06 | todo; E23-S3/S4/S6 OPEN; unseen-version availability limit disclosed |
+| FOLD-P4 | Own-window flows, credentials, lifecycle and owned plaintext cleanup, FIL-05/06 | todo; E23-S4/S6 OPEN; selected first-party closure/no-disk and named API review unproved; original S4 unchanged |
+| FOLD-P5 | Signed Finder integration and lock/cache behavior, FIL-05 | todo; E23-S5 OPEN after S4/D7/W-02 |

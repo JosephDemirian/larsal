@@ -218,3 +218,27 @@ Findings go to `security/findings.md`, one row each: ID, date, severity, area, s
 | The lead | Collects results, files findings, has fixes made, re-runs the failed checks |
 
 Exit: every parity row `verified` with proof, every attack passed, zero open Critical or High findings, a short report for the owner.
+
+
+## Encrypted-folder attacks (E23-S1 reviewed specification; runtime proof OPEN)
+
+AT-FOLD-01–16 are the final encrypted-folder attack identifiers; positive controls/private-copy mutants and every runtime proof remain OPEN. Original S3 changed-byte and S6 acceptance are unchanged; authentic whole-object/chunk truncation/replay/substitution are separate S6 handling/disclosure. First-party Open requires successful own-view closure/no readable disk copy, with no external exception. Catalog adoption signs no runtime attack; all existing rows/proof are unchanged. Proof: the encrypted-folder research Review and proof footer.
+
+| Attack | Future case/rules | Required contrast and evidence |
+|---|---|---|
+| AT-FOLD-01 | FIL-04-T02/T03; FIL-06-T01 | Bad JWT/keywrap/unknown alg/kid and KDF overflow or RFC-invalid N≥2^(16*r) cases refuse before external I/O/excess work; genuine local profile unlocks. |
+| AT-FOLD-02 | FIL-04-T05/T06 | Header/tag/nonce flips, reorder/repeat/cross-file chunks, partial cut/append; valid boundary files succeed; no early plaintext on authentication failure. |
+| AT-FOLD-03 | FIL-04-T07/T08; FIL-06-T09 | Classic whole-chunk cut/authentic swap/replay positive demonstrations; local known-history mismatch stops; documented format limit disclosed; exact original changed-byte check OPEN. |
+| AT-FOLD-04 | FIL-04-T09/T10 | Parent-ID/name/shortening substitution; canonical valid long names work, cross-parent names fail, same-parent object swap limit distinguished. |
+| AT-FOLD-05 | FIL-06-T02/T03 | Traversal, malformed UTF8, NFC/case collisions, links/devices/cycles/deep trees; ordinary nested demo works, no escape/read outside chosen root. |
+| AT-FOLD-06 | FIL-06-T04/T05 | Mutable ciphertext capture, surviving writer, original-path swap; valid sealed input replays, changed input cannot race validation. |
+| AT-FOLD-07 | FIL-06-T06/T07 | ENOSPC/short write/sync/close/crash at every boundary; old and new recoverable ciphertext; no false completion or unsafe cleanup. |
+| AT-FOLD-08 | FIL-06-T08; FIL-05-T14 | Cancel/lock plus queued callbacks/new write; manual/vault-independent KDF variants; valid operation completes, revoked one cannot resume. |
+| AT-FOLD-09 | FIL-06-T10/T11/T12 | Two offline Macs editing/renaming/deleting same base; both arrival orders converge on same observed conflict set, no clock winner or silent discard. |
+| AT-FOLD-10 | FIL-06-T13/T14 | Recovery quota/full disk/substitution; unique clear demo-name marker absent from raw recovery/journal bodies/filenames/logs after lock/restart, names/versions recover only after unlock; no overwritten foreign file or auto-pruning loss. |
+| AT-FOLD-11 | FIL-05-T07/T08/T09; FIL-06-T15 | First-party text/image/PDF/binary functional Open and exact byte controls,Close/lock/every enabled trigger/stale provider; no disk materialization/index/cache, all view/handle teardown and UI/Rust buffer lifetimes require proof; unchanged S4 OPEN. |
+| AT-FOLD-12 | FIL-04-T12/T13; FIL-06-T16 | Inject RNG failure, inspect owned secret lifetimes/backend/stack/register/error/FFI paths on both targets; valid primitive vectors work; both GCM budgets include shared-header attempts/restarts/concurrency, unknown peer history disclosed. |
+| AT-FOLD-13 | FIL-04-T14; FIL-05-T18 | Exact peer version/profile both directions with all CRUD/name/boundary/large operations; refusals recorded separately, never successful interop. |
+| AT-FOLD-14 | FIL-06-T16/T17 | Huge count/length/cost and stalled hydration/cancel; boundary control succeeds within RAM/worker budget; shared-header2^32 boundary/exhaustion/restart/concurrent-device reservations include directory-ID backups, fresh content keys do not reset it. |
+| AT-FOLD-15 | FIL-05-T15/T16/T17 | Native keyboard/VoiceOver/plain text/capture-property/reduced-motion/theme and Finder cache lifecycle; illustrative HTML is not native/device proof. |
+| AT-FOLD-16 | FIL-04-T15/T16; FIL-06-T18 | Observer/server-blind/offline guessing and password-rewrap historical-copy controls; unchanged no-Larsal-service path, no erasure/freshness claims. |
