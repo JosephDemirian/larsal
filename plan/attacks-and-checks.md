@@ -242,3 +242,29 @@ AT-FOLD-01–16 are the final encrypted-folder attack identifiers; positive cont
 | AT-FOLD-14 | FIL-06-T16/T17 | Huge count/length/cost and stalled hydration/cancel; boundary control succeeds within RAM/worker budget; shared-header2^32 boundary/exhaustion/restart/concurrent-device reservations include directory-ID backups, fresh content keys do not reset it. |
 | AT-FOLD-15 | FIL-05-T15/T16/T17 | Native keyboard/VoiceOver/plain text/capture-property/reduced-motion/theme and Finder cache lifecycle; illustrative HTML is not native/device proof. |
 | AT-FOLD-16 | FIL-04-T15/T16; FIL-06-T18 | Observer/server-blind/offline guessing and password-rewrap historical-copy controls; unchanged no-Larsal-service path, no erasure/freshness claims. |
+
+
+## Passkey and SSH attacks (E24-S1 reviewed specification; runtime proof OPEN)
+
+AT-KEY-01–18 are final catalog identifiers for the reviewed temporary E24 proposals. Every positive, hostile and private-copy removal check remains OPEN; this catalog signs no runtime attack. All original rows/proof stay unchanged. Full native14+/protected26+ exchange, every generated/served key type, program/grant/forwarding/Git/public-surface success remains required; unsupported/refusal states never pass a required success. LD-380–396 and the research Review/proof record bind the adopted contracts and remaining G01–G05.
+
+| Attack | Future rules/cases | Required positive/hostile/removal proof |
+|---|---|---|
+| AT-KEY-01 | E24-P05/P06/P08 | signed Safari/native registration and assertion succeed with empty/nonmatching exclusions on14/15+; same-RP/type byte-ID exclusion, cancel privacy, other RP, wrong allow-ID and forged service name fail; remove RP/selection/exclusion checks and require failure |
+| AT-KEY-02 | E24-P07/S11 | fresh bound biometric/password success; click-only/cancel/failure no sign; remove freshness/token binding and test catches it |
+| AT-KEY-03 | E24-P03/P09/P11 | unlocked success, purge old identities; locked/stale callback reveals no credential; remove generation recheck/purge and test fails |
+| AT-KEY-04 | E24-P12/P13/P20/P21 | eligible protected peer roundtrip; readable CXF/incorrect recipient/stale token no import; remove recipient/protection gate and test detects leak |
+| AT-KEY-05 | E24-P15–P18 | valid lossless passkey signs on E7 page; DER/key mismatch/count/depth/size/unsupported profile/mixed selected batch saves nothing; remove each bound/atomic commit control |
+| AT-KEY-06 | E24-P17/P19 | same identity same key skips, distinct ID imports; same ID different key/handle rejects; remove conflict test, fail |
+| AT-KEY-07 | E24-P14/P19/P21 | selected-only exact target; cancel at each pre/post boundary and changed destination; remove snapshot/revision/once checks |
+| AT-KEY-08 | E24-P20/S02/S04/S28 | compliant successful transfer/generation, owned-copy wiping; no private marker in Swift/DOM/log/error/temp/stdout/server; inject unsafe boundary return in private copy and detection fails |
+| AT-KEY-09 | E24-S08–S10/S24 | verified live program reconnect succeeds under same grant; name/PID/path spoof, restart, exec/code replacement fail; assert displayed full key fingerprint, requester/code and honest relay/direct-caller distinction; remove identity component/recheck/display binding |
+| AT-KEY-10 | E24-S10/S11/S14–S16 | same grant reuse works; expiry/lock/revoke/edit/recycle/sync/disconnect invalidates late tokens; remove each invalidator/release check |
+| AT-KEY-11 | E24-S12/S13 | checked loopback forwarding succeeds with once consent; forged chain/session/remote-general request no remembered use; remove bind/purpose checks |
+| AT-KEY-12 | E24-S01–S06/S17 | each generated/import-supported type authenticates/signs independently; bad flags, SHA-1, arbitrary provider/injected add fails; remove type/flag/provider validation |
+| AT-KEY-13 | E24-S20–S24 | exact commit/tag payload verified by Git/OpenSSH; wrong namespace/key/payload/trust/revocation fails; assert full selected-key fingerprint, labelled digest and honest requester context; remove domain separation/key selection/display binding checks |
+| AT-KEY-14 | E24-S21/S22 | file.sig/stdin and every verification mode exact; link/collision/missing verifier/failure writes no partial output; remove no-link/no-overwrite/exit handling |
+| AT-KEY-15 | E24-S25/S26 | correct explicit stable textarea filled in Chrome/Safari; overlay/hidden/cross-origin/navigation/focus/readonly fails, no submit; remove sender/frame/generation validation |
+| AT-KEY-16 | E24-P22/P23/S25–S28 | exact public metadata management in all surfaces; generic reveal/export/history paths no private bytes; remove export/boundary gate |
+| AT-KEY-17 | E24-P10/P24/P25/S19/S29 | normal request and keyboard/VoiceOver complete; flood/busy/held Return/timeout bounds/no accidental sign; assert full long prompt identity/fingerprint/digest fields; remove queue/deadline/activation/display guard |
+| AT-KEY-18 | LD-340; E24-P21/S28 | encrypted save/sync success and server-blind existing model; entire server store/requests/logs contain no private key/password/verifier; private-copy canary verifier introduced and check fails |

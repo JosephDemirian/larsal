@@ -228,3 +228,18 @@ FOLD-P1–5 are the final encrypted-folder parity identifiers, all todo; every r
 | FOLD-P3 | Deterministic observed conflicts, durable ciphertext-only recovery with encrypted names/parent IDs and marker-absence/name-recovery contrasts, no silent loss, FIL-06 | todo; E23-S3/S4/S6 OPEN; unseen-version availability limit disclosed |
 | FOLD-P4 | Own-window flows, credentials, lifecycle and owned plaintext cleanup, FIL-05/06 | todo; E23-S4/S6 OPEN; selected first-party closure/no-disk and named API review unproved; original S4 unchanged |
 | FOLD-P5 | Signed Finder integration and lock/cache behavior, FIL-05 | todo; E23-S5 OPEN after S4/D7/W-02 |
+
+
+## Passkey and SSH parity (E24-S1 reviewed specification; runtime proof OPEN)
+
+KEY-P1–7 are the final E24 parity identifiers, all todo. The prior SI-05/SI-07/SR-16/SF-09/SD-07 and every earlier sign-off retain their original scope and bytes. Specification/catalog adoption supplies no runtime sign-off; G01–G05 and LD-380–396 govern later implementing proof. No supported-success subset, readable private export, Swift secret exception, invented receiver/peer identity or approval bypass is accepted.
+
+| ID | Required scope | Runtime status |
+|---|---|---|
+| KEY-P1 | Signed native14+ registration/assertion, canonical RP/allowed/excluded IDs, consent and lock/privacy purge | todo; E24-S4/G01 OPEN, including equivalent14 exclusion mediation |
+| KEY-P2 | Protected CXF1.0 lossless eligible exchange26+, exact target/atomic hostile-input refusal, copy/retention proof | todo; E24-S5/G02 OPEN; receiver identity and Rust/Swift/OS custody unresolved |
+| KEY-P3 | Every generated type/size, independent parser/fingerprint and loopback authentication, private key only inside encrypted vault/Rust | todo; E24-S2/G03/G05 OPEN; descriptor/pipe compatibility unproved |
+| KEY-P4 | Every supported own-agent key, verified live program/purpose grant, ask-first/forwarded once, immediate revocation | todo; E24-S3/G03/G04 OPEN; no system-agent private forwarding |
+| KEY-P5 | SSHSIG Git sign/file/stdin and all public verification/trust/revocation modes, exact helper I/O and requester context | todo; E24-S3/G04/G05 OPEN |
+| KEY-P6 | Public-only passkey/SSH management and explicit form fill across Mac/extension/web/CLI, encrypted web mutation/CSP/zero knowledge | todo; E24-S6 OPEN; every generic/history/export/attachment bypass must be tested |
+| KEY-P7 | All new frames in native keyboard/VoiceOver/theme/motion/capture behavior, honest limits and resource/lifecycle handling | todo; implementing Mac QA/AX/device/capture OPEN; static frames prove none of these |

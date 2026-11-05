@@ -932,6 +932,105 @@ P.push({id:'e23-s1',title:'E23-S1 · Encrypted folders',line:'DRAFT · FIL-04 to
 ].map(([state,title,note])=>({id:`e23-s1-${state}`,t:`E23-S1 ${title}`,n:note,...(['list','empty'].includes(state)?{w:900,h:660,html:()=>e23Window(state==='empty')}:{card:true,html:()=>e23Dialog(state)})}))});
 // ---------- end E23-S1 proposal additions ----------
 
+
+// ---------- E24-S1 DRAFT proposals: static public/demo state illustrations only ----------
+const E24_PUBLIC = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBcFDq2T71wERCeKk/6BZCGHILdNQmAt+6GVCObXA9mG demo@app';
+const E24_FP = 'SHA256:R3aMsbAq88Fv8wlNcuy3oN+ZIl7yqPd3lRkAP/AP+uc';
+const e24Button = (text, primary = false, focus = false, disabled = false) => `<button type="button" class="btn lg${primary?' primary':''}"${disabled?' disabled style="opacity:.45"':focus?' style="outline:2px solid var(--accent);outline-offset:2px"':''}>${text}</button>`;
+const e24Note = text => `<p class="help" style="margin:14px 0 0;overflow-wrap:anywhere">${text}</p>`;
+const e24Actions = (...buttons) => `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">${buttons.join('')}</div>`;
+const e24Field = (id,label,value,help='') => `<div style="margin-top:14px"><label class="lab" for="e24-${id}">${label}</label><div class="inp"><input id="e24-${id}" value="${esc(value)}" readonly${help?` aria-describedby="e24-${id}-help"`:''}></div>${help?`<p class="help" id="e24-${id}-help" style="margin:6px 0 0">${help}</p>`:''}</div>`;
+const e24Panel = text => `<div class="panel" style="padding:14px 16px;overflow-wrap:anywhere">${text}</div>`;
+const e24Public = () => e24Panel(`<label class="lab">Public key · ED25519</label><div class="mono" style="white-space:normal;overflow-wrap:anywhere">${E24_PUBLIC}</div><label class="lab" style="margin-top:14px">Fingerprint</label><div class="mono" style="overflow-wrap:anywhere">${E24_FP}</div>`);
+const e24Account = () => e24Panel('<b>Example · alex@example.com</b><p class="help" style="margin:6px 0 0">example.com · Personal › Accounts</p>');
+const e24Stop = () => e24Button('Cancel',false,true);
+const e24Done = () => e24Button('Done',true,true);
+const e24KeyOptions = (state) => `<fieldset style="border:0;padding:0;margin:0"><legend class="lab">Key type</legend><div class="segc" role="group" aria-label="Key type">${[['new-ssh','Ed25519'],['new-ssh-ecdsa','ECDSA'],['new-ssh-rsa','RSA']].map(([s,t])=>`<button type="button" aria-pressed="${state===s}">${t}</button>`).join('')}</div></fieldset>`
+ + (state==='new-ssh-rsa'?`<fieldset style="border:0;padding:0;margin:16px 0"><legend class="lab">RSA bits</legend><div class="segc" role="group" aria-label="RSA bits"><button type="button" aria-pressed="true">3072</button><button type="button" aria-pressed="false">4096</button></div></fieldset>`:state==='new-ssh-ecdsa'?`<fieldset style="border:0;padding:0;margin:16px 0"><legend class="lab">ECDSA curve</legend><div class="segc" role="group" aria-label="ECDSA curve"><button type="button" aria-pressed="true">P-256</button><button type="button" aria-pressed="false">P-384</button><button type="button" aria-pressed="false">P-521</button></div></fieldset>`:e24Note('Fixed key size · Ed25519 is the default.'))
+ + e24Field(state+'-title','Entry title','Development key') + e24Field(state+'-comment','Public comment','','Optional. Programs and sites can see this label.')
+ + e24Note('The private key stays protected in your vault. Only its public key can be copied or saved.');
+const E24_FRAMES = [
+ ['provider','Passkeys on this Mac','Use Larsal in Safari and other apps.',
+  grp('Credential Provider',row('Larsal','Enabled · macOS 14 or later',e24Button('Open System Settings…'))+row('Available vault','Personal · unlocked',''))+e24Note('Only eligible passkeys from unlocked vaults are offered. You confirm each use.'),e24Done(),'INT-04.E24.01–.04','key'],
+ ['provider-off','Enable Larsal for passkeys','Choose Larsal in System Settings › AutoFill & Passwords.',
+  e24Panel('Larsal · Disabled')+e24Note('Enabling the provider does not export your vault. You can turn it off at any time.'),e24Stop()+e24Button('Open System Settings…',true),'INT-04.E24.01–.03','key'],
+ ['provider-unavailable','Passkey provider unavailable','This build cannot provide passkeys to macOS.',
+  e24Note('A supported signed build and macOS 14 or later are required. No passkey request has been completed.'),e24Done(),'INT-04.E24.01/.02','warning-circle'],
+ ['register','Save a passkey for example.com?','The request comes through macOS.',
+  e24Account()+e24Field('register-place','Save in','Personal › Accounts')+e24Note('Keep the password and one-time code in this entry. Confirm your identity before Larsal saves the passkey.'),e24Stop()+e24Button('Verify and Save Passkey',true),'INT-04.E24.05–.08','key'],
+ ['select','Sign in to example.com','Choose the account you want to use.',
+  e24Account()+e24Actions(e24Button('Use alex@example.com',true))+e24Note('Personal › Accounts · passkey only. Another site’s credentials are not listed.'),e24Stop()+e24Button('Verify and Continue',true),'INT-04.E24.05–.07','key'],
+ ['verify','Confirm your identity','Larsal needs a fresh check for example.com.',
+  e24Panel('Touch ID is handled by the system after you continue.')+e24Note('If Touch ID is unavailable, verify the vault password in Larsal’s protected unlock view. No private key appears here.'),e24Stop()+e24Button('Use Touch ID',true),'INT-04.E24.07/.24','fingerprint'],
+ ['provider-empty','No passkeys for this site','No eligible account for example.com is available.',
+  e24Note('Check that the correct vault is unlocked. A passkey for another site cannot be used here.'),e24Button('Cancel',false,true),'INT-04.E24.06/.25','key'],
+ ['provider-busy','Another passkey request is waiting','Finish the current request or cancel this one.',
+  e24Panel('<span role="status">Waiting · 38 seconds left</span>')+e24Note('Waiting does not extend this request’s deadline.'),e24Button('Cancel Request',false,true),'INT-04.E24.09/.10/.25','clock'],
+ ['provider-error','This request could not be completed','No credential was returned.',
+  e24Note('The request expired or the credential changed. Start again from the site or app.'),e24Button('Close',false,true),'INT-04.E24.09/.25','warning-circle'],
+ ['locked','Larsal is locked','Unlock your vault to use passkeys or SSH keys.',
+  e24Note('Pending requests and program approvals have ended. Start a new request after unlocking.'),e24Stop()+e24Button('Unlock Larsal…',true),'INT-04.E24.09/.11; INT-06.E24.15','lock'],
+ ['exchange','Move passkeys','Exchange selected passkeys with another credential provider.',
+  e24Account()+e24Actions(e24Button('Import from Another Provider…'),e24Button('Export Selected Passkeys…',true))+e24Note('Requires macOS 26 or later. The receiving provider can use and retain transferred credentials.'),e24Done(),'INT-04.E24.12–.14','arrows-left-right'],
+ ['exchange-review','Review passkey transfer','Transfer 2 selected passkeys to the app you choose next.',
+  e24Panel('<b>Selected</b><p>example.com · alex@example.com</p><p>shop.example · alex</p><b>Not selected</b><p class="help">work.example · no credential transferred</p>')+e24Note('The system will identify the receiving app. A changed recipient or selection needs a new review. The source copies remain.'),e24Stop()+e24Button('Verify and Choose Provider…',true),'INT-04.E24.14/.19–.21','arrows-left-right'],
+ ['exchange-duplicates','Review import','Choose the destination for 2 new passkeys.',
+  e24Field('exchange-target','Save in','Personal › Imported Passkeys')+e24Panel('<p>2 new passkeys · ready for review</p><p>1 exact duplicate · existing entry kept</p>')+e24Note('A credential ID with a different key stops the whole selected import. Existing entries are never overwritten.'),e24Stop()+e24Button('Verify and Import',true),'INT-04.E24.15–.18','files'],
+ ['exchange-progress','Waiting for the other app','The system is handling the transfer.',
+  e24Panel('<div role="progressbar" aria-label="Waiting for credential transfer">Transfer in progress · finish time unknown</div>')+e24Note('After credentials reach the other app, Cancel or locking Larsal cannot recall them. Check the receiving app if the result is uncertain.'),e24Button('Cancel Transfer',false,true),'INT-04.E24.20/.21','clock'],
+ ['exchange-complete','Passkeys saved · result illustration','2 passkeys imported into Personal › Imported Passkeys.',
+  e24Panel('<b>Example · alex@example.com</b><p class="help" style="margin:6px 0 0">example.com · Personal › Imported Passkeys</p>')+e24Note('1 duplicate kept unchanged. Check sign-in at each site. Copies may still exist in the source provider.'),e24Done(),'INT-04.E24.18/.19/.21','check-circle'],
+ ['exchange-error','These credentials could not be imported','Nothing was saved.',
+  e24Note('The selected data is invalid, conflicts with an existing credential, or uses unsupported state. Review the source and try again.'),e24Stop()+e24Button('Review Selection…',true),'INT-04.E24.16/.17/.25','warning-circle'],
+ ['exchange-unavailable','Credential exchange unavailable','Credential exchange requires macOS 26 or later.',
+  e24Note('This state transfers nothing. Protected import and export remain required on supported systems; there is no readable private-key file fallback.'),e24Done(),'INT-04.E24.13/.20/.25','warning-circle'],
+ ['passkeys','Passkeys','Manage the passkeys in Personal.',
+  e24Account()+e24Actions(e24Button('Open Entry'),e24Button('Remove Passkey…'))+e24Note('No private-key reveal or copy. Import and protected export use the native credential exchange flow.'),e24Done(),'INT-04.E24.22/.23/.26','key'],
+ ['passkeys-empty','No passkeys in this vault yet','Create a passkey from a site, or import from another app.',
+  e24Actions(e24Button('Import from Another Provider…'))+e24Note('Unlock a writable vault before saving a passkey.'),e24Done(),'INT-04.E24.22/.25','key'],
+ ['delete-passkey','Remove the passkey for example.com?','The password and one-time code stay.',
+  e24Account()+e24Note('This does not remove it at the site or from other providers. Earlier history and backups may retain copies.'),e24Stop()+e24Button('Remove Passkey'),'INT-04.E24.22/.24','trash'],
+ ['new-ssh','New SSH Key','Add a new key to this entry.',e24KeyOptions('new-ssh'),e24Stop()+e24Button('Generate and Add Key',true),'INT-06.E24.01–.04','key'],
+ ['new-ssh-rsa','New SSH Key · RSA','Choose the key size explicitly.',e24KeyOptions('new-ssh-rsa'),e24Stop()+e24Button('Generate and Add Key',true),'INT-06.E24.01–.04','key'],
+ ['new-ssh-ecdsa','New SSH Key · ECDSA','Choose a standard curve.',e24KeyOptions('new-ssh-ecdsa'),e24Stop()+e24Button('Generate and Add Key',true),'INT-06.E24.01–.04','key'],
+ ['ssh-generating','Making your SSH key','The private key stays protected in Larsal.',
+  e24Panel('<div role="progressbar" aria-label="Making SSH key">Working · finish time unknown</div>')+e24Note('Cancelling discards the draft. Nothing is copied or written as a private-key file.'),e24Button('Cancel',false,true),'INT-06.E24.02/.04/.06','clock'],
+ ['ssh-created','SSH key saved · result illustration','Development key · Personal › Servers',
+  e24Public()+e24Actions(e24Button('Copy Public Key'),e24Button('Save Public Key…'))+e24Note('Demo public key from the existing card fixture. No key was generated by this frame.'),e24Done(),'INT-06.E24.04–.06','check-circle'],
+ ['ssh-save-error','Key not saved','The entry is unchanged.',
+  e24Note('Check that the vault is writable and try again. A changed entry or locked vault requires a new operation.'),e24Stop()+e24Button('Try Again',true),'INT-06.E24.04/.06/.29','warning-circle'],
+ ['ssh-agent','Larsal’s SSH agent','Programs ask Larsal before using a key.',
+  grp('Agent',row('Work with SSH keys','Enabled · only unlocked vault keys','')+row('Socket','<span class="mono" style="overflow-wrap:anywhere">~/Library/Application Support/Larsal/agent.sock</span>',''))+e24Panel('<label class="lab">Setup for selected hosts</label><code style="overflow-wrap:anywhere">IdentityAgent "~/Library/Application Support/Larsal/agent.sock"</code>')+e24Actions(e24Button('Copy Setup Line'),e24Button('Review Program Approvals…'))+e24Note('No system-agent keys are forwarded. Existing copies elsewhere must be removed or revoked separately.'),e24Done(),'INT-06.E24.07/.08/.18','terminal-window'],
+ ['ssh-approval','Allow this program to use Development key?','ssh · verified local program instance',
+  e24Panel('<b>Purpose</b><p>SSH authentication · checked session</p><b>Destination</b><p>Host key checked · hostname unknown</p>')+e24Note(E24_FP)+e24Note('Allow Until Lock applies only to this program instance, key and purpose. It ends on lock, restart, key changes or Revoke.'),e24Button('Deny',false,true)+e24Button('Allow Once')+e24Button('Allow Until Lock',true),'INT-06.E24.09–.14/.19','shield-check'],
+ ['ssh-once','Allow one use of Development key?','Ask before each use is on.',
+  e24Panel('ssh · verified local program<br>SSH authentication · destination unknown')+e24Note(E24_FP)+e24Note('Confirm your identity for this request. This key never remembers program approval.'),e24Button('Deny',false,true)+e24Button('Verify and Allow Once',true),'INT-06.E24.11/.12/.19','shield-check'],
+ ['ssh-forwarded','Allow this forwarded request?','ssh is the local relay. The remote program is unknown.',
+  e24Panel('Forwarded connection · checked host-key chain<br>Destination hostname unknown')+e24Note(E24_FP)+e24Note('Local program approval does not authorize this remote request. This decision allows one exact authentication request.'),e24Button('Deny',false,true)+e24Button('Verify and Allow Once',true),'INT-06.E24.12/.13/.14','arrows-left-right'],
+ ['ssh-revocation','Program approvals','Temporary approvals in this unlocked vault.',
+  e24Panel('<b>ssh · Development key</b><p>SSH authentication · Until lock</p><p class="help">Verified program instance · memory only</p>')+e24Actions(e24Button('Revoke'),e24Button('Revoke All'))+e24Note('Revoke stops pending use too. Lock, program restart and key changes remove these approvals.'),e24Done(),'INT-06.E24.10/.15/.16','shield-check'],
+ ['ssh-unknown','Program identity could not be checked','Larsal did not sign.',
+  e24Note('A process name or path alone cannot prove which program is asking. Close the request and start again.'),e24Button('Deny',false,true),'INT-06.E24.09/.17/.29','warning-circle'],
+ ['git-setup','Sign git commits with Larsal','Review this recipe for one repository.',
+  e24Panel('<pre class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere;margin:0">gpg.format = ssh\ngpg.ssh.program = &lt;Larsal bundle&gt;/larsal-sign\nuser.signingkey = &lt;chosen public .pub file&gt;\ncommit.gpgsign = true</pre>')+e24Actions(e24Button('Copy Public Key'),e24Button('Copy Recipe'))+e24Note('Verification needs an allowed-signers file and respects revocation. No git configuration or trust store is changed here.'),e24Done(),'INT-06.E24.20–.24','git-commit'],
+ ['git-approval','Allow git signing with Development key?','Demo local relay · direct caller unknown',
+  e24Panel('<b>Requester / code hint</b><p>larsal-sign · Larsal bundle relay (demo); direct caller unknown</p><b>Namespace / repository</b><p>git · Unknown repository</p><b>Selected key</b><p class="mono" style="overflow-wrap:anywhere">'+E24_FP+'</p><b>Demo SHA-256 payload digest</b><p class="mono" style="overflow-wrap:anywhere">621dd74698fc561c9bbcc641af7af01adab610849e313730ad7bb6b70522bf6d</p>')+e24Note('Once only: the direct caller is unknown. Signing does not mean you reviewed the commit or prove a hosting account identity. Runtime code identity remains to be checked.'),e24Button('Deny',false,true)+e24Button('Verify and Allow Once',true),'INT-06.E24.19/.20/.23/.24','git-commit'],
+ ['git-error','Signature could not be made','No new signature file was written.',
+  e24Note('The request was denied, expired, changed or the vault locked. Existing files are unchanged. Start a new signing request.'),e24Button('Close',false,true),'INT-06.E24.21/.22/.29','warning-circle'],
+ ['public-key','Development key','Only the public part is shown.',
+  e24Public()+e24Actions(e24Button('Copy Public Key'),e24Button('Copy Fingerprint'),e24Button('Save Public Key…'))+e24Note('These public values can remain in the clipboard, a saved file or the receiving site after Larsal locks.'),e24Done(),'INT-06.E24.05/.25/.28','key'],
+ ['fill-public-key','Fill a public SSH key','Review the exact site and field.',
+  e24Panel('<b>Site</b><p class="mono">https://code.example</p><b>Field</b><p>Add SSH key · Public key · visible text area</p>')+e24Note(E24_FP)+e24Note('The public key and its public comment go to this page. Larsal does not submit the form.'),e24Stop()+e24Button('Fill Public Key',true),'INT-06.E24.26','browser'],
+ ['fill-changed','Destination changed','No public key was filled.',
+  e24Note('The page, frame or selected field changed. Pick a visible field again and review the site.'),e24Stop()+e24Button('Pick Field Again',true),'INT-06.E24.26/.29','warning-circle'],
+ ['web-keys','Keys in the web vault','Personal · unlocked · public information only',
+  e24Account()+e24Actions(e24Button('Open Passkey Entry'),e24Button('Remove Passkey…'))+e24Public()+e24Actions(e24Button('Copy Public Key'),e24Button('Edit Public Comment…'),e24Button('Delete SSH Entry…'))+e24Note('Generate and use SSH keys in Larsal on your Mac. The web vault does not run a local agent or export private keys. Served-code risk remains part of the web vault’s limits.'),e24Done(),'INT-04.E24.22/.23; INT-06.E24.25/.27/.28','globe'],
+ ['cli-keys','Keys with larsal','Public key management · demo help illustration',
+  e24Panel('<pre class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere;margin:0">larsal passkey list VAULT\nlarsal passkey show VAULT ENTRY_ID\nlarsal passkey remove VAULT ENTRY_ID\nlarsal ssh list VAULT\nlarsal ssh public VAULT ENTRY_ID\nlarsal ssh new VAULT --type ed25519\nlarsal ssh remove VAULT ENTRY_ID\nlarsal ssh approvals\nlarsal ssh revoke</pre>')+e24Note('Public output only. Mutating commands require confirmation or explicit --yes. Private keys never go to standard output.'),e24Done(),'INT-04.E24.23; INT-06.E24.21/.27','terminal-window']
+];
+P.push({id:'e24-s1',title:'E24-S1 · Passkeys and SSH keys everywhere',line:'DRAFT · All frames are static layout/state proposals, with public demo data only. No generation, verification, transfer, signing, fill, copy or revocation runs. Source/API custody, signed OS behavior, private-buffer wiping, accessibility and capture proof remain OPEN. Existing frames are unchanged; fresh second Spec and independent Verify follow.',frames:E24_FRAMES.map(([state,title,text,body,foot,rules,icon])=>({id:`e24-s1-${state}`,t:`E24-S1 ${title}`,n:`${rules}. New case map in INT-04/INT-06 E24 appendices; both themes required. Proposal only.`,card:true,after:win=>{win.closest('figure').style.width='min-content';},html:()=>dlg('--teal',icon,title,text,body,foot,'wide').replace('class="dlg wide"','class="dlg wide" style="width:600px"')}))});
+// ---------- end E24-S1 proposal additions ----------
+
 // ---------- board ----------
 let PTHEME = new URLSearchParams(location.search).get('theme') === 'dark' ? 'dark' : 'light';
 function frameHtml(f, bw) {
