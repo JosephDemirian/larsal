@@ -116,7 +116,7 @@ Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
 | FEA-09 | Export formats | E4-S13 |
 | FEA-10 | [Show as QR Code](features/FEA-10-show-as-qr.md) | E21-S1 (reviewed spec and proposals only); E21-S2 to E21-S5 remain todo |
 
-Status: FEA-10 reviewed 2026-11-05 (E21-S1 written contract and static proposals only), after second Spec corrections and fresh independent Verify APPROVE with no required findings. Commit d413e06 jointly adopted the exact card/index/proposals/scoped APP-10 package and E21/LD-359–362 records. Only LD-359/360's exact capacity and external Share persistence amendments supersede their original clauses; refusals and disabled actions pass neither. All other acceptance stays required. Functional Share, enterprise/device proof and other unproved runtime checks remain OPEN; W-18 and new-frame owner approval remain pending. No implementation authorization. Proof: FEA-10's Review and proof footer.
+Status: FEA-10 reviewed 2026-11-05 (E21-S1 written contract and static proposals only), after second Spec corrections and fresh independent Verify APPROVE with no required findings. Commit d413e06 jointly adopted the exact card/index/proposals/scoped APP-10 package and E21/LD-359–362 records. Only LD-359/360's exact capacity and external Share persistence amendments supersede their original clauses; refusals and disabled actions pass neither. All other acceptance stays required. Functional Share, enterprise/device proof and other unproved runtime checks remain OPEN. Owner proposal review and W-18 wording remain pending without blocking implementation; existing story dependencies and technical reviews apply (LD-363). Proof: FEA-10's Review and proof footer.
 
 ### Larsal (`spec/app/`)
 
