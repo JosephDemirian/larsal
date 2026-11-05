@@ -11,11 +11,15 @@ cd -P "$(dirname "$0")/.."
 command -v cargo >/dev/null || . "$HOME/.cargo/env"
 names=$(cargo tree --offline --locked -p larsal-server --all-features --target all \
   -e normal,build,dev --prefix none -f '{p}' | sed 's/ .*//' | sort -u)
-linked=$(grep -xE 'larsal-(format|core|platform|ffi|sync)' <<<"$names" || true)
-if [ -n "$linked" ]; then
+if linked=$(printf '%s\n' "$names" | grep -xE 'larsal-(format|core|platform|ffi|sync)'); then
   echo "larsal-server's tree holds:" $linked
   echo "check-server-blind: FAIL"
   exit 1
+else
+  result=$?
+  [ "$result" -eq 1 ] || exit "$result"
 fi
-echo "larsal-server: $(grep -c . <<<"$names") packages, none of larsal-format, larsal-core, larsal-platform, larsal-ffi, larsal-sync"
+count=$(printf '%s\n' "$names" | grep -c .)
+[ "$count" -gt 0 ]
+echo "larsal-server: $count packages, none of larsal-format, larsal-core, larsal-platform, larsal-ffi, larsal-sync"
 echo "check-server-blind: PASS"
