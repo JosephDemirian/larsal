@@ -203,3 +203,15 @@ The reference app has no server, so every row is Larsal going further (E16 to E1
 ## Findings
 
 Severity levels, the findings file and the fix rules are in [attacks-and-checks.md](attacks-and-checks.md#findings).
+
+
+### Proposed file-encryption promises (E22-S1 DRAFT, not adopted parity)
+
+Lead assigns final parity identifiers; all original SF/SR/SD rows and proof remain byte-exact. Every implementing-story runtime proof remains OPEN. The original S3 corruption and S4 cancellation acceptance is unchanged; R2/R6 clarify its failure classes and already-authorized local-export/service scope, without a new approval gate.
+
+| Proposal | Promise / open limit | Component | Required proof | Status |
+|---|---|---|---|---|
+| FILE-P1 | Public age-classic-1 password and native recipient compatibility; PQ publication acknowledged, no unproved PQ implementation | larsal-files, larsal-crypto | FIL-01, AT-FILE-01/04/13, vectors and separately approved age1.3.2 both directions plus app↔CLI | todo |
+| FILE-P2 | Complete syntax/credential/header/payload/final-marker/EOF validation before final output/plaintext; no plaintext temp, bounded RAM. Ciphertext-only custody/replay/cleanup candidate unproved. Handled cancel with incomplete residual fails unchanged S4 even when warned; later I/O/crash faults report actual residues separately, no universal crash transaction | files/platform/CLI/FFI | FIL-03, AT-FILE-02/03/05/06/07/08; retain original S3/S4 acceptance | todo |
+| FILE-P3 | Protected generated credentials saved first, explicit readable destination, originals/existing files preserved, no automatic execution/network | files/CLI/macOS | FIL-02, AT-FILE-09/10/11/14 | todo |
+| FILE-P4 | Accurate sender/metadata/quantum/erasure limits and portable-password offline guesses; owner-chosen USB/cloud/email local output authorized. E22 has no service path; every LD-340 Larsal-service no-verifier obligation remains, any future route requires reviewed compliance | all E22 surfaces | FIL-01.20 to .22, FIL-03.21, AT-FILE-12 | todo |
