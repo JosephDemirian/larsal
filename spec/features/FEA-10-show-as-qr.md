@@ -1,6 +1,6 @@
 # FEA-10 Show as QR Code
 
-Status: revised DRAFT (2026-11-04), after fresh second Spec SEND BACK; revised Spec review and fresh independent Verify pending
+Status: reviewed 2026-11-05 (E21-S1 written contract and static proposals only); second Spec corrections and fresh independent Verify approved
 Epics: E21-S1 (this card and proposals only); E21-S2, E21-S3, E21-S4, E21-S5 after review and their board dependencies
 Parity rows: SR-07, SR-13, SC-05, SD-07, SD-09; proposed extensions, not new verification claims
 
@@ -8,7 +8,7 @@ Parity rows: SR-07, SR-13, SC-05, SD-07, SD-09; proposed extensions, not new ver
 
 Shows the one value the user selected as an ordinary QR symbol, locally, so another device can scan it. A separate action on a Wi-Fi entry makes a join code. A QR image is readable secret material, not encryption. Anyone with the picture can recover its content. The picture can be saved or shared only after a warning on every attempt (LD-336, LD-337 (1), (2)). Encrypted links are E21-S6, outside this card.
 
-This draft does not authorize an implementation story. E21-S1 can start without an already-reviewed card; its successors cannot build from this draft. The Lead amendment rulings govern this revision; proposed LD-359 to LD-362 and exact E21-S1/S2/S4/S5 aftertexts are bound outside the checkout for joint integration. They are not adopted central records. Original acceptance stays unpassed until the Lead records the card, board and decisions together; unproved functionality stays required and OPEN. No new general owner-approval gate is introduced. The locked Option A files stay locked. Proposed frames are not owner-approved; the existing one-pass proposal review and any still-pending owner choices stay pending (LD-268, W-18).
+This reviewed specification does not authorize implementation. Commit `d413e06` jointly adopted this card, its index and proposals, the scoped APP-10 correction, the E21 board amendments and LD-359 to LD-362 from the exact independently verified package. LD-359/360 supersede only the original impossible all-length QR corpus clause and global external Share persistence guarantees; neither was passed by refusal. All other acceptance and the whole planned QR/Share/join capability stay required; unproved functionality remains OPEN. No new general owner-approval gate is introduced. The locked Option A files stay locked. Proposed frames are not owner-approved; the existing one-pass proposal review and any still-pending owner choices stay pending (LD-268, W-18).
 
 ## Inputs and outputs
 
@@ -143,16 +143,16 @@ Recover ECI/count/payload bytes from Core Image's [symbol descriptor](https://de
 
 All messages above are literal UI text except the marked placeholders. Error/announcement text never contains payload bytes. Errors leave the vault/draft unchanged, destroy any prior matrix, disable Save/Share, and offer Done. Failure after an external share handoff cannot recall that handoff. A lock request wins over warning confirmation or a late result. No clipboard cleanup is necessary because the new flow never owns clipboard content.
 
-## Lead choices awaiting joint recording
+## Lead records (jointly adopted, specification only)
 
-| Card item / proposed LD | Required joint record and retained gap |
+| Card item / LD | Joint record and retained gap |
 |---|---|
-| D-10-1 / LD-359 | Record A1's 1,000 successful fitting readbacks plus all actual maxima and post-resolution/escaping boundaries above; supersede only E21-S2's impossible all-length clause. Original check stays unpassed until formal recording; S4/S5 inherit. No refusal counted, generator change, correction fallback or alternate protocol |
+| D-10-1 / LD-359 | Jointly recorded A1's 1,000 successful fitting readbacks plus all actual maxima and post-resolution/escaping boundaries above; only E21-S2's impossible all-length clause is superseded, never passed by refusal. S4/S5 inherit. No refusal counted, generator change, correction fallback or alternate protocol |
 | D-10-2 / LD-361 | Keep pin/OTP bitstream and current authorized Show contexts; no new import/ABI/wasm/allocator permission before sensitive review. Preserve exact per-frontend Show eligibility as .3 specifies; select the exact enterprise serialization profile and receiver-specific activation boundary of .6; no approved receiver or trust provisioning is implied, and unproved required support stays OPEN |
 | D-10-3 / LD-360 | Bound LD-337(2)/S1/S2/S4/S5 to Larsal-controlled writes/API calls, per-attempt exact warning, earliest API handoff, revision-bound consent and immediate lock-request revocation. External retention/cancel/no-recall limits remain explicit. Native services and browser Share stay unavailable without policy proof; required functional Share remains OPEN |
 | D-10-4 / LD-362 | Proposed chrome-only entry motion, first complete code deadline/live Reduce Motion, integer physical growth/SIZE frames, raw CLI checked I/O and the scoped APP-10 correction. W-18 and proposed frames remain unapproved; no old capture evidence or actual decoder/device/runtime check is re-signed |
 
-Exact before/after central proposal texts are selectively rebased onto actual current main and hash-bound with these four revised documents. The private validation tree contains the proposed board/LD aftertexts for joint review; that inclusion does not adopt decisions or change project main. Root must rebase again if main changes and record card, board and decisions together. The broad QR/Share/join objective remains required; these proposals do not declare any implementation complete.
+Commit `d413e06` jointly recorded the selectively rebased card, board and LD-359–362 amendments on actual main. The reviewed source manifest has 11,614 records; the adoption manifest has identical path/mode/hash row objects despite different JSON object-key serialization. The private validation tree and its draft-status wording remain historical submission evidence. Any later change must be rebased and checked against actual current main; this review does not approve arbitrary future edits. The broad QR/Share/join objective remains required; no implementation is declared complete.
 
 ## Security notes
 
@@ -236,3 +236,11 @@ Primary product precedents: [Proton's Wi-Fi sharing guidance](https://proton.me/
 | A6 geometry/motion | .11/.12/.14; QR-T05/T14/T15/T17 | Dense1×/2×, SIZE and entry frames both themes; proposed LD-362 |
 | A7 CLI | .22/.23; QR-T26–T28 | Proposed LD-362; no terminal dimensions for raw --stdout, checked I/O |
 | A8 capture/custody | .21/.24; QR-T25/T30 | Scoped APP-10 draft correction; proposed LD-362; no old SC-05/AT-D04 sign-off reused |
+
+## Review and proof
+
+E21-S1 written-contract/static-proposal approval: fresh second Spec corrections, including the exact R3 provenance replacements, followed by independent Verify APPROVE with no required findings. Verified source manifest SHA-256 `e13c298bbb35ee6424d76ead4e167b3a045047bf84c05f099e0d1274e1339e6c` binds 11,614 records; actual-main adoption is `d413e06410e7b81592a49d925fcf1b88d09a67cd`. Proof: `/tmp/larsal-lead/review-artifacts/E21-S1-final-verify/REPORT.md` (SHA-256 `13e19b04cda7cd0b612dd3359df48a22d73b9cb9c616f7c3f2863395ba922b23`), `/tmp/larsal-lead/E21-S1-adoption/` and `/tmp/larsal-lead/review-artifacts/E21-S1-main-closure/REPORT.md`.
+
+`static-and-pixels.py` and `verify-binding.py` exited 0: 24 rules/31 cases, 18 independently viewed proposal PNGs, ten exact pixel grids, 16 retained PNGs and 75 retained old DOM-frame records per theme. Both original bad dense2 frames remain failing controls; only their two native-scale2 captures were corrected, without changing source HTML. The independent full guard passed in 146.81s (11,595 scanned + 19 vault names); the actual adoption guard passed in 147.13s (11,596 + 19, including one ignored generated cache outside the source manifest). These are separate recorded runs, with no intentional source omission; earlier failed/limited scans remain historical. Submitted draft/review-pending wording retained in rules, cases and proposal captions describes that submission, not the current review/adoption status.
+
+All QR-T01–T31 runtime cases remain unpassed. W-18/new-frame owner approval, functional Share, broader joins and receiver/trust/device proof, decoder/lifecycle/wiping/accessibility/capture checks, and sensitive API/import reviews remain OPEN. The named WPA2-EAP/TTLS/MSCHAPV2 profile is serialization authority only. This footer grants no implementation permission and no runtime, successful Share/join or capture PASS.

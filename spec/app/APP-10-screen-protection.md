@@ -1,6 +1,6 @@
 # APP-10 Screen protection and secure input
 
-Status: previously reviewed; scoped capture wording/case correction DRAFT (E21-S1 revision, 2026-11-04), pending revised Spec review and fresh independent Verify. Secure-input rules and historical evidence are unchanged; no prior SC-05/AT-D04 evidence is re-signed.
+Status: reviewed; scoped capture wording/case correction reviewed and independently verified as written-contract-only E21-S1 work, jointly adopted in d413e06 (2026-11-05). Secure-input rules and historical evidence are unchanged; actual capture QA remains OPEN and no prior SC-05/AT-D04 evidence is re-signed.
 Epics: E6-S5, E5-S3
 Parity rows: SC-05, SR-06
 
@@ -132,4 +132,4 @@ Demo vault `/tmp/spec-app10/a.larsalvault`, password `demo-pass-a`, entry "Demo 
 - `strings` on the installed 2.7.11 window binary: the same flag, action and banner as the source; the 2.7.11 tag compared with the source commit for these routines (no change). The window app was not launched.
 - The secure input holder field in the I/O registry and the window sharing state key are public macOS facts; both were read on this Mac by Verify on 2026-10-28: the holder field as V-A10-6 says; the sharing state key is reported (1 for a normal window), and a protected window's value stays with Mac QA (V-A10-1).
 
-E21-S1 scoped correction sources: current SC-05 in plan/security.md, AT-D04 in plan/attacks-and-checks.md and the preserved E13-S1 property observations; public Apple enum/DTS linked in .2. No reference source/app, real capture, permission prompt or secure-input runtime was accessed for this correction. The original card's learning/verification notes above remain historical, not new proof. Proposed LD-362 and joint external aftertexts retain every unpassed actual-capture requirement and the existing first-frame/run-only behavior.
+E21-S1 scoped correction sources: current SC-05 in plan/security.md, AT-D04 in plan/attacks-and-checks.md and the preserved E13-S1 property observations; public Apple enum/DTS linked in .2. No reference source/app, real capture, permission prompt or secure-input runtime was accessed for this correction. The original card's learning/verification notes above remain historical, not new proof. LD-362 and the scoped correction were jointly adopted in d413e06 as reviewed specification only; every unpassed actual-capture requirement and the existing first-frame/run-only behavior remain required. Review/adoption proof is recorded in FEA-10's Review and proof footer.
