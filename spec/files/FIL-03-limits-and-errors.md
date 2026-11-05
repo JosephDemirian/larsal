@@ -1,10 +1,10 @@
 # FIL-03 Limits, output safety and errors
 
-Status: **DRAFT, 2026-11-05; do not implement from this draft.**
+Status: **reviewed, 2026-11-05 (E22-S1 specification and static proposals only)**; second Spec corrections and fresh independent Verify approved; exact source adopted in `c8fa2f1`.
 Epics: E22-S3, E22-S4, E22-S5, E22-S6
-Parity rows: proposed file-encryption rows; Lead owns central allocation. Existing SF/SR/SD rows are not signed by this card.
+Parity rows: FILE-P1–FILE-P4 (all todo; runtime proof OPEN). Existing SF/SR/SD rows are not signed by this card.
 
-All rules are security relevant unless explicitly visual. Source references S01–S20 and unadopted rulings R1–R6 are in [research](../research/file-encryption.md). They supply evidence, not approval. The prior draft received second Spec review; its six accepted corrections are applied here. Fresh independent Verify and selective Lead adoption remain pending. Original acceptance remains OPEN. Runtime cases below are specifications for the implementing stories, not tests run in E22-S1.
+All rules are security relevant unless explicitly visual. Source references S01–S20 and R1–R6, recorded as LD-366–371, are in [research](../research/file-encryption.md). Second Spec corrections and fresh independent Verify approved the exact specification/static proposals; source adoption is `c8fa2f1`. Original dependencies, required technical/sensitive reviews and E22-S2 AT-J03/download gates govern implementation. All runtime cases below remain OPEN in implementing stories. Historical submission wording in unchanged rules/cases does not change current review status. Proof: the research [Review and proof](../research/file-encryption.md#review-and-proof) footer.
 
 ## What it does
 
@@ -117,7 +117,7 @@ All table entries are exercised by the corresponding rules/cases: T01/T02/T13 fo
 
 ## Lead decisions and security notes
 
-R2 retains original S3 corruption and S4 cancellation acceptance; T04–T11 specify the unproved ciphertext-only candidate, stable custody and cleanup-race obligations, with later I/O/crash faults reported separately. R6 states authorized local export, accurate offline-guess limits and unchanged LD-340 obligations for every Larsal service; no third-party-storage blocker or service route is added. The prior draft's second Spec findings are addressed in this revision; fresh independent Verify of the current combined package and selective Lead adoption remain pending. W-18 wording/owner frame review add no blocking gate. No AT-J03/download grant, sensitive runtime sign-off, native parity or Done is supplied.
+R2 retains original S3 corruption and S4 cancellation acceptance; T04–T11 specify the unproved ciphertext-only candidate, stable custody and cleanup-race obligations, with later I/O/crash faults reported separately. R6 states authorized local export, accurate offline-guess limits and unchanged LD-340 obligations for every Larsal service; no third-party-storage blocker or service route is added. Second Spec corrections and fresh independent Verify approved this exact specification/static proposal; source adoption is `c8fa2f1` and review/proof is recorded in the research footer. W-18 wording/owner frame review add no blocking gate. No AT-J03/download grant, sensitive runtime sign-off or native parity is supplied.
 
 ## How this was learned
 

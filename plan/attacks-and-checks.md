@@ -160,11 +160,11 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-L21 | Removed member keeps access | After a removal or a leave, a test server keeps serving the person, accepts their uploads signed under an old head, and serves those uploads to the others (SHR-04.4, SHR-04.5, SHR-03.12 step 4) | The person holds no key of the new epoch and opens no later version; every other Mac refuses their uploads; the honest server answers them 403 |
 | AT-L22 | Forged fork | A test server with no member key sends: a reply head with the Mac's seq and another hash; an entry with another prev and a bad signature; an entry a removed member signed on an old head; a member's entry of another group at this group's next seq; a member's entry it answered 412 falsely, after the member signed that seq again and the Mac took the second entry; an honest version with an edited Upload-List-Head; and an honest version whose head it holds back (SHR-02.9, SHR-02.12, SHR-03.12) | Only MSG-GROUP-BAD-LIST or MSG-GROUP-BAD-VERSION, never MSG-GROUP-FORK; nothing changes; the group stays in use and the next honest reply is accepted |
 
-### AT-FILE: Proposed E22 file-encryption checks (unadopted)
+### AT-FILE: E22 file-encryption checks
 
-Lead assigns final catalog IDs. Each runtime defense requires a positive control and a private-copy mutant that fails when its defense is undone; no mutation/product/crash/heap run is claimed by S1.
+AT-FILE-01–14 are the adopted final catalog identifiers for the exact reviewed E22 checks. Each runtime defense requires a positive control and a private-copy mutant that fails when its defense is undone; no mutation/product/crash/heap run is claimed by S1. All runtime proof remains OPEN. Adoption/proof: the file-encryption research Review and proof footer.
 
-| Proposal | Attack | How | Cases | Passes when |
+| ID | Attack | How | Cases | Passes when |
 |---|---|---|---|---|
 | AT-FILE-01 | Header and recipient tampering | Flip every authenticated header byte; malformed/canonical base64, extra stanza, wrong shape, bad MAC, unknown stanza | FIL-01-T02/T04/T11/T14 | Generic error, zero final writes; valid unknown-plus-supported case succeeds after authentication |
 | AT-FILE-02 | Late corruption and finalization | Flip each chunk region, cut every boundary/final marker, append, swap/repeat/cross-file splice | FIL-01-T12; FIL-03-T04/T16 | No final open/write during failed initial validation; valid control decrypts; original corruption/no-plaintext/no-plaintext-temp/bounded-memory checks unchanged and unproved; candidate custody proof OPEN |

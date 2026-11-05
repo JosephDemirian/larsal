@@ -205,11 +205,11 @@ The reference app has no server, so every row is Larsal going further (E16 to E1
 Severity levels, the findings file and the fix rules are in [attacks-and-checks.md](attacks-and-checks.md#findings).
 
 
-### Proposed file-encryption promises (E22-S1 DRAFT, not adopted parity)
+### File-encryption promises (E22-S1 reviewed specification; runtime proof OPEN)
 
-Lead assigns final parity identifiers; all original SF/SR/SD rows and proof remain byte-exact. Every implementing-story runtime proof remains OPEN. The original S3 corruption and S4 cancellation acceptance is unchanged; R2/R6 clarify its failure classes and already-authorized local-export/service scope, without a new approval gate.
+FILE-P1–4 are the adopted final E22 parity identifiers, all still todo; all original SF/SR/SD rows and proof remain byte-exact. Every implementing-story runtime proof remains OPEN. The original S3 corruption and S4 cancellation acceptance is unchanged; R2/R6 (LD-367/371) clarify its failure classes and already-authorized local-export/service scope, without a new approval gate. Specification/catalog adoption signs no runtime row. Proof: the file-encryption research Review and proof footer.
 
-| Proposal | Promise / open limit | Component | Required proof | Status |
+| ID | Promise / open limit | Component | Required proof | Status |
 |---|---|---|---|---|
 | FILE-P1 | Public age-classic-1 password and native recipient compatibility; PQ publication acknowledged, no unproved PQ implementation | larsal-files, larsal-crypto | FIL-01, AT-FILE-01/04/13, vectors and separately approved age1.3.2 both directions plus app↔CLI | todo |
 | FILE-P2 | Complete syntax/credential/header/payload/final-marker/EOF validation before final output/plaintext; no plaintext temp, bounded RAM. Ciphertext-only custody/replay/cleanup candidate unproved. Handled cancel with incomplete residual fails unchanged S4 even when warned; later I/O/crash faults report actual residues separately, no universal crash transaction | files/platform/CLI/FFI | FIL-03, AT-FILE-02/03/05/06/07/08; retain original S3/S4 acceptance | todo |

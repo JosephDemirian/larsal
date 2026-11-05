@@ -1,10 +1,10 @@
 # FIL-02 Screens and flows
 
-Status: **DRAFT, 2026-11-05; do not implement from this draft.**
+Status: **reviewed, 2026-11-05 (E22-S1 specification and static proposals only)**; second Spec corrections and fresh independent Verify approved; exact source adopted in `c8fa2f1`.
 Epics: E22-S4, E22-S5, E22-S6
-Parity rows: proposed file-encryption rows; Lead owns central allocation. Existing SF/SR/SD rows are not signed by this card.
+Parity rows: FILE-P1–FILE-P4 (all todo; runtime proof OPEN). Existing SF/SR/SD rows are not signed by this card.
 
-All rules are security relevant unless explicitly visual. Source references S01–S20 and unadopted rulings R1–R6 are in [research](../research/file-encryption.md). They supply evidence, not approval. The prior draft received second Spec review; its six accepted corrections are applied here. Fresh independent Verify and selective Lead adoption remain pending. Original acceptance remains OPEN. Runtime cases below are specifications for the implementing stories, not tests run in E22-S1.
+All rules are security relevant unless explicitly visual. Source references S01–S20 and R1–R6, recorded as LD-366–371, are in [research](../research/file-encryption.md). Second Spec corrections and fresh independent Verify approved the exact specification/static proposals; source adoption is `c8fa2f1`. Original dependencies, required technical/sensitive reviews and E22-S2 AT-J03/download gates govern implementation. All runtime cases below remain OPEN in implementing stories. Historical submission wording in unchanged rules/cases does not change current review status. Proof: the research [Review and proof](../research/file-encryption.md#review-and-proof) footer.
 
 ## What it does
 
@@ -99,7 +99,7 @@ FIL-03 owns errors. Frame IDs under `e22-s1` in proposals.html: `e22-s1-entry`, 
 
 ## Lead decisions and security notes
 
-R1–R6 remain technical proposals pending joint adoption. R2 retains the original corruption and cancellation acceptance with a separate later I/O/crash boundary; candidate custody and cleanup need implementation proof. R6 records already-authorized local export to owner-chosen USB/cloud/email, no E22 service path and every unchanged LD-340 Larsal-service obligation. A future Larsal storage/service route needs a reviewed LD-340-compliant design. Secret input uses existing secure entry paths and clears transient input promptly; new FFI exports/crossings need named sensitive review and API documentation in their implementation story. This card grants no durable Swift secret copy or new broad Show eligibility. Native vault-independent lock-event wiring also needs implementation proof.
+R1–R6 are recorded as LD-366–371 (reviewed specification only). R2 retains the original corruption and cancellation acceptance with a separate later I/O/crash boundary; candidate custody and cleanup need implementation proof. R6 records already-authorized local export to owner-chosen USB/cloud/email, no E22 service path and every unchanged LD-340 Larsal-service obligation. A future Larsal storage/service route needs a reviewed LD-340-compliant design. Secret input uses existing secure entry paths and clears transient input promptly; new FFI exports/crossings need named sensitive review and API documentation in their implementation story. This card grants no durable Swift secret copy or new broad Show eligibility. Native vault-independent lock-event wiring also needs implementation proof.
 
 ## How this was learned
 
