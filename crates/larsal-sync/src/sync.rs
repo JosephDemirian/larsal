@@ -79,6 +79,7 @@ impl Schedule {
             unlocked: true,
             asked: true,
             next_tick: now.saturating_add(EVERY_MS),
+            running: self.running,
             ..Self::default()
         };
     }
@@ -86,7 +87,10 @@ impl Schedule {
     /// The vault was locked or closed: nothing is due until the next
     /// unlock.
     pub fn locked(&mut self) {
-        *self = Self::default();
+        *self = Self {
+            running: self.running,
+            ..Self::default()
+        };
     }
 
     /// The vault was saved at `now`: a run 2 s after the last save.
@@ -322,9 +326,30 @@ impl Report {
 enum Try {
     Done(Report),
     /// 412: another Mac uploaded first.
-    Conflict,
+    Conflict(Vec<Message>),
     /// 429: wait this many seconds.
-    Limited(u64),
+    Limited(u64, Vec<Message>),
+}
+
+impl Try {
+    /// Warnings belong to the merged attempt even when its upload fails.
+    fn with_messages(self, mut messages: Vec<Message>) -> Self {
+        match self {
+            Self::Done(mut report) => {
+                messages.append(&mut report.messages);
+                report.messages = messages;
+                Self::Done(report)
+            }
+            Self::Conflict(mut prior) => {
+                messages.append(&mut prior);
+                Self::Conflict(messages)
+            }
+            Self::Limited(seconds, mut prior) => {
+                messages.append(&mut prior);
+                Self::Limited(seconds, messages)
+            }
+        }
+    }
 }
 
 /// SYN-03.10's replies other than the ones a step expects.
@@ -332,9 +357,9 @@ fn other(r: &Reply) -> Try {
     match r.status {
         403 => Try::Done(Report::error(Message::NoWrite)),
         404 => Try::Done(Report::error(Message::Gone)),
-        412 => Try::Conflict,
+        412 => Try::Conflict(Vec::new()),
         413 => Try::Done(Report::error(Message::TooLarge)),
-        429 => Try::Limited(r.retry_after),
+        429 => Try::Limited(r.retry_after, Vec::new()),
         500..=599 => Try::Done(Report::of(Status::Offline, Vec::new())),
         _ => Try::Done(Report::error(Message::Error)),
     }
@@ -342,7 +367,7 @@ fn other(r: &Reply) -> Try {
 
 fn failed(f: Fail) -> Try {
     match f {
-        Fail::Limited(seconds) => Try::Limited(seconds),
+        Fail::Limited(seconds) => Try::Limited(seconds, Vec::new()),
         Fail::Offline => Try::Done(Report::of(Status::Offline, Vec::new())),
         Fail::SignedOut => Try::Done(Report::of(Status::SignedOut, vec![Message::SignedOut])),
         Fail::CertChanged => Try::Done(Report::error(Message::CertChanged)),
@@ -401,7 +426,7 @@ fn upload<K: Signer>(
 ) -> Try {
     let r = match server.put(&link.vault_id, bytes, Some(base)) {
         Ok(r) => r,
-        Err(f) => return failed(f),
+        Err(f) => return failed(f).with_messages(messages),
     };
     match (r.status, r.version) {
         (200 | 201, Some(v)) if v > base => {
@@ -414,15 +439,7 @@ fn upload<K: Signer>(
             messages.push(Message::Error);
             Try::Done(Report::of(Status::Error, messages))
         }
-        _ => match other(&r) {
-            // A guard warning of this try is kept with the failure.
-            Try::Done(mut report) => {
-                messages.append(&mut report.messages);
-                report.messages = messages;
-                Try::Done(report)
-            }
-            again => again,
-        },
+        _ => other(&r).with_messages(messages),
     }
 }
 
@@ -525,17 +542,33 @@ pub fn run<K: Signer>(
     clock: &dyn Clock,
 ) -> Report {
     let mut tries: u32 = 0;
+    let mut messages = Vec::new();
     loop {
         tries = tries.saturating_add(1);
         let wait = match one_try(server, link, local, clock) {
-            Try::Done(report) => return report,
-            Try::Conflict if tries >= TRIES => return Report::error(Message::Busy),
-            // SYN-03.10 (LD-273 (9)): a 429 on the 3rd try is Offline.
-            Try::Limited(_) if tries >= TRIES => return Report::of(Status::Offline, Vec::new()),
-            Try::Conflict => jitter_ms(),
-            Try::Limited(seconds) => seconds
-                .min(crate::client::MAX_RETRY_AFTER)
-                .saturating_mul(1_000),
+            Try::Done(mut report) => {
+                messages.append(&mut report.messages);
+                report.messages = messages;
+                return report;
+            }
+            Try::Conflict(mut warnings) => {
+                messages.append(&mut warnings);
+                if tries >= TRIES {
+                    messages.push(Message::Busy);
+                    return Report::of(Status::Error, messages);
+                }
+                jitter_ms()
+            }
+            Try::Limited(seconds, mut warnings) => {
+                messages.append(&mut warnings);
+                // SYN-03.10 (LD-273 (9)): a 429 on the 3rd try is Offline.
+                if tries >= TRIES {
+                    return Report::of(Status::Offline, messages);
+                }
+                seconds
+                    .min(crate::client::MAX_RETRY_AFTER)
+                    .saturating_mul(1_000)
+            }
         };
         clock.sleep_ms(wait);
     }
