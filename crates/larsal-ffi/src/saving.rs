@@ -338,6 +338,9 @@ impl Session {
                     }
                     s.disk.ignore = false;
                     s.disk.unreadable = false;
+                    // SYN-03.4, SYN-03 T39: this save ended the disk question,
+                    // so sync runs again.
+                    (s.disk.asked, s.disk.older_asked) = (None, false);
                     s.disk.failures.reset();
                     // APP-05.33: the save that wrote new key parts lists
                     // the old copies (filled in below, off the lock).
@@ -374,8 +377,16 @@ impl Session {
         if !saved && matches!(out, Err(LarsalError::Locked)) {
             self.keep_copy(&sv, &copy, &own);
         }
+        // SYN-03 T50: the path moves under the save lock, with the hash `write`
+        // recorded, so `sync_read` never meets the new hash with the old path.
+        let moved = to.filter(|_| saved).map(|to| storage::real_path(&to));
+        if let Some(real) = &moved {
+            self.set_path(vault, real);
+        }
         drop(copy);
         drop(sv);
+        #[cfg(all(test, feature = "sync"))]
+        crate::sync::tests::save_lock_free();
         // APP-05.28 (LD-267 (3)): the rollback guard's compare before the
         // question.
         let out = match out {
@@ -385,8 +396,9 @@ impl Session {
             }
             other => other,
         };
-        if saved && let Some(to) = to {
-            self.set_path(vault, storage::real_path(&to));
+        if let Some(real) = moved {
+            self.settings.note_opened(&real);
+            crate::session::changed();
         }
         // INT-08.17: after every good save, the exporting shares write.
         if saved && out.is_ok() {
@@ -556,6 +568,10 @@ impl Session {
             Ok(report) => {
                 sv.checksum = report.checksum;
                 sv.watched = report.checksum;
+                #[cfg(feature = "sync")]
+                {
+                    sv.proven = larsal_sync::sync::hash(&file.bytes);
+                }
                 // APP-05.26: the guard's values move up with each save.
                 self.seen(copy, &file.bytes, Some(file.version));
                 let larsal_format::SavedFile {
@@ -824,6 +840,12 @@ impl Session {
         let other_key = retiring.is_some();
         sv.checksum = sum;
         sv.watched = sum;
+        // Opened with the key parts just above. A merge that keeps this Mac's
+        // key has unsaved changes, so its next upload is its own save's.
+        #[cfg(feature = "sync")]
+        {
+            sv.proven = larsal_sync::sync::hash(&bytes);
+        }
         if !keeps_mine {
             sv.key = key;
         }
@@ -920,24 +942,59 @@ impl Session {
     /// with the save lock held for the read, so no save runs meanwhile;
     /// `None` while locked, saving, with unsaved changes, an open editor or
     /// a disk event pending.
+    ///
+    /// SYN-03.5 step 2, SYN-03.14: every upload of the file crosses this
+    /// read. `Some(Err)` with `MSG-SYNC-LOCAL-FILE` when the file is not the
+    /// one this unlock last opened or wrote (another SHA-256: plain text,
+    /// another vault's file, a corrupt or missing copy), or the open vault
+    /// lost the root group id it unlocked with (the disk check loaded another
+    /// vault under the same key). `Some(Err)` with `MSG-SYNC-SAVE-FIRST` when
+    /// the file opened but its frame has room the reader skips: bytes past the
+    /// final block or fields a save drops (`exact_frame`). A tick runs no KDF.
+    /// A refusal changes nothing the disk check reads, so its event still
+    /// comes. `None` too for a run that began on a file the vault has left
+    /// with Save As, or before an unlock (SYN-03 T51, T61).
     #[cfg(feature = "sync")]
-    pub(crate) fn sync_read(&self, vault: u64) -> Option<(Vec<u8>, larsal_sync::state::Measures)> {
+    pub(crate) fn sync_read(
+        &self,
+        vault: u64,
+    ) -> Option<Result<(Vec<u8>, larsal_sync::state::Measures), larsal_sync::sync::Unproven>> {
+        let unlocked = self.sync.root(vault);
         let saver = self.with_edit_view(vault, |_, s| s.saver.clone()).ok()??;
         let sv = saver.try_lock().ok()?;
-        let (path, measures) = self
+        if self.sync.left(vault) {
+            return None;
+        }
+        let (path, measures, root) = self
             .with_share(vault, |slot| {
                 let v = slot.vault?;
                 (!sync_busy(slot.edit, slot.share)
                     && !v.read_version.is_some_and(|version| version.major < 4))
-                .then(|| (slot.path.to_path_buf(), crate::sync::measures(v)))
+                .then(|| {
+                    (
+                        slot.path.to_path_buf(),
+                        crate::sync::measures(v),
+                        v.root.uuid,
+                    )
+                })
             })
             .ok()??;
         let bytes = larsal_platform::macos::open_regular(&storage::real_path(&path))
             .map_err(|e| larsal_format::Error::Io(e.kind()))
-            .and_then(|f| larsal_format::detect::read_vault(f, &Limits::DEFAULT))
-            .ok()?;
+            .and_then(|f| larsal_format::detect::read_vault(f, &Limits::DEFAULT));
+        let proven = bytes.ok().filter(|bytes| {
+            let hash = larsal_sync::sync::hash(bytes);
+            larsal_crypto::secret::ct_eq(&hash, &sv.proven) && unlocked == Some(root)
+        });
         drop(sv);
-        Some((bytes, measures))
+        use larsal_sync::sync::{Message, Unproven};
+        Some(match proven {
+            None => Err(Unproven(Message::LocalFile)),
+            Some(bytes) if !larsal_format::integrity::exact_frame(&bytes, &Limits::DEFAULT) => {
+                Err(Unproven(Message::SaveFirst))
+            }
+            Some(bytes) => Ok((bytes, measures)),
+        })
     }
 
     /// SYN-03.5 step 3: opens the server copy `server` with the kept key
@@ -992,7 +1049,7 @@ impl Session {
                 (Some(a), Some(b)) => a.key() == b.key(),
                 (a, b) => a.is_none() && b.is_none(),
             };
-        if !same_key {
+        if !same_key || self.sync.left(vault) {
             return Merge::Busy;
         }
         let staged = self.with_share(vault, |slot| -> Result<_, LarsalError> {
@@ -1582,6 +1639,20 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    /// F-261, LD-310 (7): the early guard on its own. With the group editor
+    /// open the check answers `Busy` before it looks at the file, also when
+    /// the file did not change; only that guard can answer so, because every
+    /// later check needs a change on disk.
+    #[test]
+    fn f261_the_group_editor_answers_busy_before_the_file_is_looked_at() {
+        let (_dir, _path, s, v) = personal("early-group");
+        let root = s.sidebar(v).unwrap().root;
+        s.share_edit(v, root).unwrap();
+        assert_eq!(s.check_disk(v).unwrap(), DiskEvent::Busy);
+        s.share_edit_cancel(v).unwrap();
+        assert_eq!(s.check_disk(v).unwrap(), DiskEvent::None);
+    }
+
     /// APP-05.26 (T44, T45): unchanged and auto reload on: the disk version
     /// shows at once, nothing changed; auto reload off: it asks, and Keep
     /// marks the vault changed so the next save asks.
@@ -1818,7 +1889,13 @@ mod tests {
         let before = std::fs::read(&path).unwrap();
         add(&s, v, "Demo Shop");
         let copy = dir.join("Copy.larsalvault");
+        let signals = crate::session::CHANGED.get();
         saved(&s.save_as(v, copy.to_string_lossy().into_owned()).unwrap());
+        assert_eq!(crate::session::CHANGED.get(), signals + 1);
+        assert_eq!(
+            s.settings().recent_vaults().first(),
+            Some(&copy.to_string_lossy().into_owned())
+        );
         assert_eq!(std::fs::read(&path).unwrap(), before);
         assert_eq!(
             std::fs::metadata(&copy).unwrap().permissions().mode() & 0o777,
@@ -1830,6 +1907,21 @@ mod tests {
         saved(&s.save(v).unwrap());
         assert!(on_file(&copy).contains(&"Demo Shop 2".to_owned()));
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// APP-05.6: a Save As that fails moves nothing: the vault's path, the recent
+    /// list and the change signal stay as they were.
+    #[test]
+    fn app_05_6_a_failed_save_as_moves_nothing() {
+        let (dir, path, s, v) = personal("save-as-failed");
+        let recent = s.settings().recent_vaults();
+        let signals = crate::session::CHANGED.get();
+        let to = dir.join("no-folder").join("Copy.larsalvault");
+        let st = s.save_as(v, to.to_string_lossy().into_owned()).unwrap();
+        assert!(st.failure.is_some());
+        assert_eq!(s.vaults()[0].path, path.to_string_lossy());
+        assert_eq!(s.settings().recent_vaults(), recent);
+        assert_eq!(crate::session::CHANGED.get(), signals);
     }
 
     /// AT-I05: two windows edit one vault and save in turn. The second

@@ -387,7 +387,15 @@ pub(crate) fn set_events(events: Arc<dyn LarsalEvents>) {
     let _ = EVENTS.set(events);
 }
 
+#[cfg(test)]
+thread_local! {
+    /// Tests: how many times this thread announced a change.
+    pub(crate) static CHANGED: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
 pub(crate) fn changed() {
+    #[cfg(test)]
+    CHANGED.set(CHANGED.get().saturating_add(1));
     if let Some(events) = EVENTS.get() {
         events.session_changed();
     }
@@ -916,6 +924,9 @@ impl Session {
                 .iter()
                 .map(|p| (p.kind, p.name.as_slice(), p.value.as_slice())),
         );
+        // SYN-03.4, SYN-03.5 step 2: as an unlock: its schedule and its root.
+        #[cfg(feature = "sync")]
+        self.sync.unlocked(id, &slot.path, vault.root.uuid);
         slot.vault = Some(vault);
         slot.edit = EditState::opened(keep);
         slot.locked_at = None;
@@ -923,13 +934,14 @@ impl Session {
     }
 
     /// APP-05.6 Save As (E5-S10, saving.rs): the vault's file is now the
-    /// canonical `path`; the recent list follows (APP-06).
-    pub(crate) fn set_path(&self, id: u64, path: PathBuf) {
+    /// canonical `path`. Called with the save lock held; the recent list
+    /// follows after it (APP-06).
+    pub(crate) fn set_path(&self, id: u64, path: &Path) {
         if let Ok(slot) = self.state().slot(id) {
-            slot.path.clone_from(&path);
+            path.clone_into(&mut slot.path);
         }
-        self.settings.note_opened(&path);
-        changed();
+        #[cfg(feature = "sync")]
+        self.sync.moved(id, path);
     }
 
     /// MOD-12.4 (E5-S8): the tile follows a public colour the vault

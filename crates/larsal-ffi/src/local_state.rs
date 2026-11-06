@@ -78,7 +78,10 @@ impl Seen {
     /// APP-05.26: the compare of a version of the vault read as `bytes`;
     /// bytes equal to the stored SHA-256 need none.
     fn compare(&self, v: &Vault, bytes: &[u8]) -> Verdict {
-        if self.sha == Some(sha(bytes)) {
+        if self
+            .sha
+            .is_some_and(|seen| larsal_crypto::secret::ct_eq(&seen, &sha(bytes)))
+        {
             return Verdict::default();
         }
         let mut weaker = Vec::new();

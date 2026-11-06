@@ -17,10 +17,14 @@
 //!   due; the caller runs it.
 //! - A 404 never makes the vault again (no `If-None-Match: *` outside
 //!   [`first_upload`]).
+//! - A local file [`Local::read`] did not prove sends nothing: no PUT, the
+//!   status Error (`MSG-SYNC-LOCAL-FILE`; SYN-03.5 step 2, SYN-03.14).
+//! - A hash compared for trust is compared in constant time (CRY-04.11).
 
 use crate::client::{Fail, Reply, Server, Signer};
 use crate::state::{Link, Measures};
 use larsal_core::guard::kdf_lower;
+use larsal_crypto::secret::ct_eq;
 use larsal_proto::messages::{VaultId, VaultVersion};
 
 /// The tries of one run (SYN-03.6, LD-263 (2)).
@@ -145,11 +149,17 @@ impl Schedule {
     }
 }
 
+/// The local file may not go up (SYN-03.5 step 2): its bytes never leave the
+/// Mac, and the run ends with this message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unproven(pub Message);
+
 /// The open vault this run syncs: larsal-ffi's session.
 pub trait Local {
     /// The local file's bytes and the open vault's measures, when nothing
-    /// keeps the vault busy (SYN-03.4); `None` when something does.
-    fn read(&self) -> Option<(Vec<u8>, Measures)>;
+    /// keeps the vault busy (SYN-03.4); `None` when something does. The
+    /// bytes come only when they pass SYN-03.5 step 2 (SYN-03.14).
+    fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>>;
 
     /// SYN-03.5 step 3: opens `server` with this Mac's key, merges the open
     /// vault (the source) into it (the target) with a same-vault merge,
@@ -230,6 +240,10 @@ pub enum Message {
     Gone,
     /// `MSG-SYNC-TOO-LARGE`.
     TooLarge,
+    /// `MSG-SYNC-LOCAL-FILE`.
+    LocalFile,
+    /// `MSG-SYNC-SAVE-FIRST`.
+    SaveFirst,
     /// `MSG-SYNC-ERROR`.
     Error,
 }
@@ -251,6 +265,8 @@ impl Message {
             Self::NoWrite => "MSG-SYNC-NO-WRITE",
             Self::Gone => "MSG-SYNC-GONE",
             Self::TooLarge => "MSG-SYNC-TOO-LARGE",
+            Self::LocalFile => "MSG-SYNC-LOCAL-FILE",
+            Self::SaveFirst => "MSG-SYNC-SAVE-FIRST",
             Self::Error => "MSG-SYNC-ERROR",
         }
     }
@@ -291,6 +307,16 @@ impl Message {
                 format!("The server no longer has \"{name}\". Your copy on this Mac is unchanged.")
             }
             Self::TooLarge => format!("\"{name}\" is too large for the server."),
+            // Names nothing of the file: no vault name, no path (SYN-03.5 step 2).
+            Self::LocalFile => {
+                "The vault file on this Mac is not the vault Larsal has open. Nothing was uploaded."
+                    .into()
+            }
+            // The same: the words name nothing of the file.
+            Self::SaveFirst => {
+                "This vault's file is not in the exact form Larsal writes. Save the vault in Larsal, then sync again. Nothing was uploaded."
+                    .into()
+            }
             Self::Error => {
                 format!("Sync with \"{address}\" failed. Your copy on this Mac is unchanged.")
             }
@@ -456,13 +482,17 @@ fn one_try<K: Signer>(
     };
     match r.status {
         304 => {
-            let Some((bytes, measures)) = local.read() else {
+            let Some(read) = local.read() else {
                 return Try::Done(Report {
                     status: None,
                     messages: Vec::new(),
                 });
             };
-            if sha256(&bytes) == link.local_sha {
+            let (bytes, measures) = match read {
+                Ok(read) => read,
+                Err(Unproven(message)) => return Try::Done(Report::error(message)),
+            };
+            if ct_eq(&sha256(&bytes), &link.local_sha) {
                 return Try::Done(Report::of(Status::Synced(clock.now_ms()), Vec::new()));
             }
             let base = link.highest;
@@ -482,7 +512,8 @@ fn one_try<K: Signer>(
             };
             let sha = sha256(&r.body);
             // SYN-03.7: before opening, only local state stops a rollback.
-            if version < link.highest || (version == link.highest && sha != link.server_sha) {
+            if version < link.highest || (version == link.highest && !ct_eq(&sha, &link.server_sha))
+            {
                 return Try::Done(Report::error(Message::Rollback));
             }
             match local.merge(&r.body) {

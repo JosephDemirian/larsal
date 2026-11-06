@@ -27,6 +27,10 @@
 #     .cargo-checksum.json names the same package and every file it lists but
 #     Cargo.toml and the upstream list has its upstream hash, so no code line
 #     changed and no file was added (rule 3 for crypto copies).
+#     And the other way round: every file a list names is on disk and tracked
+#     by git (a copy's own .gitignore can hide one from a plain git add, and a
+#     fresh clone then lacks it; a tree that is no git repository checks the
+#     disk only).
 #
 #   scripts/check-vendor.sh
 set -euo pipefail
@@ -43,6 +47,14 @@ done | sort)
 fail=0
 links=$(find vendor crates fuzz -path fuzz/target -prune -o -type l -print)
 [ -z "$links" ] || { echo "symbolic links in the package folders:"; echo "$links"; fail=1; }
+tracked=
+in_git=0
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  in_git=1
+  tracked=$(git -c core.quotepath=off ls-files vendor/crates-io)
+else
+  echo "not a git repository: the check that listed files are tracked did not run"
+fi
 cut=0
 cut_copies='aead-0.6.1 aes-0.9.3 aes-gcm-0.11.1 argon2-0.6.0 base16ct-1.0.0 base64ct-1.8.3 bcrypt-pbkdf-0.11.0
   bit-vec-0.10.1 blake2-0.11.0 block-buffer-0.12.1 blowfish-0.10.0 byteorder-1.5.0 cbc-0.2.1
@@ -73,9 +85,16 @@ done
 for c in vendor/crates-io/*/; do
   c=${c%/}
   grep -qxF "${c##*/}" <<<"$stubs" && continue
+  listed=$(jq -r '.files | keys[]' "$c/.cargo-checksum.json" | sort)
   unlisted=$(comm -23 <(cd "$c" && find . -type f ! -path ./.cargo-checksum.json | sed 's|^\./||' | sort) \
-    <(jq -r '.files | keys[]' "$c/.cargo-checksum.json" | sort))
+    <(printf '%s\n' "$listed"))
   [ -z "$unlisted" ] || { echo "$c: files not in its list:" $unlisted; fail=1; }
+  missing=$(comm -13 <(cd "$c" && find . -type f | sed 's|^\./||' | sort) <(printf '%s\n' "$listed"))
+  [ -z "$missing" ] || { echo "$c: files its list names are missing:" $missing; fail=1; }
+  if [ "$in_git" -eq 1 ]; then
+    untracked=$(comm -13 <(sed -n "s|^$c/||p" <<<"$tracked" | sort) <(printf '%s\n' "$listed"))
+    [ -z "$untracked" ] || { echo "$c: files its list names are not tracked:" $untracked; fail=1; }
+  fi
 done
 for manifest in Cargo.toml fuzz/Cargo.toml; do
   meta=$(cargo metadata --offline --locked --all-features --format-version 1 --manifest-path "$manifest")

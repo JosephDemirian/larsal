@@ -81,6 +81,12 @@ pub(crate) struct Saver {
     pub(crate) checksum: Checksum,
     /// The checksum the disk watch last saw (APP-05.24, saving.rs).
     pub(crate) watched: Checksum,
+    /// SYN-03.5 step 2: the SHA-256 of the file this unlock last opened with
+    /// its key parts or wrote. Only bytes that equal it go to a server. It
+    /// moves with `checksum`, which reads the first 1,024 bytes and the
+    /// length only.
+    #[cfg(feature = "sync")]
+    pub(crate) proven: [u8; 32],
 }
 
 impl Keep {
@@ -105,6 +111,8 @@ impl Keep {
             key,
             checksum: storage::checksum(bytes),
             watched: storage::checksum(bytes),
+            #[cfg(feature = "sync")]
+            proven: larsal_sync::sync::hash(bytes),
         };
         Self(
             Arc::new(Mutex::new(saver)),

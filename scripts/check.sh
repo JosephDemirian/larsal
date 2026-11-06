@@ -105,6 +105,7 @@ g1() {
   run clippy-net cargo clippy --offline --locked -p larsal-platform --features net --all-targets -- -D warnings  # off by default (E6-S7)
   run vendor scripts/check-vendor.sh  # E0-S7: only this tree is read; no stub is built for a Mac
   run server-blind scripts/check-server-blind.sh  # P16 (E16-S3): larsal-server never links the vault reader
+  run sync-link scripts/check-sync-link.sh  # E16-S7a check 7: larsal-ffi without sync links nothing of larsal-sync
   run names-self-test scripts/check-names.sh --self-test  # a broken guard fails G1
   run names scripts/check-names.sh
   run unsafe unsafe_count

@@ -75,8 +75,8 @@ impl Fake {
 }
 
 impl Local for Fake {
-    fn read(&self) -> Option<(Vec<u8>, Measures)> {
-        self.file.clone().map(|f| (f, m(1_500, 4, 65_536)))
+    fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>> {
+        self.file.clone().map(|f| Ok((f, m(1_500, 4, 65_536))))
     }
 
     fn merge(&self, server: &[u8]) -> Merge {
@@ -703,4 +703,159 @@ fn f287_lock_unlock_keeps_the_running_run_until_finished() {
     s.finished();
     assert!(s.start(60_001, false));
     assert!(!s.start(60_001, false));
+}
+
+/// SYN-03.14, SYN-03.5 step 2, SYN-03 T31 (the loop): a local file the caller
+/// refused sends no PUT and ends in the caller's message with the status
+/// Error, never Synced; the state does not move, and the words name nothing of
+/// the file. The session's own check is larsal-ffi's T31 to T59.
+#[test]
+fn syn03_14_t31_a_file_not_proven_sends_no_put_and_ends_in_an_error() {
+    struct NotProven(Message);
+    impl Local for NotProven {
+        fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>> {
+            Some(Err(Unproven(self.0.clone())))
+        }
+        fn merge(&self, _: &[u8]) -> Merge {
+            unreachable!()
+        }
+    }
+    for (message, id) in [
+        (Message::LocalFile, "MSG-SYNC-LOCAL-FILE"),
+        (Message::SaveFirst, "MSG-SYNC-SAVE-FIRST"),
+    ] {
+        let s = server(|r| match r.method.as_str() {
+            "GET" => Response::new(304, b"").with("ETag", "\"5\""),
+            _ => vault(6, b"{}"),
+        });
+        let mut l = link();
+        let local = NotProven(message.clone());
+        let report = run(&mut client(&s), &mut l, &local, &*TestClock::at(4));
+        assert_eq!(report, Report::error(message.clone()));
+        assert_eq!(s.count("PUT"), 0);
+        assert_eq!(l, link(), "the state does not move");
+        assert_eq!(message.id(), id);
+        let text = message.text("Personal", "https://127.0.0.1:1");
+        assert!(
+            !text.contains("Personal") && !text.contains("127.0.0.1"),
+            "{text}"
+        );
+    }
+}
+
+/// SYN-03.5, SYN-03.6: after a 412 the next try reads and proves the file
+/// again: a file refused on that read does not go up, and the state stays.
+#[test]
+fn syn03_5_after_a_412_the_next_try_reads_and_proves_again() {
+    struct Once(AtomicUsize);
+    impl Local for Once {
+        fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>> {
+            if self.0.fetch_add(1, Ordering::SeqCst) == 0 {
+                Some(Ok((b"local 2".to_vec(), m(1_500, 4, 65_536))))
+            } else {
+                Some(Err(Unproven(Message::LocalFile)))
+            }
+        }
+        fn merge(&self, _: &[u8]) -> Merge {
+            unreachable!()
+        }
+    }
+    let s = server(|r| match r.method.as_str() {
+        "GET" => Response::new(304, b"").with("ETag", "\"5\""),
+        _ => Response::new(412, b"{}"),
+    });
+    let mut l = link();
+    let local = Once(AtomicUsize::new(0));
+    let report = run(&mut client(&s), &mut l, &local, &*TestClock::at(0));
+    assert_eq!(report, Report::error(Message::LocalFile));
+    assert_eq!(s.count("PUT"), 1);
+    assert_eq!(local.0.load(Ordering::SeqCst), 2);
+    assert_eq!(l, link());
+}
+
+/// SYN-03.5 step 4, SYN-03 T43: a PUT reply whose version does not move up
+/// is an error, never Synced, on both branches that upload. After a 304
+/// nothing is recorded; after a merge the copy stays accepted and the local
+/// hash is not recorded, so the next run tries again.
+#[test]
+fn syn03_5_t43_a_put_reply_whose_version_does_not_move_up_is_an_error() {
+    for reply in [5_u64, 4] {
+        let s = server(move |r| match r.method.as_str() {
+            "GET" => Response::new(304, b"").with("ETag", "\"5\""),
+            _ => vault(reply, b"{}"),
+        });
+        let local = Fake::new(b"local 2", |_| unreachable!());
+        let mut l = link();
+        let got = run(&mut client(&s), &mut l, &local, &*TestClock::at(0));
+        assert_eq!(got, Report::error(Message::Error), "{reply}");
+        assert_eq!(s.count("PUT"), 1);
+        assert_eq!(l, link(), "nothing recorded: {reply}");
+    }
+    let s = server(|_| vault(6, b"v6"));
+    let local = Fake::changed(m(1_200, 4, 65_536));
+    let mut l = link();
+    let got = run(&mut client(&s), &mut l, &local, &*TestClock::at(0));
+    assert_eq!(got, Report::error(Message::Error));
+    assert_eq!(s.count("PUT"), 1);
+    assert_eq!(
+        (l.highest, l.server_sha, l.local_sha),
+        (6, hash(b"v6"), link().local_sha)
+    );
+}
+
+/// CRY-04.11, CRY-04 T19: no hash and no pinned key of the client is compared
+/// with `==` or `!=` on its bytes, and these files make no `.eq` or `.ne` call at
+/// all. T19 is a Checker's reading of each compare; this holds what it read.
+/// `write_back`'s compare of whole links is left out: it decides only whether the
+/// state file is written.
+#[test]
+fn cry04_11_t19_hashes_and_pinned_keys_are_compared_in_constant_time() {
+    let mut compares = 0;
+    for (name, src) in [
+        ("sync.rs", include_str!("../sync.rs")),
+        ("client.rs", include_str!("../client.rs")),
+        ("state.rs", include_str!("../state.rs")),
+        (
+            "larsal-ffi sync.rs",
+            include_str!("../../../larsal-ffi/src/sync.rs"),
+        ),
+        (
+            "larsal-ffi saving.rs",
+            include_str!("../../../larsal-ffi/src/saving.rs"),
+        ),
+        (
+            "device_key.rs",
+            include_str!("../../../larsal-platform/src/device_key.rs"),
+        ),
+        (
+            "larsal-ffi local_state.rs",
+            include_str!("../../../larsal-ffi/src/local_state.rs"),
+        ),
+    ] {
+        compares += src.matches("ct_eq(").count();
+        for line in src.lines() {
+            let code: Vec<&str> = line
+                .split("//")
+                .next()
+                .unwrap()
+                .split_whitespace()
+                .collect();
+            for call in [".eq(", ".ne(", "::eq(", "::ne("] {
+                assert!(!code.iter().any(|c| c.contains(call)), "{name}: {line}");
+            }
+            let is_compare = |word: &str| word == "==" || word == "!=";
+            for pair in code.windows(2) {
+                let side = match pair {
+                    [side, op] | [op, side] if is_compare(op) => *side,
+                    _ => continue,
+                };
+                for word in [
+                    "_sha", ".sha", "sha(", "sha256(", "hash(", "pin", "public", "proven",
+                ] {
+                    assert!(!side.contains(word), "{name}: {line}");
+                }
+            }
+        }
+    }
+    assert!(compares >= 5, "the compares moved: {compares}");
 }

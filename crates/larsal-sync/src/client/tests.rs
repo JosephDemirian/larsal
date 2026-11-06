@@ -352,3 +352,15 @@ fn f285_all_three_posts_send_json_content_type() {
         );
     }
 }
+
+/// LD-325 (5) (b): the sign-in reply holds the token, so its bytes move into the
+/// wiping buffer, and the token is read only from there; a copy would leave them in
+/// the reply. This reads the source text: it holds the move, not the wipe.
+#[test]
+fn ld325_5b_the_signin_reply_moves_into_the_wiping_buffer() {
+    let src = include_str!("../client.rs");
+    let moved = "let body = SecretBytes::new(std::mem::take(&mut a.body));";
+    assert_eq!(src.matches(moved).count(), 1);
+    assert_eq!(src.matches("Session::read(body.expose())").count(), 1);
+    assert!(!src.contains("a.body.clone()"));
+}

@@ -388,6 +388,7 @@ Additions to existing crates (new files, no existing row changed):
 |---|---|
 | Account ids, device public keys, the recovery public key, session token hashes | Any password, master password or account password, in any form: no hash, no verifier, no OPAQUE record |
 | Who is in which group and with which role (the signed member list), identity public keys | Vault contents, entry counts, entry types or entry times |
+| Each uploaded vault's outer header, in clear by format (FMT-02), and in it field 12, public custom data (FMT-03.22, SYN-03.14): it can hold text a user typed, such as a public name (MOD-12.4, SF-12) | Anything in the vault's encrypted part |
 | Vault ids, versions, sizes, upload times, IP addresses | Vault keys, key-file parts, the account secret, private keys (it holds them only wrapped: under HPKE to a member's key, or under the two-secret key of P6) |
 | Invite codes (as hashes) and the commitment messages of a code compare | The 6-digit code itself until both sides reveal; it cannot make a valid one (one guess, P10) |
 

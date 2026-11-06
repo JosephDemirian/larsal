@@ -162,7 +162,11 @@ impl DeviceKey {
     ) -> Result<Self, KeyError> {
         keys.into_iter()
             .map(Self)
-            .find(|key| key.public_key().is_ok_and(|p| p == *public))
+            // CRY-04.11: a pinned public key, in constant time.
+            .find(|key| {
+                key.public_key()
+                    .is_ok_and(|p| larsal_crypto::secret::ct_eq(&p, public))
+            })
             .ok_or(KeyError::Missing)
     }
 

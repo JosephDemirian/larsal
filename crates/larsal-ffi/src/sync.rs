@@ -20,6 +20,8 @@
 //!   (LD-317 (2)): they use the test-seam key only.
 //! - The state file holds no password, key, key-file part or token
 //!   (SYN-03.3, SYN-04.6); the session token lives in larsal-sync's client.
+//! - Only a file that passes SYN-03.5 step 2 goes up: every read of the file
+//!   for an upload is [`Session::sync_read`]'s.
 //! - Every text here is Larsal's own (SYN-01.9).
 
 use crate::session::{LarsalError, Session};
@@ -28,7 +30,9 @@ use larsal_model::{FileVersion, Uuid, Vault};
 use larsal_platform::device_key::{DeviceKey, KeyError};
 use larsal_sync::client::{self, Fail, Server};
 use larsal_sync::state::{Account, Link, Measures, State};
-use larsal_sync::sync::{Clock, Local, Merge, Message, Report, Schedule, Status, SystemClock};
+use larsal_sync::sync::{
+    Clock, Local, Merge, Message, Report, Schedule, Status, SystemClock, Unproven,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -106,6 +110,10 @@ struct Open {
     schedule: Schedule,
     report: Option<Report>,
     synced_at: Option<u64>,
+    /// SYN-03 T51, T61: a Save As or an unlock landed during the open run: the
+    /// run belongs to the file and the unlock the vault left, so it reads and
+    /// merges nothing more and its report is not the new one's.
+    left: bool,
 }
 
 /// A download waiting for its unlock to be linked (SYN-03.2).
@@ -213,18 +221,44 @@ impl Syncs {
         let mut i = self.inner();
         let now = i.clock.now_ms();
         let prior = i.vaults.remove(&id);
-        let (mut schedule, report) = prior.map(|o| (o.schedule, o.report)).unwrap_or_default();
+        // SYN-03 T63: a report belongs to its root, not to the slot.
+        let (mut schedule, report) = prior
+            .map(|o| (o.schedule, o.report.filter(|_| o.root == root)))
+            .unwrap_or_default();
         schedule.unlocked(now);
         i.vaults.insert(
             id,
             Open {
                 path: path.to_path_buf(),
                 root,
+                left: schedule.running(),
                 schedule,
                 report,
                 synced_at: None,
             },
         );
+    }
+
+    /// The root group id vault `id` unlocked with.
+    pub(crate) fn root(&self, id: u64) -> Option<Uuid> {
+        self.inner().vaults.get(&id).map(|o| o.root)
+    }
+
+    /// APP-05.6 Save As: the vault `id` now lives at `path`. A link names
+    /// one local file (SYN-03.3), so the new file has none: it syncs nothing
+    /// under the old link, and the old file keeps its link.
+    pub(crate) fn moved(&self, id: u64, path: &Path) {
+        if let Some(o) = self.inner().vaults.get_mut(&id).filter(|o| o.path != path) {
+            o.path = path.to_path_buf();
+            o.report = None;
+            o.left = o.schedule.running();
+        }
+    }
+
+    /// Whether the open run of vault `id` began on a file or an unlock the
+    /// vault has left (SYN-03 T51, T61).
+    pub(crate) fn left(&self, id: u64) -> bool {
+        self.inner().vaults.get(&id).is_some_and(|o| o.left)
     }
 
     /// The vault `id` (every vault for `None`) was locked or closed.
@@ -395,7 +429,7 @@ struct OpenVault<'a> {
 }
 
 impl Local for OpenVault<'_> {
-    fn read(&self) -> Option<(Vec<u8>, Measures)> {
+    fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>> {
         self.session.sync_read(self.vault)
     }
 
@@ -495,6 +529,7 @@ impl Session {
             self.sync_with(|i| {
                 if let Some(o) = i.vaults.get_mut(&id) {
                     o.schedule.finished();
+                    o.left = false;
                 }
             });
             return;
@@ -536,6 +571,9 @@ impl Session {
             i.write_back(link);
             if let Some(o) = i.vaults.get_mut(&id) {
                 o.schedule.finished();
+                if std::mem::take(&mut o.left) {
+                    return;
+                }
                 if let Some(Status::Synced(t)) = report.status {
                     o.synced_at = Some(t);
                 }
@@ -556,8 +594,8 @@ impl Session {
     /// SYN-03.2: the downloaded vault `p` was unlocked as vault `id`: its
     /// link is written when the file is still the downloaded one.
     fn sync_link_download(&self, id: u64, p: &Pending) -> Option<Link> {
-        let (bytes, seen) = self.sync_read(id)?;
-        if larsal_sync::sync::hash(&bytes) != p.sha {
+        let (bytes, seen) = self.sync_read(id)?.ok()?;
+        if !larsal_crypto::secret::ct_eq(&larsal_sync::sync::hash(&bytes), &p.sha) {
             return None;
         }
         let root = self.with_vault(id, |v| Ok(v.root.uuid)).ok()?;
@@ -577,7 +615,7 @@ impl Session {
                     && q.vault_id == p.vault_id
                     && q.path == p.path
                     && q.version == p.version
-                    && q.sha == p.sha
+                    && larsal_crypto::secret::ct_eq(&q.sha, &p.sha)
             })?;
             i.pending.remove(at);
             if i.state.links.iter().any(|l| {
@@ -720,8 +758,9 @@ impl Session {
     /// it. The key-file part of steps 1 and 2 comes with E16-S7b.
     ///
     /// # Errors
-    /// `Refused` when the vault has unsaved changes or is linked, or the
-    /// upload failed (nothing is linked then).
+    /// `Refused` when the vault has unsaved changes or is linked, its file
+    /// fails SYN-03.5 step 2 (`MSG-SYNC-LOCAL-FILE`, `MSG-SYNC-SAVE-FIRST`), or
+    /// the upload failed (nothing is linked then).
     pub fn sync_put_vault(&self, vault: u64, address: String) -> Result<SyncState, LarsalError> {
         let (base, _) =
             client::parse_address(&address).ok_or_else(|| failure(Fail::Address, &address))?;
@@ -731,7 +770,8 @@ impl Session {
             .map_err(|_| refused("The local vault file is unavailable. Try again."))?;
         let (bytes, seen) = self
             .sync_read(vault)
-            .ok_or_else(|| refused("Save the vault first, then try again."))?;
+            .ok_or_else(|| refused("Save the vault first, then try again."))?
+            .map_err(|Unproven(message)| refused(message.text("", "")))?;
         #[cfg(test)]
         tests::download_started();
         let transfer = self.sync_reserve(Claim {

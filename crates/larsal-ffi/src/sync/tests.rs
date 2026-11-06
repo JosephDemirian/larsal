@@ -7,6 +7,7 @@
 
 use super::*;
 use crate::edit::EditText;
+use crate::saving::{DiskChoice, DiskEvent};
 use crate::test_dir::TempDir;
 use crate::views::ListView;
 use larsal_sync::test_server::{LarsalServer, Scripted, TestClock, larsal_server};
@@ -191,18 +192,40 @@ fn second(app: &LarsalServer, address: &str, pin: [u8; 32], a: &Mac, tag: &str) 
     b
 }
 
-/// E16-S7a check 2, SYN-03.5, SYN-03 T04: A and B each change a different
-/// entry of the demo vault and save; both sync at once. After the runs
-/// both hold both changes, and the server holds version 3.
+/// SYN-03.2, SYN-03 T03: another Mac picks the vault from the list, saves it and
+/// opens it. Its state links the vault, its file holds the server's bytes, and its
+/// later unlocks ask only for the password. T01's key-file part comes with
+/// E16-S7b, which runs this row again with it.
 #[test]
-fn syn03_5_t04_two_macs_change_two_entries_at_once_and_both_keep_both() {
+fn syn03_2_t03_another_mac_takes_the_vault_and_links_it() {
     let app = larsal_server();
     let address = app.address();
-    let a = first(&address, app.pin, "t04-a");
+    let a = first(&address, app.pin, "t03-a");
+    put(&a, &address);
+    let b = second(&app, &address, app.pin, &a, "t03-b");
+    b.tick(0);
+    assert_eq!(b.status(), Some(SyncStatus::Synced));
+    let path = b.dir.join("Personal.larsalvault");
+    let links = b.s.sync_with(|i| i.state.links.clone());
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0].file, path.display().to_string());
+    assert!(b.s.sync_server_vaults(address).unwrap()[0].linked);
+    assert_eq!(std::fs::read(&path).unwrap(), stored(&a).1);
+    b.s.lock(b.v).unwrap();
+    b.unlock();
+    assert_eq!(a.titles(), b.titles());
+}
+
+/// SYN-03 T04's run: A and B each changed a different entry of the demo vault,
+/// saved and synced at once, and then twice more. The titles before it come back.
+fn t04_done(tag: &str) -> (LarsalServer, String, Mac, Mac, Vec<String>) {
+    let app = larsal_server();
+    let address = app.address();
+    let a = first(&address, app.pin, &format!("{tag}-a"));
     put(&a, &address);
     a.tick(0);
     assert_eq!(a.status(), Some(SyncStatus::Synced));
-    let b = second(&app, &address, app.pin, &a, "t04-b");
+    let b = second(&app, &address, app.pin, &a, &format!("{tag}-b"));
     let states = b.tick(0);
     assert_eq!(states.len(), 1);
     assert_eq!(b.status(), Some(SyncStatus::Synced));
@@ -222,6 +245,15 @@ fn syn03_5_t04_two_macs_change_two_entries_at_once_and_both_keep_both() {
         m.tick(0);
         assert_eq!(m.status(), Some(SyncStatus::Synced));
     }
+    (app, address, a, b, t)
+}
+
+/// E16-S7a check 2, SYN-03.5, SYN-03 T04: A and B each change a different
+/// entry of the demo vault and save; both sync at once. After the runs
+/// both hold both changes, and the server holds version 3.
+#[test]
+fn syn03_5_t04_two_macs_change_two_entries_at_once_and_both_keep_both() {
+    let (_app, address, a, b, t) = t04_done("t04");
     let both = a.titles();
     assert!(both.contains(&"E1 by A".to_owned()), "{both:?}");
     assert!(both.contains(&"E2 by B".to_owned()), "{both:?}");
@@ -311,11 +343,12 @@ fn syn03_4_t09_the_session_runs_on_unlock_after_saves_every_60_s_never_locked() 
 
 /// SYN-04 T13 and SYN-03 T24 (a full E16-S7a run through a test proxy
 /// that reads every request): no password, no value made from one, no
-/// entry title in any request. SYN-04 T08: the session token is in no
-/// file of either Mac (state, settings, vault). SYN-01 T20 (the client
-/// half): the sync code logs nothing.
+/// entry title or entry password, raw or encoded, in any request. SYN-03
+/// T24's `demo2`, part bytes and SYN-03 T13's run are E16-S7b's. SYN-04 T08:
+/// the session token is in no file of either Mac (state, settings, vault).
+/// SYN-01 T20 (the client half): the sync code logs nothing.
 #[test]
-fn syn04_t13_t08_no_password_in_any_request_and_no_token_in_any_file() {
+fn syn04_t13_t08_syn03_t24_no_password_in_any_request_and_no_token_in_any_file() {
     let app = larsal_server();
     let proxy = Scripted::proxy(&app);
     let address = proxy.address();
@@ -328,6 +361,16 @@ fn syn04_t13_t08_no_password_in_any_request_and_no_token_in_any_file() {
     let b = second(&app, &address, proxy.pin, &a, "t13-b");
     b.tick(0);
     let t = a.titles();
+    // Every entry's, the bin and history included.
+    let (mut titles, passwords): (Vec<String>, Vec<String>) =
+        a.s.with_vault(a.v, |v| {
+            Ok(v.root
+                .all_entries()
+                .flat_map(|e| std::iter::once(e).chain(&e.history))
+                .map(|e| (e.value("Title").to_owned(), e.value("Password").to_owned()))
+                .unzip())
+        })
+        .unwrap();
     a.rename(&t[0], "Secret title A");
     b.rename(&t[1], "Secret title B");
     a.tick(2_000);
@@ -342,19 +385,23 @@ fn syn04_t13_t08_no_password_in_any_request_and_no_token_in_any_file() {
     assert!(seen.iter().filter(|(r, _)| r.method == "PUT").count() >= 3);
     let utf16: Vec<u8> = PASSWORD.encode_utf16().flat_map(u16::to_le_bytes).collect();
     let mut needles: Vec<Vec<u8>> = vec![PASSWORD.as_bytes().to_vec(), utf16];
-    // Titles of 6 bytes or more: a shorter one could appear by chance in
-    // the encrypted bytes.
-    let mut titles = t.clone();
+    // Titles and passwords of 6 bytes or more: a shorter one could appear by
+    // chance in the encrypted bytes. No demo password is that short.
+    let passwords: Vec<String> = passwords.into_iter().filter(|p| !p.is_empty()).collect();
+    assert!(!passwords.is_empty() && passwords.iter().all(|p| p.len() >= 6));
     titles.extend(["Secret title A".to_owned(), "Secret title B".to_owned()]);
     needles.extend(
         titles
             .iter()
+            .chain(&passwords)
             .filter(|s| s.len() >= 6)
-            .map(|s| s.as_bytes().to_vec()),
+            .flat_map(|s| encoded(s.as_bytes())),
     );
     // SYN-04.10: a value made from the password, the vault's key, would
     // be 32 bytes; no request carries the vault's key material: only
     // encrypted bytes, ids, versions and signatures (SYN-03.14).
+    needles.extend(made_from_the_password(&a));
+    needles.extend(made_from_the_password(&b));
     for (request, reply) in &seen {
         for n in &needles {
             assert!(
@@ -405,6 +452,57 @@ fn syn04_t13_t08_no_password_in_any_request_and_no_token_in_any_file() {
     for word in ["println!", "eprintln!", "dbg!", "log::"] {
         assert!(!src.contains(word), "{word}");
     }
+}
+
+/// SYN-04 T13's forms of a value: raw, as hex and as base64.
+fn encoded(value: &[u8]) -> Vec<Vec<u8>> {
+    use larsal_crypto::base64::{Form, encode};
+    let hex: String = value.iter().map(|b| format!("{b:02x}")).collect();
+    vec![
+        value.to_vec(),
+        hex.to_uppercase().into_bytes(),
+        hex.into_bytes(),
+        encode(Form::Padded, value).into_bytes(),
+        encode(Form::Url, value).into_bytes(),
+    ]
+}
+
+/// SYN-04.10, SYN-04 T13: the password and the values made from it that a test
+/// can work out, each raw, as hex and as base64: `P` (FMT-04.1), the composite
+/// key (FMT-04.5) and the transformed key of `m`'s last save (FMT-04.11).
+fn made_from_the_password(m: &Mac) -> Vec<Vec<u8>> {
+    use larsal_crypto::kdf::{Verdict, assess, derive};
+    use larsal_format::keys::{composite_key, password_part};
+    use larsal_format::limits::Limits;
+    let password = larsal_crypto::secret::SecretString::new(PASSWORD.to_owned());
+    let part = password_part(&password);
+    let composite = composite_key(Some(&part), None, None);
+    let saver = m.s.with_edit_state(m.v, |e| e.saver.clone()).unwrap();
+    let kept = saver.lock().unwrap();
+    let mut host = m.s.host.lock().unwrap();
+    let limits = Limits::DEFAULT;
+    let params = kept.key.kdf();
+    let cleared = match assess(params, &mut host, &limits.kdf, None).unwrap() {
+        Verdict::Run(cleared) => cleared,
+        Verdict::Ask(report) => match assess(params, &mut host, &limits.kdf, Some(&report)) {
+            Ok(Verdict::Run(cleared)) => cleared,
+            _ => panic!("the demo vault's KDF settings ran before"),
+        },
+    };
+    let transformed = derive(&composite, &cleared).unwrap();
+    // The real T: the session's own key gives the same digest.
+    let digest = larsal_crypto::hash::sha256(&[b"T13", transformed.expose()]);
+    assert_eq!(digest.expose(), kept.key.salted_digest(b"T13"));
+    let mut out = Vec::new();
+    for value in [
+        PASSWORD.as_bytes(),
+        part.expose(),
+        composite.expose(),
+        transformed.expose(),
+    ] {
+        out.extend(encoded(value));
+    }
+    out
 }
 
 /// SYN-03.3, SYN-03 T26: the state file has mode 0600 and holds the
@@ -461,6 +559,92 @@ fn syn03_3_t26_the_state_file_holds_its_fields_and_no_secret() {
     );
     let state = State::load(&c.dir.join("settings/sync-state_debug.json")).unwrap();
     assert_eq!(state.servers.len(), 1);
+}
+
+/// How long [`t26_kill_child`] lives if nothing kills it, so it cannot outlive a
+/// parent that died.
+const T26_CHILD_LIFE: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// A state of `n` servers: the old one is small, the new one is big enough for a
+/// kill to land while it is written.
+fn t26_state(n: u16) -> State {
+    State {
+        servers: (0..n)
+            .map(|i| larsal_sync::state::Server {
+                address: format!("https://127.0.0.1:{}", i + 1),
+                pin: [7; 32],
+                account: None,
+            })
+            .collect(),
+        links: Vec::new(),
+    }
+}
+
+/// The child of T26's kill test: saves the two states in turn at the path it is
+/// given. With no path, as under a plain `--ignored`, it does nothing.
+#[test]
+#[ignore = "run by syn03_3_t26_a_kill_while_the_state_is_written_leaves_old_or_new"]
+fn t26_kill_child() {
+    let Some(path) = std::env::var_os("LARSAL_T26_STATE") else {
+        return;
+    };
+    let path = Path::new(&path);
+    let (old, new) = (t26_state(1), t26_state(2_000));
+    let start = std::time::Instant::now();
+    while start.elapsed() < T26_CHILD_LIFE {
+        old.save(path).unwrap();
+        new.save(path).unwrap();
+    }
+}
+
+/// SYN-03.3, SYN-03 T26's last clause: the test's own child saves the state in a
+/// loop, through the one save there is, and is killed by its handle while it does.
+/// What a restart reads is then the old state or the new one, never a mix. Bounded
+/// to 100 rounds or 15 s. Checker 1's P8.
+#[test]
+fn syn03_3_t26_a_kill_while_the_state_is_written_leaves_old_or_new() {
+    use std::process::{Child, Command, Stdio};
+    use std::time::{Duration, Instant};
+    /// Kills and reaps its child when dropped, also when the test panics.
+    struct Killed(Child);
+    impl Drop for Killed {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let dir = TempDir::new("t26-kill");
+    let path = dir.join("sync-state_debug.json");
+    let (old, new) = (t26_state(1), t26_state(2_000));
+    let (mut olds, mut news, mut round) = (0, 0, 0_u64);
+    let start = Instant::now();
+    while round < 100 && start.elapsed() < Duration::from_secs(15) {
+        old.save(&path).unwrap();
+        let old_len = std::fs::metadata(&path).unwrap().len();
+        let child = Killed(
+            Command::new(std::env::current_exe().unwrap())
+                .args(["--ignored", "--exact", "sync::tests::t26_kill_child"])
+                .env("LARSAL_T26_STATE", &path)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap(),
+        );
+        // Another length at the path: the child is in its loop.
+        let waited = Instant::now();
+        while std::fs::metadata(&path).unwrap().len() == old_len {
+            assert!(waited.elapsed() < T26_CHILD_LIFE, "the child never wrote");
+        }
+        std::thread::sleep(Duration::from_millis(round % 40));
+        drop(child);
+        match State::load(&path) {
+            Ok(s) if s == old => olds += 1,
+            Ok(s) if s == new => news += 1,
+            other => panic!("round {round}: neither state: {:?}", other.err()),
+        }
+        round += 1;
+    }
+    println!("T26: {round} kills: {olds} old, {news} new");
 }
 
 /// The demo vault, opened with its password and saved again under
@@ -592,6 +776,8 @@ thread_local! {
         const { std::cell::RefCell::new(None) };
     static SERVER_OPENED: std::cell::RefCell<Option<Box<dyn FnOnce()>>> =
         const { std::cell::RefCell::new(None) };
+    static SAVE_LOCK_FREE: std::cell::RefCell<Option<Box<dyn FnOnce()>>> =
+        const { std::cell::RefCell::new(None) };
 }
 
 pub(crate) fn download_committed() {
@@ -608,6 +794,12 @@ pub(crate) fn download_started() {
 
 pub(crate) fn server_opened() {
     if let Some(f) = SERVER_OPENED.with(|m| m.borrow_mut().take()) {
+        f();
+    }
+}
+
+pub(crate) fn save_lock_free() {
+    if let Some(f) = SAVE_LOCK_FREE.with(|m| m.borrow_mut().take()) {
         f();
     }
 }
@@ -1096,20 +1288,48 @@ fn scripted_transfer(
 }
 
 fn add_scripted(a: &Mac, server: &Scripted) {
-    let mut c = Client::new(&server.address(), server.pin).unwrap();
+    add_client(a, &server.address(), server.pin);
+}
+
+fn add_client(a: &Mac, address: &str, pin: [u8; 32]) {
+    let mut c = Client::new(address, pin).unwrap();
     c.set_device(
         larsal_sync::state::DeviceId::from_bytes([9; 16]),
         DeviceKey::test_seam().unwrap(),
     );
     a.s.sync_with(|i| {
         i.state.servers.push(larsal_sync::state::Server {
-            address: server.address(),
-            pin: server.pin,
+            address: address.to_owned(),
+            pin,
             account: None,
         });
-        i.servers.insert(server.address(), Arc::new(Mutex::new(c)));
+        i.servers
+            .insert(address.to_owned(), Arc::new(Mutex::new(c)));
         i.save();
     });
+}
+
+/// The open vault linked at version 5 to the server at `address`, its file's hash
+/// recorded as `local_sha`. The link comes back.
+fn link_to(a: &Mac, address: &str, local_sha: [u8; 32]) -> Link {
+    let (root, seen) =
+        a.s.with_vault(a.v, |v| Ok((v.root.uuid, measures(v))))
+            .unwrap();
+    let link = Link {
+        server: address.to_owned(),
+        vault_id: larsal_sync::state::VaultId::from_bytes([3; 16]),
+        file: a.dir.join("Personal.larsalvault").display().to_string(),
+        root,
+        highest: 5,
+        server_sha: [5; 32],
+        local_sha,
+        seen,
+    };
+    a.s.sync_with(|i| {
+        i.state.links.push(link.clone());
+        i.save();
+    });
+    link
 }
 
 fn concurrent_first_puts(other_server: bool, other_file: bool) {
@@ -1609,4 +1829,1579 @@ fn f284_downloaded_alias_cannot_link_an_existing_root_across_servers() {
         "two real servers linked the same root twice: {links:?}"
     );
     assert!(!a.s.sync_server_vaults(two.address()).unwrap()[0].linked);
+}
+
+// SYN-03.14, SYN-03.5 step 2: only the encrypted vault this session has open
+// goes up. Verify's probes of V2-1 as tests: every kind of file, on every path
+// to an upload, with the server's stored bytes checked each time.
+
+/// 59 bytes of demo plain text.
+const PLAIN: &[u8] = b"Demo plain text: site shop.example, user demo, note hello.\n";
+/// Another demo vault's file, under another password.
+const OTHER: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../testdata/rich-v4.larsalvault"
+);
+
+/// `good` with one bit changed at `at`.
+fn flipped(good: &[u8], at: usize) -> Vec<u8> {
+    let mut bad = good.to_vec();
+    bad[at] ^= 1;
+    bad
+}
+
+fn ids(st: &SyncState) -> Vec<&str> {
+    st.messages.iter().map(|m| m.id.as_str()).collect()
+}
+
+/// Mac A with its demo vault linked and synced, through the test proxy, so
+/// every request can be counted.
+struct Linked {
+    app: LarsalServer,
+    proxy: Scripted,
+    address: String,
+    a: Mac,
+}
+
+impl Linked {
+    fn new(tag: &str) -> Self {
+        let app = larsal_server();
+        let proxy = Scripted::proxy(&app);
+        let address = proxy.address();
+        let a = first(&address, proxy.pin, tag);
+        a.s.sync_with(|i| {
+            i.servers[&address].lock().unwrap().sign_for_port(app.port);
+        });
+        put(&a, &address);
+        a.tick(0);
+        assert_eq!(a.status(), Some(SyncStatus::Synced));
+        let l = Self {
+            app,
+            proxy,
+            address,
+            a,
+        };
+        assert_eq!(l.stored(), (1, l.file()));
+        l
+    }
+
+    fn path(&self) -> PathBuf {
+        self.a.dir.join("Personal.larsalvault")
+    }
+
+    fn file(&self) -> Vec<u8> {
+        std::fs::read(self.path()).unwrap()
+    }
+
+    /// What the server stores for the link: its version and bytes.
+    fn stored(&self) -> (u64, Vec<u8>) {
+        stored(&self.a)
+    }
+
+    /// Sync now and the next 60-second tick each find the file at the path
+    /// refused: Error with `MSG-SYNC-LOCAL-FILE`, no PUT, and the server's
+    /// bytes and this Mac's link as they were.
+    fn refuses_at_a_run(&self) {
+        self.refused_with("MSG-SYNC-LOCAL-FILE");
+    }
+
+    /// The same with `MSG-SYNC-SAVE-FIRST`: the file opened, and its form may
+    /// not go up.
+    fn needs_a_save_at_a_run(&self) {
+        self.refused_with("MSG-SYNC-SAVE-FIRST");
+    }
+
+    fn refused_with(&self, id: &str) {
+        let before = self.stored();
+        let puts = self.proxy.count("PUT");
+        let link = self.a.s.sync_with(|i| i.state.links.clone());
+        self.a.s.sync_now(self.a.v).unwrap();
+        for ms in [0, 60_000] {
+            let states = self.a.tick(ms);
+            assert_eq!(states.len(), 1);
+            assert_eq!(states[0].status, SyncStatus::Error, "{states:?}");
+            assert_eq!(ids(&states[0]), [id]);
+            let text = &states[0].messages[0].text;
+            assert!(
+                !text.contains("Personal") && !text.contains("Demo") && !text.contains("/"),
+                "{text}"
+            );
+            assert_eq!(self.a.status(), Some(SyncStatus::Error));
+        }
+        assert_eq!(self.proxy.count("PUT"), puts, "no PUT");
+        assert_eq!(self.stored(), before, "the server's bytes stay");
+        assert_eq!(self.a.s.sync_with(|i| i.state.links.clone()), link);
+    }
+
+    /// The next run uploads the file: Synced, one more PUT, and the server
+    /// holds the file's bytes as `version`.
+    fn uploads_at_a_run(&self, version: u64) {
+        let puts = self.proxy.count("PUT");
+        self.a.s.sync_now(self.a.v).unwrap();
+        self.a.tick(0);
+        assert_eq!(self.a.status(), Some(SyncStatus::Synced));
+        assert_eq!(self.proxy.count("PUT"), puts + 1);
+        assert_eq!(self.stored(), (version, self.file()));
+    }
+}
+
+/// SYN-03.14, SYN-03 T31: plain text overwrites the file while unlocked.
+/// Sync now and the tick send nothing, the status is Error, and no request
+/// holds the text. Verify's first probe (V2-1).
+#[test]
+fn syn03_14_t31_a_plain_file_at_the_path_never_goes_up() {
+    let l = Linked::new("t31");
+    std::fs::write(l.path(), PLAIN).unwrap();
+    l.refuses_at_a_run();
+    assert!(
+        l.proxy
+            .requests()
+            .iter()
+            .all(|r| !r.raw.windows(PLAIN.len()).any(|w| w == PLAIN))
+    );
+}
+
+/// SYN-03.14, SYN-03 T32: another vault's file, under another password and
+/// under this vault's own, is refused at a run. Verify's second probe.
+#[test]
+fn syn03_14_t32_another_vaults_file_at_the_path_never_goes_up() {
+    let l = Linked::new("t32");
+    for other in [
+        std::fs::read(OTHER).unwrap(),
+        resaved(PASSWORD, |v| v.root.uuid = Uuid([0x65; 16])),
+    ] {
+        std::fs::write(l.path(), other).unwrap();
+        l.refuses_at_a_run();
+    }
+}
+
+/// SYN-03.14, SYN-03 T33: another vault under this vault's own password that
+/// the disk check opened and loaded is what the session has open, and it is
+/// still not this link's vault: neither its file nor a later save of it goes
+/// up under the link.
+#[test]
+fn syn03_14_t33_another_vault_the_disk_check_loaded_never_goes_up() {
+    let l = Linked::new("t33");
+    std::fs::write(
+        l.path(),
+        resaved(PASSWORD, |v| v.root.uuid = Uuid([0x65; 16])),
+    )
+    .unwrap();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Reloaded);
+    l.refuses_at_a_run();
+    l.a.rename(&l.a.titles()[0], "Saved in the other vault");
+    l.refuses_at_a_run();
+}
+
+/// SYN-03.14, SYN-03 T34: a corrupt copy is refused, in the header and past
+/// what the disk check reads (the first 1,024 bytes and the length). The disk
+/// check cannot see the second; the next save writes a good file over it,
+/// and that file goes up.
+#[test]
+fn syn03_14_t34_a_corrupt_copy_at_the_path_never_goes_up() {
+    let l = Linked::new("t34");
+    let good = l.file();
+    std::fs::write(l.path(), flipped(&good, 200)).unwrap();
+    l.refuses_at_a_run();
+    std::fs::write(l.path(), flipped(&good, good.len() - 1)).unwrap();
+    l.refuses_at_a_run();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::None);
+    let t = l.a.titles();
+    l.a.rename(&t[0], "Saved over the corrupt copy");
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.14, SYN-03.1 step 3, SYN-03 T35: the first upload of each kind of
+/// file is refused: no PUT, nothing on the server, no link, no claim left,
+/// never Synced, and the error names nothing of the file. The saved vault then
+/// goes up as usual.
+#[test]
+fn syn03_14_t35_first_upload_of_a_plain_file_another_vault_or_a_corrupt_copy_is_refused() {
+    let good = std::fs::read(DEMO).unwrap();
+    for (n, bad) in [
+        PLAIN.to_vec(),
+        std::fs::read(OTHER).unwrap(),
+        resaved(PASSWORD, |v| v.root.uuid = Uuid([0x65; 16])),
+        flipped(&good, 200),
+        flipped(&good, good.len() - 1),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        // A fresh server each time: it limits how often one address signs in.
+        let app = larsal_server();
+        let proxy = Scripted::proxy(&app);
+        let address = proxy.address();
+        let a = first(&address, proxy.pin, &format!("t35-{n}"));
+        a.s.sync_with(|i| {
+            i.servers[&address].lock().unwrap().sign_for_port(app.port);
+        });
+        let path = a.dir.join("Personal.larsalvault");
+        std::fs::write(&path, &bad).unwrap();
+        let puts = proxy.count("PUT");
+        let err = a.s.sync_put_vault(a.v, address.clone()).unwrap_err();
+        let text = err.to_string();
+        assert!(text.contains("Nothing was uploaded"), "{n}: {text}");
+        assert!(
+            !text.contains("Personal") && !text.contains("Demo") && !text.contains("/"),
+            "{n}: {text}"
+        );
+        assert_eq!(proxy.count("PUT"), puts, "{n}: no PUT");
+        assert!(
+            a.s.sync_server_vaults(address.clone()).unwrap().is_empty(),
+            "{n}: the server holds nothing"
+        );
+        assert!(a.s.sync_with(|i| i.state.links.is_empty() && i.transfers.is_empty()));
+        assert_eq!(a.status(), None, "{n}: never Synced");
+
+        std::fs::write(&path, &good).unwrap();
+        put(&a, &address);
+        let listed = a.s.sync_server_vaults(address.clone()).unwrap();
+        assert_eq!((listed.len(), listed[0].version), (1, 1), "{n}");
+        assert_eq!(listed[0].size, good.len() as u64, "{n}");
+    }
+}
+
+/// SYN-03.14, SYN-03 T36: after a legitimate save the file still goes up, as
+/// bytes equal to what this Mac wrote.
+#[test]
+fn syn03_14_t36_after_a_legitimate_save_the_file_still_goes_up() {
+    let l = Linked::new("t36");
+    let t = l.a.titles();
+    l.a.rename(&t[0], "Saved by this Mac");
+    l.a.tick(2_000);
+    assert_eq!(l.a.status(), Some(SyncStatus::Synced));
+    assert_eq!(l.proxy.count("PUT"), 2);
+    assert_eq!(l.stored(), (2, l.file()));
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(0);
+    assert_eq!(
+        l.proxy.count("PUT"),
+        2,
+        "the next run sees 304 and equal hashes"
+    );
+}
+
+/// SYN-03.14, SYN-03 T37: a run before the disk check is refused and leaves
+/// the disk check its event: plain text gives `Unreadable`, not `None`. A good
+/// copy of this vault from another writer waits until the disk check has
+/// opened it with this Mac's key, then goes up.
+#[test]
+fn syn03_14_t37_a_run_before_the_disk_check_is_refused_and_the_event_still_comes() {
+    let l = Linked::new("t37-plain");
+    std::fs::write(l.path(), PLAIN).unwrap();
+    l.refuses_at_a_run();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Unreadable);
+
+    let l = Linked::new("t37-good");
+    std::fs::write(
+        l.path(),
+        resaved(PASSWORD, |v| {
+            v.meta.name = "Demo other writer".into();
+            v.meta.name_changed = larsal_model::Time(i64::MAX / 4);
+        }),
+    )
+    .unwrap();
+    l.refuses_at_a_run();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Reloaded);
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.14, SYN-03.4, SYN-03 T38: the disk check first: its question holds
+/// the run, so nothing is read or sent, and no new Synced time appears.
+#[test]
+fn syn03_14_t38_the_disk_check_first_holds_the_run() {
+    let l = Linked::new("t38");
+    let before = l.stored();
+    let synced_at = l.a.s.sync_state(l.a.v).unwrap().synced_at;
+    std::fs::write(l.path(), PLAIN).unwrap();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Unreadable);
+    l.a.s.sync_with(|i| i.runs.clear());
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(0);
+    l.a.tick(60_000);
+    assert!(l.a.runs().is_empty(), "the question holds the run");
+    assert_eq!(l.proxy.count("PUT"), 1, "only the first upload");
+    assert_eq!(l.stored(), before);
+    assert_eq!(l.a.s.sync_state(l.a.v).unwrap().synced_at, synced_at);
+}
+
+/// SYN-03.14, APP-05.28, SYN-03 T39: the way back from a refusal. Keep mine
+/// writes the open vault over the plain file; that save ends the question, so
+/// the runs start again and the vault goes up.
+#[test]
+fn syn03_14_t39_keep_mine_writes_the_vault_and_it_goes_up() {
+    let l = Linked::new("t39");
+    std::fs::write(l.path(), PLAIN).unwrap();
+    l.refuses_at_a_run();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Unreadable);
+    assert_eq!(
+        l.a.s.resolve_disk(l.a.v, DiskChoice::KeepMine).unwrap(),
+        DiskEvent::None
+    );
+    l.a.save();
+    assert_ne!(l.file(), PLAIN);
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.14, SYN-03 T40: a file that is gone proves nothing: Error, not the
+/// last run's Synced. A save brings it back (APP-05's missing file), and it
+/// goes up.
+#[test]
+fn syn03_14_t40_a_missing_file_is_an_error_and_a_save_brings_it_back() {
+    let l = Linked::new("t40");
+    std::fs::remove_file(l.path()).unwrap();
+    l.refuses_at_a_run();
+    let t = l.a.titles();
+    l.a.rename(&t[0], "Saved after the file left");
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.14, SYN-03.5 step 3, SYN-03 T41: a newer server copy over a plain
+/// file: the save of the merge meets the changed file and fails, so nothing
+/// goes up and the file stays as it is for the disk check.
+#[test]
+fn syn03_14_t41_a_newer_server_copy_over_a_plain_file_uploads_nothing() {
+    let l = Linked::new("t41");
+    let b = second(&l.app, &l.address, l.proxy.pin, &l.a, "t41-b");
+    b.tick(0);
+    let t = b.titles();
+    b.rename(&t[1], "By B");
+    b.tick(2_000);
+    assert_eq!(b.status(), Some(SyncStatus::Synced));
+    let before = l.stored();
+    assert_eq!(before.0, 2);
+    std::fs::write(l.path(), PLAIN).unwrap();
+    let puts = l.proxy.count("PUT");
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(0);
+    assert_eq!(l.a.status(), Some(SyncStatus::Error));
+    assert_eq!(l.proxy.count("PUT"), puts, "no PUT");
+    assert_eq!(l.stored(), before);
+    assert_eq!(l.file(), PLAIN);
+}
+
+/// SYN-03.3, SYN-03 T42 (V2-5): after Save As the new file has no link: its
+/// saves send nothing, the state of the old link stays, and a second link for
+/// the same vault is refused. The old file keeps its link when it is opened
+/// again. Moving the link to the new file is E16-S9's (LD-355).
+#[test]
+fn syn03_3_t42_save_as_leaves_the_link_on_the_old_file() {
+    let mut l = Linked::new("t42");
+    let before = l.stored();
+    let link = l.a.s.sync_with(|i| i.state.links.clone());
+    let moved = l.a.dir.join("Moved.larsalvault");
+    let st = l.a.s.save_as(l.a.v, moved.display().to_string()).unwrap();
+    assert_eq!((st.changes, st.failure), (0, None));
+    let t = l.a.titles();
+    l.a.rename(&t[0], "Only in the new file");
+    l.a.tick(2_000);
+    l.a.s.sync_now(l.a.v).unwrap();
+    assert!(l.a.tick(60_000).is_empty(), "no linked open vault");
+    assert_eq!(l.a.status(), None, "not linked");
+    assert_eq!(l.proxy.count("PUT"), 1, "only the first upload");
+    assert_eq!(l.stored(), before);
+    assert_eq!(l.a.s.sync_with(|i| i.state.links.clone()), link);
+    assert!(l.a.s.sync_put_vault(l.a.v, l.address.clone()).is_err());
+    assert_eq!(l.proxy.count("PUT"), 1);
+
+    l.a.s.close(l.a.v).unwrap();
+    let old = l.path();
+    l.a.open(&old);
+    let states = l.a.tick(0);
+    assert_eq!(states.len(), 1);
+    assert_eq!(states[0].status, SyncStatus::Synced);
+    assert_eq!(l.proxy.count("PUT"), 1);
+    assert_eq!(l.stored(), before);
+}
+
+/// 59 bytes of demo plain text after the final block of a good file.
+const TAIL: &[u8] = b"Demo plain tail: site shop.example, user demo, note hello.\n";
+
+fn has(hay: &[u8], needle: &[u8]) -> bool {
+    hay.windows(needle.len()).any(|w| w == needle)
+}
+
+/// The Mac's server copy of its one link: its version and bytes.
+fn stored(a: &Mac) -> (u64, Vec<u8>) {
+    let (client, id) = a.s.sync_with(|i| {
+        let link = &i.state.links[0];
+        (i.servers[&link.server].clone(), link.vault_id)
+    });
+    let reply = client.lock().unwrap().get(&id, 0).unwrap();
+    (reply.version.unwrap(), reply.body)
+}
+
+/// A Mac with a signed-in server through the test proxy, nothing on it yet.
+fn unlinked(tag: &str) -> (LarsalServer, Scripted, String, Mac) {
+    let app = larsal_server();
+    let proxy = Scripted::proxy(&app);
+    let address = proxy.address();
+    let a = first(&address, proxy.pin, tag);
+    a.s.sync_with(|i| {
+        i.servers[&address].lock().unwrap().sign_for_port(app.port);
+    });
+    (app, proxy, address, a)
+}
+
+/// `file` with its outer header changed by `room`, and its header hash and HMAC
+/// made again under the demo vault's key: what someone who holds the key can
+/// write, and it opens (FMT-05). The block stream stays, so the vault is the same.
+fn with_room(file: &[u8], room: impl FnOnce(&mut Vec<u8>)) -> Vec<u8> {
+    use larsal_crypto::kdf::{Verdict, assess, derive};
+    use larsal_format::keys::{composite_key, final_keys, password_part};
+    use larsal_format::limits::Limits;
+    let limits = Limits::DEFAULT;
+    let h = larsal_format::header::read_header(file, &limits).unwrap();
+    let password = larsal_crypto::secret::SecretString::new(PASSWORD.to_owned());
+    let part = password_part(&password);
+    let composite = composite_key(Some(&part), None, None);
+    let s = Session::new();
+    let mut host = s.host.lock().unwrap();
+    let cleared = match assess(&h.kdf, &mut host, &limits.kdf, None).unwrap() {
+        Verdict::Run(cleared) => cleared,
+        Verdict::Ask(report) => match assess(&h.kdf, &mut host, &limits.kdf, Some(&report)) {
+            Ok(Verdict::Run(cleared)) => cleared,
+            _ => panic!("the demo vault's KDF settings ran before"),
+        },
+    };
+    let keys = final_keys(&h.master_seed, &derive(&composite, &cleared).unwrap());
+    let mut head = file[..h.len].to_vec();
+    room(&mut head);
+    let mut out = head.clone();
+    out.extend_from_slice(larsal_crypto::hash::sha256(&[&head]).expose());
+    out.extend_from_slice(larsal_format::integrity::header_hmac(&keys.hmac_key, &head).expose());
+    out.extend_from_slice(&file[h.len + 64..]);
+    out
+}
+
+/// One outer header field with demo plain text.
+fn plain_field(id: u8) -> Vec<u8> {
+    let mut field = vec![id];
+    field.extend_from_slice(&u32::try_from(PLAIN.len()).unwrap().to_le_bytes());
+    field.extend_from_slice(PLAIN);
+    field
+}
+
+impl Linked {
+    /// `TAIL` after the file's last byte.
+    fn append_tail(&self) {
+        let mut f = self.file();
+        f.extend_from_slice(TAIL);
+        std::fs::write(self.path(), f).unwrap();
+    }
+
+    /// Neither the server's bytes nor any request ever sent holds `needle`. The
+    /// server keeps old versions (SYN-02.5), so every request counts.
+    fn never_sent(&self, needle: &[u8]) {
+        assert!(!has(&self.stored().1, needle), "on the server");
+        assert!(
+            self.proxy.requests().iter().all(|r| !has(&r.raw, needle)),
+            "in a request"
+        );
+    }
+
+    /// The way back: a save with no unsaved change writes the vault without the
+    /// room, and that file goes up as `version`.
+    fn a_save_heals_it(&self, version: u64, needle: &[u8]) {
+        self.a.save();
+        assert!(!has(&self.file(), needle), "the save drops it");
+        self.uploads_at_a_run(version);
+        self.never_sent(needle);
+    }
+}
+
+/// SYN-03.14, SYN-03.5 step 2, FMT-01.20, SYN-03 T45: plain bytes appended after
+/// the final block while unlocked. A run refuses the changed file; the disk check
+/// still opens it (LD-01), and the runs after it refuse its form. Nothing goes
+/// up until a save writes the vault without the tail. Checker 1's first probe.
+#[test]
+fn syn03_14_t45_a_tail_appended_while_unlocked_never_goes_up() {
+    let l = Linked::new("t45");
+    let clean = l.stored();
+    l.append_tail();
+    l.refuses_at_a_run();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Reloaded);
+    l.needs_a_save_at_a_run();
+    assert_eq!(l.stored(), clean);
+    l.never_sent(TAIL);
+    l.a_save_heals_it(2, TAIL);
+}
+
+/// SYN-03.14, SYN-03 T46: the same tail is there when the vault unlocks, with no
+/// disk check at all: it opens (LD-01) and its form is refused.
+#[test]
+fn syn03_14_t46_a_tail_present_at_unlock_never_goes_up() {
+    let l = Linked::new("t46");
+    let clean = l.stored();
+    l.a.s.lock(l.a.v).unwrap();
+    l.append_tail();
+    l.a.unlock();
+    l.needs_a_save_at_a_run();
+    assert_eq!(l.stored(), clean);
+    l.never_sent(TAIL);
+    l.a_save_heals_it(2, TAIL);
+}
+
+/// SYN-03.14, SYN-03.1 step 3, SYN-03 T47: the same tail at a first upload, after
+/// an unlock and after the disk check: refused, nothing on the server, no link,
+/// and the words say what to do. After a save the vault goes up without it.
+#[test]
+fn syn03_14_t47_a_tail_at_the_first_upload_never_goes_up() {
+    for disk_check in [false, true] {
+        let (_app, proxy, address, a) = unlinked(&format!("t47-{disk_check}"));
+        let path = a.dir.join("Personal.larsalvault");
+        let mut f = std::fs::read(&path).unwrap();
+        f.extend_from_slice(TAIL);
+        if disk_check {
+            std::fs::write(&path, &f).unwrap();
+            assert_eq!(a.s.check_disk(a.v).unwrap(), DiskEvent::Reloaded);
+        } else {
+            a.s.lock(a.v).unwrap();
+            std::fs::write(&path, &f).unwrap();
+            a.unlock();
+        }
+        let err = a.s.sync_put_vault(a.v, address.clone()).unwrap_err();
+        let text = err.to_string();
+        assert!(text.contains("Save the vault"), "{text}");
+        assert!(text.contains("Nothing was uploaded"), "{text}");
+        assert!(!text.contains("Personal") && !text.contains("/"), "{text}");
+        assert_eq!(proxy.count("PUT"), 0);
+        assert!(a.s.sync_server_vaults(address.clone()).unwrap().is_empty());
+        assert!(a.s.sync_with(|i| i.state.links.is_empty() && i.transfers.is_empty()));
+
+        a.save();
+        put(&a, &address);
+        assert_eq!(stored(&a), (1, std::fs::read(&path).unwrap()));
+        assert!(proxy.requests().iter().all(|r| !has(&r.raw, TAIL)));
+    }
+}
+
+/// SYN-03.14, SYN-03.5 step 2, FMT-02.3, FMT-02.21, SYN-03 T48: plain bytes in the
+/// outer header of a file made with the key, so it opens: a comment at unlock, an
+/// unknown field the disk check loads, end field data at a first upload. Opening
+/// alone does not let them up; a Larsal save drops them, and then the vault goes.
+#[test]
+fn syn03_14_t48_room_in_the_outer_header_goes_up_only_after_a_save() {
+    let l = Linked::new("t48-comment");
+    let clean = l.stored();
+    let planted = with_room(&l.file(), |head| {
+        head.splice(12..12, plain_field(1));
+    });
+    l.a.s.lock(l.a.v).unwrap();
+    std::fs::write(l.path(), planted).unwrap();
+    l.a.unlock();
+    l.needs_a_save_at_a_run();
+    assert_eq!(l.stored(), clean);
+    l.never_sent(PLAIN);
+    l.a_save_heals_it(2, PLAIN);
+
+    let l = Linked::new("t48-unknown");
+    let planted = with_room(&l.file(), |head| {
+        head.splice(12..12, plain_field(200));
+    });
+    std::fs::write(l.path(), planted).unwrap();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Reloaded);
+    l.needs_a_save_at_a_run();
+    l.never_sent(PLAIN);
+    l.a_save_heals_it(2, PLAIN);
+
+    let (_app, proxy, address, a) = unlinked("t48-end");
+    let path = a.dir.join("Personal.larsalvault");
+    let planted = with_room(&std::fs::read(&path).unwrap(), |head| {
+        let end = head.len() - 9;
+        head.truncate(end);
+        head.extend_from_slice(&plain_field(0));
+    });
+    a.s.lock(a.v).unwrap();
+    std::fs::write(&path, planted).unwrap();
+    a.unlock();
+    let text =
+        a.s.sync_put_vault(a.v, address.clone())
+            .unwrap_err()
+            .to_string();
+    assert!(text.contains("Save the vault"), "{text}");
+    assert_eq!(proxy.count("PUT"), 0);
+    a.save();
+    put(&a, &address);
+    assert_eq!(stored(&a), (1, std::fs::read(&path).unwrap()));
+    assert!(proxy.requests().iter().all(|r| !has(&r.raw, PLAIN)));
+}
+
+/// A vault the new vault wizard made at `name` in `a`'s folder, under the
+/// password `wizard`.
+fn wizard_vault(a: &Mac, name: &str, wizard: &str) -> (u64, PathBuf) {
+    use crate::wizard::{Answer, CipherChoice, EncryptionChoice, KdfChoice, Outcome, Wizard};
+    let small = || EncryptionChoice {
+        cipher: CipherChoice::Aes256,
+        kdf: KdfChoice::Argon2id,
+        memory_mib: 1,
+        lanes: 1,
+        unlock_ms: 100,
+    };
+    let path = a.dir.join(format!("{name}.larsalvault"));
+    let w = Wizard::new(Arc::clone(&a.s));
+    assert!(w.measure(small()).unwrap());
+    w.set_password(wizard.into()).unwrap();
+    w.set_repeat(wizard.into()).unwrap();
+    let out = w
+        .create(
+            name.into(),
+            String::new(),
+            path.display().to_string(),
+            small(),
+            false,
+            vec![Answer::SafeMinimum],
+        )
+        .unwrap();
+    let Outcome::Created { vault } = out else {
+        panic!("{out:?}")
+    };
+    (vault, path)
+}
+
+/// SYN-03.5 step 2, SYN-03 T49: a vault the wizard made has its unlock root like
+/// any other: its own file goes up and runs on its schedule, and another vault
+/// under its password that the disk check loaded stays off. With no root known
+/// the read refuses: it fails closed.
+#[test]
+fn syn03_14_t49_a_wizard_vault_has_its_root_and_another_root_stays_off() {
+    const WIZARD: &str = "4v8Nq2LmZ7rT1xKc9WbP";
+    let (_app, proxy, address, a) = unlinked("t49");
+    let (own, _) = wizard_vault(&a, "Own", WIZARD);
+    let root = a.s.with_vault(own, |v| Ok(v.root.uuid)).unwrap();
+    assert_eq!(a.s.sync.root(own), Some(root));
+    let st = a.s.sync_put_vault(own, address.clone()).unwrap();
+    assert_eq!(st.status, SyncStatus::Synced);
+    assert_eq!(proxy.count("PUT"), 1);
+    a.s.sync_now(own).unwrap();
+    a.tick(0);
+    assert_eq!(a.s.sync_state(own).unwrap().status, SyncStatus::Synced);
+
+    let (other, path) = wizard_vault(&a, "Other", WIZARD);
+    std::fs::write(&path, resaved(WIZARD, |v| v.root.uuid = Uuid([0x65; 16]))).unwrap();
+    assert_eq!(a.s.check_disk(other).unwrap(), DiskEvent::Reloaded);
+    let text =
+        a.s.sync_put_vault(other, address.clone())
+            .unwrap_err()
+            .to_string();
+    assert!(text.contains("Nothing was uploaded"), "{text}");
+    assert_eq!(proxy.count("PUT"), 1, "only the wizard's own file");
+
+    a.s.sync.inner().vaults.remove(&a.v);
+    assert!(matches!(
+        a.s.sync_read(a.v),
+        Some(Err(Unproven(Message::LocalFile)))
+    ));
+}
+
+/// Sets its flag when dropped: a thread that loops on the flag ends when the test's
+/// body panics, so the test goes red and never hangs.
+struct Stop<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for Stop<'_> {
+    fn drop(&mut self) {
+        self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// SYN-03.5 step 2, SYN-03 T50: the read every upload crosses, against saves and
+/// Save As on another thread: it answers busy or proven, never refused. The
+/// new path and the new hash move together, under the save lock: the moment that
+/// lock opens inside a Save As, the read is proven.
+#[test]
+fn syn03_3_t50_saves_and_save_as_racing_the_read_are_never_refused() {
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    let a = Mac::new("t50", true);
+    let done = AtomicBool::new(false);
+    let (ok, refused) = (AtomicUsize::new(0), AtomicUsize::new(0));
+    let id = a.id_of(&a.titles()[0]);
+    std::thread::scope(|scope| {
+        let _stop = Stop(&done);
+        scope.spawn(|| {
+            while !done.load(Ordering::SeqCst) {
+                match a.s.sync_read(a.v) {
+                    Some(Ok(_)) => ok.fetch_add(1, Ordering::SeqCst),
+                    Some(Err(_)) => refused.fetch_add(1, Ordering::SeqCst),
+                    None => 0,
+                };
+            }
+        });
+        for n in 0..20 {
+            a.s.begin_edit(a.v, id.clone()).unwrap();
+            a.s.set_text(a.v, EditText::Title, format!("Race {n}"))
+                .unwrap();
+            a.s.commit_edit(a.v).unwrap();
+            a.save();
+            let to = a.dir.join(format!("Moved-{n}.larsalvault"));
+            a.s.save_as(a.v, to.display().to_string()).unwrap();
+        }
+    });
+    assert!(ok.load(Ordering::SeqCst) > 0);
+    assert_eq!(refused.load(Ordering::SeqCst), 0);
+
+    let read = Arc::new(Mutex::new(None));
+    let (s, v, seen) = (a.s.clone(), a.v, read.clone());
+    SAVE_LOCK_FREE.with(|m| {
+        *m.borrow_mut() = Some(Box::new(move || {
+            *seen.lock().unwrap() = Some(s.sync_read(v).map(|r| r.is_ok()));
+        }));
+    });
+    let to = a.dir.join("Moved-last.larsalvault");
+    a.s.save_as(a.v, to.display().to_string()).unwrap();
+    assert_eq!(read.lock().unwrap().take(), Some(Some(true)));
+}
+
+/// A Mac linked to a scripted server whose first `on` request runs `act` on its
+/// session, vault and folder before `reply` answers: something that lands during
+/// a run. The run has ended when this returns. The link before the run comes back
+/// too.
+fn during_a_run(
+    tag: &str,
+    on: &'static str,
+    act: impl FnOnce(&Session, u64, &Path) + Send + 'static,
+    reply: impl Fn(&larsal_sync::test_server::Request) -> larsal_sync::test_server::Response
+    + Send
+    + Sync
+    + 'static,
+) -> (Mac, Scripted, Link) {
+    let a = Mac::new(tag, true);
+    let hook = Mutex::new(Some((a.s.clone(), a.v, a.dir.to_path_buf(), act)));
+    let server = scripted_transfer(move |r| {
+        if r.method == on
+            && r.path.starts_with("/v1/vaults/")
+            && let Some((s, v, dir, act)) = hook.lock().unwrap().take()
+        {
+            act(&s, v, &dir);
+        }
+        reply(r)
+    });
+    add_scripted(&a, &server);
+    let link = link_to(&a, &server.address(), [0; 32]);
+    a.s.sync_now(a.v).unwrap();
+    a.tick(0);
+    assert!(!a.s.sync.left(a.v), "the mark ends with the run");
+    (a, server, link)
+}
+
+/// A Save As to a new path during a run ([`during_a_run`]).
+fn save_as_during_a_run(
+    tag: &str,
+    on: &'static str,
+    reply: impl Fn(&larsal_sync::test_server::Request) -> larsal_sync::test_server::Response
+    + Send
+    + Sync
+    + 'static,
+) -> (Mac, Scripted, Link) {
+    during_a_run(
+        tag,
+        on,
+        |s, v, dir| {
+            let to = dir.join("Moved.larsalvault");
+            s.save_as(v, to.display().to_string()).unwrap();
+        },
+        reply,
+    )
+}
+
+/// SYN-03.3, SYN-03 T51: a Save As that lands during a run. A run that has not
+/// read yet sends nothing, on the 304 branch and on the merge branch: the new
+/// file has no link. A run whose upload was on its way sent the old file, as it
+/// read it, and the old link records that; its report is not the new file's.
+#[test]
+fn syn03_3_t51_a_save_as_during_a_run_sends_nothing_more_and_reports_nothing() {
+    use larsal_sync::test_server::Response;
+    let (a, server, link) = save_as_during_a_run("t51-304", "GET", |_| {
+        Response::new(304, b"").with("ETag", "\"5\"")
+    });
+    assert_eq!(server.count("PUT"), 0);
+    assert_eq!(a.status(), None);
+    assert_eq!(a.s.sync_with(|i| i.state.links.clone()), [link]);
+
+    let copy = resaved(PASSWORD, |_| {});
+    let (a, server, link) = save_as_during_a_run("t51-200", "GET", move |_| {
+        Response::new(200, &copy).with("ETag", "\"6\"")
+    });
+    assert_eq!(server.count("PUT"), 0, "the merge stops before its save");
+    assert_eq!(a.status(), None);
+    assert_eq!(a.s.sync_with(|i| i.state.links[0].highest), link.highest);
+
+    let (a, server, link) = save_as_during_a_run("t51-put", "PUT", |r| match r.method.as_str() {
+        "GET" => Response::new(304, b"").with("ETag", "\"5\""),
+        _ => Response::new(200, b"{}").with("ETag", "\"6\""),
+    });
+    let old = std::fs::read(a.dir.join("Personal.larsalvault")).unwrap();
+    let sent: Vec<_> = server
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == "PUT")
+        .collect();
+    assert_eq!(sent.len(), 1);
+    assert_eq!(
+        sent[0].body, old,
+        "the old file, as read before the Save As"
+    );
+    assert_eq!(a.status(), None, "its report stays off the new file");
+    let after = a.s.sync_with(|i| i.state.links[0].clone());
+    assert_eq!(
+        (after.file, after.highest, after.local_sha),
+        (link.file, 6, larsal_sync::sync::hash(&old))
+    );
+
+    // A Save As just before a run: the run finds no link and the mark ends.
+    let a = Mac::new("t51-before", true);
+    a.s.sync
+        .inner()
+        .vaults
+        .get_mut(&a.v)
+        .unwrap()
+        .schedule
+        .sync_now();
+    let now = a.clock.now_ms();
+    assert!(
+        a.s.sync
+            .inner()
+            .vaults
+            .get_mut(&a.v)
+            .unwrap()
+            .schedule
+            .start(now, false)
+    );
+    let to = a.dir.join("Moved.larsalvault");
+    a.s.save_as(a.v, to.display().to_string()).unwrap();
+    assert!(a.s.sync.left(a.v));
+    a.s.sync_run(a.v);
+    assert!(!a.s.sync.left(a.v));
+}
+
+/// SYN-03.14, SYN-03 T52: each shape a path can hold is refused, none hangs, and
+/// the good bytes back are Synced with no upload.
+#[test]
+fn syn03_14_t52_every_shape_of_file_is_refused_and_the_good_bytes_come_back() {
+    let l = Linked::new("t52");
+    let good = l.file();
+    let plain = l.a.dir.join("plain.txt");
+    std::fs::write(&plain, PLAIN).unwrap();
+    let copy = l.a.dir.join("copy.larsalvault");
+    std::fs::write(&copy, &good).unwrap();
+    let path = l.path();
+    let clear = || match std::fs::symlink_metadata(&path) {
+        Ok(m) if m.is_dir() => std::fs::remove_dir(&path).unwrap(),
+        Ok(_) => std::fs::remove_file(&path).unwrap(),
+        Err(_) => {}
+    };
+    for bytes in [&b""[..], &good[..good.len() / 2], &good[..good.len() - 1]] {
+        std::fs::write(&path, bytes).unwrap();
+        l.refuses_at_a_run();
+    }
+    clear();
+    std::os::unix::fs::symlink(&plain, &path).unwrap();
+    l.refuses_at_a_run();
+    clear();
+    std::os::unix::fs::symlink(l.a.dir.join("gone"), &path).unwrap();
+    l.refuses_at_a_run();
+    clear();
+    std::fs::create_dir(&path).unwrap();
+    l.refuses_at_a_run();
+    clear();
+    let made = std::process::Command::new("/usr/bin/mkfifo")
+        .arg(&path)
+        .status()
+        .unwrap();
+    assert!(made.success());
+    l.refuses_at_a_run();
+    clear();
+    std::os::unix::fs::symlink(&copy, &path).unwrap();
+    let puts = l.proxy.count("PUT");
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(0);
+    assert_eq!(l.a.status(), Some(SyncStatus::Synced), "the same bytes");
+    clear();
+    std::fs::write(&path, &good).unwrap();
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(0);
+    assert_eq!(l.a.status(), Some(SyncStatus::Synced));
+    assert_eq!(l.proxy.count("PUT"), puts);
+    assert_eq!(l.stored(), (1, good));
+    l.never_sent(PLAIN);
+}
+
+/// SYN-03.14, SYN-03 T53: another root under this vault's password, loaded by the
+/// disk check: refused at a first upload; and a linked vault that was locked and
+/// unlocked on it sends nothing, so the server keeps its bytes.
+#[test]
+fn syn03_14_t53_another_root_stays_off_at_a_first_upload_and_after_a_relock() {
+    let (_app, proxy, address, a) = unlinked("t53-first");
+    let other = resaved(PASSWORD, |v| v.root.uuid = Uuid([0x65; 16]));
+    std::fs::write(a.dir.join("Personal.larsalvault"), &other).unwrap();
+    assert_eq!(a.s.check_disk(a.v).unwrap(), DiskEvent::Reloaded);
+    let text = a.s.sync_put_vault(a.v, address).unwrap_err().to_string();
+    assert!(text.contains("Nothing was uploaded"), "{text}");
+    assert_eq!(proxy.count("PUT"), 0);
+
+    let l = Linked::new("t53-relock");
+    let before = l.stored();
+    std::fs::write(l.path(), &other).unwrap();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::Reloaded);
+    l.a.s.lock(l.a.v).unwrap();
+    l.a.unlock();
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(0);
+    let t = l.a.titles();
+    l.a.rename(&t[0], "Saved after the relock");
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(2_000);
+    assert_eq!(l.proxy.count("PUT"), 1, "only the first upload");
+    assert_eq!(l.stored(), before);
+}
+
+/// SYN-03.14, SYN-03 T54: a key change on this Mac is its own save, and goes up.
+#[test]
+fn syn03_14_t54_a_key_change_on_this_mac_goes_up() {
+    let l = Linked::new("t54");
+    let saver = l.a.s.with_edit_state(l.a.v, |e| e.saver.clone()).unwrap();
+    {
+        let mut sv = saver.lock().unwrap();
+        l.a.s
+            .with_edit(l.a.v, |_, _, _, s| {
+                s.set_key(
+                    &mut sv,
+                    Some(Some(larsal_crypto::secret::SecretString::new(
+                        "demo-new-pass-8".to_owned(),
+                    ))),
+                    None,
+                );
+                s.changes = 1;
+                Ok(())
+            })
+            .unwrap();
+    }
+    l.a.save();
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.14, SYN-03 T55: a key change on disk by another writer: refused, held
+/// while the question is up, and once the new key has opened it, it goes up.
+#[test]
+fn syn03_14_t55_a_key_change_on_disk_goes_up_after_the_new_key() {
+    let l = Linked::new("t55");
+    std::fs::write(
+        l.path(),
+        resaved("demo-new-pass-8", |v| {
+            v.meta.name = "Demo other writer".into();
+            v.meta.name_changed = larsal_model::Time(i64::MAX / 4);
+        }),
+    )
+    .unwrap();
+    l.refuses_at_a_run();
+    assert_eq!(l.a.s.check_disk(l.a.v).unwrap(), DiskEvent::NewKey);
+    let puts = l.proxy.count("PUT");
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(60_000);
+    assert_eq!(l.proxy.count("PUT"), puts, "held while asked");
+    l.a.s
+        .resolve_disk_with_key(
+            l.a.v,
+            DiskChoice::Reload,
+            Some("demo-new-pass-8".into()),
+            None,
+        )
+        .unwrap();
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.3, SYN-03 T56: Save As and back: the link comes back and the save goes
+/// up.
+#[test]
+fn syn03_3_t56_save_as_and_back_resumes_the_link() {
+    let l = Linked::new("t56");
+    let moved = l.a.dir.join("Moved.larsalvault");
+    l.a.s.save_as(l.a.v, moved.display().to_string()).unwrap();
+    assert_eq!(l.a.status(), None);
+    l.a.s
+        .save_as(l.a.v, l.path().display().to_string())
+        .unwrap();
+    l.uploads_at_a_run(2);
+}
+
+/// SYN-03.3, SYN-03 T57: Save As of a vault with no link, then a first upload: it
+/// works, the link is on the new file and its saves go up.
+#[test]
+fn syn03_3_t57_save_as_then_a_first_upload_links_the_new_file() {
+    let (_app, proxy, address, a) = unlinked("t57");
+    let moved = a.dir.join("Moved.larsalvault");
+    a.s.save_as(a.v, moved.display().to_string()).unwrap();
+    put(&a, &address);
+    a.tick(0);
+    assert_eq!(a.status(), Some(SyncStatus::Synced));
+    let t = a.titles();
+    a.rename(&t[0], "After Save As");
+    a.tick(2_000);
+    assert_eq!(a.status(), Some(SyncStatus::Synced));
+    assert_eq!(proxy.count("PUT"), 2);
+    assert_eq!(stored(&a), (2, std::fs::read(&moved).unwrap()));
+}
+
+/// SYN-03.14, SYN-03 T58: an older copy of this vault at the path: refused, the
+/// disk check merges and holds the run until the merged save, so the old bytes
+/// never go up again; the merged save does.
+#[test]
+fn syn03_14_t58_an_older_copy_never_goes_up() {
+    let l = Linked::new("t58");
+    let old = l.file();
+    let t = l.a.titles();
+    l.a.rename(&t[0], "Newer than the old copy");
+    l.a.tick(2_000);
+    assert_eq!(l.stored().0, 2);
+    std::fs::write(l.path(), &old).unwrap();
+    l.refuses_at_a_run();
+    l.a.s.check_disk(l.a.v).unwrap();
+    let puts = l.proxy.count("PUT");
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(60_000);
+    assert_eq!(l.proxy.count("PUT"), puts, "held until the merged save");
+    assert_ne!(l.stored().1, old);
+    l.a.save();
+    l.a.s.sync_now(l.a.v).unwrap();
+    l.a.tick(2_000);
+    assert_eq!(l.a.status(), Some(SyncStatus::Synced));
+    assert_eq!(l.stored().1, l.file());
+    assert_ne!(l.stored().1, old);
+}
+
+/// SYN-03.5 step 2, SYN-03 T59: the clear path for a vault Larsal never wrote. A
+/// file the reference app's command line tool made has an exact frame, so after
+/// an open it goes up untouched. The same file with room waits for one save.
+#[test]
+fn syn03_14_t59_a_vault_larsal_never_wrote_has_a_clear_path_up() {
+    let open = |tag: &str, tail: &[u8]| {
+        let (app, proxy, address, a) = unlinked(tag);
+        let path = a.dir.join("Rich.larsalvault");
+        let mut file = std::fs::read(OTHER).unwrap();
+        file.extend_from_slice(tail);
+        std::fs::write(&path, file).unwrap();
+        let id = a.s.open(path.display().to_string()).unwrap();
+        assert_eq!(
+            a.s.unlock(id, Some("demo-pass-5".into()), None).unwrap(),
+            crate::session::UnlockResult::Unlocked
+        );
+        (app, proxy, address, a, id, path)
+    };
+
+    let (_app, _proxy, address, a, id, path) = open("t59-exact", b"");
+    let st = a.s.sync_put_vault(id, address).unwrap();
+    assert_eq!(st.status, SyncStatus::Synced);
+    assert_eq!(stored(&a), (1, std::fs::read(OTHER).unwrap()));
+    assert_eq!(std::fs::read(&path).unwrap(), std::fs::read(OTHER).unwrap());
+
+    let (_app, proxy, address, a, id, path) = open("t59-room", TAIL);
+    let text =
+        a.s.sync_put_vault(id, address.clone())
+            .unwrap_err()
+            .to_string();
+    assert!(text.contains("Save the vault"), "{text}");
+    assert_eq!(proxy.count("PUT"), 0);
+    a.s.save(id).unwrap();
+    a.s.sync_put_vault(id, address).unwrap();
+    assert_eq!(stored(&a), (1, std::fs::read(&path).unwrap()));
+    assert!(proxy.requests().iter().all(|r| !has(&r.raw, TAIL)));
+}
+
+/// SYN-03.7, SYN-03 T44: `GET /v1/vaults` listing a linked vault lower than
+/// the highest seen puts `MSG-SYNC-ROLLBACK` on the open vault (Error), and
+/// nothing is downloaded or uploaded. The highest seen listed changes nothing.
+#[test]
+fn syn03_7_t44_a_listed_rollback_reaches_the_open_vault_and_downloads_nothing() {
+    let list = |version: u64| {
+        let id = larsal_sync::state::VaultId::from_bytes([3; 16]);
+        format!(r#"{{"vaults":[{{"id":"{id}","version":{version},"size":2}}]}}"#).into_bytes()
+    };
+    let (a, server) = c1_scripted_mac("t44-lower", list(4));
+    let rows = a.s.sync_server_vaults(server.address()).unwrap();
+    assert_eq!((rows.len(), rows[0].version, rows[0].linked), (1, 4, true));
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(st.status, SyncStatus::Error);
+    assert_eq!(ids(&st), ["MSG-SYNC-ROLLBACK"]);
+    assert_eq!(server.count("PUT"), 0);
+    assert!(
+        server
+            .requests()
+            .iter()
+            .all(|r| !r.path.starts_with("/v1/vaults/")),
+        "nothing downloaded"
+    );
+
+    let (a, server) = c1_scripted_mac("t44-same", list(5));
+    a.s.sync_server_vaults(server.address()).unwrap();
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(st.status, SyncStatus::Synced);
+    assert!(st.messages.is_empty());
+}
+
+/// SYN-03.3, SYN-03 T61: an unlock during a run. The run began under the unlock
+/// before it, so it reads and merges nothing more and its report stays off, whatever
+/// that unlock found. A Save As and a relock (Checker 2's P1) send the new file under
+/// no link; another root's file and a relock (Checker 1's p23) send nothing under
+/// the old link. After a plain relock the next run reads as usual.
+#[test]
+fn syn03_3_t61_an_unlock_during_a_run_sends_nothing_more() {
+    use larsal_sync::test_server::{Request, Response};
+    fn relock(s: &Session, v: u64) {
+        s.lock(v).unwrap();
+        let r = s.unlock(v, Some(PASSWORD.into()), None).unwrap();
+        assert_eq!(r, crate::session::UnlockResult::Unlocked);
+    }
+    fn reply(r: &Request) -> Response {
+        match r.method.as_str() {
+            "GET" => Response::new(304, b"").with("ETag", "\"5\""),
+            _ => Response::new(200, b"{}").with("ETag", "\"6\""),
+        }
+    }
+    let (a, server, link) = during_a_run(
+        "t61-save-as",
+        "GET",
+        |s, v, dir| {
+            let to = dir.join("Moved.larsalvault");
+            s.save_as(v, to.display().to_string()).unwrap();
+            relock(s, v);
+        },
+        reply,
+    );
+    assert_eq!(server.count("PUT"), 0);
+    assert_eq!(a.status(), None);
+    assert_eq!(a.s.sync_with(|i| i.state.links.clone()), [link]);
+
+    let other = resaved(PASSWORD, |v| v.root.uuid = Uuid([0x65; 16]));
+    let (a, server, link) = during_a_run(
+        "t61-root",
+        "GET",
+        move |s, v, dir| {
+            std::fs::write(dir.join("Personal.larsalvault"), &other).unwrap();
+            relock(s, v);
+        },
+        reply,
+    );
+    assert_eq!(server.count("PUT"), 0);
+    let open = a.s.with_vault(a.v, |v| Ok(v.root.uuid)).unwrap();
+    assert_eq!(open, Uuid([0x65; 16]), "the unlock took the other root");
+    assert_eq!(a.status(), None);
+    assert_eq!(a.s.sync_with(|i| i.state.links.clone()), [link]);
+
+    let (a, server, link) = during_a_run("t61-plain", "GET", |s, v, _| relock(s, v), reply);
+    assert_eq!(server.count("PUT"), 0);
+    assert_eq!(a.status(), None);
+    assert_eq!(a.s.sync_with(|i| i.state.links.clone()), [link]);
+    a.tick(0);
+    assert_eq!(server.count("PUT"), 1, "the run the unlock asked for");
+    assert_eq!(a.status(), Some(SyncStatus::Synced));
+}
+
+/// SYN-03.5 step 2, SYN-03 T62: the bytes that come back are the bytes checked. A
+/// writer swaps plain text and the good file at the path while a read runs in a
+/// loop: nothing but the good bytes ever comes back, and plain text is only ever
+/// `MSG-SYNC-LOCAL-FILE`. A second read of the file, for the hash or for the frame
+/// check, would show here. Checker 1's p25.
+#[test]
+fn syn03_5_t62_the_file_is_read_once_and_those_bytes_come_back() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let l = Linked::new("t62");
+    let (good, path) = (l.file(), l.path());
+    let (plain_file, good_file, tmp) = (
+        l.a.dir.join("swap-plain"),
+        l.a.dir.join("swap-good"),
+        l.a.dir.join("swap-tmp"),
+    );
+    std::fs::write(&plain_file, PLAIN).unwrap();
+    std::fs::write(&good_file, &good).unwrap();
+    let done = AtomicBool::new(false);
+    let mut proven = 0;
+    std::thread::scope(|scope| {
+        let _stop = Stop(&done);
+        scope.spawn(|| {
+            while !done.load(Ordering::SeqCst) {
+                for from in [&plain_file, &good_file] {
+                    std::fs::hard_link(from, &tmp).unwrap();
+                    std::fs::rename(&tmp, &path).unwrap();
+                }
+            }
+        });
+        let start = std::time::Instant::now();
+        while proven < 2_000 && start.elapsed() < std::time::Duration::from_secs(20) {
+            match l.a.s.sync_read(l.a.v) {
+                Some(Ok((bytes, _))) => {
+                    assert!(bytes == good, "other bytes than those checked came back");
+                    proven += 1;
+                }
+                Some(Err(Unproven(m))) => assert_eq!(m, Message::LocalFile, "a second read"),
+                None => {}
+            }
+        }
+    });
+    assert!(proven > 0, "the good file passed at least once");
+}
+
+/// SYN-03.13, SYN-03 T63: a report belongs to its root. A relock keeps it. A new
+/// vault the wizard made at a path that was linked has no link and reads no
+/// status, and nothing is sent. Checker 2's P5.
+#[test]
+fn syn03_13_t63_a_wizard_vault_at_a_formerly_linked_path_reads_no_status() {
+    let l = Linked::new("t63");
+    let before = l.stored();
+    l.a.s.lock(l.a.v).unwrap();
+    l.a.unlock();
+    assert_eq!(l.a.status(), Some(SyncStatus::Synced), "the same root");
+    l.a.s.lock(l.a.v).unwrap();
+    std::fs::remove_file(l.path()).unwrap();
+    let (id, _) = wizard_vault(&l.a, "Personal", "4v8Nq2LmZ7rT1xKc9WbP");
+    assert_eq!(id, l.a.v, "the same slot");
+    l.a.s.sync_now(id).unwrap();
+    l.a.tick(0);
+    l.a.tick(60_000);
+    assert_eq!(l.a.s.sync_state(id), None);
+    assert_eq!(l.proxy.count("PUT"), 1, "only the first upload");
+    assert_eq!(l.stored(), before);
+}
+
+/// SYN-03.2, SYN-03.14, SYN-03 T64: a download with a tail, from a hostile server. It
+/// opens (LD-01), and the read every upload crosses refuses it, so it never links,
+/// after the unlock or after a save, and nothing goes up. Today it stays pending in
+/// silence: what the status line says of it is E16-S9's. Checker 2's P2.
+#[test]
+fn syn03_2_t64_a_download_with_a_tail_never_links() {
+    use larsal_sync::test_server::Response;
+    let mut body = std::fs::read(DEMO).unwrap();
+    body.extend_from_slice(TAIL);
+    let server = scripted_transfer(move |r| {
+        if r.method == "GET" {
+            Response::new(200, &body).with("ETag", "\"3\"")
+        } else {
+            Response::new(200, b"{}").with("ETag", "\"4\"")
+        }
+    });
+    let mut b = Mac::new("t64", false);
+    add_scripted(&b, &server);
+    let path = b.dir.join("Down.larsalvault");
+    b.s.sync_download(
+        server.address(),
+        larsal_sync::state::VaultId::from_bytes([7; 16]).to_string(),
+        path.display().to_string(),
+    )
+    .unwrap();
+    b.open(&path);
+    let not_linked = |m: &Mac| {
+        let (links, pending) = m.s.sync_with(|i| (i.state.links.len(), i.pending.len()));
+        assert_eq!((links, pending, m.status()), (0, 1, None));
+        assert_eq!(server.count("PUT"), 0);
+    };
+    b.s.sync_now(b.v).unwrap();
+    b.tick(0);
+    not_linked(&b);
+    let t = b.titles();
+    b.rename(&t[0], "Saved after the tail download");
+    b.tick(2_000);
+    not_linked(&b);
+    assert!(server.requests().iter().all(|r| !has(&r.raw, TAIL)));
+}
+
+/// `bytes` opened with the demo password, as a run opens a server copy.
+fn opened(s: &Session, bytes: &[u8]) -> Vault {
+    let password = larsal_crypto::secret::SecretString::new(PASSWORD.to_owned());
+    let credentials = larsal_format::keys::Credentials {
+        password: Some(&password),
+        key_file: None,
+        hardware_key: None,
+    };
+    s.open_bytes(bytes, &credentials, false)
+        .unwrap()
+        .unwrap()
+        .vault
+}
+
+/// SYN-03.7, MOD-11.19 limit 1, LD-269 (4), SYN-03 T12, both runs on real vaults. A's
+/// sync state and open vault hold Argon2id 64 MiB; the server copy has 16 MiB. Both
+/// runs merge and warn by name, with no value. A copy with a newer settings time
+/// keeps its 16 MiB; with an older one, A's settings group wins and its 64 MiB pass
+/// limit 1's compare. The result is checked in the open vault and in the saved file.
+#[test]
+fn syn03_7_t12_both_runs_warn_and_the_settings_time_picks_the_result() {
+    use larsal_model::{Argon2Kind, Kdf, Time};
+    use larsal_sync::test_server::Response;
+    let argon = |memory_kib| Kdf::Argon2 {
+        kind: Argon2Kind::Id,
+        iterations: 2,
+        memory_kib,
+        lanes: 2,
+    };
+    // Older than everything in the demo vault, so the newest change time stays
+    // the entries' and neither run reads as gone back.
+    let settings = Time::from_unix(1_000_000_000).unwrap();
+    for (run, copy_settings, result) in [
+        ("newer", Time(settings.0 + 100), 16_384),
+        ("older", Time(settings.0 - 100), 65_536),
+    ] {
+        let mut a = Mac::new(&format!("t12-{run}"), false);
+        let path = a.dir.join("Personal.larsalvault");
+        let own = resaved(PASSWORD, |v| {
+            v.encryption.kdf = argon(65_536);
+            v.meta.settings_changed = settings;
+        });
+        std::fs::write(&path, own).unwrap();
+        a.open(&path);
+        let copy = resaved(PASSWORD, |v| {
+            v.encryption.kdf = argon(16_384);
+            v.meta.settings_changed = copy_settings;
+        });
+        let server = scripted_transfer(move |r| match r.method.as_str() {
+            "GET" => Response::new(200, &copy).with("ETag", "\"6\""),
+            _ => Response::new(200, b"{}").with("ETag", "\"7\""),
+        });
+        add_scripted(&a, &server);
+        let link = link_to(&a, &server.address(), [0; 32]);
+        assert_eq!(link.seen.kdf, argon(65_536), "A's sync state");
+        a.tick(0);
+        let st = a.s.sync_state(a.v).unwrap();
+        assert_eq!(st.status, SyncStatus::Synced, "{run}: {st:?}");
+        assert_eq!(ids(&st), ["MSG-SYNC-WEAKER"], "{run}");
+        let text = &st.messages[0].text;
+        assert!(text.contains("key derivation"), "{text}");
+        assert!(!text.chars().any(|c| c.is_ascii_digit()), "{text}");
+        let open = a.s.with_vault(a.v, |v| Ok(v.encryption.kdf)).unwrap();
+        assert_eq!(open, argon(result), "{run}: the open vault");
+        let saved = opened(&a.s, &std::fs::read(&path).unwrap());
+        assert_eq!(saved.encryption.kdf, argon(result), "{run}: the saved file");
+    }
+}
+
+/// SYN-03.7, SYN-03 T28: this Mac's own edit is no rollback. After T04, A's sync
+/// state holds version 3. B edits E2 at 10:00:00 and uploads version 4; A edits E1
+/// at 10:00:05 and saves before its next run. Version 4's newest change time is
+/// earlier than A's APP-05.26 record and later than A's sync state, and the guard
+/// compares with the sync state only: A merges, uploads version 5 with both edits,
+/// and shows no message.
+#[test]
+fn syn03_7_t28_this_macs_own_edit_is_no_rollback() {
+    use larsal_model::{Group, Time};
+    fn stamp(g: &mut Group, id: &str, at: Time) {
+        for e in &mut g.entries {
+            let hex: String = e.uuid.0.iter().map(|b| format!("{b:02x}")).collect();
+            if hex == id {
+                e.times.last_modification = at;
+            }
+        }
+        for c in &mut g.groups {
+            stamp(c, id, at);
+        }
+    }
+    let edit_at = |m: &Mac, from: &str, to: &str, at: Time| {
+        let id = m.id_of(from);
+        m.s.begin_edit(m.v, id.clone()).unwrap();
+        m.s.set_text(m.v, EditText::Title, to.into()).unwrap();
+        m.s.commit_edit(m.v).unwrap();
+        m.s.with_edit(m.v, |v, _, _, _| {
+            stamp(&mut v.root, &id, at);
+            Ok(())
+        })
+        .unwrap();
+        m.save();
+    };
+    let (_app, address, a, b, _) = t04_done("t28");
+    let state = a.s.sync_with(|i| i.state.links[0].clone());
+    assert_eq!(state.highest, 3);
+    // The sync state's newest change time reads as 09:59:00.
+    let ten = Time(state.seen.newest.0 + 60);
+    let ten_05 = Time(ten.0 + 5);
+
+    edit_at(&b, "E2 by B", "E2 at 10:00:00", ten);
+    b.tick(2_000);
+    assert_eq!(b.status(), Some(SyncStatus::Synced));
+    let (version, bytes) = stored(&b);
+    assert_eq!(version, 4);
+
+    edit_at(&a, "E1 by A", "E1 at 10:00:05", ten_05);
+    let copy = opened(&a.s, &bytes);
+    assert_eq!(measures(&copy).newest, ten);
+    assert!(
+        a.s.guard(&copy, &bytes).older,
+        "earlier than A's APP-05.26 record"
+    );
+    assert!(ten > state.seen.newest, "later than A's sync state");
+
+    a.tick(2_000);
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(st.status, SyncStatus::Synced);
+    assert!(st.messages.is_empty(), "{st:?}");
+    assert_eq!(
+        stored(&a),
+        (
+            5,
+            std::fs::read(a.dir.join("Personal.larsalvault")).unwrap()
+        )
+    );
+    assert_eq!(a.s.sync_with(|i| i.state.links[0].highest), 5);
+    assert_eq!(a.s.sync_server_vaults(address).unwrap()[0].version, 5);
+    b.s.sync_now(b.v).unwrap();
+    b.tick(0);
+    for m in [&a, &b] {
+        let titles = m.titles();
+        assert!(titles.contains(&"E1 at 10:00:05".to_owned()), "{titles:?}");
+        assert!(titles.contains(&"E2 at 10:00:00".to_owned()), "{titles:?}");
+    }
+}
+
+/// SYN-03.13, SYN-03 T27: what each case shows. T06 and a run that ended well: Synced
+/// with the time, and Syncing while the run is open. T08: Error with `MSG-SYNC-BUSY`.
+/// T18's status: Needs password. T19: Signed out. T21: Offline. T13's run comes with
+/// E16-S7b; the status it sets reads through here.
+#[test]
+fn syn03_13_t27_each_case_shows_its_status() {
+    use larsal_sync::test_server::Response;
+    let file_sha = |a: &Mac| {
+        larsal_sync::sync::hash(&std::fs::read(a.dir.join("Personal.larsalvault")).unwrap())
+    };
+    let scripted =
+        |tag: &str,
+         reply: Box<dyn Fn(&larsal_sync::test_server::Request) -> Response + Send + Sync>| {
+            let a = Mac::new(tag, true);
+            let server = scripted_transfer(reply);
+            add_scripted(&a, &server);
+            link_to(&a, &server.address(), [0; 32]);
+            (a, server)
+        };
+
+    let a = Mac::new("t27-synced", true);
+    let during = Arc::new(Mutex::new(None));
+    let (s, v, seen) = (a.s.clone(), a.v, during.clone());
+    let server = scripted_transfer(move |_| {
+        *seen.lock().unwrap() = s.sync_state(v).map(|st| st.status);
+        Response::new(304, b"").with("ETag", "\"5\"")
+    });
+    add_scripted(&a, &server);
+    link_to(&a, &server.address(), file_sha(&a));
+    a.tick(0);
+    assert_eq!(*during.lock().unwrap(), Some(SyncStatus::Syncing));
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(st.status, SyncStatus::Synced);
+    assert_eq!(st.synced_at, Some(a.clock.now_ms()));
+    assert!(st.messages.is_empty());
+
+    let (a, server) = scripted(
+        "t27-busy",
+        Box::new(|r| match r.method.as_str() {
+            "GET" => Response::new(304, b"").with("ETag", "\"5\""),
+            _ => Response::new(412, b"{}"),
+        }),
+    );
+    a.tick(0);
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(
+        (st.status, ids(&st)),
+        (SyncStatus::Error, vec!["MSG-SYNC-BUSY"])
+    );
+    assert_eq!(server.count("PUT"), 3);
+
+    let copy = resaved("another password", |_| {});
+    let (a, server) = scripted(
+        "t27-password",
+        Box::new(move |_| Response::new(200, &copy).with("ETag", "\"6\"")),
+    );
+    a.tick(0);
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(
+        (st.status, ids(&st)),
+        (SyncStatus::NeedsPassword, vec!["MSG-SYNC-OTHER-KEY"])
+    );
+    assert_eq!(server.count("PUT"), 0);
+
+    let a = Mac::new("t27-signed-out", true);
+    let server = Scripted::new(|_| Response::new(401, br#"{"error":"unauthorized"}"#));
+    add_scripted(&a, &server);
+    link_to(&a, &server.address(), [0; 32]);
+    a.tick(0);
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(
+        (st.status, ids(&st)),
+        (SyncStatus::SignedOut, vec!["MSG-SYNC-SIGNED-OUT"])
+    );
+
+    let a = Mac::new("t27-offline", true);
+    let port = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let address = format!("https://127.0.0.1:{port}");
+    add_client(&a, &address, [0; 32]);
+    link_to(&a, &address, [0; 32]);
+    a.tick(0);
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(st.status, SyncStatus::Offline);
+    assert!(st.messages.is_empty());
+
+    a.s.sync_with(|i| {
+        i.vaults.get_mut(&a.v).unwrap().report = Some(Report {
+            status: Some(Status::ReplacedPassword),
+            messages: Vec::new(),
+        });
+    });
+    assert_eq!(a.status(), Some(SyncStatus::ReplacedPassword));
+}
+
+/// SYN-03.5 step 3, SYN-03 T07 on real vaults, past larsal-sync's stand-in: B
+/// uploaded and A has no change of its own. A's vault holds B's change, A sends no
+/// PUT, and A's state has B's version. Checker 1's P3.
+#[test]
+fn syn03_5_t07_on_real_vaults_a_takes_bs_change_and_sends_nothing() {
+    let l = Linked::new("t07");
+    let b = second(&l.app, &l.address, l.proxy.pin, &l.a, "t07-b");
+    b.tick(0);
+    let t = b.titles();
+    b.rename(&t[1], "By B");
+    b.tick(2_000);
+    let puts = l.proxy.count("PUT");
+    for _ in 0..2 {
+        l.a.s.sync_now(l.a.v).unwrap();
+        l.a.tick(0);
+        assert_eq!(l.proxy.count("PUT"), puts, "no PUT from A");
+        assert!(l.a.titles().contains(&"By B".to_owned()));
+        assert_eq!(l.a.s.sync_with(|i| i.state.links[0].highest), 2);
+        assert_eq!(l.a.status(), Some(SyncStatus::Synced));
+    }
+}
+
+/// SYN-03.7, SYN-03 T11 on real vaults, past larsal-sync's stand-in: version 6 holds
+/// the old demo file and A has a newer edit. It merges, nothing newer is lost, the
+/// result goes up, and `MSG-SYNC-WENT-BACK` shows. Checker 1's P2.
+#[test]
+fn syn03_7_t11_on_real_vaults_an_old_file_loses_nothing_newer() {
+    use larsal_sync::test_server::Response;
+    let a = Mac::new("t11", true);
+    let old = std::fs::read(DEMO).unwrap();
+    let t = a.titles();
+    a.rename(&t[0], "Newer than the old file");
+    let server = scripted_transfer(move |r| match r.method.as_str() {
+        "GET" => Response::new(200, &old).with("ETag", "\"6\""),
+        _ => Response::new(200, b"{}").with("ETag", "\"7\""),
+    });
+    add_scripted(&a, &server);
+    link_to(&a, &server.address(), [0; 32]);
+    a.s.sync_now(a.v).unwrap();
+    a.tick(0);
+    let st = a.s.sync_state(a.v).unwrap();
+    assert_eq!(
+        (st.status, ids(&st)),
+        (SyncStatus::Synced, vec!["MSG-SYNC-WENT-BACK"])
+    );
+    assert!(a.titles().contains(&"Newer than the old file".to_owned()));
+    let sent: Vec<_> = server
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == "PUT")
+        .collect();
+    assert_eq!(sent.len(), 1);
+    let up = opened(&a.s, &sent[0].body);
+    assert!(
+        up.root
+            .all_entries()
+            .any(|e| e.value("Title") == "Newer than the old file")
+    );
 }
