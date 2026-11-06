@@ -150,8 +150,7 @@ def is_code(p, x):
         return False
     if x['mode'] & 0o111 or Path(p).suffix in ('.rlib', '.rmeta', '.a', '.o', '.dylib'):
         return True
-    with open(p, 'rb') as f:
-        return f.read(4) == bytes.fromhex('cffaedfe')
+    return L.head(p, 4) == bytes.fromhex('cffaedfe')
 
 
 def capture_reconcile(before, after):
@@ -227,8 +226,7 @@ def executables(target):
                 p = os.path.join(d, n)
                 s = os.lstat(p)
                 if stat.S_ISREG(s.st_mode) and s.st_mode & 0o111:
-                    with open(p, 'rb') as f:
-                        h = f.read(16)
+                    h = L.head(p, 16)
                     if h[:4] == bytes.fromhex('cffaedfe') and int.from_bytes(h[12:16], 'little') == 2:
                         out.append(p)
     return sorted(out)
@@ -279,16 +277,27 @@ def key_of(lane, x):
     return '%s:%s/%s' % (lane, x['record']['environment']['CARGO_PKG_NAME'], x['semantic']['target'])
 
 
-def byte_withheld(r, tool, records, imports, withheld):
-    """R2b's byte evidence, read again from this build. A failed check withholds the row the same way a moved pin does."""
+def byte_withheld(r, tool, records, imports, withheld, streams=None):
+    """R2b's byte evidence, read again from this build, and where the build took each pinned crate from. A failure withholds the row the same way a moved pin does. Needs rows are in the moved-crate read: native runs later and leaves them out."""
     pins, out = gc_pins.table(tool, 'pins.json'), {}
+    folders = {}
+    for stream in (streams or {}).values():
+        for name, where in gc_pins.package_folders(stream, str(r / 'source')).items():
+            folders.setdefault(name, set()).update(where)
+    for key, row in pins['rows'].items():
+        bad = gc_pins.moved_crates(row, folders)
+        if bad and key not in withheld:
+            out[key] = bad
     for lane in LANES:
         for x in records[lane]:
             key, exe = key_of(lane, x), x['record']['argv'][0]
-            if key not in withheld and pins['rows'].get(key, {}).get('checks'):
-                bad = gc_pins.byte_failures(pins, key, L.read_regular(exe), imports.get(exe, set()), str(r / 'target/tmp'))
+            row = pins['rows'].get(key)
+            if row and key not in withheld:
+                bad = gc_pins.outside_folder(key, row, str(r / 'source'), x['semantic'].get('src_path'), x['record']['environment'].get('CARGO_MANIFEST_DIR'))
+                if row.get('checks'):
+                    bad += gc_pins.byte_failures(pins, key, L.read_regular(exe), imports.get(exe, set()), str(r / 'target/tmp'))
                 if bad:
-                    out[key] = bad
+                    out.setdefault(key, []).extend(bad)
     return out
 
 
@@ -640,8 +649,9 @@ def run(ctx):
     if not result['passed']:
         out['reasons'].append('import screen refused')
         return out
-    out['withheld_bytes'] = byte_withheld(r, tool, records, imports, withheld)
-    L.say('rust byte checks: %d rows withheld' % len(out['withheld_bytes']), sorted(out['withheld_bytes']))
+    out['withheld_bytes'] = byte_withheld(r, tool, records, imports, withheld, streams)
+    L.say('rust source paths and byte checks: %d rows withheld' % len(out['withheld_bytes']), sorted(out['withheld_bytes']))
+    withheld.update({k: v for k, v in out['withheld_bytes'].items() if k.startswith('needs:')})  # The same dict native reads.
     ledger = {x['path']: x['sha256'] for x in result['ledger']}
     B, binding_sha, out['new_programs'] = materialize(r, tool, records, {**withheld, **out['withheld_bytes']}, dylib, after, ledger)
     custody(B, source_rows=True)

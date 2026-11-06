@@ -110,6 +110,13 @@
    "require_bytes": [
     "larsal-session-"
    ]
+  },
+  "no-pbcopy": {
+   "why": "C2R2-07: the system's clipboard tools are protected binaries, so the guard's variable would not reach them, and a board profile has no line against them. pbcopy itself was never run. A board row's bytes name neither.",
+   "forbid_bytes": [
+    "pbcopy",
+    "pbpaste"
+   ]
   }
  },
  "rows": {
@@ -145,13 +152,19 @@
   },
   "needs:larsal-window": {
    "review": "N1b",
-   "why": "The app code, HiddenLaunch and ScreenProtection among it, how it starts hidden, and the app09 program that starts it.",
+   "why": "The app code, HiddenLaunch and ScreenProtection among it, how it starts hidden, and the app09 program that starts it. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml and .cargo/config.toml hold the profile lines that keep debug assertions on, and hidden() is always false without them. macos/Larsal holds the Swift call.",
    "pins": {
     "macos/Larsal": "f63d78a4f8706cab0690616dee41e836e831fdaa",
     "macos/Larsal.xcodeproj": "d892bf072f8535c2ed258cf1a74a076ad3b7c7d1",
     "crates/larsal-ffi/src/lib.rs": "cadc7f4777ecdecc1ce5b6514702311c805041b6",
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
-    "crates/larsal-ffi/tests/app09.rs": "f11e2cdd066e6e1c25a5c9cee9586c606a38f811"
+    "crates/larsal-ffi/tests/app09.rs": "f11e2cdd066e6e1c25a5c9cee9586c606a38f811",
+    "crates/larsal-ffi/src/autotype.rs": "3f6b84400b2bb6f5025a7af720ea9eaee7d2f962",
+    "crates/larsal-ffi/src/autotype_typing.rs": "d4133ad94e3f135724345f83d9921e832dd53c1a",
+    "crates/larsal-autotype/src/typing.rs": "bc8db468c3e5aa752f2b30c5784f41e63e7be7f8",
+    "crates/larsal-platform/src/macos/keyboard.rs": "230c93621d0f09e4fd4e407df9129df37d709e80",
+    "Cargo.toml": "01d23aff3a4d8b5952f68b9c84545d32eda8ebd8",
+    ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860"
    },
    "checks": []
   },
@@ -278,11 +291,19 @@
   },
   "needs:xctest-window": {
    "review": "N1b",
-   "why": "The tests that make real windows, the app code they run, and the project that names them. N1b read these sources.",
+   "why": "The tests that make real windows, the app code they run, and the project that names them. N1b read these sources. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml and .cargo/config.toml hold the profile lines that keep debug assertions on, and hidden() is always false without them. macos/Larsal holds the Swift call.",
    "pins": {
     "macos/LarsalTests": "b203a702032a4722b1aa3b21b531b56bb76f6e0c",
     "macos/Larsal": "f63d78a4f8706cab0690616dee41e836e831fdaa",
-    "macos/Larsal.xcodeproj": "d892bf072f8535c2ed258cf1a74a076ad3b7c7d1"
+    "macos/Larsal.xcodeproj": "d892bf072f8535c2ed258cf1a74a076ad3b7c7d1",
+    "crates/larsal-ffi/src/autotype.rs": "3f6b84400b2bb6f5025a7af720ea9eaee7d2f962",
+    "crates/larsal-ffi/src/autotype_typing.rs": "d4133ad94e3f135724345f83d9921e832dd53c1a",
+    "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
+    "crates/larsal-ffi/src/lib.rs": "cadc7f4777ecdecc1ce5b6514702311c805041b6",
+    "crates/larsal-autotype/src/typing.rs": "bc8db468c3e5aa752f2b30c5784f41e63e7be7f8",
+    "crates/larsal-platform/src/macos/keyboard.rs": "230c93621d0f09e4fd4e407df9129df37d709e80",
+    "Cargo.toml": "01d23aff3a4d8b5952f68b9c84545d32eda8ebd8",
+    ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860"
    },
    "checks": []
   },
@@ -296,7 +317,8 @@
     "key-route",
     "no-event-post",
     "no-nsapplication",
-    "no-owner-tty"
+    "no-owner-tty",
+    "no-pbcopy"
    ]
   },
   "sync:larsal-ffi/autotype": {
@@ -332,6 +354,7 @@
    "checks": [
     "class larsal-session-",
     "no-nsapplication",
+    "no-pbcopy",
     "target-tmp"
    ]
   },
@@ -357,6 +380,7 @@
    "checks": [
     "class larsal-session-",
     "no-nsapplication",
+    "no-pbcopy",
     "target-tmp"
    ]
   },
@@ -383,7 +407,8 @@
     "class /tmp/larsal-ffi-e7s6-",
     "class larsal-session-",
     "key-route",
-    "no-nsapplication"
+    "no-nsapplication",
+    "no-pbcopy"
    ]
   },
   "sync:larsal-ffi/new_vault": {
@@ -407,7 +432,8 @@
    },
    "checks": [
     "class larsal-session-",
-    "no-nsapplication"
+    "no-nsapplication",
+    "no-pbcopy"
    ]
   },
   "sync:larsal-ffi/reports": {
@@ -431,7 +457,8 @@
    },
    "checks": [
     "class larsal-session-",
-    "no-nsapplication"
+    "no-nsapplication",
+    "no-pbcopy"
    ]
   },
   "sync:larsal-ffi/ssh": {
@@ -506,7 +533,8 @@
    },
    "checks": [
     "no-nsapplication",
-    "no-owner-tty"
+    "no-owner-tty",
+    "no-pbcopy"
    ]
   },
   "workspace:larsal-ffi/autotype": {
@@ -542,6 +570,7 @@
    "checks": [
     "class larsal-session-",
     "no-nsapplication",
+    "no-pbcopy",
     "target-tmp"
    ]
   },
@@ -567,6 +596,7 @@
    "checks": [
     "class larsal-session-",
     "no-nsapplication",
+    "no-pbcopy",
     "target-tmp"
    ]
   },
@@ -591,7 +621,8 @@
    "checks": [
     "class /tmp/larsal-ffi-e7s6-",
     "class larsal-session-",
-    "no-nsapplication"
+    "no-nsapplication",
+    "no-pbcopy"
    ]
   },
   "workspace:larsal-ffi/new_vault": {
@@ -615,7 +646,8 @@
    },
    "checks": [
     "class larsal-session-",
-    "no-nsapplication"
+    "no-nsapplication",
+    "no-pbcopy"
    ]
   },
   "workspace:larsal-ffi/reports": {
@@ -639,7 +671,8 @@
    },
    "checks": [
     "class larsal-session-",
-    "no-nsapplication"
+    "no-nsapplication",
+    "no-pbcopy"
    ]
   },
   "workspace:larsal-ffi/ssh": {
@@ -674,7 +707,8 @@
     "key-route",
     "no-event-post",
     "no-nsapplication",
-    "no-owner-tty"
+    "no-owner-tty",
+    "no-pbcopy"
    ]
   },
   "workspace:larsal-sshagent/agent": {
@@ -700,10 +734,16 @@
   },
   "workspace:larsal-sshagent/own_agent": {
    "review": "R2b",
-   "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate.",
+   "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate. Every workspace crate it links is pinned too: the five named in the manifests' normal dependencies, walked from larsal-sshagent, and crates/log, which the workspace lane links through larsal-platform's net feature, ureq and ureq-proto. Read from the Cargo.toml files and the proof run's build fingerprints. larsal-server and larsal-proto are in the lock's closure only through larsal-platform's dev-dependencies, so they are not linked.",
    "pins": {
     "crates/larsal-sshagent": "03f5ccca25bdd1897f8839b9336f9f1d20346742",
-    "crates/larsal-sshagent/tests/own_agent.rs": "6d42a36090a7949962c1c9990b9085b9d2f34fe7"
+    "crates/larsal-sshagent/tests/own_agent.rs": "6d42a36090a7949962c1c9990b9085b9d2f34fe7",
+    "crates/larsal-core": "f78654ff201175a3399633af6a1cd3fb532343f4",
+    "crates/larsal-crypto": "5d5861a68cf567fb9e108174a0cedbd2ac27de4c",
+    "crates/larsal-format": "67ebf66e0aa18533db337d15dfecceed40d0f1da",
+    "crates/larsal-model": "877dc01bc7e64112930b04de41582e44de16ecdb",
+    "crates/larsal-platform": "69a585fce5ca5d1b633af5be14e6ae9c15ee05d0",
+    "crates/log": "efbf07781cc71f04015826a647fafc4e9dd11171"
    },
    "checks": [
     "class /tmp/e9s1-",

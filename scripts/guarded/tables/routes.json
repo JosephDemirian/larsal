@@ -1,28 +1,6 @@
 {
  "note": "The text of check.sh and of what its steps call, as the tool mirrors it. Any change is red with the reason named in gc_pins.py. A new fuzz route is picked up and listed. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "check_sh_sha256": "aba30b94173b2727656c5b33a08c797df075b5973afbd128fd66599c31cbec2f",
- "gates": [
-  [
-   "G1 static",
-   "g1"
-  ],
-  [
-   "G2 tests",
-   "g2"
-  ],
-  [
-   "deny",
-   "deny"
-  ],
-  [
-   "audit",
-   "audit"
-  ],
-  [
-   "fuzz smoke",
-   "fuzz"
-  ]
- ],
  "g1_steps": [
   "fmt",
   "fmt-fuzz",
@@ -46,17 +24,6 @@
   "audit-fuzz",
   "audit-copies"
  ],
- "g2_routes": {
-  "keychain-imports": "rust import screen",
-  "test": "rust + docs",
-  "test-sync": "rust + docs",
-  "test-net": "rust + docs",
-  "test-release": "rust",
-  "test-release-browser": "rust",
-  "build-core": "native A",
-  "xcode-test": "native A and B",
-  "app09": "native B"
- },
  "select": {
   "workspace": [
    [
@@ -183,6 +150,211 @@
   "vault_header": "9793328a96509d07e4cc2c8f0e0190cc7b255141bb073b2e9a8b815354fdfb9e",
   "vault_open": "b6f60adc394cff67fb587aadd0ab710a5dc89f8e072056743fb5cf6541fb2273",
   "word_list": "198fecda65b9c30b6c03f2eac28f24460f36f04b9cfbc0442b550ced8f8de62a"
+ },
+ "fuzz_bins": {
+  "autotype_match": [
+   "name = \"autotype_match\"",
+   "path = \"fuzz_targets/autotype_match.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "autotype_sequence": [
+   "name = \"autotype_sequence\"",
+   "path = \"fuzz_targets/autotype_sequence.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "breach_lines": [
+   "name = \"breach_lines\"",
+   "path = \"fuzz_targets/breach_lines.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "browser_message": [
+   "name = \"browser_message\"",
+   "path = \"fuzz_targets/browser_message.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "csv_import": [
+   "name = \"csv_import\"",
+   "path = \"fuzz_targets/csv_import.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "document": [
+   "name = \"document\"",
+   "path = \"fuzz_targets/document.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "icon_decode": [
+   "name = \"icon_decode\"",
+   "path = \"fuzz_targets/icon_decode.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "inner_header": [
+   "name = \"inner_header\"",
+   "path = \"fuzz_targets/inner_header.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "json_import": [
+   "name = \"json_import\"",
+   "path = \"fuzz_targets/json_import.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "json_reader": [
+   "name = \"json_reader\"",
+   "path = \"fuzz_targets/json_reader.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "kdf_map": [
+   "name = \"kdf_map\"",
+   "path = \"fuzz_targets/kdf_map.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "key_file": [
+   "name = \"key_file\"",
+   "path = \"fuzz_targets/key_file.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "onepux_import": [
+   "name = \"onepux_import\"",
+   "path = \"fuzz_targets/onepux_import.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "opvault_import": [
+   "name = \"opvault_import\"",
+   "path = \"fuzz_targets/opvault_import.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "proto_messages": [
+   "name = \"proto_messages\"",
+   "path = \"fuzz_targets/proto_messages.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "proto_routes": [
+   "name = \"proto_routes\"",
+   "path = \"fuzz_targets/proto_routes.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "references": [
+   "name = \"references\"",
+   "path = \"fuzz_targets/references.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "search_query": [
+   "name = \"search_query\"",
+   "path = \"fuzz_targets/search_query.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "share_container": [
+   "name = \"share_container\"",
+   "path = \"fuzz_targets/share_container.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "share_settings": [
+   "name = \"share_settings\"",
+   "path = \"fuzz_targets/share_settings.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "ssh_key_read": [
+   "name = \"ssh_key_read\"",
+   "path = \"fuzz_targets/ssh_key_read.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "ssh_settings_read": [
+   "name = \"ssh_settings_read\"",
+   "path = \"fuzz_targets/ssh_settings_read.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "strength_estimate": [
+   "name = \"strength_estimate\"",
+   "path = \"fuzz_targets/strength_estimate.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "totp_link": [
+   "name = \"totp_link\"",
+   "path = \"fuzz_targets/totp_link.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "url_match": [
+   "name = \"url_match\"",
+   "path = \"fuzz_targets/url_match.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "v1_import": [
+   "name = \"v1_import\"",
+   "path = \"fuzz_targets/v1_import.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "vault_header": [
+   "name = \"vault_header\"",
+   "path = \"fuzz_targets/vault_header.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "vault_open": [
+   "name = \"vault_open\"",
+   "path = \"fuzz_targets/vault_open.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "word_list": [
+   "name = \"word_list\"",
+   "path = \"fuzz_targets/word_list.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ]
  },
  "binaries": {
   "guard-board.dylib": "e5d2cbe53eee2039ad7638cfdb780a9e8634cfa99cf93d7750d4cd7fc56b4b39",

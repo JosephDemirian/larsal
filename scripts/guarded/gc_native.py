@@ -668,6 +668,9 @@ def run(ctx, attempts=(('G1', 'G'), ('A1', 'A'), ('B1', 'B'))):
                 out['safety'] = bad
                 continue
         ctx['hold']()
+        bad = L.compare_copy(S, R, ignore=('target',))[0]  # New names are the build's own; the end compare reads them.
+        if bad:
+            raise L.Custody('native copy changed before attempt %s: %s' % (name, bad[:5]))
         with ctx['busy']():
             rec = attempt(name, stage)
         out['attempts'][name] = {k: rec.get(k) for k in ('exit', 'seconds', 'stopped', 'gate_failures', 'window_samples', 'group_after_exit', 'group_survivors', 'descendants_alive_after_exit', 'guard', 'diagnostic_reports_new', 'sentinels_changed', 't_new_foreign', 'safety')}

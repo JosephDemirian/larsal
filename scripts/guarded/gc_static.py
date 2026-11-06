@@ -56,6 +56,10 @@ def prepare(R, tool):
 def phase(g, tool, name, profile='guard.sb', cap=None):
     gs = str(g)
     L.check_sealed()
+    # A phase starts on the commit's own bytes: what an earlier phase left in its copy stops the steps left. The same names as the end compare.
+    bad, new = L.compare_copy(g / 'source', g.parent, ignore=('fuzz/target', 'fuzz/artifacts', 'target'))
+    if bad or new:
+        raise L.Custody('static copy changed before phase %s: %s' % (name, (bad + new)[:5]))
     assert not [p for p in L.absent_configs(g / 'source', g / 'cargo-home') if os.path.lexists(p)], 'Cargo config files outside the source'
     # The route is read from the export, which no lane can write.
     script = body(g.parent / 'e', tool, gs + '/logs/artifacts', gs + '/logs/steps.tsv')

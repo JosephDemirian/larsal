@@ -15,6 +15,7 @@ WITHHELD = 'caused by a withheld grant: '
 RUST_LANES = ['workspace', 'sync', 'net', 'release', 'release-browser']
 CRASH_MARKS = ('ERROR: AddressSanitizer', 'SUMMARY:', 'panicked', 'Test unit written', 'deadly signal', 'Failed to')
 STEPS = ['static', 'rust', 'native', 'docs', 'fuzz']
+STATES = {'ok', 'ignored', 'skipped', 'FAILED'}
 # What the native build itself adds to its private source copy (target is left out of the compare). Any other new name fails.
 NATIVE_OUTPUTS = ('macos/LarsalCore/Generated', 'macos/LarsalCore/.swiftpm', 'macos/Larsal.xcodeproj/project.xcworkspace')
 
@@ -256,13 +257,29 @@ def scope_of(key):
     return {'rust': 'rust', 'swift': 'native', 'app09': 'native', 'doc-workspace': 'docs', 'doc-sync': 'docs', 'doc-net': 'docs'}.get(re.split(r'[:]', key, 1)[0])
 
 
+def baseline_tests(path, full=False):
+    """The baseline's tests, or ValueError naming what is wrong with its shape. Read at the start of a run, before any time is spent, and again by the summary."""
+    data = load(path)
+    tests = data.get('tests', data) if isinstance(data, dict) else None
+    if not isinstance(tests, dict):
+        raise ValueError('its tests are not a table')
+    odd = [k for k, v in tests.items() if not isinstance(v, str) or v not in STATES][:3]
+    if odd:
+        raise ValueError('a test has no state word, so its state would not be compared: %s' % odd)
+    if full:
+        have = {scope_of(k) for k in tests}
+        missing = [s for s in ('rust', 'native', 'docs') if s not in have]
+        if missing:
+            raise ValueError('it holds no tests of step %s, so a lost test would go unseen' % ', '.join(missing))
+    return tests
+
+
 def baseline_row(path, waivers, names, requested, full):
     """Returns the compare row and its failures. A full run without a baseline that covers each step that names tests cannot pass: nothing would catch a lost test."""
     fails, base, w = [], {}, []
     if path:
         try:
-            base = load(path)
-            base = base.get('tests', base)
+            base = baseline_tests(path, full)
             w = load(waivers)['waivers'] if waivers else []
         except (OSError, ValueError, KeyError, AttributeError) as e:
             fails.append('the baseline cannot be read: %s: %r' % (path, e))
@@ -270,9 +287,12 @@ def baseline_row(path, waivers, names, requested, full):
     elif full:
         fails.append('a full run needs a baseline: none given, so a lost test would go unseen')
     fails += ['a waiver has no reason: %s' % x.get('test') for x in w if not x.get('why')]
-    if full and path:
-        have = {scope_of(k) for k in base}
-        fails += ['the baseline holds no tests of step %s, so a lost test would go unseen' % s for s in ('rust', 'native', 'docs') if s not in have]
+    if full and path and base:
+        # ponytail: half is a floor, not a count. A baseline half as long as the run passes this line, and the plain line shows the number compared.
+        for s in ('rust', 'native', 'docs'):
+            was, now = sum(scope_of(k) == s for k in base), sum(scope_of(k) == s for k in names)
+            if was * 2 < now:
+                fails.append('the baseline holds %d tests of step %s against %d in this run: too few to catch a lost test' % (was, s, now))
     row = dict(file=str(path) if path else None, waiver_file=str(waivers) if waivers else None, **compare_baseline(names, base, w, requested))
     fails += ['test lost: ' + k for k in row['lost']] + ['test newly ignored: ' + k for k in row['newly_ignored']]
     return row, fails
@@ -378,8 +398,10 @@ def summarize(R, baseline=None, waivers=None):
     failures += ['native copy new name: ' + x for x in end.get('native_copy_new_names', []) if not any(x == o or x.startswith(o + '/') for o in NATIVE_OUTPUTS)]
     if end.get('alarm'):
         failures.append('stopped by: ' + end['alarm'])
-    overall = 'NEEDS_REVIEW' if withheld else 'PASS' if not failures else 'FAIL'
-    out = dict(grant_withheld=withheld, grants_read=(run.get('grants') or {}).get('rows'), overall=overall, partial=partial, requested=requested, commit=run['commit'], tree=run['tree'], root=R, steps=steps, counts=counts, baseline=base_row, failures=failures, total_seconds=end.get('total_seconds'), hold_wait_seconds=end.get('hold_wait_seconds'), custody=end.get('custody'), crash_listing=end.get('diagnostic_reports_new'), native_copy_new_names=end.get('native_copy_new_names'), where=dict(summary_json=R + '/summary.json', summary_text=R + '/summary.txt', test_names=R + '/test-names.json', static_logs=R + '/g/logs', rust_programs=R + '/r/state/replay', rust_lanes=R + '/r/state/run-lanes', native_receipts=R + '/runs', native_logs=R + '/lane-out', fuzz_logs=R + '/g/logs/artifacts'))
+    # The commit's manifest against the tool the run took. A commit with no tool has nothing to compare.
+    drift = gc_pins.tool_drift(load(Path(R, 'manifest.json'))['rows'], run.get('tool_sha256') or {}) if Path(R, 'manifest.json').exists() else []
+    overall = 'NEEDS_REVIEW' if withheld or drift else 'PASS' if not failures else 'FAIL'
+    out = dict(tool_drift=drift, grant_withheld=withheld, grants_read=(run.get('grants') or {}).get('rows'), overall=overall, partial=partial, requested=requested, commit=run['commit'], tree=run['tree'], root=R, steps=steps, counts=counts, baseline=base_row, failures=failures, total_seconds=end.get('total_seconds'), hold_wait_seconds=end.get('hold_wait_seconds'), custody=end.get('custody'), crash_listing=end.get('diagnostic_reports_new'), native_copy_new_names=end.get('native_copy_new_names'), where=dict(summary_json=R + '/summary.json', summary_text=R + '/summary.txt', test_names=R + '/test-names.json', static_logs=R + '/g/logs', rust_programs=R + '/r/state/replay', rust_lanes=R + '/r/state/run-lanes', native_receipts=R + '/runs', native_logs=R + '/lane-out', fuzz_logs=R + '/g/logs/artifacts'))
     return out, names
 
 
@@ -389,6 +411,8 @@ def plain(s):
     if s['grant_withheld']:
         lines.append('grant withheld: needs review (%d). Each runs at base with no grant; a table change in a reviewed commit is the only way back:' % len(s['grant_withheld']))
         lines += ['  %s: %s' % (k, '; '.join(v)) for k, v in sorted(s['grant_withheld'].items())]
+    if s.get('tool_drift'):
+        lines.append('needs review: %s: %s' % (gc_pins.TOOL_DRIFT, ', '.join(s['tool_drift'])))
     for k, v in s['steps'].items():
         lines.append('%-8s exit %s%s' % (k, v.get('exit'), ', %s s' % v['seconds'] if v.get('seconds') is not None else (', ' + v['note'] if v.get('note') else '')))
     c = s['counts']
@@ -484,6 +508,16 @@ def self_test():
     assert lane_label('rust: net: program', read) == 'rust: ' + WITHHELD + 'net: program'
     assert lane_label('rust: release: program', read) == 'rust: release: program'
     assert lane_label('rust: sync: program', read) == 'rust: sync: program' and lane_label('rust: net: stopped', read) == 'rust: net: stopped'
+    assert gc_pins.fuzz_bins('[[bin]]\nname = "a"\n# c\n\npath = "x"\n\n[[bin]]\nname = "b"\n[dep]\nq = 1\n') == {'a': ['name = "a"', 'path = "x"'], 'b': ['name = "b"']}
+    rows = [dict(path='scripts/guarded/a.py', kind='file', sha256='1'), dict(path='x', kind='file', sha256='2')]
+    assert gc_pins.tool_drift(rows, {'a.py': '1'}) == [] and gc_pins.tool_drift(rows, {'a.py': '9', 'b': '1'}) == ['a.py', 'b'] and gc_pins.tool_drift(rows[1:], {'a.py': '9'}) == []
+    row = dict(pins={'crates/c': 'h', 'crates/d/e.rs': 'h'})
+    built = [dict(reason='compiler-artifact', package_id='path+file:///s/crates/c#0.1.0', manifest_path='/s/crates/c/Cargo.toml'), dict(reason='compiler-artifact', package_id='path+file:///s/crates/zz#d@0.1.0', manifest_path='/s/crates/zz/Cargo.toml'), dict(reason='build-finished')]
+    assert gc_pins.package_folders(built, '/s') == {'c': {'crates/c'}, 'd': {'crates/zz'}}
+    assert gc_pins.moved_crates(row, gc_pins.package_folders(built, '/s'))[0].startswith('source path: package d was built from')
+    assert gc_pins.outside_folder('w:c/t', row, '/s', '/s/crates/c/tests/t.rs', '/s/crates/c') == []
+    assert len(gc_pins.outside_folder('w:c/t', row, '/s', '/s/crates/c/../zz/t.rs', '/s/crates/zz')) == 2
+    assert gc_pins.outside_folder('w:d/t', row, '/s', '/s/crates/d/t.rs', '/s/crates/d')[0].startswith('source path: the row pins no folder')
     print('self-test passed')
 
 

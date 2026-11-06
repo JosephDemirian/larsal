@@ -13,7 +13,8 @@ import gc_pins, gc_profiles
 ORDER = ['static', 'rust', 'native', 'docs', 'fuzz']
 SKIP_EMPTY = {'.git', 'target', '.serena', '.impeccable'}
 HOLD_POLL, HOLD_MAX = 30, 1800
-GIT_ENV = dict(L.SMALL_ENV, GIT_OPTIONAL_LOCKS='0', GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null', HOME='/nonexistent', DEVELOPER_DIR=L.XCODE)
+# Replace refs and grafts off: a local ref or file must not change what a commit's hash reads as, in no diff. The variable wins over the repository's own core.useReplaceRefs.
+GIT_ENV = dict(L.SMALL_ENV, GIT_OPTIONAL_LOCKS='0', GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null', HOME='/nonexistent', DEVELOPER_DIR=L.XCODE, GIT_NO_REPLACE_OBJECTS='1', GIT_GRAFT_FILE='/dev/null')
 GIT_MODES = ('100644', '100755', '120000')
 
 
@@ -30,6 +31,16 @@ def resolve(arg, repo):
     commit = git(given, 'rev-parse', '--verify', ref + '^{commit}').decode().strip()
     tree = git(given, 'rev-parse', commit + '^{tree}').decode().strip()
     return given, commit, tree
+
+
+def refuse_repo(given):
+    """A repository with replace refs or a shallow file is refused: what it shows is not what its commits hold."""
+    refs = git(given, 'for-each-ref', '--format=%(refname)', 'refs/replace/').decode().split()
+    if refs:
+        raise L.Custody('repository refused: it has replace refs: %s' % refs[:5])
+    shallow = git(given, 'rev-parse', '--path-format=absolute', '--git-path', 'shallow').decode().strip()
+    if os.path.lexists(shallow):
+        raise L.Custody('repository refused: it has a shallow file: %s' % shallow)
 
 
 def hashes_at(given, commit):
@@ -111,6 +122,10 @@ def export(given, commit, tree, R):
         q.stdin.close()
         q.stdout.close()
         q.wait(timeout=30)
+    # A link's text can stay inside while its chain walks out. Now every name exists, each link is resolved as the kernel would.
+    for x in rows:
+        if x['kind'] == 'symlink' and not (os.path.realpath(e / x['path']) + '/').startswith(real + '/'):
+            raise L.Custody('refused link: %r resolves outside the export' % x['path'])
     # Empty folders of the given tree.
     empties = []
     for d, ns, fs in os.walk(given):
@@ -134,27 +149,7 @@ def export(given, commit, tree, R):
     return dict(commit=commit, tree=tree, given=str(given), rows=sorted(rows + dirs, key=lambda x: x['path'])), dict(tracked=len(rows), restricted_modes=restricted, empty_folders=len(empties), folders=len(dirs))
 
 
-def compare_copy(root, R, ignore=()):
-    """Tracked rows against a copy. Returns changed or removed rows, and new names outside ignore."""
-    rows = {x['path']: x for x in L.load(R / 'manifest.json')['rows']}
-    bad, new = [], []
-    for p, x in rows.items():
-        try:
-            f = root / p
-            s = os.lstat(f)
-            same = stat.S_IMODE(s.st_mode) == x['mode'] and (x['kind'] == 'dir' or (L.sha(f) == x['sha256'] if x['kind'] == 'file' else hashlib.sha256(os.readlink(f).encode()).hexdigest() == x['sha256']))
-        except OSError:  # Gone, a link, a FIFO: never opened, never blocked on.
-            same = False
-        if not same:
-            bad.append(str(root / p))
-    for d, ns, fs in os.walk(root):
-        rel = os.path.relpath(d, root)
-        rel = '' if rel == '.' else rel + '/'
-        ns[:] = [n for n in ns if rel + n not in ignore]
-        for n in ns + fs:
-            if rel + n not in rows:
-                new.append(rel + n)
-    return bad, new
+compare_copy = L.compare_copy
 
 
 def tool_files(folder):
@@ -186,17 +181,20 @@ class Run:
     def __init__(self, args):
         self.args = args
         self.hold_seconds = 0
+        self.hold_ran_out = False
 
     def hold(self):
         """Wait while the hold file exists. The wait is idle time: it does not spend the total alarm, so the alarm cannot end it. Only a stop signal or HOLD_MAX does, and neither starts the step."""
         h = self.args.hold
         if not h or not os.path.exists(h):
             return
+        assert not self.hold_ran_out, 'hold still there: it already ran out its %d seconds' % HOLD_MAX  # A later step does not wait it out again.
         t0 = time.monotonic()
         L.say('waiting for', h)
         while os.path.exists(h):
             assert not L.stop_signal, 'stopped by a signal during the hold'
-            assert time.monotonic() - t0 < HOLD_MAX, 'hold still there after %d seconds' % HOLD_MAX
+            self.hold_ran_out = time.monotonic() - t0 >= HOLD_MAX
+            assert not self.hold_ran_out, 'hold still there after %d seconds' % HOLD_MAX
             time.sleep(HOLD_POLL)
         waited = time.monotonic() - t0
         self.hold_seconds += waited
@@ -240,6 +238,12 @@ def main():
     assert steps and set(steps) <= set(ORDER), 'steps are ' + ','.join(ORDER)
     steps = [s for s in ORDER if s in steps]
     os.umask(0o077)
+    import gc_summary
+    try:  # Before any run time is spent: the summary would refuse the same file at the end.
+        if a.baseline:
+            gc_summary.baseline_tests(a.baseline, steps == ORDER)
+    except (OSError, ValueError) as e:
+        sys.exit('refused: the baseline %s: %s' % (a.baseline, e))
     started, wall = time.monotonic(), time.time()
     given, commit, tree = resolve(a.target, a.repo)
     R = Path(subprocess.run(['/usr/bin/mktemp', '-d', '/private/tmp/larsal-gc-%s-XXXX' % commit[:7]], env=L.SMALL_ENV, capture_output=True, check=True).stdout.decode().strip())
@@ -258,10 +262,12 @@ def main():
     source_row = dict(step='source', reasons=[])
     route_red, diag_before = [], None
     try:
+        refuse_repo(given)
         row['grants'] = gc_pins.evaluate(R / 'tool', hashes_at(given, commit))
         ctx['withheld'] = dict(row['grants']['withheld'])
         L.say('grants: %d rows, %d withheld' % (row['grants']['rows'], len(ctx['withheld'])))
         source_row['counts'] = run_export(given, commit, tree, R, R / 'tool')
+        L.say('tool against the commit:', gc_pins.tool_drift(L.load(R / 'manifest.json')['rows'], tool_before) or 'equal, or the commit holds no tool')
         toolchain = L.rust_toolchain(R / 'e')
         row['executables_before'] = executables(toolchain)
         route_red = gc_pins.route_failures(R / 'e', R / 'tool')
@@ -309,7 +315,7 @@ def main():
         safety = safety or result.get('safety')
         L.say(s, 'done,', len(result['reasons']), 'reasons', result.get('step_seconds'))
     # 7. Summary. Custody first: tool, executables, source copies.
-    custody_changed = [n for n, h in tool_hashes(HERE).items() if tool_before.get(n) != h] + [n for n, h in tool_hashes(R / 'tool').items() if tool_before.get(n) != h]
+    custody_changed = [n for now in (tool_hashes(HERE), tool_hashes(R / 'tool')) for n in set(now) | set(tool_before) if now.get(n) != tool_before.get(n)]
     custody_changed += [p for p, h in row.get('executables_before', {}).items() if L.sha(os.path.realpath(p)) != h]
     source_changed = []
     if ready:
@@ -335,7 +341,6 @@ def main():
         custody_changed.append(str(e))
     row['end'] = dict(custody_changed=custody_changed, source_changed=source_changed, native_copy_new_names=native_new, sentinels_changed=changed, left_under_root=L.images_under(R), alarm=L.stopping(), diagnostic_reports_new=new_reports, total_seconds=round(time.monotonic() - started - run.hold_seconds, 1), wall_seconds=round(time.time() - wall, 1), hold_wait_seconds=round(run.hold_seconds, 1), custody=dict(tool_files=len(tool_before), executables=len(row.get('executables_before', {})), changed=len(custody_changed)))
     L.save(R / 'run.json', row)
-    import gc_summary
     s = gc_summary.write(R)
     print(gc_summary.plain(s), flush=True)
     return gc_summary.exit_code(s)

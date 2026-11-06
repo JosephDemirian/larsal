@@ -86,6 +86,14 @@ def read_regular(p, start=0):
         os.close(fd)
 
 
+def head(p, n):
+    fd = _open_regular(p)
+    try:
+        return os.read(fd, n)
+    finally:
+        os.close(fd)
+
+
 def load(p):
     return json.loads(read_regular(p))
 
@@ -135,6 +143,29 @@ def check_tree_name(path, seen):
         old = seen.setdefault(unicodedata.normalize('NFD', prefix).casefold(), row)
         if old != row or (row[1] == 'leaf' and old is not row):
             raise Custody('refused tree name: %r collides with %r on a folding filesystem, or sits below a file or link' % (path, old[0]))
+
+
+def compare_copy(root, R, ignore=()):
+    """Tracked rows against a copy. Returns changed or removed rows, and new names outside ignore."""
+    root, rows = Path(root), {x['path']: x for x in load(Path(R, 'manifest.json'))['rows']}
+    bad, new = [], []
+    for p, x in rows.items():
+        try:
+            f = root / p
+            s = os.lstat(f)
+            same = stat.S_IMODE(s.st_mode) == x['mode'] and (x['kind'] == 'dir' or (sha(f) == x['sha256'] if x['kind'] == 'file' else hashlib.sha256(os.readlink(f).encode()).hexdigest() == x['sha256']))
+        except OSError:  # Gone, a link, a FIFO: never opened, never blocked on.
+            same = False
+        if not same:
+            bad.append(str(root / p))
+    for d, ns, fs in os.walk(root):
+        rel = os.path.relpath(d, root)
+        rel = '' if rel == '.' else rel + '/'
+        ns[:] = [n for n in ns if rel + n not in ignore]
+        for n in ns + fs:
+            if rel + n not in rows:
+                new.append(rel + n)
+    return bad, new
 
 
 def save(p, x):
