@@ -254,6 +254,10 @@ Pinned in E0 (`[workspace.dependencies]` in `Cargo.toml`): the newer RustCrypto 
 | Argon2 | `argon2` |
 | SHA-2, SHA-1 | `sha2`, `sha1`. Since E0-S7 step 4b both are cut copies: no `tests/` or `benches/`, and no LoongArch, RISC-V or WebAssembly backend (`cpufeatures` lost its LoongArch file); the x86 and aarch64 backends stay |
 | HMAC | `hmac` |
+| File and folder passphrase KDF | `scrypt` =0.12.0, default features off; larsal-crypto only. No PHC/getrandom/parallel features. Uses the existing pbkdf2/HMAC/SHA-2/Salsa generation; it has no zeroize feature. Heap, stack, backend/error and abort wiping remain implementation checks. AT-J03 Lead and independent Checker approved in writing, 2026-11-05 (LD-379). |
+| File AEAD and native key encoding | `chacha20poly1305` =0.11.0, defaults off, zeroize only; `bech32` =0.11.1, defaults off; larsal-crypto only. Existing poly1305/zeroize through ssh-cipher stays required; the wrapper flag alone does not enable it. No new random source, reduced-round or plugin path (LD-379). |
+| Folder filename authentication and key wrap | `aes-siv` =0.8.0, `aes-kw` =0.3.1 and `cmac` =0.8.0, defaults off and zeroize on at the direct larsal-crypto edges; `dbl` =0.5.0 is transitive only. Declared transitive defaults remain explicit in the Cargo graph; no PMAC/OID or older crypto generation is enabled. Exact backend/state wiping remains implementation proof (LD-379). |
+| Folder password/name NFC | `unicode-normalization` =0.1.25, defaults off, larsal-crypto only; transitive `tinyvec` =1.10.0 with alloc and `tinyvec_macros` =0.1.1. The table is Unicode 17; newer-repertoire interoperability is unproved. Exact NFC/no-retry behavior and temporary-copy wiping remain implementation checks (LD-379). |
 | Constant-time compare | `subtle` |
 | OS random source | `getrandom` (through `rand_core`). Since E0-S7 step 4b getrandom 0.4.3, and 0.2.17 under ring, keep only their macOS backend, `getentropy` (LD-221 (7)); 0.2.17 also keeps its `custom` feature file. A `getrandom_backend` cfg for another backend no longer builds; none is set |
 | Wipe memory | `zeroize` |

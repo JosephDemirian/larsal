@@ -91,6 +91,23 @@ deny = [
     { crate = "hmac", deny-multiple-versions = true },
     { crate = "subtle", deny-multiple-versions = true },
     { crate = "zeroize", deny-multiple-versions = true },
+    # E22-S2 / E23-S2: one reviewed version of each file-format primitive/encoding.
+    { crate = "scrypt", deny-multiple-versions = true },
+    { crate = "chacha20poly1305", deny-multiple-versions = true },
+    { crate = "aes-siv", deny-multiple-versions = true },
+    { crate = "aes-kw", deny-multiple-versions = true },
+    { crate = "cmac", deny-multiple-versions = true },
+    { crate = "dbl", deny-multiple-versions = true },
+    { crate = "bech32", deny-multiple-versions = true },
+    { crate = "unicode-normalization", deny-multiple-versions = true },
+    { crate = "scrypt", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "chacha20poly1305", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "aes-siv", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "aes-kw", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "cmac", wrappers = ["larsal-crypto", "aes-siv"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "dbl", wrappers = ["cmac", "aes-siv"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "bech32", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    { crate = "unicode-normalization", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
     # One random source (CRY-03, AT-B04, F-100): only larsal-crypto calls the
     # OS. Named exceptions: tempfile (pulled in by uniffi_pipeline at build
     # time and by proptest in tests, never called by Larsal), ring's TLS

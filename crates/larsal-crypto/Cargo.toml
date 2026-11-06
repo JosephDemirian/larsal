@@ -51,6 +51,15 @@ aes-gcm = { workspace = true, features = ["aes", "zeroize"] }
 # features hpke already turns on, so the build does not change.
 x25519-dalek = { workspace = true, features = ["static_secrets", "zeroize"] }
 
+# E22-S2 / E23-S2: defaults off; retain explicit key-state wiping.
+scrypt.workspace = true
+chacha20poly1305 = { workspace = true, features = ["zeroize"] }
+bech32.workspace = true
+aes-siv = { workspace = true, features = ["zeroize"] }
+aes-kw = { workspace = true, features = ["zeroize"] }
+cmac = { workspace = true, features = ["zeroize"] }
+unicode-normalization.workspace = true
+
 [features]
 # E16-S5: a software P-256 key that signs (sign.rs `P256TestKey`), the test
 # client's device key in larsal-server's tests. Only test builds turn it on,

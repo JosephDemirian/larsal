@@ -734,3 +734,23 @@ What changed in the tree:
 Checks: the offline locked build of every target with an empty cargo home; 2,466 workspace tests (2,463 per binary as before, plus 2 for the generator's command line and the stack test; per binary in the proof); the TLS tests (`net`: 44 plus 1); larsal-ffi with `net` (297); the release timed tests (250); AT-B01 in release (171); fmt, the three clippy steps, the fuzz check and the nightly fuzz build; build-core.sh and xcodebuild build-for-testing (TEST BUILD SUCCEEDED); cargo deny and the three audit steps offline; check-vendor and its 71 mutant runs; the name guard.
 
 Not done in step 5: item 3 (above); uniffi_bindgen's `src/scaffolding/`; the pedigree note for cut copies in the bill of materials (LD-254 (3)).
+
+
+## E22-S2 / E23-S2 file-format copies (LD-379)
+
+Private candidate record, 2026-11-05. Ten exact registry archives were acquired under the owner's itemized approval and independently checked. Their complete 193 regular members and every license/notice are retained unchanged in vendor/crates-io; these are uncut copies, not patched crypto. Each .cargo-checksum.json lists every raw member and the original publisher archive SHA-256. No new stub, build script, proc macro, installed tool or online Cargo source is added. The seven direct dependencies and exact features are in architecture; dbl/tinyvec/macros stay transitive. Declared transitive defaults are not mislabelled graph-wide defaults-off.
+
+| Package | Archive SHA-256 | Raw files | Notices retained |
+|---|---|---:|---|
+| scrypt 0.12.0 | `d87af57419b594aa23fa95f09f0e06d80d84ba01c26148c43844cad6ff4485f0` | 21 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| chacha20poly1305 0.11.0 | `9b89e1c441e926b9c82a8d023f6e1b7ae0adcfaa7d621814e4d60789bac751cb` | 15 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| bech32 0.11.1 | `32637268377fc7b10a8c6d51de3e7fba1ce5dd371a96e342b34e6078db558e7f` | 31 | `LICENSE-MIT` |
+| aes-siv 0.8.0 | `4f60ec3717e40f849d065676ef76a0fbd76ed6c300b18cc70a9a3bde80d7c8e8` | 16 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| aes-kw 0.3.1 | `41ac571010bd60765c56085a4f1d412012a9be2663b1a2f2b19b49318653fd0d` | 16 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| cmac 0.8.0 | `ac78aa94ce13e432b332a4d1bf2eff167d3a2520188ee05b337180a42fd2e62e` | 26 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| dbl 0.5.0 | `f0d7a944e61df464668c5f51f56cc667396a8821434273112948ea0b66e405d7` | 9 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| unicode-normalization 0.1.25 | `5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8` | 25 | `COPYRIGHT`, `LICENSE-APACHE`, `LICENSE-MIT` |
+| tinyvec 1.10.0 | `bfa5fdc3bce6191a1dbc8c02d5c8bffcf557bafa17c124c5264a458f1b0613fa` | 26 | `LICENSE-APACHE.md`, `LICENSE-MIT.md`, `LICENSE-ZLIB.md` |
+| tinyvec_macros 0.1.1 | `1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20` | 8 | `LICENSE-APACHE.md`, `LICENSE-MIT.md`, `LICENSE-ZLIB.md` |
+
+Existing license alternatives and copyrights keep their own terms. The approved metadata/source choice does not establish signed release authenticity, whole-process erasure, Unicode18 interoperability or file-format/runtime success. No age peer program is extracted or executed by this vendoring step. S2 checks and independent Verify remain open.
