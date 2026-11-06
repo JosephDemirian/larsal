@@ -1581,3 +1581,414 @@ fn f_110_two_writers_take_turns_and_no_save_is_lost() {
     assert_eq!(fs::read(&v).unwrap(), b"FIRST");
     assert_eq!(s.names(), ["V.larsalvault"], "no temp file left");
 }
+
+/// F-269: enumeration and the absent-target guard use the same name matching.
+#[test]
+fn f269_old_copies_use_the_case_insensitive_backup_matcher() {
+    let s = Scratch::new("backup-case");
+    let vault = s.path("v.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    fs::create_dir(s.path("v-backup-directory.larsalvault")).unwrap();
+    for (pattern, name) in [
+        ("", "V.OLD.LARSALVAULT"),
+        (
+            "{FILE_NAME}-backup-{TIME:HHmmss}.larsalvault",
+            "V-BACKUP-any-text.LARSALVAULT",
+        ),
+    ] {
+        let path = s.path(name);
+        fs::write(&path, b"demo backup").unwrap();
+        fs::write(s.path("other.old.larsalvault"), b"other").unwrap();
+        assert!(storage::is_backup(pattern, &vault, &s.0, &path));
+        assert_eq!(storage::old_copies(pattern, &vault, &s.0, None), [path]);
+    }
+    let alias = s.path("alias");
+    std::os::unix::fs::symlink(&s.0, &alias).unwrap();
+    assert_eq!(
+        storage::old_copies("alias/{FILE_NAME}.old.larsalvault", &vault, &s.0, None),
+        [alias.join("V.OLD.LARSALVAULT")]
+    );
+    // A broad pattern still excludes the vault and its hard-link alias.
+    let link = s.path("V-copy.larsalvault");
+    fs::hard_link(&vault, &link).unwrap();
+    assert!(
+        !storage::old_copies("{FILE_NAME}{TIME}.larsalvault", &vault, &s.0, None).contains(&link)
+    );
+    assert_eq!(fs::read(&vault).unwrap(), b"demo vault");
+}
+
+#[test]
+fn f269_directory_patterns_list_every_date_and_keep_recovery_last() {
+    let s = Scratch::new("backup-dates");
+    let vault = s.path("V.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    let recovery = s.path("recovery.larsalvault");
+    fs::write(&recovery, b"demo recovery").unwrap();
+    for pattern in [
+        "backups/{TIME}/{FILE_NAME}.old.larsalvault",
+        "backups/{TIME:}/{FILE_NAME}.old.larsalvault",
+        "backups/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+        "backups/{TIME:yyyy/MM}/{FILE_NAME}-{TIME:dd}.old.larsalvault",
+        "backups/pre{TIME:yyyy/MM}post/fixed/{FILE_NAME}-{TIME}.old.larsalvault",
+        "backups/{TIME:'archive/'yyyy/'copies'/MM}/{FILE_NAME}.old.larsalvault",
+        "{FILE_NAME}/{TIME:yyyy/MM/dd}/{FILE_NAME}.old.larsalvault",
+        "~/home-backups/{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault",
+        "{TIME:'~/'yyyy/MM}/{FILE_NAME}.old.larsalvault",
+        "backups/{TIME:'./'}{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault",
+        "backups/{TIME:'.'}{TIME:'.'}/{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault",
+        "backups/{TIME:'/'yyyy/MM}/{FILE_NAME}.old.larsalvault",
+        "backups/fixed/{TIME:'}/{FILE_NAME}.old.larsalvault",
+    ] {
+        let mut expected = Vec::new();
+        for year in [1999, 2026] {
+            let time = Civil { year, ..local() };
+            let bytes = fs::read(&vault).unwrap();
+            let mut q = req(&vault, &bytes, None, &s.0);
+            q.backup = Some(Backup {
+                pattern,
+                local: time,
+                millis: 7,
+                home: &s.0,
+            });
+            let backup = backup_path(pattern, &vault, time, 7, &s.0);
+            assert_eq!(storage::save(&q).unwrap().backup, Some(Ok(backup.clone())));
+            assert_eq!(fs::read(&backup).unwrap(), bytes);
+            assert!(storage::is_backup(pattern, &vault, &s.0, &backup));
+            expected.push(backup);
+        }
+        expected.sort();
+        let list = storage::old_copies(pattern, &vault, &s.0, Some(&recovery));
+        assert!(
+            expected.iter().all(|p| list.contains(p)),
+            "{pattern}: {list:?}"
+        );
+        assert_eq!(list.last(), Some(&recovery));
+        assert!(!list.contains(&vault));
+    }
+}
+
+#[test]
+fn f269_directory_patterns_preserve_identity_and_bound_symlink_cycles() {
+    use std::os::unix::fs::symlink;
+    let s = Scratch::new("backup-directory-identity");
+    let vault = s.path("V.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    let root = s.path("backups");
+    fs::create_dir_all(root.join("1999/10/fixed")).unwrap();
+    let backup = root.join("1999/10/fixed/V.OLD.LARSALVAULT");
+    fs::write(&backup, b"demo backup").unwrap();
+    symlink(&root, s.path("alias")).unwrap();
+    symlink(root.join("1999/10/fixed"), s.path("date-alias")).unwrap();
+    symlink(root.join("missing"), root.join("dangling")).unwrap();
+    let pattern = "alias/{TIME:yyyy/MM}/fixed/{FILE_NAME}.old.larsalvault";
+    assert!(storage::is_backup(
+        pattern,
+        &vault,
+        &s.0,
+        &s.path("date-alias/V.old.larsalvault")
+    ));
+    assert!(storage::is_backup(
+        pattern,
+        &vault,
+        &s.0,
+        &root.join("1980/01/fixed/V.old.larsalvault")
+    ));
+    assert!(storage::is_backup(
+        pattern,
+        &vault,
+        &s.0,
+        &s.path("alias/1980/01/fixed/V.old.larsalvault")
+    ));
+    let hardlink = root.join("1999/10/fixed/V-linked.old.larsalvault");
+    fs::hard_link(&vault, &hardlink).unwrap();
+    fs::create_dir(root.join("1999/10/fixed/V-folder.old.larsalvault")).unwrap();
+    let list = storage::old_copies(
+        "alias/{TIME:yyyy/MM}/fixed/{FILE_NAME}{TIME}.larsalvault",
+        &vault,
+        &s.0,
+        None,
+    );
+    assert_eq!(list, [s.path("alias/1999/10/fixed/V.OLD.LARSALVAULT")]);
+    for path in [
+        "unrelated/1999/10/fixed/V.old.larsalvault",
+        "backups/1999/10/other/V.old.larsalvault",
+        "backups/1999/10/fixed/team.larsalvault",
+        "backups/1999/10/extra/fixed/V.old.larsalvault",
+        "backups/1999/fixed/V.old.larsalvault",
+    ] {
+        let path = s.path(path);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, b"unrelated demo").unwrap();
+        assert!(
+            !storage::is_backup(pattern, &vault, &s.0, &path),
+            "{path:?}"
+        );
+        assert!(!storage::old_copies(pattern, &vault, &s.0, None).contains(&path));
+    }
+    symlink(&root, root.join("cycle")).unwrap();
+    // This folder now also has a matching spelling through cycle/1999/fixed.
+    assert!(storage::is_backup(
+        pattern,
+        &vault,
+        &s.0,
+        &root.join("1999/fixed/V.old.larsalvault")
+    ));
+    assert!(!storage::old_copies(pattern, &vault, &s.0, None).is_empty());
+}
+
+#[test]
+fn f269_literal_directory_stars_keep_folder_identity() {
+    let s = Scratch::new("literal-backup-stars");
+    let literal = s.path("literal*");
+    let unrelated = s.path("literal-other");
+    for dir in [&literal, &unrelated] {
+        fs::create_dir_all(dir.join("backups/1999")).unwrap();
+        fs::write(dir.join("V.old.larsalvault"), b"demo").unwrap();
+        fs::write(dir.join("backups/1999/V.old.larsalvault"), b"demo").unwrap();
+    }
+    let vault = literal.join("V.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    for (pattern, suffix) in [
+        ("", "V.old.larsalvault"),
+        (
+            "backups/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+            "backups/1999/V.old.larsalvault",
+        ),
+    ] {
+        assert!(storage::is_backup(
+            pattern,
+            &vault,
+            &s.0,
+            &literal.join(suffix)
+        ));
+        assert!(!storage::is_backup(
+            pattern,
+            &vault,
+            &s.0,
+            &unrelated.join(suffix)
+        ));
+        assert_eq!(
+            storage::old_copies(pattern, &vault, &s.0, None),
+            [literal.join(suffix)]
+        );
+    }
+}
+
+#[test]
+fn f269_partial_time_components_still_match_arbitrary_text() {
+    let s = Scratch::new("partial-time-components");
+    let vault = s.path("V.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    for pattern in ["pre{TIME:'..'}.old", "pre{TIME:'.'}.old", "pre{TIME:'}.old"] {
+        let path = s.path("pre-any-text.old");
+        assert!(
+            storage::is_backup(pattern, &vault, &s.0, &path),
+            "{pattern}"
+        );
+    }
+}
+
+#[test]
+fn f269_missing_literal_prefix_through_alias() {
+    use std::os::unix::fs::symlink;
+    let s = Scratch::new("backup-missing-prefix");
+    let vault = s.path("V.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    symlink(&s.0, s.path("alias")).unwrap();
+    let pattern = "alias/new/{TIME:yyyy}/{FILE_NAME}.old.larsalvault";
+    let t = Civil {
+        year: 1999,
+        ..local()
+    };
+    let backup = backup_path(pattern, &vault, t, 7, &s.0);
+    let canonical_candidate = s.path("new/1999/V.old.larsalvault");
+    let before_alias = storage::is_backup(pattern, &vault, &s.0, &backup);
+    let before_canonical = storage::is_backup(pattern, &vault, &s.0, &canonical_candidate);
+    let mut q = req(&vault, b"demo next vault", None, &s.0);
+    q.backup = Some(Backup {
+        pattern,
+        local: t,
+        millis: 7,
+        home: &s.0,
+    });
+    assert_eq!(storage::save(&q).unwrap().backup, Some(Ok(backup.clone())));
+    assert_eq!(fs::read(&backup).unwrap(), b"demo vault");
+    assert_eq!(
+        storage::file_id(&backup),
+        storage::file_id(&canonical_candidate)
+    );
+    let after = storage::is_backup(pattern, &vault, &s.0, &canonical_candidate);
+    println!(
+        "missing literal prefix: alias={before_alias}, canonical={before_canonical}, after actual save={after}, bytes preserved=true"
+    );
+    assert!(after);
+    assert!(
+        before_alias && before_canonical,
+        "permitted missing backup folders must match through aliases before creation"
+    );
+}
+
+#[test]
+fn f269_canonical_missing_alias_component_contract() {
+    use std::os::unix::fs::symlink;
+    let mut missed = Vec::new();
+    for (n, (pattern, suffix)) in [
+        (
+            "alias/new/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+            "new/1999/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:yyyy/MM/dd}/fixed/{FILE_NAME}.old.larsalvault",
+            "new/1999/10/25/fixed/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:'archive/'yyyy/'copies'/MM}/{FILE_NAME}.old.larsalvault",
+            "new/archive/1999/copies/10/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:'./'}{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault",
+            "new/1999/10/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:'/'yyyy/MM}/{FILE_NAME}.old.larsalvault",
+            "new/1999/10/V.old.larsalvault",
+        ),
+        (
+            "~/alias/new/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+            "new/1999/V.old.larsalvault",
+        ),
+        (
+            "alias/new/pre{TIME:yyyy/MM}post/fixed/{FILE_NAME}.old.larsalvault",
+            "new/pre1999/10post/fixed/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:yyyy}/../fixed/{FILE_NAME}.old.larsalvault",
+            "new/fixed/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:yyyy/../MM}/{FILE_NAME}.old.larsalvault",
+            "new/10/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:'..'}/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+            "1999/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:'.'}{TIME:'.'}/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+            "1999/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:yyyy/MM}/../fixed/{FILE_NAME}.old.larsalvault",
+            "new/1999/fixed/V.old.larsalvault",
+        ),
+        (
+            "alias/new/{TIME:yyyy}/fixed/{TIME:MM}/../../last/{FILE_NAME}.old.larsalvault",
+            "new/1999/last/V.old.larsalvault",
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let s = Scratch::new(&format!("f269-fix5-missing-component-{n}"));
+        let vault = s.path("V.larsalvault");
+        fs::write(&vault, b"demo original").unwrap();
+        symlink(&s.0, s.path("alias")).unwrap();
+        let t = Civil {
+            year: 1999,
+            ..local()
+        };
+        let generated = backup_path(pattern, &vault, t, 7, &s.0);
+        let canonical = s.path(suffix);
+        let before_generated = storage::is_backup(pattern, &vault, &s.0, &generated);
+        let before_canonical = storage::is_backup(pattern, &vault, &s.0, &canonical);
+        for unrelated in [
+            s.path(&format!("other/{suffix}")),
+            s.path(&format!("other-new/{suffix}")),
+            canonical.with_file_name("team.larsalvault"),
+        ] {
+            assert!(
+                !storage::is_backup(pattern, &vault, &s.0, &unrelated),
+                "unrelated missing parent/name: {pattern} {unrelated:?}"
+            );
+            assert!(!unrelated.exists());
+        }
+        let mut q = req(&vault, b"demo next", None, &s.0);
+        q.backup = Some(Backup {
+            pattern,
+            local: t,
+            millis: 7,
+            home: &s.0,
+        });
+        assert_eq!(
+            storage::save(&q).unwrap().backup,
+            Some(Ok(generated.clone()))
+        );
+        assert_eq!(fs::read(&generated).unwrap(), b"demo original");
+        assert_eq!(fs::canonicalize(&generated).unwrap(), canonical);
+        assert_eq!(storage::file_id(&generated), storage::file_id(&canonical));
+        assert!(storage::is_backup(pattern, &vault, &s.0, &canonical));
+        assert!(
+            storage::old_copies(pattern, &vault, &s.0, None)
+                .iter()
+                .any(|p| storage::file_id(p) == storage::file_id(&canonical))
+        );
+        println!(
+            "component case {n}: pattern={pattern}, before literal={before_generated}, canonical={before_canonical}, actual save=true, bytes=true, after=true"
+        );
+        if !(before_generated && before_canonical) {
+            missed.push(n);
+        }
+    }
+    assert!(
+        missed.is_empty(),
+        "permitted actual-save canonical candidates missed before creation: {missed:?}"
+    );
+}
+
+#[test]
+fn f269_canonical_identity_cycle_and_breadth() {
+    use std::os::unix::fs::symlink;
+    let s = Scratch::new("f269-fix5-cycle-breadth");
+    let vault = s.path("V.larsalvault");
+    fs::write(&vault, b"demo original").unwrap();
+    let root = s.path("backups");
+    fs::create_dir_all(root.join("1999/fixed")).unwrap();
+    let candidate = root.join("1999/fixed/V.old.larsalvault");
+    fs::write(&candidate, b"demo backup").unwrap();
+    let pattern = "backups/{TIME:yyyy/MM}/fixed/{FILE_NAME}.old.larsalvault";
+    assert!(!storage::is_backup(pattern, &vault, &s.0, &candidate));
+    symlink(&root, root.join("cycle")).unwrap();
+    let alternate = root.join("cycle/1999/fixed/V.old.larsalvault");
+    assert_eq!(storage::file_id(&alternate), storage::file_id(&candidate));
+    assert_eq!(
+        storage::file_id(alternate.parent().unwrap()),
+        storage::file_id(candidate.parent().unwrap())
+    );
+    assert!(storage::is_backup(pattern, &vault, &s.0, &candidate));
+    let list = storage::old_copies(pattern, &vault, &s.0, None);
+    assert_eq!(
+        list.iter()
+            .filter(|p| storage::file_id(p) == storage::file_id(&candidate))
+            .count(),
+        1
+    );
+    assert!(!storage::is_backup(
+        pattern,
+        &vault,
+        &s.0,
+        &s.path("unrelated/1999/fixed/V.old.larsalvault")
+    ));
+    for n in 0..270 {
+        let dir = s.path(&format!("wide/{n:03}/fixed"));
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("V.old.larsalvault"), b"demo backup").unwrap();
+    }
+    let wide = storage::old_copies(
+        "wide/{TIME:yyyy}/fixed/{FILE_NAME}.old.larsalvault",
+        &vault,
+        &s.0,
+        None,
+    );
+    assert_eq!(wide.len(), 270);
+    assert!(wide.windows(2).all(|w| w[0] < w[1]));
+}
