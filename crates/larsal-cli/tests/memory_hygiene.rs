@@ -2,7 +2,8 @@
 //! APP-11.9-c, run under the zeroing allocator the `larsal` tool and the Mac
 //! app install. A probe outside it shows the blocks freed with the value
 //! still in them (the finding, reproduced); a probe inside it shows what the
-//! system gets back: every block all zero. No freed memory is read.
+//! system gets back: every block all zero. F-270 also requires intrinsic
+//! wiping before the allocator runs. No freed memory is read.
 //!
 //! One test only: the probes count every block the process frees.
 
@@ -150,17 +151,21 @@ fn findings_leave_no_plain_value_in_freed_memory() {
     share.path = "team.larsalvault".to_owned();
     share.password = SecretString::new("demo-share-1".to_owned());
     let first = share.write().unwrap();
-    let xml = larsal_crypto::base64::decode(larsal_crypto::base64::Form::Padded, &first).unwrap();
+    let xml =
+        larsal_crypto::base64::decode(larsal_crypto::base64::Form::Padded, first.expose()).unwrap();
     let at = xml
         .windows(16)
         .position(|w| w == b"ZGVtby1zaGFyZS0x")
         .unwrap()
         .div_ceil(3)
         * 4;
-    let needle: [u8; 8] = first.as_bytes()[at..at + 8].try_into().unwrap();
+    let needle: [u8; 8] = first.expose().as_bytes()[at..at + 8].try_into().unwrap();
     drop((first, xml));
     let key = String::from_utf8(larsal_format::share_item::KEY.to_vec()).unwrap();
-    scenario("F-270 share item", needle, || {
+    set_needle(needle);
+    BEFORE.reset();
+    AFTER.reset();
+    {
         let mut team = larsal_model::Group::new(
             larsal_model::Uuid([0x20; 16]),
             "Team".into(),
@@ -173,5 +178,21 @@ fn findings_leave_no_plain_value_in_freed_memory() {
             unknown: Vec::new(),
         });
         drop(team);
-    });
+    }
+    let (plain, freed, left, dirty) = (
+        BEFORE.with_needle.load(Relaxed),
+        AFTER.freed.load(Relaxed),
+        AFTER.with_needle.load(Relaxed),
+        AFTER.not_zero.load(Relaxed),
+    );
+    set_needle([0; 8]);
+    println!(
+        "F-270 share item: {plain} before allocator wipe; {freed} freed, {left} with value, {dirty} dirty after it"
+    );
+    assert!(freed > 0, "F-270: no deallocation observed");
+    assert_eq!(
+        (plain, left, dirty),
+        (0, 0, 0),
+        "F-270: intrinsic and allocator wiping"
+    );
 }

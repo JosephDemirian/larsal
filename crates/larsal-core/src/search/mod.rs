@@ -103,7 +103,8 @@ fn read_saved(vault: &Vault) -> json::Map {
 }
 
 fn write_saved(vault: &mut Vault, map: json::Map, now: Time) {
-    let text = json::to_string_pretty(&json::Value::Object(map));
+    let text =
+        larsal_crypto::secret::SecretString::new(json::to_string_pretty(&json::Value::Object(map)));
     let items = &mut vault.meta.custom_data.items;
     match items.iter_mut().find(|i| i.key == saved_key()) {
         Some(item) => {

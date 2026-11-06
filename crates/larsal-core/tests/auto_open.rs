@@ -149,7 +149,7 @@ fn f_079_shared_auto_open_group_is_skipped() {
     .unwrap();
     let item = CustomDataItem {
         key,
-        value: "x".into(),
+        value: larsal_crypto::secret::SecretString::new("x".into()),
         last_modified: None,
         unknown: Vec::new(),
     };

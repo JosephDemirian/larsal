@@ -216,6 +216,13 @@ impl SecretString {
     }
 }
 
+impl From<&str> for SecretString {
+    /// Copies borrowed text into an independently owned buffer, wiped on drop.
+    fn from(text: &str) -> Self {
+        Self(text.to_owned())
+    }
+}
+
 impl Drop for SecretString {
     fn drop(&mut self) {
         // Moves the buffer out without copying it (String::new does not allocate).
@@ -303,6 +310,35 @@ mod probe {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn borrowed_text_owns_and_wipes_its_full_allocation() {
+        for text in ["", "démo\0🗝️e\u{301}"] {
+            let mut source = text.to_owned();
+            let copy = SecretString::from(source.as_str());
+            assert_eq!(copy.expose().as_bytes(), text.as_bytes());
+            assert_eq!(source, text);
+            if !source.is_empty() {
+                assert_ne!(copy.expose().as_ptr(), source.as_ptr());
+            }
+            let addr = copy.expose().as_ptr().addr();
+            let cap = copy.0.capacity();
+            source.clear();
+            source.push_str("source changed");
+            assert_eq!(copy.expose().as_bytes(), text.as_bytes());
+            let _ = probe::take();
+            drop(copy);
+            assert_eq!(
+                probe::take().expect("drop must run the wipe path"),
+                probe::Seen {
+                    addr,
+                    len: cap,
+                    all_zero: true,
+                }
+            );
+            assert_eq!(source, "source changed");
+        }
+    }
 
     // Proof of "memory is zeroed after drop", and its limits:
     // - It proves that dropping runs the wipe path, on the very allocation

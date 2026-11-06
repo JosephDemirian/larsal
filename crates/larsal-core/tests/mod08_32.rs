@@ -34,7 +34,7 @@ fn mk(n: u8, title: &str, fields: &[(&str, &str)]) -> Entry {
 }
 
 /// A share item: Synchronize to `team.larsalvault` with `demo-share-1`.
-fn sync(keep_groups: bool) -> String {
+fn sync(keep_groups: bool) -> SecretString {
     let mut s = Settings {
         import: true,
         export: true,
@@ -46,7 +46,7 @@ fn sync(keep_groups: bool) -> String {
     s.write().unwrap()
 }
 
-fn inactive(keep_groups: bool) -> String {
+fn inactive(keep_groups: bool) -> SecretString {
     let mut s = Settings {
         keep_groups,
         ..Settings::new()
@@ -55,7 +55,7 @@ fn inactive(keep_groups: bool) -> String {
 }
 
 /// Gives `g` the share item `value` (replacing one it has).
-fn put(g: &mut Group, value: String) {
+fn put(g: &mut Group, value: SecretString) {
     let key = String::from_utf8(KEY.to_vec()).unwrap();
     g.custom_data.items.retain(|i| i.key != key);
     g.custom_data.items.push(CustomDataItem {
@@ -258,7 +258,10 @@ fn mod08_68_any_share_item_counts() {
     let mut v = s();
     put(group_mut(&mut v, 0x20), inactive(true));
     assert_eq!(copy(&v, 0x44, "Password"), "");
-    put(group_mut(&mut v, 0x20), "not base64 !!".into());
+    put(
+        group_mut(&mut v, 0x20),
+        SecretString::new("not base64 !!".into()),
+    );
     assert_eq!(copy(&v, 0x44, "Password"), "");
     // An Import item that arrived by merge and was never approved: the
     // scope does not ask for approval (INT-08.31).
@@ -379,7 +382,7 @@ fn mod08_72_a_share_item_that_cannot_be_read() {
         b"<?xml version=\"1.0\"?><X><KeepGroups>True</KeepGroups></X>",
     );
     for value in ["not base64 !!".to_owned(), wrong_root] {
-        put(group_mut(&mut v, 0x20), value);
+        put(group_mut(&mut v, 0x20), SecretString::new(value));
         assert_eq!(copy(&v, 0x46, "Password"), "");
         assert_eq!(copy(&v, 0x0D, "Password"), "pw-b");
         assert_eq!(copy(&v, 0x44, "Password"), "");

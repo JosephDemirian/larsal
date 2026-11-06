@@ -33,7 +33,7 @@ pub fn size(e: &Entry) -> u64 {
     }
     for item in &e.custom_data.items {
         add(len(&item.key));
-        add(len(&item.value));
+        add(len(item.value.expose()));
     }
     for a in &e.auto_type.associations {
         add(len(&a.window));

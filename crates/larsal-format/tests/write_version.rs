@@ -43,7 +43,7 @@ fn saved_version(file: &[u8]) -> (u16, u16) {
 fn item(key: &str, value: &str, t: Option<Time>) -> CustomDataItem {
     CustomDataItem {
         key: key.into(),
-        value: value.into(),
+        value: larsal_crypto::secret::SecretString::new(value.into()),
         last_modified: t,
         unknown: Vec::new(),
     }

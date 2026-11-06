@@ -42,7 +42,7 @@ fn vault() -> Vault {
     mail.previous_parent = Some(id(0x62));
     mail.custom_data.items.push(CustomDataItem {
         key: "BrowserSitePermissions".into(),
-        value: "demo".into(),
+        value: larsal_crypto::secret::SecretString::new("demo".into()),
         last_modified: None,
         unknown: Vec::new(),
     });

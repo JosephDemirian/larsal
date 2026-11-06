@@ -43,7 +43,7 @@ impl Field {
     #[must_use]
     pub fn duplicate(&self) -> Field {
         Field {
-            value: SecretString::new(self.value.expose().to_owned()),
+            value: SecretString::from(self.value.expose()),
             protected: self.protected,
         }
     }
@@ -284,6 +284,22 @@ impl core::fmt::Debug for Entry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn duplicated_field_independently_owns_value_and_keeps_protection() {
+        for protected in [false, true] {
+            let field = Field {
+                value: SecretString::from("démo\0🗝️"),
+                protected,
+            };
+            let copy = field.duplicate();
+            assert_eq!(copy, field);
+            assert_ne!(copy.value.expose().as_ptr(), field.value.expose().as_ptr());
+            drop(field);
+            assert_eq!(copy.value.expose(), "démo\0🗝️");
+            assert_eq!(copy.protected, protected);
+        }
+    }
 
     fn secret(s: &str) -> SecretString {
         SecretString::new(s.to_owned())

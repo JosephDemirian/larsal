@@ -130,7 +130,10 @@ fn custom_data(cd: &CustomData, sh: Shape, vault_level: bool) -> Option<El> {
         .items
         .iter()
         .map(|i| {
-            let mut kids = vec![leaf("Key", i.key.clone()), leaf("Value", i.value.clone())];
+            let mut kids = vec![
+                leaf("Key", i.key.clone()),
+                leaf("Value", i.value.expose().to_owned()),
+            ];
             if let (true, true, Some(t)) = (vault_level, sh.v41(), i.last_modified) {
                 kids.push(leaf("LastModificationTime", time(t, sh)));
             }

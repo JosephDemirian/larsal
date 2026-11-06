@@ -458,7 +458,7 @@ fn row_14_11_vault_data_at_4_0() {
     let mut v = read_doc(&g(""));
     v.meta.custom_data.items.push(CustomDataItem {
         key: "DemoMetaKey".into(),
-        value: "m1".into(),
+        value: larsal_crypto::secret::SecretString::new("m1".into()),
         last_modified: Some(at(2021, 1, 1, 0, 0, 0)),
         unknown: Vec::new(),
     });
@@ -487,7 +487,7 @@ fn row_14_14_item_times() {
     let mut v = read_doc(&g(&entry(0x10, "")));
     let item = |k: &str, t: Time| CustomDataItem {
         key: k.into(),
-        value: "x".into(),
+        value: larsal_crypto::secret::SecretString::new("x".into()),
         last_modified: Some(t),
         unknown: Vec::new(),
     };
@@ -525,7 +525,7 @@ fn row_14_15_item_without_time() {
     assert!(xml.contains("<Key>k</Key>\n\t\t\t\t<Value>v</Value>\n\t\t\t</Item>"));
     // The change itself is E4 (FMT-14.14 sets the time); the writer writes it.
     let item = &mut v.meta.custom_data.items[0];
-    item.value = "w".into();
+    item.value = larsal_crypto::secret::SecretString::new("w".into());
     item.last_modified = Some(SAVE);
     let xml = write_minor(&v, 1, &zero_key());
     assert!(xml.contains(&format!(
@@ -561,7 +561,8 @@ fn row_14_20_plain_text() {
         ),
         entry(0x11, &s("Password", "pw"))
     )));
-    v.root.entries[0].custom_data.items[0].value = "secret-looking".into();
+    v.root.entries[0].custom_data.items[0].value =
+        larsal_crypto::secret::SecretString::new("secret-looking".into());
     let xml = write_doc(&v);
     assert!(xml.contains("<Value>secret-looking</Value>"));
     assert_eq!(
@@ -691,7 +692,7 @@ fn row_14_26_padding_item_form() {
     let mut second = cheap_vault(&g("<Tags>t</Tags>"));
     second.meta.custom_data.items.push(CustomDataItem {
         key: padding.clone(),
-        value: "00".into(),
+        value: larsal_crypto::secret::SecretString::new("00".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -709,7 +710,7 @@ fn row_14_26_padding_item_form() {
                 .filter(|i| i.key == padding)
                 .collect();
             assert_eq!(items.len(), 1);
-            let hex = &items[0].value;
+            let hex = items[0].value.expose();
             assert!((128..=1022).contains(&hex.len()) && hex.len().is_multiple_of(2));
             assert!(
                 hex.bytes()
@@ -725,7 +726,7 @@ fn row_14_26_padding_item_form() {
                 .unwrap()
                 .as_secs() as i64;
             assert!((Time::from_unix(now).unwrap().0 - t.0).abs() < 60);
-            seen.push(hex.clone());
+            seen.push(hex.to_owned());
         }
         assert_ne!(seen[0], seen[1]);
         assert!(seen.iter().all(|h| h != "00"));

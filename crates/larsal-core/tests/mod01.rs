@@ -396,7 +396,7 @@ fn mod_01_20_custom_data_delete_is_a_change() {
     change_entry(&mut v, id(0x10), T0, |e| {
         e.custom_data.items.push(CustomDataItem {
             key: "k".into(),
-            value: "v".into(),
+            value: larsal_crypto::secret::SecretString::new("v".into()),
             last_modified: None,
             unknown: Vec::new(),
         });
@@ -556,7 +556,7 @@ fn mod_01_26_last_modification_time() {
         ("custom data", |e| {
             e.custom_data.items.push(CustomDataItem {
                 key: "k".into(),
-                value: String::new(),
+                value: larsal_crypto::secret::SecretString::new(String::new()),
                 last_modified: None,
                 unknown: Vec::new(),
             })

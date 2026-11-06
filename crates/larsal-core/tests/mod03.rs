@@ -44,7 +44,7 @@ fn mod_03_1_contents() {
         });
         e.custom_data.items.push(CustomDataItem {
             key: "k".into(),
-            value: "v".into(),
+            value: larsal_crypto::secret::SecretString::new("v".into()),
             last_modified: None,
             unknown: Vec::new(),
         });
@@ -171,7 +171,7 @@ fn mod_03_7_size() {
     });
     e.custom_data.items.push(CustomDataItem {
         key: "k".into(),
-        value: "vv".into(),
+        value: larsal_crypto::secret::SecretString::new("vv".into()),
         last_modified: Some(Time(1)),
         unknown: Vec::new(),
     });

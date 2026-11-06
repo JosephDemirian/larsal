@@ -1352,14 +1352,14 @@ impl<'a, 's> Parser<'a, 's> {
             let mut value = None;
             let mut item = CustomDataItem {
                 key: String::new(),
-                value: String::new(),
+                value: SecretString::new(String::new()),
                 last_modified: None,
                 unknown: Vec::new(),
             };
             p.children(|p, t| {
                 match t.name() {
                     "Key" => key = Some(p.text_value(&t)?),
-                    "Value" => value = Some(p.text_value(&t)?),
+                    "Value" => value = Some(p.secret_value(&t)?),
                     "LastModificationTime" => item.last_modified = Some(p.time_value(&t)?),
                     _ => {
                         let u = p.unknown(t)?;
@@ -2134,7 +2134,7 @@ fn new_unknown(tag: &Tag<'_>) -> UnknownElement {
 /// `CustomData` block. Never touches `_LAST_MODIFIED`.
 fn convert_known_bad(cd: &mut CdBuilder, excluded: &mut bool) {
     if let Some(item) = cd.take(KNOWN_BAD) {
-        *excluded = item.value == "true";
+        *excluded = item.value.expose() == "true";
         if cd.live == 1 && cd.index.contains_key(LAST_MODIFIED) {
             cd.items.clear();
             cd.index.clear();

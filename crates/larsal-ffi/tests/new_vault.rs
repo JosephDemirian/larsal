@@ -155,7 +155,13 @@ fn app07_17_t35_a_new_vault_reopens_with_our_tools_with_the_same_settings() {
         (-1, -1)
     );
     // APP-07.10: the unlock time item holds the time.
-    assert!(v.meta.custom_data.items.iter().any(|i| i.value == "100"));
+    assert!(
+        v.meta
+            .custom_data
+            .items
+            .iter()
+            .any(|i| i.value.expose() == "100")
+    );
     // A wrong password does not open it.
     assert!(reopen(&path, Some("demo-new-2"), None).is_err());
     // APP-07.18: open, unlocked and shown in the session; it opens again

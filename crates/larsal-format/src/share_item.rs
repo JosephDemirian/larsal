@@ -180,11 +180,11 @@ impl Settings {
     /// `<X/>` for an empty `Type` or flag, `<Password></Password>` for an
     /// empty password, no white space). A zero `Group` id first becomes a
     /// random one (CRY-03), kept in `self`. The XML text, which holds the
-    /// password, is built in one buffer of its exact size and wiped.
+    /// password, and the result use wiping buffers from their first write.
     ///
     /// # Errors
     /// `RandomSource` when a new id cannot be drawn.
-    pub fn write(&mut self) -> Result<String, larsal_crypto::Error> {
+    pub fn write(&mut self) -> Result<SecretString, larsal_crypto::Error> {
         if self.group.is_zero() {
             self.group = Uuid(larsal_crypto::random::uuid_v4()?);
         }
@@ -218,10 +218,15 @@ impl Settings {
             ">",
         ];
         let size = parts.iter().fold(0usize, |n, p| n.saturating_add(p.len()));
-        let mut xml = String::with_capacity(size);
-        parts.iter().for_each(|p| xml.push_str(p));
-        let xml = SecretString::new(xml);
-        Ok(base64::encode(Form::Padded, xml.expose().as_bytes()))
+        let mut xml = SecretBytes::zeroed(size);
+        for (slot, byte) in xml
+            .expose_mut()
+            .iter_mut()
+            .zip(parts.iter().flat_map(|p| p.bytes()))
+        {
+            *slot = byte;
+        }
+        Ok(base64::encode_secret(Form::Padded, xml.expose()))
     }
 }
 
@@ -245,6 +250,8 @@ impl Default for Settings {
 /// Every buffer that holds the password, decoded or not, is wiped.
 #[must_use]
 pub fn read(value: &str) -> Option<Settings> {
+    #[cfg(test)]
+    bounds::DECODE_CALLS.with(|c| c.set(c.get().saturating_add(1)));
     let xml = lenient(value);
     let text = core::str::from_utf8(xml.expose()).ok()?;
     let mut reader = quick_xml::Reader::from_str(text);
@@ -430,5 +437,89 @@ fn general_ref(r: &BytesRef<'_>) -> Option<char> {
         "apos" => Some('\''),
         "quot" => Some('"'),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod bounds {
+    use super::*;
+    use std::cell::Cell;
+    thread_local! { pub(super) static DECODE_CALLS: Cell<usize> = const { Cell::new(0) }; }
+    fn group(path: &str, raw_size: Option<usize>) -> Group {
+        let mut s = Settings::new();
+        s.import = true;
+        s.group = Uuid([0x21; 16]);
+        s.path = path.to_owned();
+        let written = s.write().unwrap();
+        let mut value = written.expose().to_owned();
+        if let Some(n) = raw_size {
+            assert!(value.len() <= n);
+            value.extend(std::iter::repeat_n('!', n.saturating_sub(value.len())));
+        }
+        let mut g = Group::new(Uuid([0x20; 16]), "Demo".into(), larsal_model::Time(0));
+        g.custom_data.items.push(larsal_model::CustomDataItem {
+            key: String::from_utf8(KEY.to_vec()).unwrap(),
+            value: SecretString::new(value),
+            last_modified: None,
+            unknown: Vec::new(),
+        });
+        g
+    }
+    #[test]
+    fn f268_raw_bound_is_inclusive_and_precedes_decode() {
+        for n in [MAX_VALUE - 1, MAX_VALUE, MAX_VALUE + 1] {
+            let g = group("team.larsalvault", Some(n));
+            assert!(
+                read(g.custom_data.items[0].value.expose()).is_some(),
+                "fixture otherwise decodes"
+            );
+            DECODE_CALLS.with(|c| c.set(0));
+            let got = of(&g);
+            let calls = DECODE_CALLS.with(Cell::get);
+            println!(
+                "raw={n} decode_calls={calls} settings={}",
+                matches!(got, Some(Item::Settings(_)))
+            );
+            assert_eq!(
+                calls,
+                usize::from(n <= MAX_VALUE),
+                "raw rejection must precede decoding"
+            );
+            assert_eq!(matches!(got, Some(Item::Settings(_))), n <= MAX_VALUE);
+            assert!(of(&g).is_some(), "still a shared group");
+        }
+    }
+    #[test]
+    fn f268_decoded_bound_counts_utf8_bytes_and_is_inclusive() {
+        for path in [
+            "a".repeat(MAX_PATH - 1),
+            "a".repeat(MAX_PATH),
+            "a".repeat(MAX_PATH + 1),
+            "é".repeat(MAX_PATH / 2),
+            format!("{}a", "é".repeat(MAX_PATH / 2)),
+        ] {
+            let g = group(&path, None);
+            assert!(
+                g.custom_data.items[0].value.len() < MAX_VALUE,
+                "raw bound cannot reject this fixture"
+            );
+            assert_eq!(
+                read(g.custom_data.items[0].value.expose()).unwrap().path,
+                path
+            );
+            DECODE_CALLS.with(|c| c.set(0));
+            let got = of(&g);
+            assert_eq!(DECODE_CALLS.with(Cell::get), 1);
+            println!(
+                "path bytes={} scalars={} settings={}",
+                path.len(),
+                path.chars().count(),
+                matches!(got, Some(Item::Settings(_)))
+            );
+            assert_eq!(
+                matches!(got, Some(Item::Settings(_))),
+                path.len() <= MAX_PATH
+            );
+        }
     }
 }

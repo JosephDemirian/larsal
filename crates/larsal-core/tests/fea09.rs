@@ -101,7 +101,7 @@ fn v() -> Vault {
     v.meta.recycle_bin = Some(Uuid([0x04; 16]));
     v.meta.custom_data.items.push(CustomDataItem {
         key: "demo-key".into(),
-        value: "demo-value".into(),
+        value: larsal_crypto::secret::SecretString::new("demo-value".into()),
         last_modified: Some(t(24)),
         unknown: Vec::new(),
     });
@@ -649,7 +649,7 @@ fn fea09_18_xml_everything() {
             .custom_data
             .items
             .iter()
-            .map(|i| (i.key.clone(), i.value.clone()))
+            .map(|i| (i.key.clone(), i.value.expose().to_owned()))
             .collect::<Vec<_>>()
     };
     assert_eq!(kv(&back), kv(&vault));

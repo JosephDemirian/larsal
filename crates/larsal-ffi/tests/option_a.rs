@@ -536,11 +536,11 @@ fn site_access(e: &mut Entry, allow: &[&str], deny: &[&str]) {
         .items
         .push(larsal_model::custom_data::CustomDataItem {
             key: site_access_key(),
-            value: format!(
+            value: SecretString::new(format!(
                 r#"{{"Allow":[{}],"Deny":[{}],"Realm":""}}"#,
                 list(allow),
                 list(deny)
-            ),
+            )),
             last_modified: Some(e.times.last_modification),
             unknown: Vec::new(),
         });
@@ -593,7 +593,7 @@ fn github_editor_data(e: &mut Entry) {
             .items
             .push(larsal_model::custom_data::CustomDataItem {
                 key: key.to_owned(),
-                value: value.to_owned(),
+                value: SecretString::new(value.to_owned()),
                 last_modified: Some(cet("2026-10-27T09:12")),
                 unknown: Vec::new(),
             });
@@ -701,7 +701,7 @@ fn personal() -> Vault {
                 .items
                 .push(larsal_model::custom_data::CustomDataItem {
                     key: k,
-                    value: value.to_owned(),
+                    value: SecretString::new(value.to_owned()),
                     last_modified: None,
                     unknown: Vec::new(),
                 });

@@ -880,7 +880,7 @@ fn fea01_29_saved_searches() {
     let mut w = s1();
     w.meta.custom_data.items.push(larsal_model::CustomDataItem {
         key: key.clone(),
-        value: "[1,2]".into(),
+        value: larsal_crypto::secret::SecretString::new("[1,2]".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -895,12 +895,15 @@ fn fea01_29_saved_searches() {
     let mut m = s1();
     m.meta.custom_data.items.push(larsal_model::CustomDataItem {
         key: key.clone(),
-        value: r#"{"n": 5, "q": "tag:dev", "o": {}}"#.into(),
+        value: larsal_crypto::secret::SecretString::new(
+            r#"{"n": 5, "q": "tag:dev", "o": {}}"#.into(),
+        ),
         last_modified: None,
         unknown: Vec::new(),
     });
     assert_eq!(search::saved(&m), [("q".to_owned(), "tag:dev".to_owned())]);
-    m.meta.custom_data.items[0].value = "{not json".into();
+    m.meta.custom_data.items[0].value =
+        larsal_crypto::secret::SecretString::new("{not json".into());
     assert!(search::saved(&m).is_empty());
 }
 

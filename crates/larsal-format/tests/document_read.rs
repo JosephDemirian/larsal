@@ -2024,7 +2024,7 @@ fn fmt_12_29_sweep() {
     assert_eq!(
         (
             m.custom_data.items[0].key.as_str(),
-            m.custom_data.items[0].value.as_str()
+            m.custom_data.items[0].value.expose()
         ),
         ("mk", "mv")
     );
@@ -2689,7 +2689,7 @@ fn fmt_14_17_to_14_19_items() {
     let items = &v.meta.custom_data.items;
     assert_eq!(items.len(), 2);
     assert_eq!(
-        (items[0].value.as_str(), items[0].last_modified),
+        (items[0].value.expose(), items[0].last_modified),
         ("second", None)
     );
     assert_eq!(items[1].last_modified, Some(Time(63_745_056_000)));
