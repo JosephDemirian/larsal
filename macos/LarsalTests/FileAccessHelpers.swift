@@ -90,23 +90,8 @@ final class OtherProcess {
         let program = folder.appending(path: "presenter").path(percentEncoded: false)
         let moduleCache = folder.appending(path: "module-cache").path(percentEncoded: false)
         try Self.source.write(toFile: source, atomically: true, encoding: .utf8)
-        let built = await Task.detached { () -> Int32 in
-            let compile = Process()
-            let developer =
-                ProcessInfo.processInfo.environment["DEVELOPER_DIR"] ?? "/Applications/Xcode.app/Contents/Developer"
-            let tools = URL(fileURLWithPath: developer)
-            compile.executableURL = tools.appending(path: "Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc")
-            compile.arguments = [
-                "-sdk", tools.appending(path: "Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk").path,
-                "-module-cache-path", moduleCache, "-o", program, source,
-            ]
-            compile.environment = ProcessInfo.processInfo.environment.merging(
-                ["DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"]) { set, _ in set }
-            guard (try? compile.run()) != nil else { return -1 }
-            compile.waitUntilExit()
-            return compile.terminationStatus
-        }.value
-        try #require(built == 0, "the helper compiled")
+        let built = await Task.detached { Self.compileHelper(source, program: program, moduleCache: moduleCache) }.value
+        try #require(built == 0, "the helper compiled and its imports passed")
         let output = Pipe()
         process.executableURL = URL(fileURLWithPath: program)
         process.arguments = [path]
@@ -133,6 +118,40 @@ final class OtherProcess {
         for _ in 0..<100 where process.isRunning { usleep(20_000) }
         if process.isRunning { process.terminate() }
         try? FileManager.default.removeItem(at: folder)
+    }
+
+    nonisolated private static func compileHelper(_ source: String, program: String, moduleCache: String) -> Int32 {
+        let compile = Process()
+        let developer =
+            ProcessInfo.processInfo.environment["DEVELOPER_DIR"] ?? "/Applications/Xcode.app/Contents/Developer"
+        let tools = URL(fileURLWithPath: developer)
+        compile.executableURL = tools.appending(path: "Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc")
+        compile.arguments = [
+            "-sdk", tools.appending(path: "Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk").path,
+            "-module-cache-path", moduleCache, "-o", program, source,
+        ]
+        compile.environment = ProcessInfo.processInfo.environment.merging(
+            ["DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"]) { set, _ in set }
+        guard (try? compile.run()) != nil else { return -1 }
+        compile.waitUntilExit()
+        guard compile.terminationStatus == 0 else { return compile.terminationStatus }
+        let imports = Process()
+        let output = Pipe()
+        let errors = Pipe()
+        imports.executableURL = tools.appending(path: "Toolchains/XcodeDefault.xctoolchain/usr/bin/nm")
+        imports.arguments = ["-u", program]
+        imports.standardOutput = output
+        imports.standardError = errors
+        guard (try? imports.run()) != nil else { return -1 }
+        let symbols = output.fileHandleForReading.readDataToEndOfFile()
+        let diagnostics = errors.fileHandleForReading.readDataToEndOfFile()
+        imports.waitUntilExit()
+        guard imports.terminationStatus == 0, diagnostics.isEmpty,
+            let text = String(data: symbols, encoding: .utf8),
+            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            text.range(of: "_Sec(Item|Keychain|AccessControl)", options: .regularExpression) == nil
+        else { return -1 }
+        return 0
     }
 
     private static let source = #"""

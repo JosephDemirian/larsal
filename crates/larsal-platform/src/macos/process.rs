@@ -1,7 +1,26 @@
-//! The two process hardening calls of APP-11.2 and APP-11.3 (SR-05). The
-//! release-only switch and the warning are in `hardening.rs`.
+//! Process memory and hardening on macOS. The release-only hardening
+//! switch and warning are in `hardening.rs`.
 
 use std::io;
+
+/// Returns this process's current resident memory in bytes.
+///
+/// Returns the operating system error if the memory query fails.
+pub fn resident_bytes() -> io::Result<u64> {
+    let mut usage = std::mem::MaybeUninit::<libc::rusage_info_v2>::zeroed();
+    // SAFETY: the aligned V2 buffer is read only after the kernel fills it successfully for our PID.
+    unsafe {
+        if libc::proc_pid_rusage(
+            libc::getpid(),
+            libc::RUSAGE_INFO_V2,
+            usage.as_mut_ptr().cast(),
+        ) != 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(usage.assume_init().ri_resident_size)
+    }
+}
 
 /// APP-11.2: sets the core file size limit, soft and hard, to 0
 /// (`setrlimit(2)`). Child processes inherit it, and an unprivileged process
@@ -47,6 +66,11 @@ mod tests {
     /// Tells a child run of this test binary what to do.
     const ROLE: &str = "LARSAL_TEST_HARDENING_ROLE";
     const TARGET_PID: &str = "LARSAL_TEST_HARDENING_PID";
+
+    #[test]
+    fn resident_bytes_is_positive() {
+        assert!(resident_bytes().unwrap() > 0);
+    }
 
     fn core_limit() -> (u64, u64) {
         let mut now = libc::rlimit {

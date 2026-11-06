@@ -60,17 +60,20 @@ struct LarsalSettingsEffectsTests {
             LarsalSetting(key: "search.clear_after_minutes", value: .number(value: 1)),
         ])
         let main = try #require(window.main)
-        main.searchClearer.minute = .seconds(2)
+        main.searchClearer.minute = .seconds(4)
         let other = try #require(main.rows.first { $0.id != main.selection }?.id)
         let screen = Screen(window)  // the vault view: its selection change restarts the countdown
         await screen.settle()
         main.setSearch("o")
         main.searchClearer.focus(false, main)  // the field lost the focus
         try await Task.sleep(for: .milliseconds(1_200))
+        let selected = ContinuousClock.now
         main.select(other)
         await screen.settle()
-        try await Task.sleep(for: .milliseconds(1_200))
-        #expect(main.search == "o", "restarted: not cleared 2 s after the focus loss")
+        // An absolute deadline, so the settle's time under load does not count:
+        // no restart clears at selected + 2.8 s, a restart at selected + 4 s.
+        try await Task.sleep(until: selected + .seconds(3), clock: .continuous)
+        #expect(main.search == "o", "restarted: not cleared 3 s after the selection")
         for _ in 0..<200 where !main.search.isEmpty { try await Task.sleep(for: .milliseconds(25)) }
         #expect(main.search.isEmpty, "cleared a full wait after the new selection")
     }
