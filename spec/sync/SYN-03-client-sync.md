@@ -127,13 +127,13 @@ SYN-03.15 **Stop syncing.** It removes this Mac's link for the vault from the st
 - **Nothing guessable on the server (SV-03), from E16-S7b.** With the key-file part the server copy needs the master password plus the 256-bit part (P7), so a stolen server copy cannot be attacked with password guesses. Until E16-S7b adds it, the server copy of a password-only vault can (the table below).
 - **The newer key gives the server nothing (LD-264).** A copy that opens only with a key the server does not have cannot be made by the server; taking the newer key closes the case where an upload from a stale Mac undoes a password change.
 - **A replaced password is never taken back (LD-267 (2), LD-269 (3)).** A copy under a key this Mac retired gives no key, no deletions and no metadata, and is merged only after the user's click (AT-L04).
-- **No plain text off the Mac but the outer header with its field 12 (AT-L08).** A test reads every request a client sends and finds no password, key-file part or vault content (T24); the header goes in clear by format (SYN-03.14).
+- **No plain text off the Mac but the outer header with its field 12 (AT-L08).** A test reads every request and reply a client handles and finds no master password, entry password or title of 6 bytes or more, raw or encoded (T24; the key-file part from E16-S7b). It does not search user names, URLs or notes, which stay inside the encrypted file. The header goes in clear by format (SYN-03.14).
 
 What stays open, and who has it:
 
 | Open | Until | Who | Today |
 |---|---|---|---|
-| A server can test a password guess against the server copy of a password-only vault (LD-340, SV-03) | E16-S7b adds the key-file part (T01) | E16-S7b | Sync stays off in the app build: `scripts/build-core.sh` never asks for the `sync` feature, and `scripts/check-sync-link.sh` goes red if it does |
+| A server can test a password guess against the server copy of a password-only vault (LD-340, SV-03) | E16-S7b adds the key-file part (T01) | E16-S7b | Sync stays off in the app build: `scripts/build-core.sh` never asks for the `sync` feature, and `scripts/check-sync-link.sh` goes red if that script names `sync` or `--all-features`. This is a text match: it does not see a feature assembled at run time, or `scripts/repro-build.sh` |
 | Field 12 goes to the server in clear and can hold text a user typed (SYN-03.14) | The lead rules, or FMT-03.22 changes | The lead, E13-S8 | Named here and in plan/architecture.md, "What the server sees" |
 
 ## Test cases
