@@ -738,7 +738,7 @@ Not done in step 5: item 3 (above); uniffi_bindgen's `src/scaffolding/`; the ped
 
 ## E22-S2 / E23-S2 file-format copies (LD-379)
 
-Private candidate record, 2026-11-05. Ten exact registry archives were acquired under the owner's itemized approval and independently checked. Their complete 193 regular members and every license/notice are retained unchanged in vendor/crates-io; these are uncut copies, not patched crypto. Each .cargo-checksum.json lists every raw member and the original publisher archive SHA-256. No new stub, build script, proc macro, installed tool or online Cargo source is added. The seven direct dependencies and exact features are in architecture; dbl/tinyvec/macros stay transitive. Declared transitive defaults are not mislabelled graph-wide defaults-off.
+Record of 2026-11-05, on Main since commit ccdaf96. Ten exact registry archives were acquired under the owner's itemized approval and independently checked. Their complete 193 regular members and every license/notice are retained unchanged in vendor/crates-io; these are uncut copies, not patched crypto. Each .cargo-checksum.json lists every raw member and the original publisher archive SHA-256. No new stub, build script, proc macro, installed tool or online Cargo source is added. The seven direct dependencies and exact features are in architecture; dbl/tinyvec/macros stay transitive. Declared transitive defaults are not mislabelled graph-wide defaults-off. tinyvec and unicode-normalization each carry a .gitignore that hides their Cargo.lock; both files are force-added (LD-418).
 
 | Package | Archive SHA-256 | Raw files | Notices retained |
 |---|---|---:|---|
@@ -753,4 +753,4 @@ Private candidate record, 2026-11-05. Ten exact registry archives were acquired 
 | tinyvec 1.10.0 | `bfa5fdc3bce6191a1dbc8c02d5c8bffcf557bafa17c124c5264a458f1b0613fa` | 26 | `LICENSE-APACHE.md`, `LICENSE-MIT.md`, `LICENSE-ZLIB.md` |
 | tinyvec_macros 0.1.1 | `1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20` | 8 | `LICENSE-APACHE.md`, `LICENSE-MIT.md`, `LICENSE-ZLIB.md` |
 
-Existing license alternatives and copyrights keep their own terms. The approved metadata/source choice does not establish signed release authenticity, whole-process erasure, Unicode18 interoperability or file-format/runtime success. No age peer program is extracted or executed by this vendoring step. S2 checks and independent Verify remain open.
+Existing license alternatives and copyrights keep their own terms. The approved metadata/source choice does not establish signed release authenticity, whole-process erasure, Unicode18 interoperability or file-format/runtime success. No age peer program is extracted or executed by this vendoring step. S2's checks passed and Verify V1, V3 and V4 signed on 2026-11-06, dependency scope only (LD-379, security/parity/E22-S2-E23-S2-crates.md).
