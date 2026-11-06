@@ -1,0 +1,94 @@
+[
+ {
+  "id": "xcodebuild-nsird",
+  "who": "xcodebuild: Foundation atomic writes of the workspace arena info.plist and LogStoreManifest.plist in target/xcode",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (regex #\"^{T}/TemporaryItems/NSIRD_xcodebuild_[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))"
+ },
+ {
+  "id": "swbuild-nsird",
+  "who": "SWBBuildService: Foundation atomic write of the PIF cache under target/xcode/Build/Intermediates.noindex/XCBuildData/PIFCache",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (regex #\"^{T}/TemporaryItems/NSIRD_SWBBuildService_[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))"
+ },
+ {
+  "id": "ibtool-nsird",
+  "who": "ibtoold (the asset tool's worker, under the name ibtool): Foundation atomic writes of GeneratedAssetSymbols.swift, .h and -Index.plist in DerivedSources",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (regex #\"^{T}/TemporaryItems/NSIRD_ibtool_[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))"
+ },
+ {
+  "id": "xcodebuild-ptmx",
+  "who": "xcodebuild: makes a pseudo terminal for the test runner's input and output",
+  "line": "(allow (with report) file-write-data (literal \"/dev/ptmx\"))"
+ },
+ {
+  "id": "swbuild-tmp",
+  "who": "SWBBuildService: scratch folder for the ProcessInfoPlistFile step in both targets",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (regex #\"^{T}/swbuild\\.tmp\\.[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))",
+  "t_folder": "",
+  "t_name": "swbuild\\.tmp\\.[A-Za-z0-9]{8}"
+ },
+ {
+  "id": "xcodebuild-ttys",
+  "who": "xcodebuild: the terminal end of the pseudo terminal it makes for the test runner",
+  "line": "(allow (with report) file-write-data (regex #\"^/dev/ttys[0-9]+$\"))"
+ },
+ {
+  "id": "swbuild-xattr",
+  "who": "SWBBuildService: sets an extended attribute on its own swbuild.tmp folder, in the ProcessInfoPlistFile step",
+  "line": "(allow (with report) file-write-xattr (regex #\"^{T}/swbuild\\.tmp\\.[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))"
+ },
+ {
+  "id": "xcodebuild-lsd",
+  "who": "xcodebuild only: reads the type database for the Mac's model name when it writes the result bundle",
+  "line": "(allow (with report) mach-lookup (require-all (global-name \"com.apple.lsd.mapdb\") (signing-identifier \"com.apple.dt.xcodebuild\")))"
+ },
+ {
+  "id": "xctest-pasteboard",
+  "who": "xctest only: the private named boards the copy tests use",
+  "line": "(allow (with report) mach-lookup (require-all (global-name \"com.apple.pasteboard.1\") (signing-identifier \"com.apple.xctest\")))"
+ },
+ {
+  "id": "xctest-window",
+  "who": "xctest only: tests that make a real window server window, and the font and focus render checks",
+  "line": "(allow (with report) mach-lookup (require-all (global-name \"com.apple.windowserver.active\") (signing-identifier \"com.apple.xctest\")))"
+ },
+ {
+  "id": "xctest-nsird",
+  "who": "xctest: Foundation atomic write of presenter.swift in the T72 test",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (regex #\"^{T}/TemporaryItems/NSIRD_xctest_[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))"
+ },
+ {
+  "id": "unix-bind",
+  "who": "Larsal and xctest: Larsal's single-instance channel, in the app09 tests and F-131's direct start; the browser channel of BrowserSetupTests",
+  "line": "(allow (with report) network-bind (local unix-socket (path-regex #\"^{R}/(tmp|instance)/\")))"
+ },
+ {
+  "id": "unix-connect",
+  "who": "the app09 program and second Larsal launches: they connect to the channel of the Larsal they started",
+  "line": "(allow (with report) network-outbound (remote unix-socket (path-regex #\"^{R}/(tmp|instance)/\")))"
+ },
+ {
+  "id": "larsal-lsd",
+  "who": "Larsal only, by signing identifier: NSApplication.shared checks in with this service, and aborts if it cannot. The app09 tests and F-131's direct start",
+  "line": "(allow (with report) mach-lookup (require-all (global-name \"com.apple.coreservices.launchservicesd\") (signing-identifier \"app.larsal.desktop.debug\")))"
+ },
+ {
+  "id": "larsal-window",
+  "who": "Larsal only, by signing identifier: the app started by the app09 program and by F-131's direct start",
+  "line": "(allow (with report) mach-lookup (require-all (global-name \"com.apple.windowserver.active\") (signing-identifier \"app.larsal.desktop.debug\")))"
+ },
+ {
+  "id": "xctest-lsd",
+  "who": "xctest only, by signing identifier: the type database turns the legacy pasteboard type into the modern one when a test reads its private board",
+  "line": "(allow (with report) mach-lookup (require-all (global-name \"com.apple.lsd.mapdb\") (signing-identifier \"com.apple.xctest\")))"
+ },
+ {
+  "id": "swiftlint-nsird",
+  "who": "SwiftLint: Foundation's atomic write of its cache file under R/home/Library/Caches/SwiftLint",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (regex #\"^{T}/TemporaryItems/NSIRD_swiftlint_[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\"))"
+ },
+ {
+  "id": "larsal-nsird",
+  "who": "Larsal only, by signing identifier: the atomic create of F-131's window listing file, ScreenProtection.swift:134",
+  "line": "(allow (with report) file-write-create file-write-data file-write-unlink (require-all (regex #\"^{T}/TemporaryItems/NSIRD_Larsal_[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]($|/)\") (signing-identifier \"app.larsal.desktop.debug\")))"
+ }
+]

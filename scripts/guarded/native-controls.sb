@@ -1,0 +1,7 @@
+(deny mach-lookup (global-name "com.apple.WindowServer"))
+(deny mach-lookup (global-name-prefix "com.apple.pasteboard") (global-name-prefix "com.apple.pboard") (global-name-prefix "com.apple.windowserver") (global-name-prefix "com.apple.CARenderServer") (global-name-prefix "com.apple.SecurityServer") (global-name-prefix "com.apple.securityd") (global-name-prefix "com.apple.secd") (global-name-prefix "com.apple.security.agent") (global-name-prefix "com.apple.security.authhost") (global-name-prefix "com.apple.ctkd") (global-name-prefix "com.apple.biometrickitd") (global-name-prefix "com.apple.CoreAuthentication") (global-name-prefix "com.apple.coreservices.launchservicesd") (global-name-prefix "com.apple.coreservices.quarantine-resolver") (global-name-prefix "com.apple.lsd") (global-name-prefix "com.apple.runningboard") (global-name-prefix "com.apple.LocalAuthentication") (global-name-prefix "com.apple.coreservices.appleevents") (global-name-prefix "com.apple.coreservices.uasharedpasteboard") (global-name-prefix "com.apple.coreservices.uauseractivitypasteboard") (global-name-prefix "com.apple.security.KeychainStasher") (global-name-prefix "com.apple.security.XPCKeychainSandboxCheck") (global-name-prefix "com.apple.security.cloudkeychainproxy3") (global-name-prefix "com.apple.keychainsharingmessagingd") (global-name-prefix "com.apple.tsm.uiserver") (global-name-prefix "com.apple.dock.server"))
+(deny appleevent-send)
+(deny file-link)
+(deny signal)
+(allow signal (target self))
+(allow signal (target same-sandbox))
