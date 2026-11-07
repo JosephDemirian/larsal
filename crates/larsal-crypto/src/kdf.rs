@@ -799,6 +799,49 @@ pub fn pbkdf2(
     Ok(out)
 }
 
+/// The highest scrypt cost, as N x r x p: 2^20 x 8 x 1, the read ceiling of
+/// FIL-03.2. That is 1 GiB of working memory (128 x r x N bytes).
+pub const SCRYPT_MAX_COST: u64 = 1 << 23;
+
+/// scrypt (RFC 7914) with N = 2^`log_n`, giving `len` bytes.
+///
+/// Guarantees: a cost of 0, or over [`SCRYPT_MAX_COST`], is refused before any
+/// work or allocation; the result is exactly `len` bytes in a [`SecretBytes`];
+/// 256 KiB of stack below the call is zeroed after it. The crate's own working
+/// blocks are plain heap: the zeroing allocator of the `larsal` tool and
+/// larsal-ffi wipes them when they are freed (LD-379 has no zeroize feature
+/// for this crate).
+///
+/// # Errors
+/// [`Error::KdfCost`] for a cost out of range; [`Error::KeyLength`] for `len`
+/// 0 or above [`IMPORT_MAX_KEY`]; [`Error::KdfSettings`] if the crate refuses
+/// the settings.
+pub fn scrypt(
+    password: &[u8],
+    salt: &[u8],
+    log_n: u8,
+    r: u32,
+    p: u32,
+    len: usize,
+) -> Result<SecretBytes, Error> {
+    let cost = u64::from(r)
+        .checked_mul(u64::from(p))
+        .and_then(|rp| 1u64.checked_shl(u32::from(log_n))?.checked_mul(rp))
+        .ok_or(Error::KdfCost)?;
+    if log_n == 0 || !(1..=SCRYPT_MAX_COST).contains(&cost) {
+        return Err(Error::KdfCost);
+    }
+    if !(1..=IMPORT_MAX_KEY).contains(&len) {
+        return Err(Error::KeyLength);
+    }
+    let params = ::scrypt::Params::new(log_n, r, p).map_err(|_| Error::KdfSettings)?;
+    let mut out = SecretBytes::zeroed(len);
+    let key = out.expose_mut();
+    scrubbed_deep(|| ::scrypt::scrypt(password, salt, &params, key))
+        .map_err(|_| Error::KeyLength)?;
+    Ok(out)
+}
+
 /// HKDF-Expand (RFC 5869 section 2.3) with HMAC-SHA-256: `len` bytes from
 /// the pseudorandom key `prk` and `info`. No extract step: FEA-08.50 uses
 /// the derived key as the pseudorandom key.

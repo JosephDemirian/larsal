@@ -32,6 +32,10 @@ pub enum Form {
     /// The URL-safe alphabet (`-`, `_`, RFC 4648 section 5). Written without
     /// padding. Read as [`Form::PaddingOptional`] reads (FEA-08.47).
     Url,
+    /// The standard alphabet, never with `=`. Read: a `=` is refused and the
+    /// unused low bits must be zero, so one byte string has exactly one text
+    /// (the file header, FIL-01.2).
+    Unpadded,
 }
 
 /// `bytes` as base64 text in `form`.
@@ -89,17 +93,30 @@ pub fn decode_secret(form: Form, text: impl AsRef<[u8]>) -> Result<SecretBytes, 
     })
 }
 
+/// [`decode`] in [`Form::Unpadded`] into the front of `out`, with no
+/// allocation, for the many short lines of a file. Returns the decoded length.
+///
+/// # Errors
+/// [`Error::Base64`] as [`decode`], also when `out` is too short.
+pub fn decode_unpadded_into(text: &[u8], out: &mut [u8]) -> Result<usize, Error> {
+    Base64Unpadded::decode(text, out)
+        .map(<[u8]>::len)
+        .map_err(|_| Error::Base64)
+}
+
 /// The exact base64 bytes of `bytes` in `form`; empty only for empty input
 /// or input too long to encode.
 fn encoded(form: Form, bytes: &[u8]) -> Vec<u8> {
     let len = match form {
         Form::Padded | Form::PaddingOptional => Base64::encoded_len(bytes),
         Form::Url => Base64UrlUnpadded::encoded_len(bytes),
+        Form::Unpadded => Base64Unpadded::encoded_len(bytes),
     };
     let mut out = vec![0; len];
     let n = match form {
         Form::Padded | Form::PaddingOptional => Base64::encode(bytes, &mut out),
         Form::Url => Base64UrlUnpadded::encode(bytes, &mut out),
+        Form::Unpadded => Base64Unpadded::encode(bytes, &mut out),
     }
     .map_or(0, str::len);
     out.truncate(n);
@@ -123,6 +140,7 @@ fn decode_in(form: Form, text: &[u8], buf: &mut [u8]) -> Result<usize, Error> {
         Form::Url => Base64UrlUnpadded::decode(unpadded(text)?, buf)
             .map(<[u8]>::len)
             .ok(),
+        Form::Unpadded => Base64Unpadded::decode(text, buf).map(<[u8]>::len).ok(),
     };
     n.ok_or(Error::Base64)
 }

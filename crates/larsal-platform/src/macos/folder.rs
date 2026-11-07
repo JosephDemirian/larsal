@@ -117,6 +117,85 @@ pub fn open_regular(path: &std::path::Path) -> io::Result<File> {
     }
 }
 
+/// F-101's open for a path chosen as one file (FIL-03.5): a link at the last
+/// step is never followed (`O_NOFOLLOW`), at the open itself, so no look at the
+/// path before it can be raced. Never waits, as [`open_regular`].
+///
+/// # Errors
+/// The system's error; `InvalidInput` for a link or anything but a regular
+/// file.
+pub fn open_regular_nofollow(path: &std::path::Path) -> io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    let not_regular = || io::Error::from(io::ErrorKind::InvalidInput);
+    let f = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_NOCTTY)
+        .open(path)
+        .map_err(|e| {
+            if e.raw_os_error() == Some(libc::ELOOP) {
+                not_regular()
+            } else {
+                e
+            }
+        })?;
+    if f.metadata()?.is_file() {
+        Ok(f)
+    } else {
+        Err(not_regular())
+    }
+}
+
+/// `ACL_TYPE_EXTENDED` of `<sys/acl.h>` (libc 0.2.191 has no access list calls).
+const ACL_TYPE_EXTENDED: libc::c_uint = 0x100;
+
+unsafe extern "C" {
+    fn acl_get_fd_np(fd: libc::c_int, acl_type: libc::c_uint) -> *mut libc::c_void;
+    fn acl_free(obj: *mut libc::c_void) -> libc::c_int;
+}
+
+/// FIL-03.8, FIL-03.20: true when the open file or folder has an access control
+/// list: a way in that its mode bits do not show.
+///
+/// # Errors
+/// The system's error, for anything but "it has none" (`acl_get_fd_np(3)`,
+/// `ENOENT`): a caller that wants privacy must not read that as none.
+pub fn has_acl(file: &File) -> io::Result<bool> {
+    // SAFETY: `file` stays open while borrowed; the call only reads the
+    // descriptor and the type, and a null result sets errno.
+    let acl = unsafe { acl_get_fd_np(file.as_raw_fd(), ACL_TYPE_EXTENDED) };
+    if acl.is_null() {
+        let e = io::Error::last_os_error();
+        return if e.raw_os_error() == Some(libc::ENOENT) {
+            Ok(false)
+        } else {
+            Err(e)
+        };
+    }
+    // SAFETY: `acl` is the list that call just made for us, freed once.
+    unsafe { acl_free(acl) };
+    Ok(true)
+}
+
+/// True when the volume of this open file or folder is mounted ignoring ownership
+/// (`MNT_IGNORE_OWNERSHIP` of `fstatfs(2)`): modes there bind no one, whatever they
+/// show, and they can read back as asked (FIL-03.8).
+///
+/// # Errors
+/// The system's error.
+pub fn ignores_ownership(file: &File) -> io::Result<bool> {
+    let mut st = MaybeUninit::<libc::statfs>::uninit();
+    // SAFETY: `file` stays open while borrowed and `st` is valid for writes of a
+    // statfs. assume_init runs only after fstatfs returned 0, which means it
+    // filled every field.
+    let st = unsafe {
+        if libc::fstatfs(file.as_raw_fd(), st.as_mut_ptr()) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        st.assume_init()
+    };
+    Ok(st.f_flags & libc::MNT_IGNORE_OWNERSHIP.cast_unsigned() != 0)
+}
+
 /// `SF_DATALESS` of `<sys/stat.h>` (libc 0.2.191 has no constant).
 const SF_DATALESS: u32 = 0x4000_0000;
 
@@ -294,6 +373,85 @@ mod tests {
         assert_eq!(again.kind(), io::ErrorKind::AlreadyExists);
         remove_in(&open, name).unwrap();
         assert!(!b.join("t.tmp").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn private_dir(tag: &str) -> std::path::PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("larsal-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+        dir
+    }
+
+    /// FIL-03.8: a real list, by the system's own tool; the mode bits say nothing of
+    /// it, so only the descriptor's list can.
+    #[test]
+    fn fil03_t08_has_acl_sees_a_list_the_mode_does_not_show() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = private_dir("has-acl");
+        let path = dir.join("demo");
+        std::fs::write(&path, b"demo").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let open = File::open(&path).unwrap();
+        assert!(!has_acl(&open).unwrap());
+        let status = Command::new("/bin/chmod")
+            .args(["+a", "everyone allow read"])
+            .arg(&path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(has_acl(&open).unwrap(), "seen on the same descriptor");
+        let mode = open.metadata().unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
+        // A folder the same way.
+        assert!(!has_acl(&File::open(&dir).unwrap()).unwrap());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// FIL-03.5: the open itself refuses a link, even to a regular file; a FIFO is
+    /// refused at once, with no wait for a writer.
+    /// C2R2-04: what the system cannot say is an error, never "no list" or "owners
+    /// kept". No descriptor 10000 is open in this test program, and `ManuallyDrop`
+    /// keeps the `File` from closing it.
+    #[test]
+    fn fil03_t08_a_closed_descriptor_is_an_error_not_an_answer() {
+        use std::mem::ManuallyDrop;
+        // SAFETY: nothing uses this descriptor; the wrapper only ever fails a call.
+        let closed = ManuallyDrop::new(unsafe { File::from_raw_fd(10_000) });
+        assert!(has_acl(&closed).is_err());
+        assert!(ignores_ownership(&closed).is_err());
+    }
+
+    /// FIL-03.8: this test's own folder is on a volume that keeps ownership. The
+    /// other side needs a real mount: `crates/larsal-files/tests/volumes.rs`.
+    #[test]
+    fn fil03_t08_a_normal_volume_keeps_ownership() {
+        let dir = private_dir("owners");
+        assert!(!ignores_ownership(&File::open(&dir).unwrap()).unwrap());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn fil03_t05_open_regular_nofollow_refuses_all_but_a_regular_file() {
+        let dir = private_dir("nofollow");
+        let (file, link, fifo) = (dir.join("demo"), dir.join("link"), dir.join("fifo"));
+        std::fs::write(&file, b"demo").unwrap();
+        std::os::unix::fs::symlink(&file, &link).unwrap();
+        let status = Command::new("/usr/bin/mkfifo").arg(&fifo).status().unwrap();
+        assert!(status.success());
+        assert!(open_regular_nofollow(&file).is_ok());
+        for (path, what) in [(&link, "a link"), (&fifo, "a FIFO"), (&dir, "a folder")] {
+            let e = open_regular_nofollow(path).unwrap_err();
+            assert_eq!(e.kind(), io::ErrorKind::InvalidInput, "{what}");
+        }
+        assert_eq!(
+            open_regular_nofollow(&dir.join("none")).unwrap_err().kind(),
+            io::ErrorKind::NotFound
+        );
+        // The older open, kept for its callers, does follow.
+        assert!(open_regular(&link).is_ok());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

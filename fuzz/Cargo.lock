@@ -638,6 +638,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "larsal-files"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+ "larsal-platform",
+]
+
+[[package]]
 name = "larsal-format"
 version = "0.1.0"
 dependencies = [
@@ -657,6 +665,7 @@ dependencies = [
  "larsal-browser",
  "larsal-core",
  "larsal-crypto",
+ "larsal-files",
  "larsal-format",
  "larsal-model",
  "larsal-proto",

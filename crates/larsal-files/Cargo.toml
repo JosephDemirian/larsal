@@ -1,0 +1,27 @@
+[package]
+name = "larsal-files"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E22-S3: file encryption (spec FIL-01, FIL-03). Arranges the public file format
+# and the decrypt flow. Every primitive comes through larsal-crypto (rule 3); file
+# descriptors come through larsal-platform's folder calls. No new outside crate.
+[dependencies]
+larsal-crypto = { workspace = true }
+larsal-platform = { workspace = true }
+
+[dev-dependencies]
+# Published test files may be zlib compressed (FIL-03.17).
+flate2 = { workspace = true }
+# The probe allocator of tests/wipe.rs and tests/memory_bound.rs (test tools only).
+larsal-platform = { workspace = true, features = ["test-memory"] }
+
+[features]
+# The fuzz target's way to ciphertext in memory. Never on in a product build: a
+# user's file goes through capture (FIL-03.5, FIL-03.6).
+fuzz-door = []
+
+[lints]
+workspace = true

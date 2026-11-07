@@ -61,6 +61,10 @@ pub enum Error {
     /// for example an HPKE plaintext over 1 KiB (CRY-04). Checked before any
     /// work; depends only on public lengths.
     TooLarge,
+    /// Text is not valid Bech32 for the part asked for: a wrong checksum
+    /// (Bech32m too), mixed case, a wrong prefix, padding or length. Holds
+    /// nothing of the text (E22-S3, FIL-01.9).
+    Bech32,
 }
 
 impl std::fmt::Display for Error {
@@ -79,6 +83,7 @@ impl std::fmt::Display for Error {
             Self::SignatureInvalid => f.write_str("the signature is not valid"),
             Self::WrapInvalid => f.write_str("the wrapped data does not open"),
             Self::TooLarge => f.write_str("input above the size limit"),
+            Self::Bech32 => f.write_str("invalid Bech32 text"),
         }
     }
 }

@@ -48,6 +48,19 @@ impl Secret {
         scrubbed(|| random::bytes(KEY)).map(Self)
     }
 
+    /// The key held in `bytes`: a file identity from the vault (FIL-01.15), a
+    /// fresh ephemeral secret (FIL-01.3). Takes the buffer without copying it.
+    ///
+    /// # Errors
+    /// [`Error::KeyLength`] for anything but 32 bytes; `bytes` is wiped.
+    pub fn from_bytes(bytes: SecretBytes) -> Result<Self, Error> {
+        if bytes.len() == KEY {
+            Ok(Self(bytes))
+        } else {
+            Err(Error::KeyLength)
+        }
+    }
+
     /// x25519-dalek's key of this key's bytes (RFC 7748 clamps them when used).
     /// Called only inside `scrubbed`; the key wipes itself on drop.
     fn key(&self) -> StaticSecret {

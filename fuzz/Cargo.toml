@@ -24,6 +24,8 @@ larsal-share = { path = "../crates/larsal-share" }
 larsal-proto = { path = "../crates/larsal-proto" }
 # E7-S1: Larsal's side of the browser bridge (INT-01.48).
 larsal-browser = { path = "../crates/larsal-browser" }
+# E22-S3: file encryption (FIL-01, FIL-03).
+larsal-files = { path = "../crates/larsal-files", features = ["fuzz-door"] }
 png = { version = "=0.18.1", default-features = false }
 # E4-S13: the import targets build ZIP files from fuzz input (base64 from larsal-crypto).
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
@@ -265,6 +267,14 @@ bench = false
 [[bin]]
 name = "url_match"
 path = "fuzz_targets/url_match.rs"
+test = false
+doc = false
+bench = false
+
+# The file format's armor, header and chunk readers and the validated decrypt flow (FIL-01, FIL-03; E22-S3).
+[[bin]]
+name = "file_decrypt"
+path = "fuzz_targets/file_decrypt.rs"
 test = false
 doc = false
 bench = false

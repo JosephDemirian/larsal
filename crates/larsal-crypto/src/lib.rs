@@ -1,5 +1,5 @@
 //! The only door to crypto crates: secret types, random numbers, ciphers, hashes, key derivation, base64,
-//! signatures, HPKE, key wrap and the browser bridge channel.
+//! signatures, HPKE, key wrap, the browser bridge channel and the file format primitives.
 #![forbid(unsafe_code)]
 // Rust rule 4: no panics on input. Here, not in Cargo.toml: [lints] workspace = true
 // cannot be mixed with a crate lint table. Test code is exempt via clippy.toml.
@@ -13,7 +13,9 @@
 // Rust rule 13: every public item says in plain words what it guarantees.
 #![deny(missing_docs)]
 
+pub mod aead;
 pub mod base64;
+pub mod bech32;
 pub mod bridge;
 pub mod cipher;
 pub mod error;
