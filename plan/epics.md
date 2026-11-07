@@ -698,14 +698,16 @@ Order: E22-S1 can start at once (research and spec only). E22-S2 waits for E22-S
 
 **E22-S3 File encryption in Rust.** A new crate `larsal-files` on larsal-crypto: encrypt and decrypt as a stream, so a file of any size needs little memory; the passphrase mode and the public key mode of FIL-01.
 - Checks: every published test vector passes; files made by the age reference tool open, and Larsal's files open in it (demo files, the tool from the owner's yes); one changed, cut or swapped byte anywhere gives the one generic error and no plaintext; the plaintext is never written to a temporary file; keys and passphrases are wiped after use; a work factor above FIL-03's limit is refused at once; two Checkers (crypto).
-- Status: todo
+- Status: **Done** 2026-11-07, engine scope only: nothing but tests and the fuzz target calls this crate. Verify signed with limits (commit 109ef36; proof: [E22-S3-file-encryption.md](../security/parity/E22-S3-file-encryption.md)). All seven checks hold: 128 of 128 published rows in profile age-classic-1 pass by their own stage and hash, and 19 hybrid rows are recorded by name and never counted (LD-366, LD-430); files open both ways with the age tool in both modes, by the lead's run on these same crate bytes; one changed, cut or swapped byte gives the one generic error and no plaintext; no plaintext temporary file; freed-heap wipe on every ending the walk has; a cost above FIL-03's limit refused at once; C1 and Sensitive C2 approved. Guarded run PASS: 4265 Rust tests, 399 Swift, 30 fuzz routes. Not proven: x86_64; registers and swap; the tool's terminal route; 4 GB and app against CLI (E22-S4, E22-S5). F-340, F-341 and F-342 block the close of the first story that calls this crate.
 
 **E22-S4 Encrypt File and Decrypt File in the Mac app.** FIL-02's flows: drag and drop, the File menu, a progress bar for large files, the passphrase saved as an entry.
 - Checks: FIL-02's test cases; a 4 GB demo file round-trips byte for byte; cancel leaves no partial output; Mac QA matches the frames, light and dark; tests launch hidden (rule 10).
+- Carried from E22-S3: whichever story calls `larsal-files` first closes FIL-03.9 (F-340), C1-R3-01 (F-341) and C2R3-01 (F-342) before its own close, and takes the list in [E22-S3-file-encryption.md](../security/parity/E22-S3-file-encryption.md) (F-344).
 - Status: todo
 
 **E22-S5 `larsal encrypt` and `larsal decrypt`.** The same format in the command line tool.
 - Checks: a file made by the Mac app opens with `larsal decrypt` and the other way round; a passphrase is never taken from the command line itself (only from a prompt, a file or the vault).
+- Carried from E22-S3: whichever story calls `larsal-files` first closes FIL-03.9 (F-340), C1-R3-01 (F-341) and C2R3-01 (F-342) before its own close, and takes the list in [E22-S3-file-encryption.md](../security/parity/E22-S3-file-encryption.md) (F-344).
 - Status: todo
 
 **E22-S6 Red team run against file encryption.** The Red team attacks the format, the code and the flows: changed headers, cut and swapped chunks, a huge work factor, a wrong key, a file name that tries to write outside the chosen folder, leftovers in temporary folders or memory.
