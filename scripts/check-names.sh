@@ -23,7 +23,7 @@
 # anywhere in a file, a file that is one raw deflate stream, base64 data: URI
 # payloads (spaces and line breaks allowed) and base64 runs of 40 or more
 # characters (also wrapped over lines) are unpacked, one at a time and each at
-# most 16 MB, and matched the same way. Anything it cannot read or unpack
+# most 16 MB (three listed published vectors 32 MB), and matched the same way. Anything it cannot read or unpack
 # fails the guard: so do zstd data, *.br files and WOFF2 fonts (Brotli, which
 # python3 cannot unpack) other than the fonts allowed below.
 # File names are printed with control characters escaped (\x1b), as ls -b does.
@@ -125,6 +125,15 @@ MOVES = re.compile('([\b\r])')
 ZLIB_HEAD = re.compile(rb'\x78[\x01\x5e\x9c\xda]')  # the usual zlib headers (F-020)
 UNPACK = ((b'\x1f\x8b', gzip.open), (b'BZh', bz2.open), (b'\xfd7zXZ\0', lzma.open))
 CAP = 1 << 24  # 16 MB: the most any one packed part may unpack to (F-031, F-119)
+# Three published test vectors unpack just past that (E22-S3). Only these exact
+# files, not a copy nested in another file, may unpack to 32 MB, and they are
+# matched in full like every other part.
+BIG_OK = {
+    '3ffc51d9314c11f84d049ad627d031ab8407abc1199df29144861fc6c4da92b8': 'stream_257_chunks',
+    'c55d0a954b0b25f13874734e25ca863a19e1b695af8dad5e3853176fbe2298c2': 'stream_257_chunks_full',
+    '0aff2b07b9cb6575863aa6b03ea78e40a49dc17ffa3bcb452a74c5bc7cd46ea6': 'stream_258_chunks',
+}
+BIG_CAP = 1 << 25
 # A data: URI payload (the ;base64, marker in any case, with spaces after the ;
 # and before the comma; spaces and line breaks in the payload; as browsers read
 # them), a run wrapped over lines as MIME, PEM and base64 -b write it (every
@@ -180,18 +189,18 @@ def inflate_text(z):
     return out
 
 
-def streams(data):
+def streams(data, cap=CAP):
     # Every whole zlib stream in data (one that ends with a good checksum),
     # and a raw deflate stream that is the whole of data (F-020). Each is at
-    # most 16 MB unpacked; more raises, so the file gets a 'cannot unpack' hit.
+    # most cap unpacked; more raises, so the file gets a 'cannot unpack' hit.
     for i in [m.start() for m in ZLIB_HEAD.finditer(data)] + [-1]:
         d = zlib.decompressobj(-15 if i < 0 else 15)
         try:
-            out = d.decompress(memoryview(data)[max(i, 0):], CAP + 1)
+            out = d.decompress(memoryview(data)[max(i, 0):], cap + 1)
         except zlib.error:
             continue
-        if len(out) > CAP:
-            raise ValueError('stream unpacks past 16 MB')
+        if len(out) > cap:
+            raise ValueError('stream unpacks past its cap')
         if d.eof and (i >= 0 or not d.unused_data):
             yield out
 
@@ -391,7 +400,8 @@ def unpacked(data, path, hits, inside):
     for m, f in UNPACK:
         if data.startswith(m):
             yield 'stream', capped(f(io.BytesIO(data)))
-    for s in streams(data):
+    listed = not inside and hashlib.sha256(data).hexdigest() in BIG_OK
+    for s in streams(data, BIG_CAP if listed else CAP):
         yield 'stream', s
     if data[:4] in (b'PK\3\4', b'PK\5\6') or zipfile.is_zipfile(io.BytesIO(data)):  # also after a prefix (F-020)
         with zipfile.ZipFile(io.BytesIO(data)) as z:
@@ -719,6 +729,7 @@ def self_test():
         for label, data, limit, hit in (
                 ('F-031 pixel data unpacked in 1 MB steps', png((b'IDAT', bomb)), 16 << 20, False),
                 ('F-031 zlib stream inside a file stops at 16 MB', b'junk\n' + bomb + b'\njunk', 32 << 20, True),
+                ('E22-S3 an unlisted stream one byte past 16 MB stops', zlib.compress(bytes(CAP + 1)), 32 << 20, True),
                 ('F-119 gzip stops at 16 MB', gzip.compress(mb) * 64, 32 << 20, True),  # 64 members
                 ('F-119 bzip2 stops at 16 MB', bz2.compress(mb) * 64, 32 << 20, True),
                 ('F-119 xz stops at 16 MB', lzma.compress(mb) * 64, 32 << 20, True),
