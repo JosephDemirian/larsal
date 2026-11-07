@@ -115,7 +115,7 @@
   "fuzz": "fuzz() {\n  local t list=$LOGS/fuzz-list.log\n  local -a pending=()\n  [ -f fuzz/Cargo.toml ] || { note=\"SKIP (no fuzz targets yet)\"; return; }\n  run fuzz-list fuzz_list || return\n  [ -s \"$list\" ] || { note=\"SKIP (no fuzz targets yet)\"; return; }\n  # The smoke reads only the seeds in fuzz/corpus/<target>; new units go to a\n  # fresh fuzz/target/smoke/<target>, which the name guard skips (a document the\n  # fuzzer finds can hold the root element name as text, AGENTS.md rule 1).\n  # The grown corpus of the long runs (fuzz/target/corpus) is not loaded: it\n  # takes minutes per target (Checker, 2026-10-27).\n  # Four independent targets at a time; keep each target's full time and seeds.\n  for t in $(cat \"$list\"); do\n    (\n      rm -rf \"fuzz/target/smoke/$t\" && mkdir -p \"fuzz/target/smoke/$t\" &&\n        cargo +nightly fuzz run \"$t\" \"fuzz/target/smoke/$t\" \"fuzz/corpus/$t\" -- -max_total_time=\"$FUZZ_SECONDS\"\n    ) >\"$LOGS/fuzz-$t.log\" 2>&1 &\n    pending+=(\"$!\" \"fuzz-$t\")\n    if [ \"${#pending[@]}\" -eq 8 ]; then\n      fuzz_wait \"${pending[@]}\"\n      pending=()\n    fi\n  done\n  if [ \"${#pending[@]}\" -gt 0 ]; then fuzz_wait \"${pending[@]}\"; fi\n  note=\"$(wc -l <\"$list\" | tr -d ' ') targets, ${FUZZ_SECONDS}s each\"\n}"
  },
  "scripts": {
-  "scripts/check-names.sh": "59df2b27bc2797cefa963ffb8ef508da86dff0c68e5135b37bf49d527ff643a9",
+  "scripts/check-names.sh": "364b0f7a6d33a4ace77ef2ae5fed8d41391fc886756cba88621ed677ed486fc3",
   "scripts/check-vendor.sh": "2e8aba909549efb4123a155483dd84290032107d7321419524b935646214ad6d",
   "scripts/check-server-blind.sh": "9bb6ac2ed80d291a041b49290be608784a2a1a20cbb0b3557a1e6bb1e3bebe8c",
   "scripts/build-core.sh": "22dc9fe2971b2e97a2c000e86e4f1c4aed2da8d9dc96bae9fd94180898c79837",
@@ -151,7 +151,8 @@
   "v1_import": "21fabd2dfa451c7152f7d49b18612857d2292b6523aa8e68880614fbdd96ffa8",
   "vault_header": "9793328a96509d07e4cc2c8f0e0190cc7b255141bb073b2e9a8b815354fdfb9e",
   "vault_open": "b6f60adc394cff67fb587aadd0ab710a5dc89f8e072056743fb5cf6541fb2273",
-  "word_list": "198fecda65b9c30b6c03f2eac28f24460f36f04b9cfbc0442b550ced8f8de62a"
+  "word_list": "198fecda65b9c30b6c03f2eac28f24460f36f04b9cfbc0442b550ced8f8de62a",
+  "file_decrypt": "cc9a5a6ad53a92c7896f8d69c273989ac981c2bd17d7d3c4341d5e16e16fc288"
  },
  "fuzz_bins": {
   "autotype_match": [
@@ -356,9 +357,16 @@
    "test = false",
    "doc = false",
    "bench = false"
+  ],
+  "file_decrypt": [
+   "name = \"file_decrypt\"",
+   "path = \"fuzz_targets/file_decrypt.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
   ]
  },
- "fuzz_cargo_rest_sha256": "25f11707e05fef3e6c71a7701e1fd8a85728d56c9b940733abf6b0faf3abefe8",
+ "fuzz_cargo_rest_sha256": "7d044c244665025f41f7ee9f6ab13268d4bce58ecc0d53aa1f2618c36ee69e35",
  "binaries": {
   "guard-board.dylib": "e5d2cbe53eee2039ad7638cfdb780a9e8634cfa99cf93d7750d4cd7fc56b4b39",
   "swiftlint": "52112ece2dfa99c2442a1367f9a365d43784714cf224c3675bf8bc2f18ebd7c8"
