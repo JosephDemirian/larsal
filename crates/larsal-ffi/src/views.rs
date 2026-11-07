@@ -269,6 +269,8 @@ pub enum FieldKind {
     Url,
     /// `Notes`.
     Notes,
+    /// `Title`, only when protected: a plain one is the head (FEA-10.1).
+    Title,
     /// Any other field.
     Custom,
 }
@@ -1087,6 +1089,13 @@ fn detail_of(vault: &Vault, id: &str, rated: &Rated) -> Result<EntryDetail, Lars
         protected: is_protected(vault, name, f),
     };
     let mut fields = Vec::new();
+    // FEA-10.1: a protected title is not in the head, so it is a row with its action.
+    if let Some(f) = e
+        .field("Title")
+        .filter(|f| !f.value.is_empty() && is_protected(vault, "Title", f))
+    {
+        fields.push(field("Title", FieldKind::Title, f));
+    }
     for (name, kind) in [
         ("UserName", FieldKind::UserName),
         ("Password", FieldKind::Password),
@@ -1198,11 +1207,23 @@ pub(crate) fn resolved(
     e: &Entry,
     text: &str,
 ) -> larsal_crypto::secret::SecretString {
+    resolved_at(v, path, e, text, now())
+}
+
+/// [`resolved`] with its clock at `at`: a ticket's text stays the code on
+/// screen (qr.rs).
+pub(crate) fn resolved_at(
+    v: &Vault,
+    path: &Path,
+    e: &Entry,
+    text: &str,
+    at: Time,
+) -> larsal_crypto::secret::SecretString {
     let dir = path.parent().unwrap_or(path).to_string_lossy();
     // LD-126: one work meter per resolution, so a field holding thousands
     // of references stops at the budget (its raw text is then shown).
     let meter = std::cell::Cell::new(refs::COPY_BUDGET);
-    refs::resolve(text, e, &refs::copy_context(v, &dir, now(), &meter)).text
+    refs::resolve(text, e, &refs::copy_context(v, &dir, at, &meter)).text
 }
 
 /// Show and Copy take any field but the one-time password fields and the

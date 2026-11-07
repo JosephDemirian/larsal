@@ -486,7 +486,9 @@ impl Session {
         // A look through this door counts too: a share import tried
         // meanwhile is only queued again.
         slot.version = slot.version.wrapping_add(1);
-        f(vault, &slot.path, &mut slot.rated, &mut slot.edit)
+        let out = f(&mut *vault, &slot.path, &mut slot.rated, &mut slot.edit);
+        slot.edit.qr_check(vault, &slot.path);
+        out
     }
 
     /// The vault `id` while unlocked and its edit state, for a look only
@@ -515,7 +517,23 @@ impl Session {
         let mut state = self.state();
         let slot = state.slot(id)?;
         let vault = slot.vault.as_deref().ok_or(LarsalError::Locked)?;
-        f(vault, &mut slot.edit)
+        let out = f(vault, &mut slot.edit);
+        slot.edit.qr_check(vault, &slot.path);
+        out
+    }
+
+    /// The vault `id` while unlocked, to read, its file path and its edit
+    /// state, for Show as QR Code (qr.rs), with the session lock held: not a
+    /// change, and it checks its ticket itself.
+    pub(crate) fn with_qr<R>(
+        &self,
+        id: u64,
+        f: impl FnOnce(&Vault, &Path, &mut EditState) -> Result<R, LarsalError>,
+    ) -> Result<R, LarsalError> {
+        let mut state = self.state();
+        let slot = state.slot(id)?;
+        let vault = slot.vault.as_deref().ok_or(LarsalError::Locked)?;
+        f(vault, &slot.path, &mut slot.edit)
     }
 
     /// The vault `id` while unlocked, with its breach check (reports.rs),
@@ -544,7 +562,7 @@ impl Session {
         let open = state.slots.iter().map(|s| s.path.clone()).collect();
         let slot = state.slot(id)?;
         let forced = slot.forced.is_some();
-        Ok(f(ShareSlot {
+        let out = f(ShareSlot {
             vault: slot.vault.as_deref_mut().filter(|_| !forced),
             path: &slot.path,
             epoch: slot.epoch,
@@ -553,7 +571,11 @@ impl Session {
             edit: &mut slot.edit,
             share: &mut slot.share,
             open,
-        }))
+        });
+        if let Some(vault) = slot.vault.as_deref() {
+            slot.edit.qr_check(vault, &slot.path);
+        }
+        Ok(out)
     }
 
     /// The edit state of vault `id`, locked or not (edit.rs test hooks);

@@ -484,7 +484,8 @@ fn scale(w: u32, h: u32, rgba: Vec<u8>) -> Option<(u32, u32, Vec<u8>)> {
 
 /// 8-bit RGBA as PNG bytes; the same pixels always give the same bytes, so
 /// de-duplication by bytes works (MOD-06.9).
-fn encode_png(w: u32, h: u32, rgba: &[u8]) -> Option<Vec<u8>> {
+#[must_use]
+pub fn encode_png(w: u32, h: u32, rgba: &[u8]) -> Option<Vec<u8>> {
     let mut out = Vec::new();
     let mut e = png::Encoder::new(&mut out, w, h);
     e.set_color(png::ColorType::Rgba);

@@ -25,7 +25,7 @@ use crate::session::{LarsalError, MAX_TEXT, Session};
 use crate::views::{
     AttachmentView, Copied, FAVORITE, PASSKEY, PasskeyView, Rated, Rating, SshKeyView, TotpView,
     count, custom_icon_name, find, hex, icon_number, is_protected, is_totp_field, now, parse_id,
-    passkey, plain, plain_in, ssh_key, ssh_type, totp_of, unix,
+    passkey, plain_in, ssh_key, ssh_type, totp_of, unix,
 };
 use larsal_core::health::{Level, entry_bits, score};
 use larsal_core::storage::{self, Checksum};
@@ -179,6 +179,11 @@ pub(crate) struct EditState {
     /// APP-05.26: the rollback guard's notice of the unlock read
     /// (`MSG-DISK-ROLLBACK-UNLOCK`, `MSG-DISK-WEAKER`), for `after_unlock`.
     pub(crate) notice: Option<String>,
+    /// FEA-10.11 (qr.rs): the one live Show as QR Code request; a lock or
+    /// close drops it.
+    pub(crate) qr: Option<crate::qr::Ticket>,
+    /// The newest request's number: a slower older one is dropped.
+    pub(crate) qr_newest: u64,
 }
 
 /// Temporary attachment copies, wiped and removed on drop (MOD-05.12):
@@ -754,7 +759,7 @@ fn protected_texts(v: &Vault, e: &Entry) -> Vec<EditText> {
 /// A field the editor's Show gives (F-060): a custom field, an additional
 /// URL or a standard text field; never the password (its own Show) nor the
 /// one-time password or passkey fields (LD-170 (4)).
-fn showable(name: &str) -> bool {
+pub(crate) fn showable(name: &str) -> bool {
     listed(name) || is_extra_url(name) || ["Title", "UserName", "URL", "Notes"].contains(&name)
 }
 
@@ -1278,12 +1283,26 @@ fn extension(name: &str) -> String {
 /// The QR symbol of `text` (FEA-04.23): error correction H, byte mode,
 /// the smallest version that fits, a quiet zone of 4 modules.
 fn qr(text: &[u8]) -> Result<Qr, LarsalError> {
+    symbol(text, None)
+}
+
+/// The QR symbol of Show as QR Code (FEA-10.8, LD-359): as [`qr`] with one
+/// ECI designator 26 (UTF-8) before its one byte segment. Never a fallback
+/// to another level, a truncation or a second segment.
+pub(crate) fn qr_eci26(text: &[u8]) -> Result<Qr, LarsalError> {
+    symbol(text, Some(26))
+}
+
+fn symbol(text: &[u8], eci: Option<u32>) -> Result<Qr, LarsalError> {
     use qrcode::bits::Bits;
     use qrcode::{Color, EcLevel, QrCode, Version};
     let fail = || LarsalError::Refused("The QR code could not be made.".to_owned());
     let code = (1..=40)
         .find_map(|v| {
             let mut bits = Bits::new(Version::Normal(v));
+            if let Some(designator) = eci {
+                bits.push_eci_designator(designator).ok()?;
+            }
             bits.push_byte_data(text).ok()?;
             bits.push_terminator(EcLevel::H).ok()?;
             QrCode::with_bits(bits, EcLevel::H).ok()
@@ -1307,38 +1326,11 @@ fn qr(text: &[u8]) -> Result<Qr, LarsalError> {
     })
 }
 
-/// The Wi-Fi join text (the common `WIFI:` QR form read by phone cameras):
-/// type, network name, password, with `\ ; , : "` escaped.
-fn wifi_text(e: &Entry) -> SecretString {
-    let security = plain(e, "Security");
-    let kind = if security.to_ascii_uppercase().starts_with("WEP") {
-        "WEP"
-    } else {
-        "WPA"
-    };
-    SecretString::new(wifi_join(kind, e.value("UserName"), e.value("Password")))
-}
-
-/// `WIFI:T:<kind>;S:<name>;P:<password>;;` escaped in one buffer of the
-/// exact size, so no part of the password is left in a temporary or grown
-/// buffer (F-064, Rust rule 3).
-fn wifi_join(kind: &str, name: &str, password: &str) -> String {
-    let special = |c: char| matches!(c, '\\' | ';' | ',' | ':' | '"');
-    let size = |s: &str| s.len() + s.matches(special).count();
-    let mut out = String::with_capacity(15 + kind.len() + size(name) + size(password));
-    out.push_str("WIFI:T:");
-    out.push_str(kind);
-    for (head, part) in [(";S:", name), (";P:", password)] {
-        out.push_str(head);
-        for c in part.chars() {
-            if special(c) {
-                out.push('\\');
-            }
-            out.push(c);
-        }
+impl EditState {
+    /// The open draft's entry, unsaved edits included (qr.rs).
+    pub(crate) fn draft_entry(&self) -> Option<&Entry> {
+        self.draft.as_ref().map(|d| &d.entry)
     }
-    out.push_str(";;");
-    out
 }
 
 impl Session {
@@ -2235,19 +2227,6 @@ impl Session {
         self.copy_value("One-time password link".to_owned(), uri.expose())
     }
 
-    /// The QR symbol that lets a phone join the Wi-Fi network of entry
-    /// `entry` (the detail's QR button): network name, password and
-    /// security type. A crossing of LD-220: Swift gets the QR matrix the user
-    /// asked for, a lossless picture of the password; the text stays in Rust.
-    ///
-    /// # Errors
-    /// `UnknownVault`, `Locked`, `UnknownEntry`; `Refused` when it does not
-    /// fit.
-    pub fn wifi_qr(&self, vault: u64, entry: String) -> Result<Qr, LarsalError> {
-        let text = self.with_vault(vault, |v| Ok(wifi_text(crate::views::entry_of(v, &entry)?)))?;
-        qr(text.expose().as_bytes())
-    }
-
     /// Remove passkey from the editor (INT-04.46): every passkey field and
     /// the tag `Passkey` leave the draft; part of the edit session.
     ///
@@ -2813,6 +2792,58 @@ mod tests {
     use super::*;
     use std::sync::atomic::{AtomicBool, Ordering};
 
+    /// FEA-10.8: ECI 26 then one byte segment. FEA-10.7, FEA-04.23: the
+    /// authenticator setup code keeps its byte-only bitstream. Each symbol is
+    /// checked against the bitstream written out by hand here.
+    #[test]
+    fn fea_10_8_eci_26_before_one_byte_segment_and_fea_10_7_setup_code_has_none() {
+        use qrcode::bits::Bits;
+        use qrcode::{Color, EcLevel, QrCode, Version};
+        let text = "caf\u{e9} demo".as_bytes();
+        let by_hand = |eci: Option<u32>, header: &[u8]| {
+            let version = Version::Normal(2);
+            let mut bits = Bits::new(version);
+            if let Some(designator) = eci {
+                bits.push_eci_designator(designator).unwrap();
+            }
+            bits.push_byte_data(text).unwrap();
+            let start: Vec<u8> = {
+                let mut copy = Bits::new(version);
+                if let Some(designator) = eci {
+                    copy.push_eci_designator(designator).unwrap();
+                }
+                copy.push_byte_data(text).unwrap();
+                copy.into_bytes()
+            };
+            assert_eq!(&start[..header.len()], header, "the header bits");
+            bits.push_terminator(EcLevel::H).unwrap();
+            QrCode::with_bits(bits, EcLevel::H).unwrap()
+        };
+        let modules = |code: &QrCode| -> Vec<u8> {
+            code.to_colors()
+                .iter()
+                .map(|c| u8::from(*c == Color::Dark))
+                .collect()
+        };
+        let inner = |symbol: &Qr| -> Vec<u8> {
+            let size = usize::try_from(symbol.size).unwrap();
+            symbol
+                .modules
+                .chunks_exact(size)
+                .skip(4)
+                .take(size - 8)
+                .flat_map(|row| row[4..size - 4].to_vec())
+                .collect()
+        };
+        // 0111, 00011010 (26), 0100, then the 8-bit count: 12 bytes.
+        assert_eq!(text.len(), 10);
+        let with = by_hand(Some(26), &[0x71, 0xA4, 0x0A]);
+        assert_eq!(inner(&qr_eci26(text).unwrap()), modules(&with));
+        // 0100, then the count, then the text from its high nibble.
+        let without = by_hand(None, &[0x40, 0xA6]);
+        assert_eq!(inner(&qr(text).unwrap()), modules(&without));
+    }
+
     /// Set by `save` just before it waits for the save lock (test hook).
     pub(super) static SAVE_WAITS: AtomicBool = AtomicBool::new(false);
 
@@ -3377,20 +3408,6 @@ mod tests {
         }
         assert_eq!(text.matches("<hidden>").count(), 4, "{text}");
         assert!(text.contains("GitHub") && text.contains("SHA-1"), "{text}");
-    }
-
-    /// F-064 (Rust rule 3): the Wi-Fi join text is escaped into one buffer
-    /// of the exact size; no escaped copy of the password and no grown
-    /// buffer is left behind.
-    #[test]
-    fn f_064_wifi_text_is_one_buffer_of_the_exact_size() {
-        let text = wifi_join("WPA", "Café;Net", r#"p\a;s,s:w"d-demo"#);
-        assert_eq!(text, r#"WIFI:T:WPA;S:Café\;Net;P:p\\a\;s\,s\:w\"d-demo;;"#);
-        assert_eq!(text.capacity(), text.len());
-        assert_eq!(
-            wifi_join("WEP", "", "").capacity(),
-            "WIFI:T:WEP;S:;P:;;".len()
-        );
     }
 
     /// The child half of the F-065 test: run with `TMPDIR` set elsewhere.

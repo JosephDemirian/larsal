@@ -26,7 +26,10 @@ use crate::macos::memory as os;
 use std::sync::Once;
 
 #[cfg(any(test, feature = "test-memory"))]
-pub use os::{Probe, Seen, marker_survives_free, set_needle, wired_bytes, zero_stack_words_after};
+pub use os::{
+    Probe, Seen, copies_in_memory, marker_survives_free, set_needle, wired_bytes,
+    zero_stack_words_after,
+};
 pub use os::{Zeroing, page_size};
 
 /// Pages kept in RAM by [`lock`]; dropping it undoes that lock.

@@ -241,8 +241,6 @@ fn fea_04_setup_qr_and_passkey() {
     );
     s.remove_passkey(v).unwrap();
     assert!(s.editor(v).unwrap().passkey.is_none());
-    let wifi = entry_id(&s, v, "Home Wi-Fi");
-    assert!(s.wifi_qr(v, wifi).unwrap().size >= 21);
 }
 
 #[test]

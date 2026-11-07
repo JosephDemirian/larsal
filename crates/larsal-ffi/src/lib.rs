@@ -21,6 +21,7 @@ pub mod larsal_settings;
 mod local_state;
 pub mod messages;
 mod open_copies;
+pub mod qr;
 pub mod reports;
 pub mod saving;
 pub mod security_keys;

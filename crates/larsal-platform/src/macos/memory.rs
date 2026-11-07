@@ -94,7 +94,8 @@ pub(crate) fn munlock(start: usize, len: usize) -> io::Result<()> {
 
 #[cfg(any(test, feature = "test-memory"))]
 pub use probe::{
-    Probe, Seen, marker_survives_free, set_needle, wired_bytes, zero_stack_words_after,
+    Probe, Seen, copies_in_memory, marker_survives_free, set_needle, wired_bytes,
+    zero_stack_words_after,
 };
 
 /// Test tools only (feature `test-memory`, never in product builds).
@@ -209,6 +210,94 @@ mod probe {
                 self.0.dealloc(ptr, layout);
             }
         }
+    }
+
+    // <mach/mach_vm.h>, with VM_REGION_BASIC_INFO_64 and its count.
+    unsafe extern "C" {
+        static mach_task_self_: libc::c_uint;
+        fn mach_vm_region(
+            task: libc::c_uint,
+            address: *mut u64,
+            size: *mut u64,
+            flavor: libc::c_int,
+            info: *mut libc::c_int,
+            count: *mut libc::c_uint,
+            object: *mut libc::c_uint,
+        ) -> libc::c_int;
+    }
+    const REGION_BASIC_INFO_64: libc::c_int = 9;
+    const REGION_BASIC_INFO_COUNT_64: libc::c_uint = 9;
+
+    /// How many copies of a span this process's writable memory holds: heap,
+    /// freed blocks and stacks. `masked` is the span with each byte XOR `mask`,
+    /// so the search never finds its own needle. For a test program that runs
+    /// this one test alone: nothing may unmap memory during the search. Reads
+    /// only through `memchr` and single byte reads of mapped pages.
+    ///
+    /// # Panics
+    /// When `masked` is empty.
+    #[must_use]
+    pub fn copies_in_memory(masked: &[u8], mask: u8) -> usize {
+        let first = libc::c_int::from(masked[0] ^ mask);
+        let mut found = 0;
+        let mut address = 0_u64;
+        loop {
+            let (mut size, mut object) = (0_u64, 0);
+            let mut info = [0; 16];
+            let mut count = REGION_BASIC_INFO_COUNT_64;
+            // SAFETY: the out pointers are valid locals; `info` is larger than
+            // the 9 ints the count asks for; the call only asks the kernel about
+            // this task.
+            let result = unsafe {
+                mach_vm_region(
+                    mach_task_self_,
+                    &raw mut address,
+                    &raw mut size,
+                    REGION_BASIC_INFO_64,
+                    info.as_mut_ptr(),
+                    &raw mut count,
+                    &raw mut object,
+                )
+            };
+            if result != 0 {
+                return found;
+            }
+            let readable_and_writable = info[0] & 3 == 3;
+            let Ok(len) = usize::try_from(size) else {
+                return found;
+            };
+            if readable_and_writable && len >= masked.len() {
+                let start = address as usize;
+                found += in_region(start, len, masked, mask, first);
+            }
+            address += size;
+        }
+    }
+
+    /// The copies in one mapped region of `len` bytes from `start`.
+    fn in_region(start: usize, len: usize, masked: &[u8], mask: u8, first: libc::c_int) -> usize {
+        let (mut at, mut found) = (0, 0);
+        let last = len - masked.len();
+        while at <= last {
+            // SAFETY: the kernel just reported the region mapped read and
+            // write, and the caller keeps it so (the test runs alone); memchr
+            // reads bytes as unsigned char inside it. The pointer is made from
+            // the address on purpose: no Rust object is formed over this memory.
+            let hit =
+                unsafe { libc::memchr((start + at) as *const libc::c_void, first, last - at + 1) };
+            if hit.is_null() {
+                break;
+            }
+            let here = hit as usize;
+            // SAFETY: `here` is at most `start + last`, so every byte read lies
+            // in the region; volatile, so each is a real read of that byte.
+            let same = masked.iter().enumerate().all(|(i, want)| unsafe {
+                ((here + i) as *const u8).read_volatile() ^ mask == *want
+            });
+            found += usize::from(same);
+            at = here - start + 1;
+        }
+        found
     }
 
     /// The bytes this process has wired (`proc_pid_rusage`, `ri_wired_size`):
