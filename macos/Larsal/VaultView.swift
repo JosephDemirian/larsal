@@ -42,9 +42,10 @@ struct VaultView: View {
                 // `.scrim`: the window dims; the sheet drops below the top bar.
                 ZStack(alignment: .top) {
                     Tok.scrim.contentShape(Rectangle()).accessibilityHidden(true)
+                        .onTapGesture { if case .qrCode(let popup) = dialog { popup.scrimClicked() } }
                     DialogView(model: model, dialog: dialog).id(dialog).padding(.top, 52)
                 }
-                .onExitCommand { model.dialog = nil }
+                .onExitCommand { if case .qrCode(let popup) = dialog { popup.escape() } else { model.dialog = nil } }
             }
         }
         .overlay(alignment: .bottom) {

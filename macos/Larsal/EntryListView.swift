@@ -191,6 +191,7 @@ struct EntryTable: View {
             }
             .focusable()
             .focused($focused)
+            .onChange(of: QrFocus.shared.turn) { if QrFocus.shared.isListTurn(of: model) { focused = true } }
             .onKeyPress(.upArrow) {
                 model.move(-1)
                 return .handled

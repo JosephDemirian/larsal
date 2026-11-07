@@ -67,7 +67,9 @@ final class VaultModel {
     /// APP-01.27 (S-TIME-05): the search field's clear countdown.
     @ObservationIgnored let searchClearer = SearchClearTimer()
     /// The sheet dropped from the window top (mockup `.scrim .dlg`).
-    var dialog: Dialog? { didSet { if dialog == nil, oldValue != nil { diskResume() } } }
+    var dialog: Dialog? { didSet { dialogChanged(from: oldValue) } }
+    /// Show as QR Code's live request and the focused field.
+    @ObservationIgnored var qrHeld = QrHeld()
     /// The footer's save state (APP-05): unsaved changes, last save.
     var saveStatus: SaveStatus?
     /// S-ENTRY-02 "Ask before moving to the Recycle Bin", off (MOD-04.3).
@@ -246,6 +248,7 @@ final class VaultModel {
     /// Selects an entry; the shown values of the old one are dropped.
     func select(_ id: String?) {
         guard id != selection || detail == nil else { return }
+        qrPopup?.revoke()  // FEA-10.11
         shown = [:]
         showTurn += 1
         selection = id
@@ -258,6 +261,7 @@ final class VaultModel {
     /// closes): the shown values and the live codes are dropped and the
     /// timers stop (AT-E07).
     func leave() {
+        qrPopup?.revoke()  // FEA-10.15: a confirmed panel too, not just the dialog
         showTurn += 1
         ticker?.cancel()
         ticker = nil
@@ -268,7 +272,7 @@ final class VaultModel {
         toastTimer?.cancel()
         toastTimer = nil
         toast = nil
-        shown = [:]
+        (shown, qrHeld.field) = ([:], nil)  // FEA-10.2: no focused field stays for the shortcut
         codes = [:]
         editor?.pause()  // LD-199 (2): the draft stays in Rust, shown values go
         sharing.editor?.hide()

@@ -21,6 +21,8 @@ struct EntryContextMenu: View {
             Button("Type Login") {}.disabled(true)
             item("Open URL") { model.openURL() }.disabled(row.host.isEmpty)
             Button("Show Code as QR") {}.disabled(true)
+            item(QrText.title) { model.showQr() }
+            if model.canJoinWifi(row: row) { item(QrText.join) { model.showWifiJoin() } }
             Divider()
             item("Clone Entry…") { model.askClone() }
             Button("Move to Group") {}.disabled(true)

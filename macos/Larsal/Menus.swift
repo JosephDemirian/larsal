@@ -69,6 +69,11 @@ struct MoreMenu: View {
             .disabled(url.isEmpty)
             MenuItem(lead: .glyph("qr-code"), title: "Show Code as QR", keys: "", hint: Later.dialogs) {}
                 .disabled(true)
+            MenuItem(lead: .glyph("qr-code"), title: QrText.title, keys: "⌃⌥⌘Q") {
+                model.overlay = nil
+                model.showQr()
+            }
+            .disabled(model.detail == nil)
             MenuSeparator()
             MenuItem(lead: .glyph("copy-simple"), title: "Clone Entry…", keys: "⌘D") { model.askClone() }
                 .disabled(model.detail == nil || model.detail?.inBin == true)

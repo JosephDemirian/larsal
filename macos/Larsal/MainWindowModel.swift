@@ -170,6 +170,7 @@ final class MainWindowModel {
     }
 
     func lock(_ id: UInt64) {
+        opened[id]?.qrPopup?.revoke()  // FEA-10.15: before any wait or question
         vaultMenu = false
         // APP-02.15 step 7 (F-122): editor edits or a changed open copy ask
         // MSG-LOCK-DISCARD-EDIT first.
@@ -187,6 +188,7 @@ final class MainWindowModel {
     /// save before the lock, so an editor edit made meanwhile asks step 7
     /// here first (F-122), also after Discard of the unsaved-changes question.
     func lockNow(_ id: UInt64, then: @escaping () -> Void = {}) {
+        opened[id]?.qrPopup?.revoke()
         if askEditor(id, then: { [weak self] in self?.lockNow(id, then: then) }) { return }
         try? session.lock(vault: id)
         refresh()
@@ -202,6 +204,7 @@ final class MainWindowModel {
     /// (LD-228 (1)). The window stays live during the saves, so after them
     /// it checks again: an edit made meanwhile asks too.
     func lockAll(asks: Bool = false) {
+        for model in opened.values { model.qrPopup?.revoke() }
         vaultMenu = false
         guard asks else {
             saveBeforeLock(within: .seconds(1))
@@ -228,6 +231,7 @@ final class MainWindowModel {
     }
 
     func close(_ id: UInt64) {
+        opened[id]?.qrPopup?.revoke()
         if let main, main.vault.id == id, main.askLeave(then: { [weak self] in self?.close(id) }) { return }
         // APP-02.15 step 8 (E5-S10): unsaved changes save or ask first.
         if let main, main.vault.id == id, main.askUnsaved(then: { [weak self] in self?.closeNow(id) }) { return }
@@ -235,6 +239,7 @@ final class MainWindowModel {
     }
 
     func closeNow(_ id: UInt64) {
+        opened[id]?.qrPopup?.revoke()
         // As lockNow (F-122, LD-199 (2)): an editor opened during the save
         // asks; after its Save or Discard the close starts again.
         if let main, main.vault.id == id, main.askLeave(then: { [weak self] in self?.close(id) }) { return }
@@ -319,6 +324,7 @@ extension MainWindowModel {
     /// The user's quit checks again after the saves: an edit made in the
     /// live window meanwhile asks too.
     func quitReply(asks: Bool, reply: @escaping (Bool) -> Void) -> NSApplication.TerminateReply {
+        for model in opened.values { model.qrPopup?.revoke() }
         if asks, askEditors(then: { NSApp?.terminate(nil) }) { return .terminateCancel }
         guard unsaved else { return .terminateNow }
         Task { [weak self] in
@@ -381,20 +387,4 @@ extension VaultModel {
         dialog = .lockDiscardEdit
         return true
     }
-}
-
-/// The plain text of an error from the Rust session; never a secret (AT-E03).
-func message(_ error: Error) -> String {
-    guard let error = error as? LarsalError else { return "Something went wrong. Try again." }
-    switch error {
-    case .UnknownVault(let text), .UnknownEntry(let text), .UnknownGroup(let text),
-        .UnknownField(let text), .Locked(let text), .TooLong(let text), .NotAvailable(let text),
-        .CannotOpen(let text), .Refused(let text):
-        return text
-    }
-}
-
-extension Logger {
-    /// Larsal's log. Never vault content (Swift rule 4, LD-67).
-    static let app = Logger(subsystem: "app.larsal.desktop", category: "app")
 }

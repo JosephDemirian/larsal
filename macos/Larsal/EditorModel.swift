@@ -36,6 +36,8 @@ final class EditorModel {
 
     let session: Session
     let vault: VaultInfo
+    /// Show as QR Code of a draft field (FEA-10.3): the vault's pop-up.
+    @ObservationIgnored var showQr: (String) -> Void = { _ in }
     private(set) var view: EditorView
     var page = Page.entry
     /// The password as shown in the field (Show; LD-220 (1)).

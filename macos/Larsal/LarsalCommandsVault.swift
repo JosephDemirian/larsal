@@ -55,6 +55,8 @@ struct EntryMenuItems: View {
         Divider()
         EntryCopyItems(state: state)
         Divider()
+        EntryQrItems(state: state)
+        Divider()
         Button("Open URL") { state.list?.openURL() }.keyboardShortcut("u")
             .disabled(state.url.isEmpty)
         // MOD-06.11 (F-094): only while S-ENTRY-11 is on (Rust says so).

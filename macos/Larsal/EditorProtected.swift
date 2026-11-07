@@ -48,7 +48,12 @@ struct ProtectedText<Field: View>: View {
             if protected ? shown : concealed && revealed {
                 IconButton(glyph: "eye-slash", label: "Hide " + label, size: 28, action: toggle)
             }
+            if protected {
+                IconButton(glyph: "qr-code", label: QrText.title, size: 28) { editor.showQr(field.name) }
+                    .qrInvoker()
+            }
         }
+        .focusedValue(\.qrField, protected ? field.name : "Password")
     }
 }
 

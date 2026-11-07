@@ -148,20 +148,22 @@ struct ParityEditorPagesTests {
         #expect(main.editor?.view.passkey == nil)
     }
 
-    @Test("Parity dialogs-wi-fi-as-qr: Show as QR code opens the network as QR")
+    @Test("Parity dialogs-wi-fi-as-qr: Show Wi-Fi Join Code asks for the entry's join (FEA-10.4, the card wins)")
     func wifiQr() async throws {
+        let seams = await QrSeams.begin()
+        defer { seams.restore() }
         let model = try ParityDemo.window("parity-editor-pages")
         let main = try #require(model.main)
         let screen = Screen(model)
         await screen.settle()
         try await screen.press("Devices")
         try await screen.press("Home Wi-Fi")
-        try await screen.press("Show as QR code")
-        guard case .wifiQr(let network, _) = main.dialog else {
-            Issue.record("no Wi-Fi sheet")
+        try await screen.press(QrText.join)
+        guard case .qrCode(let popup) = main.dialog, case .wifi = popup.request else {
+            Issue.record("no join pop-up")
             return
         }
-        #expect(network == "Morgan-Home 5G")
+        #expect(popup.purpose == "Wi-Fi join code")
     }
 
     @Test("Parity dialogs-new-group: Create Group adds the group with its symbol and colour as a custom icon")

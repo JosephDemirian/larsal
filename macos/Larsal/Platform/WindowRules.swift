@@ -46,6 +46,9 @@ final class WindowRules: NSObject {
     /// A minimize for the lock-on-minimize delay (APP-02.8): hiding to the
     /// icon counts as one (macOS reports real minimizes itself).
     var minimized: () -> Void = {}
+    /// Runs before the window leaves the screen by any way out here, before the
+    /// system acts, so no shown code goes into a Dock tile (FEA-10.15).
+    var willHide: (NSWindow?) -> Void = { QrPopup.revokeAll(leaving: $0) }
     /// The window in front; tests put a recorder here.
     var keyWindow: () -> NSWindow? = { NSApp?.keyWindow }
     /// The main window (the one `MainWindow` shows in).
@@ -58,6 +61,9 @@ final class WindowRules: NSObject {
     /// rules, and Keep Window on Top applies.
     func attach(_ window: NSWindow) {
         self.window = window
+        // A secret on screen never goes into macOS's saved window state; Larsal
+        // reopens its vaults itself (FEA-10.19, C2-4).
+        window.isRestorable = false
         window.standardWindowButton(.closeButton)?.target = self
         window.standardWindowButton(.closeButton)?.action = #selector(closeClicked)
         window.standardWindowButton(.miniaturizeButton)?.target = self
@@ -77,8 +83,13 @@ final class WindowRules: NSObject {
         } else if now.icon {
             hideToIcon()
         } else {
-            window?.miniaturize(nil)
+            intoDock()
         }
+    }
+
+    private func intoDock() {
+        willHide(window)
+        window?.miniaturize(nil)
     }
 
     /// APP-08.19: to the menu bar icon with S-UI-12 and S-UI-10 on, with no
@@ -88,7 +99,7 @@ final class WindowRules: NSObject {
         if now.icon && now.minimizeToIcon {
             hideToIcon()
         } else {
-            window?.miniaturize(nil)
+            intoDock()
         }
     }
 
@@ -110,13 +121,16 @@ final class WindowRules: NSObject {
         if settings().icon {
             hideToIcon()
         } else {
-            (window ?? NSApp.windows.first { $0.canBecomeMain && $0.isVisible })?.miniaturize(nil)
+            let target = window ?? NSApp.windows.first { $0.canBecomeMain && $0.isVisible }
+            willHide(target)
+            target?.miniaturize(nil)
         }
     }
 
     /// APP-08.22: the window hides and Larsal leaves the Dock and the app
     /// switcher (an accessory app) until the window shows again.
     func hideToIcon() {
+        willHide(window)
         window?.orderOut(nil)
         hidden = true
         // A hidden launch stays prohibited, so bring() never takes the screen.

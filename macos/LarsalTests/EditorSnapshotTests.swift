@@ -54,6 +54,8 @@ struct EditorSnapshotTests {
 
     @Test("Option A editor frame, offscreen, light and dark", arguments: EditorFrame.allCases)
     func frame(_ frame: EditorFrame) async throws {
+        let seams = frame == .wifiQr ? await QrSeams.begin() : nil
+        defer { seams?.restore() }
         let window = try ParityDemo.window("editor-shots")
         let main = try #require(window.main)
         try ParityDemo.rate(window)
@@ -155,7 +157,7 @@ struct EditorSnapshotTests {
             main.dialog = .totpQr(title: "GitHub", symbol: try session.totpQr(vault: vault), custom: false)
         case .wifiQr:
             main.select(try id("Home Wi-Fi"))
-            main.showWifiQr()
+            main.showWifiJoin()
         case .newGroup:
             main.dialog = .newGroup(name: "Travel")
         case .removePasskey:

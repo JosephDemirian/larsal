@@ -43,6 +43,7 @@ enum MenuCard {
                 ("New Entry", "⌘N"), ("Edit Entry", "⌘E"), ("Clone Entry…", "⌘D"), ("Expire Entry", ""),
                 ("Delete Entry", "⌘⌫"), ("-", ""), ("Copy Username", "⌘B"), ("Copy Password", "⌘C"),
                 ("Copy URL", "⇧⌘U"), ("Copy Field", ""), ("One-Time Password", ""), ("Tags", ""), ("-", ""),
+                ("Show as QR Code", "⌃⌥⌘Q"), ("Show Field as QR Code", ""), ("Show Wi-Fi Join Code", ""), ("-", ""),
                 ("Open URL", "⌘U"), ("Fetch Site Icon", "⇧⌘D"), ("Type Login", "⇧⌘V"),
                 ("Auto-Type Username Only", ""), ("Auto-Type Password Only", ""),
             ]

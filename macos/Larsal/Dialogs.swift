@@ -11,6 +11,8 @@ struct DialogCard<Body: View, Foot: View>: View {
     let title: String
     var text: String?
     var wide = false
+    /// FEA-10.12: the dense code's width, when neither of the two fits it.
+    var width: CGFloat?
     /// A user name `title` holds (the Wi-Fi network's): masked as every
     /// other one while S-VIEW-06 is on, read "hidden" (LD-219 addendum).
     var user: String?
@@ -54,7 +56,7 @@ struct DialogCard<Body: View, Foot: View>: View {
         .padding(.horizontal, 22)
         .padding(.top, 22)
         .padding(.bottom, 18)
-        .frame(width: wide ? 560 : 460)
+        .frame(width: width ?? (wide ? 560 : 460))
         .background(Tok.dialog, in: RoundedRectangle(cornerRadius: 12))
         // The sheet's own box, before its shadow draws outside it.
         .accessibilityElement(children: .contain)
@@ -123,15 +125,7 @@ struct DialogView: View {
         case .totpSetup(let setup): TotpSetupSheet(model: model, setup: setup)
         case .totpQr(let title, let symbol, let custom):
             TotpQrSheet(model: model, title: title, symbol: symbol, custom: custom)
-        case .wifiQr(let network, let symbol):
-            DialogCard(
-                tint: "cyan", glyph: "wifi-high", title: "Join “\(network)”",
-                text: "Point a phone camera at the code to join the network.", user: network
-            ) {
-                DialogBody { QrPanel(symbol: symbol, filled: true) }
-            } foot: {
-                SheetButton(title: "Done", kind: .primary) { model.dialog = nil }
-            }
+        case .qrCode(let popup): QrPopupView(popup: popup)
         case .newGroup(let start): NewGroupSheet(model: model, name: start)
         case .version(let index, let version): VersionSheet(model: model, index: index, version: version)
         case .removeAttachment, .overwriteAttachment, .bigFile, .openRisky, .replaceFile:

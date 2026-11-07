@@ -56,19 +56,25 @@ struct AdvancedPage: View {
                 }),
             field.protected
                 ? AnyView(
-                    Button {
-                        editor.toggleShowField(field.name)
-                    } label: {
-                        Text(verbatim: editor.shownFields[field.name] ?? String(repeating: "•", count: 20))
-                            .font(.mono(13))
+                    HStack(spacing: 4) {
+                        Button {
+                            editor.toggleShowField(field.name)
+                        } label: {
+                            Text(verbatim: editor.shownFields[field.name] ?? String(repeating: "•", count: 20))
+                                .font(.mono(13))
+                        }
+                        .buttonStyle(Bare())
+                        .accessibilityLabel(
+                            Text(verbatim: (editor.shownFields[field.name] == nil ? "Show " : "Hide ") + field.name)
+                        )
+                        // What it draws: dots while protected (rule 4).
+                        .accessibilityValue(
+                            Text(verbatim: editor.shownFields[field.name] ?? String(repeating: "•", count: 20)))
+                        Spacer(minLength: 0)
+                        IconButton(glyph: "qr-code", label: QrText.title, size: 28) { editor.showQr(field.name) }
+                            .qrInvoker()
                     }
-                    .buttonStyle(Bare())
-                    .accessibilityLabel(
-                        Text(verbatim: (editor.shownFields[field.name] == nil ? "Show " : "Hide ") + field.name)
-                    )
-                    // What it draws: dots while protected (rule 4).
-                    .accessibilityValue(
-                        Text(verbatim: editor.shownFields[field.name] ?? String(repeating: "•", count: 20))))
+                    .focusedValue(\.qrField, field.name))
                 : AnyView(
                     CellField(text: field.value, label: "Value of " + field.name) { value in
                         editor.run { try session.setField(vault: id, name: field.name, value: value) }

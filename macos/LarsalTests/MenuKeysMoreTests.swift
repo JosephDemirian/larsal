@@ -74,22 +74,24 @@ extension MenuKeysTests {
         #expect(hits("history").map(\.role) == ["AXStaticText"], "off: the sheet reads it: \(hits("history"))")
     }
 
-    @Test("APP-08.8 LD-219: Mask User Names hides the network name in the Wi-Fi QR dialog's title")
+    @Test("APP-08.8 LD-219: the Wi-Fi join pop-up holds no network name, masked or not (FEA-10.11)")
     func maskWifiQrTitle() async throws {
+        let seams = await QrSeams.begin()
+        defer { seams.restore() }
         let window = try ParityDemo.window("e5s11-mask-wifi")
         defer { window.lockAll() }
         defer { window.view.set("display.hide_usernames", false, window.session) }
         let main = try #require(window.main)
         main.select(try #require(main.rows.first { $0.title == "Home Wi-Fi" }?.id))
-        main.showWifiQr()
+        main.showWifiJoin()
         let screen = Screen(window)
         await screen.settle()
         let network = "Morgan-Home 5G"
-        #expect(screen.strings().contains("Join “\(network)”"), "off: the frame's title")
+        #expect(screen.strings().contains(QrText.title))
+        #expect(AccessWalk.check(screen.host, screen: "Wi-Fi join", secrets: [network]).isEmpty)
         window.view.set("display.hide_usernames", true, window.session)
         await screen.settle()
-        #expect(AccessWalk.check(screen.host, screen: "masked Wi-Fi QR", secrets: [network]).isEmpty)
-        #expect(screen.strings().contains("Join “\(Masked.spoken)”"), "the title reads hidden")
+        #expect(AccessWalk.check(screen.host, screen: "masked Wi-Fi join", secrets: [network]).isEmpty)
     }
 }
 

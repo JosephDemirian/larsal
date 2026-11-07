@@ -206,7 +206,7 @@ final class LockSignals {
 
 /// A selector target for the distributed center, which has no block observer
 /// with a suspension behaviour.
-private final class Relay: NSObject {
+final class Relay: NSObject {
     private let handle: @MainActor () -> Void
 
     init(_ handle: @escaping @MainActor () -> Void) {
@@ -221,7 +221,7 @@ private final class Relay: NSObject {
 /// AppKit posts these notifications on the main thread, and the sleep lock
 /// must end before the handler returns (APP-02.6): the work runs there and
 /// then, never later.
-private nonisolated func onMain(_ body: @escaping @MainActor () -> Void) {
+nonisolated func onMain(_ body: @escaping @MainActor () -> Void) {
     if Thread.isMainThread {
         MainActor.assumeIsolated(body)
     } else {

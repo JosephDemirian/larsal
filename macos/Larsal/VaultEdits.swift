@@ -16,7 +16,7 @@ extension VaultModel {
         case clone(id: String, title: String)
         case totpSetup(TotpSetup)
         case totpQr(title: String, symbol: Qr, custom: Bool)
-        case wifiQr(network: String, symbol: Qr)
+        case qrCode(QrPopup)
         case newGroup(name: String)
         case removePasskey(site: String)
         case version(index: UInt32, VersionView)
@@ -62,6 +62,7 @@ extension VaultModel {
         do {
             let view = try session.beginEdit(vault: vault.id, entry: id)
             editor = EditorModel(session: session, vault: vault, view: view)
+            editor?.showQr = { [weak self] in self?.showDraftQr(field: $0) }
         } catch {
             notify(Toast(glyph: "warning", text: message(error)))
         }
@@ -75,6 +76,7 @@ extension VaultModel {
         do {
             let view = try session.beginNew(vault: vault.id, group: target)
             editor = EditorModel(session: session, vault: vault, view: view)
+            editor?.showQr = { [weak self] in self?.showDraftQr(field: $0) }
         } catch {
             notify(Toast(glyph: "warning", text: message(error)))
         }
@@ -246,15 +248,6 @@ extension VaultModel {
             afterChange(select: nil)
         } catch {
             notify(Toast(glyph: "warning", text: message(error)))
-        }
-    }
-
-    /// The Wi-Fi entry's QR button: the symbol is made in Rust.
-    func showWifiQr() {
-        guard let id = selection, let detail else { return }
-        let network = detail.fields.first { $0.kind == .userName }?.value ?? detail.title
-        if let symbol = try? session.wifiQr(vault: vault.id, entry: id) {
-            dialog = .wifiQr(network: network, symbol: symbol)
         }
     }
 

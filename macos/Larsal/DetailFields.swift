@@ -17,6 +17,8 @@ struct EntryFields {
     var rows: [AnyView] {
         var out: [AnyView] = []
         let wifi = entry.kind == .wiFi
+        // FEA-10.1: a protected title is not in the head, so it is a row with its action.
+        if let title = field(.title) { out.append(AnyView(CustomRow(model: model, field: title))) }
         if entry.kind == .card {
             out += card
         } else {
@@ -34,14 +36,15 @@ struct EntryFields {
                 out.append(
                     AnyView(Fld(label: wifi ? "Wi-Fi password" : "Password") { Masked.line().font(.mono(14)) }))
             }
-            if wifi, let security = custom("Security") {
+            if model.canJoinWifi, let security = custom("Security") {
                 out.append(
                     AnyView(
                         Fld(label: "Security") {
                             Text(verbatim: security.value).lineLimit(1)
                         } tools: {
-                            IconButton(glyph: "qr-code", label: "Show as QR code") { model.showWifiQr() }
-                        }))
+                            IconButton(glyph: "qr-code", label: QrText.join) { model.showWifiJoin() }.qrInvoker()
+                        }
+                        .contextMenu { QrJoinMenu(model: model) }))
             }
             if entry.hasTotp {
                 out.append(
@@ -81,7 +84,7 @@ struct EntryFields {
     }
 
     private func placedHere(_ name: String) -> Bool {
-        name == "Security" ? entry.kind == .wiFi : entry.kind == .card
+        name == "Security" ? model.canJoinWifi : entry.kind == .card
     }
 
     private func field(_ kind: FieldKind) -> FieldView? { entry.fields.first { $0.kind == kind } }
@@ -96,9 +99,17 @@ struct EntryFields {
     private var card: [AnyView] {
         let shownNumber = model.shown["Card number"]
         let secret = { (name: String, dots: String) -> String in model.shown[name] ?? dots }
+        let expires = custom("Expires").map { $0.protected ? secret($0.name, "••/••") : $0.value } ?? "—"
         var out: [AnyView] = []
         if let holder = custom("Cardholder") {
-            out.append(AnyView(Fld(label: "Cardholder") { Text(verbatim: holder.value).lineLimit(1) }))
+            out.append(
+                AnyView(
+                    Fld(label: "Cardholder") {
+                        Text(verbatim: holder.protected ? secret(holder.name, "••••••••") : holder.value).lineLimit(1)
+                    } tools: {
+                        if holder.protected { QrFieldButton(model: model, field: holder.name) }
+                    }
+                    .qrField(model, holder)))
         }
         if custom("Card number") != nil {
             out.append(
@@ -113,17 +124,30 @@ struct EntryFields {
                             Task { await model.toggleShow("Card number") }
                         }
                         copyButton("card number", field: "Card number")
-                    }))
+                        if let number = custom("Card number"), number.protected {
+                            QrFieldButton(model: model, field: number.name)
+                        }
+                    }
+                    .qrFieldOf(model, custom("Card number"))))
         }
         out.append(
             AnyView(
                 HStack(spacing: 12) {
-                    gridCell("Expires", Text(verbatim: custom("Expires")?.value ?? "—").num())
-                    gridCell("Security code", Text(verbatim: secret("Security code", "•••")).font(.mono(14)))
-                    gridCell("PIN", Text(verbatim: secret("PIN", "••••")).font(.mono(14)))
+                    secretCell("Expires", Text(verbatim: expires).num())
+                    secretCell("Security code", Text(verbatim: secret("Security code", "•••")).font(.mono(14)))
+                    secretCell("PIN", Text(verbatim: secret("PIN", "••••")).font(.mono(14)))
                 }
                 .padding(.leading, 16).padding(.trailing, 8).padding(.vertical, 9).frame(minHeight: 58)))
         return out
+    }
+
+    /// A grid cell of the card: its action beside it when protected (FEA-10.1).
+    private func secretCell(_ name: String, _ value: some View) -> some View {
+        HStack(spacing: 2) {
+            gridCell(name, value)
+            if let field = custom(name), field.protected { QrFieldButton(model: model, field: name) }
+        }
+        .qrFieldOf(model, custom(name))
     }
 
     private func gridCell(_ label: String, _ value: some View) -> some View {
@@ -158,7 +182,17 @@ struct MoreFields {
                     }
                 }))
         let url = entry.fields.first { $0.kind == .url }?.value ?? ""
-        if !url.isEmpty && entry.kind != .login {
+        if let address = entry.fields.first(where: { $0.kind == .url && $0.protected }) {
+            // FEA-10.1: Rust sends it empty; its action is what it shows.
+            out.append(
+                AnyView(
+                    Fld(label: "Address") {
+                        Masked.line()
+                    } tools: {
+                        QrFieldButton(model: model, field: address.name)
+                    }
+                    .qrField(model, address)))
+        } else if !url.isEmpty && entry.kind != .login {
             out.append(AnyView(Fld(label: "Address") { Text(verbatim: url).lineLimit(1) }))
         }
         if !entry.tags.isEmpty {
@@ -205,7 +239,7 @@ struct MoreFields {
                     }))
         }
         if let notes = entry.fields.first(where: { $0.kind == .notes }) {
-            out.append(AnyView(NotesRow(notes: notes, hidden: options.hideNotes).id(entry.id)))
+            out.append(AnyView(NotesRow(model: model, notes: notes, hidden: options.hideNotes).id(entry.id)))
         }
         return out
     }
@@ -246,8 +280,10 @@ struct PasswordRow: View {
             ) {
                 Task { await model.toggleShow(field.name) }
             }
+            QrFieldButton(model: model, field: field.name)
             IconButton(glyph: "copy", label: "Copy password") { model.copy(field.name) }
         }
+        .qrField(model, field)
     }
 
     /// The shown value: digits and symbols in colour while S-UI-07 is on
@@ -288,60 +324,10 @@ private struct UserRow: View {
                     Task { await model.toggleShow(field.name) }
                 }
             }
+            if field.protected { QrFieldButton(model: model, field: field.name) }
             IconButton(glyph: "copy", label: "Copy " + name) { model.copy(field.name) }
         }
-    }
-}
-
-/// Any other field: plain, or dots with Show for a protected one.
-private struct CustomRow: View {
-    let model: VaultModel
-    let field: FieldView
-
-    var body: some View {
-        let shown = model.shown[field.name]
-        Fld(label: field.name) {
-            if field.protected {
-                Text(verbatim: shown ?? String(repeating: "•", count: 8)).font(.mono(14)).lineLimit(1)
-            } else {
-                Text(verbatim: field.value).lineLimit(1)
-            }
-        } tools: {
-            if field.protected {
-                IconButton(
-                    glyph: shown == nil ? "eye" : "eye-slash", label: (shown == nil ? "Show " : "Hide ") + field.name
-                ) {
-                    Task { await model.toggleShow(field.name) }
-                }
-            }
-            IconButton(glyph: "copy", label: "Copy " + field.name) { model.copy(field.name) }
-        }
-    }
-}
-
-/// The notes; behind Show while S-CONV-05 is on (APP-01.23, F-082), hidden
-/// again on a new selection.
-private struct NotesRow: View {
-    let notes: FieldView
-    let hidden: Bool
-    @State private var revealed = false
-
-    var body: some View {
-        Fld(label: "Notes") {
-            if hidden && !revealed {
-                Masked.line().padding(.top, 2)
-            } else {
-                // `.v.wrap` inside `.v`: 2 more points down, as drawn.
-                Text(verbatim: notes.value).lineBox(14, 20).fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
-            }
-        } tools: {
-            if hidden {
-                IconButton(glyph: revealed ? "eye-slash" : "eye", label: revealed ? "Hide notes" : "Show notes") {
-                    revealed.toggle()
-                }
-            }
-        }
+        .qrField(model, field)
     }
 }
 

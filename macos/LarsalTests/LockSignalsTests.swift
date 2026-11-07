@@ -63,7 +63,7 @@ private final class Probe {
 }
 
 /// Records how observers register; registers nothing with the system.
-private nonisolated final class SpyCenter: DistributedNotificationCenter, @unchecked Sendable {
+nonisolated final class SpyCenter: DistributedNotificationCenter, @unchecked Sendable {
     /// Holds the observer weakly, as the system center does: a relay that
     /// LockSignals stops keeping is gone, and T12 fails.
     struct Added {

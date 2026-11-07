@@ -247,9 +247,8 @@ struct EntryPage: View {
     ]
 }
 
-/// The password cell: the label with its strength, the field (shown in
-/// clear as the user's Show, or dots), Show or Hide, the generator button
-/// (E5-S6), and the strength bar.
+/// The password cell: the label with its strength, the field (shown or dots),
+/// Show or Hide, Show as QR Code, the generator (E5-S6) and the strength bar.
 private struct PasswordCell: View {
     let model: VaultModel
     let editor: EditorModel
@@ -283,6 +282,7 @@ private struct PasswordCell: View {
                 ) { editor.toggleShowPassword() }
                 // APP-08.14: ⌃H shows or hides the text, ⌃G opens the generator.
                 .keyboardShortcut("h", modifiers: .control)
+                IconButton(glyph: "qr-code", label: QrText.title, size: 28) { editor.showQr("Password") }.qrInvoker()
                 IconButton(glyph: "password", label: "Open generator (⌥⌘G)", size: 28) {
                     model.openGenerator(fromEditor: true)
                 }

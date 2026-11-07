@@ -1,5 +1,6 @@
 import LarsalCore
 import SwiftUI
+import os
 
 /// Copy (APP-03, E6-S1). The value never reaches Swift: Rust resolves the
 /// field and writes it to the clipboard with its markers and its clear timer.
@@ -112,4 +113,20 @@ struct ToastView: View {
         .fixedSize()
         .allowsHitTesting(false)
     }
+}
+
+/// The plain text of an error from the Rust session; never a secret (AT-E03).
+func message(_ error: Error) -> String {
+    guard let error = error as? LarsalError else { return "Something went wrong. Try again." }
+    switch error {
+    case .UnknownVault(let text), .UnknownEntry(let text), .UnknownGroup(let text),
+        .UnknownField(let text), .Locked(let text), .TooLong(let text), .NotAvailable(let text),
+        .CannotOpen(let text), .Refused(let text):
+        return text
+    }
+}
+
+extension Logger {
+    /// Larsal's log. Never vault content (Swift rule 4, LD-67).
+    static let app = Logger(subsystem: "app.larsal.desktop", category: "app")
 }

@@ -79,6 +79,9 @@ struct ScreenProtectionTests {
             marker: #"\bNS(Hosting)?Menu\(|\.contextMenu\b|\bMenu\s*[({]|\bCommand(Menu|Group)\(|\b(Date)?Picker\("#,
             files: nil, way: .swept(panel)),
         Kind(name: "Tooltips", marker: #"\.help\(|toolTip"#, files: nil, way: .swept(panel)),
+        Kind(
+            name: "Share picker (only with a proved route, FEA-10.18)", marker: #"\bNSSharingServicePicker\("#,
+            files: ["QrWiring.swift"], way: .swept(panel)),
         Kind(name: "Menu bar icon", marker: #"\bNSStatusBar\b"#, files: nil, way: .swept(raw)),
         Kind(name: "About panel (the Larsal menu's default About)", marker: nil, files: nil, way: .swept(panel)),
     ]
@@ -88,7 +91,7 @@ struct ScreenProtectionTests {
         #"\bWindowGroup\b"#, #"(?m)^\s*Settings\s*\{"#, #"\bMenuBarExtra\b"#, #"\bDocumentGroup\b"#,
         #"\bUtilityWindow\b"#,
         #"\.sheet\("#, #"\.confirmationDialog\("#, #"\.fileImporter\("#, #"\.fileExporter\("#, #"\.inspector\("#,
-        #"\bNSPopover(\.init)?\("#, #"contentViewController:"#, #"beginSheet"#, #"NSSharingServicePicker"#,
+        #"\bNSPopover(\.init)?\("#, #"contentViewController:"#, #"beginSheet"#,
         #"NS(Color|Font)Panel"#,
         #"orderFrontStandardAboutPanel"#, #"\bNSDrawer\b"#, #"\bNSWindowController\b"#, #"\bColorPicker\b"#,
         #"\bShareLink\b"#, #"\bNS(Print(Operation|Panel)|PageLayout)\b"#, #"\.fileMover\("#,

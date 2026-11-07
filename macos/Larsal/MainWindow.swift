@@ -17,6 +17,7 @@ struct MainWindow: View {
             } else if let main = model.main {
                 VaultView(model: main, window: model)
                     .id(main.vault.id)
+                    .background { QrFocusReader(model: main) }
             } else {
                 WelcomeView(window: model)
             }

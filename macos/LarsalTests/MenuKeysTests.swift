@@ -126,8 +126,15 @@ struct MenuKeysTests {
         await screen.settle()
         let element = try #require(screen.node("Search entries"))
         let field = try #require((element as? NSCell)?.controlView as? NSTextField ?? element as? NSTextField)
-        #expect(screen.window.makeFirstResponder(field))
-        await screen.settle()
+        // Suites run side by side, and another window's text field taking focus
+        // ends this one's editing (AT-K06's new vault does): take it again.
+        func edit() async {
+            for _ in 0..<10 where field.currentEditor() == nil {
+                screen.window.makeFirstResponder(field)
+                await screen.settle()
+            }
+        }
+        await edit()
         #expect(field.currentEditor() != nil, "the field is being edited")
         let arrow = { (code: UInt16, char: Int) throws -> NSEvent in
             let text = String(Character(try #require(UnicodeScalar(char))))
@@ -135,11 +142,16 @@ struct MenuKeysTests {
         }
         let downKey = try arrow(125, NSDownArrowFunctionKey)
         let upKey = try arrow(126, NSUpArrowFunctionKey)
-        screen.window.sendEvent(downKey)
-        await screen.settle()
+        func press(_ key: NSEvent, to row: String) async {
+            for _ in 0..<10 where main.selection != row {
+                await edit()
+                screen.window.sendEvent(key)
+                await screen.settle()
+            }
+        }
+        await press(downKey, to: ids[1])
         #expect(main.selection == ids[1], "↓: the next row")
-        screen.window.sendEvent(upKey)
-        await screen.settle()
+        await press(upKey, to: ids[0])
         #expect(main.selection == ids[0], "↑: back")
         #expect(main.search.isEmpty, "the keys type nothing")
         screen.window.makeFirstResponder(nil)
