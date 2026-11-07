@@ -1,0 +1,8 @@
+expect: header failure
+passphrase: demo passphrase
+
+age-encryption.org/v1
+-> scrypt BwcHBwcHBwcHBwcHBwcHBw 4
+BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcH
+--- 6JESMWlfVslG1Duc1PmiYwRXoTm+tEbiGWWJB9lAPpo
+òŽ™Š(,hŽbÐRìþúÜÄ¦J·ê6[‹*úµWµ=¬˜X¦0øPõ¹ xzõiô‹jdîŠÊdþÃn¹

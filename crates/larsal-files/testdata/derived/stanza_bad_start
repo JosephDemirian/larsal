@@ -1,0 +1,10 @@
+expect: header failure
+identity: AGE-SECRET-KEY-1QYPQXPQ9QCRSSZG2PVXQ6RS0ZQG3YYC5Z5TPWXQERGD3C8G7RUSQGPQYEE
+
+age-encryption.org/v1
+-> X25519 IDUaxc4RJ9g6Ht92P/zvMsgeSGph3/2yYGOKm9ovLUk
++51C4FGtj/Zdmdg6TPkh3wsa+D5fiY1Q9K3D59Dx4VU
+-* demo
+
+--- 8SU5zvkb0E1e0QfueVhKzgm2+B2FobC7L2ranLbgzio
+éAÒF=uwgò•µº	D‹.àI—Ör\42j=ê³{‘w1vl”Ç),fJZê*Wn{ŸÍ³¬cb³{w8§^&'j

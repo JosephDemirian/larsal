@@ -1,0 +1,8 @@
+expect: HMAC failure
+identity: AGE-SECRET-KEY-1QYPQXPQ9QCRSSZG2PVXQ6RS0ZQG3YYC5Z5TPWXQERGD3C8G7RUSQGPQYEE
+
+age-encryption.org/v1
+-> X25519 Iknh40KH5frL4nJPy7r8sP7TYWMdXXjOkZ4032Ghcgc
+y0H6WgSXQhBI1JrP3vMqmo0Equk1iS2qwMGMnSnVJ9U
+--- MZSr+TomrcNxNVu5WASwATAnHgoYRGSoGrjHTGKRfyA
+×®¿žCœ"üèÍd¼Î(‡i`­?†Ëê†êŒúT~¬¤äã4Öwd§’-4®X(ÇÚPÇòùq>O$’	ïJeK

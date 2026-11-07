@@ -1,0 +1,11 @@
+expect: success
+payload: da79bd0f172102ab82724bbfdebe423ba6cbdd52fbe286f71058d35123d053e9
+file key: fd0805841a5eef1abd1d8ea898622752
+identity: AGE-SECRET-KEY-1QYPQXPQ9QCRSSZG2PVXQ6RS0ZQG3YYC5Z5TPWXQERGD3C8G7RUSQGPQYEE
+comment: An unsupported recipient type: refused, never an interoperability pass.
+
+age-encryption.org/v1
+-> mlkem768x25519 demo
+BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc
+--- lzwnwmKcHdms4W/AS9u9jZ94R0aRBsDccj9gUWSEhuM
+tçËü#ýÉdÇ{ý×š‹Š*²¿3cwgË<LÇWü*Þˆçwƒ¨>Ë€1.0ÒÓ±6”òs¥ñ<ëð
