@@ -1,6 +1,6 @@
 {
  "reviewed_commit": "9ce5562012391a84819bd5f3d61826c311343acb",
- "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
+ "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit, apart from the rows labelled F-334, whose hash is the one at that round's merge commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "reviews": {
   "R2b": {
    "what": "The Rust lanes: profiles, classes, byte evidence, helper.",
@@ -16,6 +16,11 @@
    "what": "Pins moved by this story's diff. Its C1 and Sensitive C2 read the whole diff; its proof: LD row of the merge.",
    "source": "commit 9ce5562012391a84819bd5f3d61826c311343acb",
    "limits": "Content equality to the reviewed diff, not a new review of the R2b and N1b grants."
+  },
+  "F-334": {
+   "what": "The crates/larsal-browser pin moved by the best of 5 in tests/int03.rs, a program at base. Its C1 and C2 read the diff.",
+   "source": "this tool round's patch, at its merge commit",
+   "limits": "Content equality to the reviewed diff, not a new review of the R2b grants."
   }
  },
  "byte_checks": {
@@ -157,7 +162,7 @@
   },
   "needs:larsal-window": {
    "review": "N1b",
-   "why": "The app code, HiddenLaunch and ScreenProtection among it, how it starts hidden, and the app09 program that starts it. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml and .cargo/config.toml hold the profile lines that keep debug assertions on, and hidden() is always false without them. macos/Larsal holds the Swift call.",
+   "why": "The app code, HiddenLaunch and ScreenProtection among it, how it starts hidden, and the app09 program that starts it. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml holds the build profiles and .cargo/config.toml chooses where crates come from; a line added to either could turn debug assertions off, and hidden() is always false without them. The whole autotype crate is pinned, so a new key event caller there takes the line too. macos/Larsal holds the Swift call.",
    "pins": {
     "macos/Larsal": "f63d78a4f8706cab0690616dee41e836e831fdaa",
     "macos/Larsal.xcodeproj": "d892bf072f8535c2ed258cf1a74a076ad3b7c7d1",
@@ -167,6 +172,7 @@
     "crates/larsal-ffi/src/autotype.rs": "3f6b84400b2bb6f5025a7af720ea9eaee7d2f962",
     "crates/larsal-ffi/src/autotype_typing.rs": "d4133ad94e3f135724345f83d9921e832dd53c1a",
     "crates/larsal-autotype/src/typing.rs": "bc8db468c3e5aa752f2b30c5784f41e63e7be7f8",
+    "crates/larsal-autotype": "759dbd2676944c7b336c6cd577762063b5d70c96",
     "crates/larsal-platform/src/macos/keyboard.rs": "230c93621d0f09e4fd4e407df9129df37d709e80",
     "Cargo.toml": "01d23aff3a4d8b5952f68b9c84545d32eda8ebd8",
     ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860"
@@ -296,7 +302,7 @@
   },
   "needs:xctest-window": {
    "review": "N1b",
-   "why": "The tests that make real windows, the app code they run, and the project that names them. N1b read these sources. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml and .cargo/config.toml hold the profile lines that keep debug assertions on, and hidden() is always false without them. macos/Larsal holds the Swift call.",
+   "why": "The tests that make real windows, the app code they run, and the project that names them. N1b read these sources. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml holds the build profiles and .cargo/config.toml chooses where crates come from; a line added to either could turn debug assertions off, and hidden() is always false without them. The whole autotype crate is pinned, so a new key event caller there takes the line too. macos/Larsal holds the Swift call.",
    "pins": {
     "macos/LarsalTests": "b203a702032a4722b1aa3b21b531b56bb76f6e0c",
     "macos/Larsal": "f63d78a4f8706cab0690616dee41e836e831fdaa",
@@ -306,6 +312,7 @@
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
     "crates/larsal-ffi/src/lib.rs": "cadc7f4777ecdecc1ce5b6514702311c805041b6",
     "crates/larsal-autotype/src/typing.rs": "bc8db468c3e5aa752f2b30c5784f41e63e7be7f8",
+    "crates/larsal-autotype": "759dbd2676944c7b336c6cd577762063b5d70c96",
     "crates/larsal-platform/src/macos/keyboard.rs": "230c93621d0f09e4fd4e407df9129df37d709e80",
     "Cargo.toml": "01d23aff3a4d8b5952f68b9c84545d32eda8ebd8",
     ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860"
@@ -499,30 +506,30 @@
    ]
   },
   "workspace:larsal-browser/int01": {
-   "review": "R2b",
+   "review": "F-334",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "efbabd37ad23a4d749c888232bf101e6fc7b3966"
+    "crates/larsal-browser": "3f1006df64e6f068ad70e607d5c9c69c65c43a41"
    },
    "checks": [
     "class /tmp/larsal-browser-"
    ]
   },
   "workspace:larsal-browser/int01_setup": {
-   "review": "R2b",
+   "review": "F-334",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "efbabd37ad23a4d749c888232bf101e6fc7b3966"
+    "crates/larsal-browser": "3f1006df64e6f068ad70e607d5c9c69c65c43a41"
    },
    "checks": [
     "class /tmp/larsal-e7s6-"
    ]
   },
   "workspace:larsal-browser/larsal_browser": {
-   "review": "R2b",
+   "review": "F-334",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "efbabd37ad23a4d749c888232bf101e6fc7b3966"
+    "crates/larsal-browser": "3f1006df64e6f068ad70e607d5c9c69c65c43a41"
    },
    "checks": [
     "class /tmp/larsal-browser-"
@@ -739,7 +746,7 @@
   },
   "workspace:larsal-sshagent/own_agent": {
    "review": "E16-S7a",
-   "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate. Every workspace crate it links is pinned too: the five named in the manifests' normal dependencies, walked from larsal-sshagent, and crates/log, which the workspace lane links through larsal-platform's net feature, ureq and ureq-proto. Read from the Cargo.toml files and the proof run's build fingerprints. larsal-server and larsal-proto are in the lock's closure only through larsal-platform's dev-dependencies, so they are not linked.",
+   "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate. Every workspace crate it links is pinned too: the five named in the manifests' normal dependencies, walked from larsal-sshagent, and crates/log, which the workspace lane links through larsal-platform's net feature, ureq and ureq-proto. Read from the Cargo.toml files and the proof run's build fingerprints. larsal-server and larsal-proto are in the lock's closure only through larsal-platform's dev-dependencies, so they are not linked. The root Cargo.toml, .cargo/config.toml, Cargo.lock, rust-toolchain.toml and vendor/ choose what those crates are and what third-party code they link: a dependency renamed with package =, a [patch] or a vendored crate's change takes this row to base too. The workspace lane also builds larsal-hwkey, larsal-proto, larsal-server, larsal-share and uniffi-bindgen, which no other row pins, and a build script in one can rewrite this program's bytes, so they are pinned here too.",
    "pins": {
     "crates/larsal-sshagent": "03f5ccca25bdd1897f8839b9336f9f1d20346742",
     "crates/larsal-sshagent/tests/own_agent.rs": "6d42a36090a7949962c1c9990b9085b9d2f34fe7",
@@ -748,7 +755,17 @@
     "crates/larsal-format": "46b951efc522922fcced71c9f27299dad535924e",
     "crates/larsal-model": "877dc01bc7e64112930b04de41582e44de16ecdb",
     "crates/larsal-platform": "b853ae73176c653f34f2defce8ba75adf38e04b5",
-    "crates/log": "efbf07781cc71f04015826a647fafc4e9dd11171"
+    "crates/log": "efbf07781cc71f04015826a647fafc4e9dd11171",
+    "Cargo.toml": "01d23aff3a4d8b5952f68b9c84545d32eda8ebd8",
+    ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860",
+    "Cargo.lock": "3f6a715903995f8cb1ee1b9a6abf4b66b61eab02",
+    "rust-toolchain.toml": "9ec55b3b621dbc75fc68817cd51b96e407d3c94c",
+    "vendor": "5208e0b235db01f0321deea3b67d8adb1ff85ed5",
+    "crates/larsal-hwkey": "93fee36734cf50df7ad25678f7b214625aef7b6e",
+    "crates/larsal-proto": "b7b1990312f8ffa202d0156785bf395c4c52855a",
+    "crates/larsal-server": "fe8e4ebba052fc6028498d0ba8a4a53782895f31",
+    "crates/larsal-share": "4902d5c3c8e71b960fc121a07631c70f0bb81d66",
+    "crates/uniffi-bindgen": "de7bff401b51daadce5cad8254645c22e26701e6"
    },
    "checks": [
     "class /tmp/e9s1-",

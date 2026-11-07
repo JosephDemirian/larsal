@@ -60,7 +60,7 @@ def phase(g, tool, name, profile='guard.sb', cap=None):
     bad, new = L.compare_copy(g / 'source', g.parent, ignore=('fuzz/target', 'fuzz/artifacts', 'target'))
     if bad or new:
         raise L.Custody('static copy changed before phase %s: %s' % (name, (bad + new)[:5]))
-    assert not [p for p in L.absent_configs(g / 'source', g / 'cargo-home') if os.path.lexists(p)], 'Cargo config files outside the source'
+    L.stop_on_configs(g / 'source', g / 'cargo-home', 'phase ' + name)
     # The route is read from the export, which no lane can write.
     script = body(g.parent / 'e', tool, gs + '/logs/artifacts', gs + '/logs/steps.tsv')
     row = L.held([L.SANDBOX, '-f', L.sealed(g.parent / 'guard-profiles' / profile), '/bin/bash', '-c', script, str(g / 'source/scripts/check.sh'), name], g / 'source', dict(env_for(gs), FUZZ_SECONDS='30'), g / 'logs' / (name + '.stdout'), g / 'logs' / (name + '.stderr'), L.time_left(cap or CAPS[name]))

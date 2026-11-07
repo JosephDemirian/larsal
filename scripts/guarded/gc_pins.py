@@ -8,6 +8,7 @@ BASE = 'harness-runtime-base.sb'
 ROUTE_RED = "check.sh differs from the tool's route: needs a table update and review"
 FUNCTION = re.compile(r'^([\w-]+)\(\) \{(?:\n.*?^\}| [^\n]*\}$)', re.M | re.S)
 FUZZ_BIN = re.compile(r'^\[\[bin\]\]\n((?:[^\[\n].*\n?|\n)*)', re.M)
+FUZZ_HIDES = re.compile(r'"""|\'\'\'|^[ \t]+\[', re.M)
 TOOL_PATH = 'scripts/guarded/'
 TOOL_DRIFT = 'the running tool differs from scripts/guarded at this commit'
 
@@ -80,9 +81,9 @@ def outside_folder(key, row, source, src_path, manifest_dir):
 
 
 def tool_drift(manifest_rows, tool_hashes):
-    """If the commit holds scripts/guarded, the running tool's bytes must equal it, so tool and tables cannot drift from the reviewed commit. The names that differ; none when the commit holds no tool."""
+    """The running tool's bytes must equal the commit's scripts/guarded, so tool and tables cannot drift from the reviewed commit. The names that differ; a commit with no such folder, or a link there, differs in every name."""
     at = {x['path'][len(TOOL_PATH):]: x['sha256'] for x in manifest_rows if x['path'].startswith(TOOL_PATH) and x['kind'] != 'dir'}
-    return sorted(n for n in set(at) | set(tool_hashes) if at.get(n) != tool_hashes.get(n)) if at else []
+    return sorted(n for n in set(at) | set(tool_hashes) if at.get(n) != tool_hashes.get(n))
 
 
 # ---- The route table.
@@ -111,8 +112,13 @@ def fuzz_bins(text):
     return out
 
 
+def fuzz_rest(text):
+    """fuzz/Cargo.toml outside its [[bin]] blocks, by hash: its dependencies, patches and build settings. A new route's block is not in it."""
+    return hashlib.sha256(FUZZ_BIN.sub('', text).encode()).hexdigest()
+
+
 def route_failures(source, tool):
-    """check.sh by whole text and by function, the scripts its steps call, every fuzz route by name and bytes, and where fuzz/Cargo.toml points each one. A new route is not a failure."""
+    """check.sh by whole text and by function, the scripts its steps call, every fuzz route by name and bytes, where fuzz/Cargo.toml points each one, the rest of that file, and what Cargo builds beside it with no line in it. A new route is not a failure."""
     t = table(tool, 'routes.json')
     try:
         fails = check_sh_failures(L.read_regular(Path(source, 'scripts/check.sh')).decode('utf-8', 'replace'), tool)
@@ -126,10 +132,18 @@ def route_failures(source, tool):
         except OSError:
             fails.append('%s: %s removed or not a regular file' % (ROUTE_RED, rel))
     try:
-        bins = fuzz_bins(L.read_regular(Path(source, 'fuzz/Cargo.toml')).decode('utf-8', 'replace'))
+        manifest = L.read_regular(Path(source, 'fuzz/Cargo.toml')).decode('utf-8', 'replace')
     except OSError:
-        bins = {}
+        manifest = ''
+    bins = fuzz_bins(manifest)
     fails += ['%s: fuzz/Cargo.toml route %s changed or removed' % (ROUTE_RED, n) for n, lines in sorted(t['fuzz_bins'].items()) if bins.get(n) != lines]
+    # Each can show fuzz_bins the reviewed block while Cargo reads another one.
+    if FUZZ_HIDES.search(manifest):
+        fails.append('%s: fuzz/Cargo.toml holds a multi-line string or an indented table header, which can hide a route' % ROUTE_RED)
+    if fuzz_rest(manifest) != t['fuzz_cargo_rest_sha256']:
+        fails.append('%s: fuzz/Cargo.toml changed outside its [[bin]] blocks' % ROUTE_RED)
+    if os.path.lexists(Path(source, 'fuzz/build.rs')) or os.path.isdir(Path(source, 'fuzz/src')):
+        fails.append('%s: fuzz/build.rs or a folder fuzz/src exists, which Cargo builds with no line in fuzz/Cargo.toml' % ROUTE_RED)
     return fails
 
 

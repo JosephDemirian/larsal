@@ -358,6 +358,7 @@
    "bench = false"
   ]
  },
+ "fuzz_cargo_rest_sha256": "25f11707e05fef3e6c71a7701e1fd8a85728d56c9b940733abf6b0faf3abefe8",
  "binaries": {
   "guard-board.dylib": "e5d2cbe53eee2039ad7638cfdb780a9e8634cfa99cf93d7750d4cd7fc56b4b39",
   "swiftlint": "52112ece2dfa99c2442a1367f9a365d43784714cf224c3675bf8bc2f18ebd7c8"

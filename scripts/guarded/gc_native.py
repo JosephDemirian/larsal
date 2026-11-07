@@ -230,26 +230,35 @@ class Sampler(threading.Thread):
         self.stop_flag = threading.Event()
         self.tree = {}    # pid -> first row, descendants by parent link
         self.other = {}   # pid -> row, interest images outside the tree
-        self.args = {}
+        self.args = {}    # pid -> its first read
+        self.later_args = []  # What an exec'd pid held at each later image: an exec hides no read from gate_env.
         self.window_rows = []
         self.window_samples = 0
         self.window_seen = threading.Event()
 
     def note(self, pid, parent, in_tree, t0):
+        """A pid's row follows what it became: its first image, each change after it in later_images, how many samples read an image, and a later start time if the pid was reused."""
         table = self.tree if in_tree else self.other
         path = image(pid)
-        if pid in table and table[pid].get('path') == path:
-            return
-        row = dict(pid=pid, parent=parent, path=path, sandbox_check=sandboxed(pid), seconds=round(time.monotonic() - t0, 2), in_tree=in_tree)
-        if pid in table:
-            table[pid].setdefault('later_images', []).append(path)
-        else:
-            table[pid] = row
-        if path and INTEREST.search(path) and pid not in self.args:
+        born = L.start_time(pid)
+        row = table.get(pid)
+        seconds = round(time.monotonic() - t0, 2)
+        changed = row is None or path != (row.get('later_images') or [row['path']])[-1]
+        if row is None:
+            row = table[pid] = dict(pid=pid, parent=parent, path=path, started=born, samples=0, sandbox_check=sandboxed(pid), seconds=seconds, in_tree=in_tree)
+        elif changed:
+            row.setdefault('later_images', []).append(path)
+        if born and born != row['started'] and born not in row.get('later_starts', []):
+            row.setdefault('later_starts', []).append(born)
+        row['samples'] += bool(path)
+        if changed and path and INTEREST.search(path):
             got = procargs(pid)
             if got is not None:
-                got.update(pid=pid, parent=parent, sandbox_check=row['sandbox_check'], seconds=row['seconds'], path=path)
-                self.args[pid] = got
+                got.update(pid=pid, parent=parent, sandbox_check=row['sandbox_check'], seconds=seconds, path=path)
+                if pid in self.args:
+                    self.later_args.append(got)
+                else:
+                    self.args[pid] = got
 
     def ps(self, t0):
         r = subprocess.run(['/bin/ps', '-axo', 'pid=,ppid=,pgid=,uid=,comm='], env=dict(PATH='/usr/bin:/bin', HOME=str(R / 'home')), capture_output=True, timeout=30)
@@ -259,7 +268,9 @@ class Sampler(threading.Thread):
             if len(parts) == 5 and parts[3] == uid and INTEREST.search(parts[4]):
                 pid, ppid = int(parts[0]), int(parts[1])
                 if pid not in self.tree and pid not in self.other:
-                    self.note(pid, ppid, False, t0)
+                    # A child of a tree process is in the tree: this list reached it before the walk did. The start time keeps a reused parent pid out.
+                    parent, born = self.tree.get(ppid), L.start_time(ppid)
+                    self.note(pid, ppid, bool(parent and born and parent.get('started') == born), t0)
                     if pid in self.other:
                         self.other[pid].update(ppid=ppid, pgid=int(parts[2]), comm=parts[4])
 
@@ -357,6 +368,8 @@ gate_guard = L.gate_guard
 VAR_TMP = '/private/var/tmp'
 XCTEST_IMAGE = L.XCODE + '/Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/xctest'
 TESTMANAGERD = '/usr/libexec/testmanagerd'
+CLOCK_SLACK = 2  # Seconds. A report's launch time and the kernel's start time are one clock read two ways; a pid is not reused inside this.
+LANE_TREES = []  # Each attempt's tree and when it was read: a report can land after its own attempt's read.
 
 
 def gate_sensitive(rows):
@@ -367,21 +380,50 @@ def gate_sensitive(rows):
     return ['sensitive grant %s used by %s (%d rows), allowed only for %s' % (t, p, n, sorted(SENSITIVE[t])) for (p, t), n in sorted(bad.items())]
 
 
+def images_of(row):
+    """Every image a row read, in order, without the reads after the pid was gone."""
+    return [p for p in [row.get('path')] + row.get('later_images', []) if p]
+
+
+def forked_once(row, tree):
+    """One sample read an image, and it was the parent's: the pid may have been between fork and exec, so what it became was never seen. A row with no count (kept evidence) is not this."""
+    return row.get('samples') == 1 and images_of(row)[0] in images_of(tree.get(row['parent']) or {})
+
+
+def xctest_pids(tree):
+    """The pids that became xctest, by the last image read. A fork of xctest read once may have become anything, so no guard line is asked of it."""
+    return [q for q, r in tree.items() if os.path.basename((images_of(r) or [''])[-1]) == 'xctest' and not forked_once(r, tree)]
+
+
 def gate_identity(rows, tree):
-    """A signing identifier can be self-chosen. A sampled process using a sensitive grant as xctest or Larsal must be that image. A process the 0.1 s sampler missed is not covered: README, limit 28."""
+    """A signing identifier can be self-chosen. A sampled process using a sensitive grant as xctest or Larsal must be that image, in every sample. The kernel names a fork by its parent until exec, so one first image is not read: its parent's, under a basename other than the kernel row's name, with a later image read or read only once. What that leaves unseen: README, limit 28. A process the 0.1 s sampler missed is not covered."""
     fails = []
+    want = dict(xctest=lambda p: p == XCTEST_IMAGE, Larsal=lambda p: p.startswith(str(S) + '/target/xcode/'))
     for x in rows:
-        image = (tree.get(x['pid']) or {}).get('path')
-        if image and ((x['process'] == 'xctest' and image != XCTEST_IMAGE) or (x['process'] == 'Larsal' and not image.startswith(str(S) + '/target/xcode/'))):
-            fails.append('sensitive grant %s used by pid %s named %s from another image: %s' % (x['target'], x['pid'], x['process'], image))
+        row = tree.get(x['pid']) or {}
+        seen = images_of(row)
+        if x['process'] not in want or not seen:
+            continue
+        if os.path.basename(seen[0]) != x['process'] and (forked_once(row, tree) or (len(seen) > 1 and seen[0] in images_of(tree.get(row['parent']) or {}))):
+            seen = seen[1:]
+        fails += ['sensitive grant %s used by pid %s named %s from another image: %s' % (x['target'], x['pid'], x['process'], p) for p in seen if not want[x['process']](p)]
     return sorted(set(fails))
 
 
-def gate_outside(other, args, root):
-    """N1b read these by eye. A process outside the sandbox tree whose image sits under this root, or whose arguments or environment name it, is a containment failure. testmanagerd is the one known. The rest are listed, as other agents' builds show there."""
+def same_process(outside, inside):
+    """Two rows of one pid are one process when the kernel's start time agrees. A row with no start time (kept evidence, or a pid gone before the read) falls back on the parent: a pid reused under the tree row's parent is a child of the tree anyway."""
+    if outside.get('started') and inside.get('started'):
+        return outside['started'] == inside['started']
+    return outside.get('parent') == inside.get('parent')
+
+
+def gate_outside(other, args, root, tree):
+    """N1b read these by eye. A process outside the sandbox tree whose image sits under this root, or whose arguments or environment name it, is a containment failure. A pid the tree also read is not outside, if it is the same process. testmanagerd is the one known. The rest are listed, as other agents' builds show there."""
     fails = []
     for pid, row in other.items():
         image = row.get('path') or ''
+        if pid in tree and same_process(row, tree[pid]):
+            continue
         if image != TESTMANAGERD and (image.startswith(root + '/') or 'argv' in args.get(pid, {})):
             fails.append('a process outside the sandbox tree belongs to this run: pid %s %s' % (pid, image))
     return fails
@@ -478,7 +520,46 @@ def var_tmp_session_names():
     return sorted(n for n in os.listdir(VAR_TMP) if 'test-session' in n)
 
 
-def gate_host(rec, new_reports, own_names, left, session_names):
+def read_report(owner, name):
+    """What a crash report says of its process, or None when it cannot be parsed."""
+    try:
+        _, _, rest = L.read_regular(owner + '/Library/Logs/DiagnosticReports/' + name).decode('utf-8', 'replace').partition('\n')
+        body = json.loads(rest)
+        row = dict(report=name, pid=body['pid'], parent=body['parentPid'], path=body['procPath'], launched=datetime.datetime.strptime(body['procLaunch'], '%Y-%m-%d %H:%M:%S.%f %z').timestamp())
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return row if isinstance(row['pid'], int) and isinstance(row['parent'], int) and isinstance(row['path'], str) else None
+
+
+def own_name_reports(new_reports, own_names, owner):
+    """The new reports that bear an own name, read: name to what it says. A foreign name is listed and not read: README, limit 18."""
+    return {n: read_report(owner, n) for n in new_reports if L.REPORT_NAME.match(n) and L.REPORT_NAME.match(n)[1] in own_names}
+
+
+def starts_of(row):
+    return [s[0] + s[1] / 1e6 for s in [row.get('started')] + row.get('later_starts', []) if s]
+
+
+def report_is_ours(x, trees, root):
+    """Why a parsed report of an own name is this lane's, or None. The reporter masks folders, /private/tmp/*/swiftlint, so a real report never names the root: a masked path the root fits counts, if its launch falls in an attempt. A pid must match by start time where its row holds one, each start the sampler read, so a reused pid neither claims another's crash nor hides ours; a row with none goes by the attempt's window. A parent cannot start after its child. What this leaves unseen: README, limit 18."""
+    roots = root, root[len('/private'):]
+    if x['path'].startswith(tuple(r + '/' for r in roots)):
+        return 'its image is under this root'
+    masked, star, _ = x['path'].partition('/*/')
+    for t in trees:
+        if not t['started'] - CLOCK_SLACK <= x['launched'] <= t['read'] + CLOCK_SLACK:
+            continue
+        if star and any((r + '/').startswith(masked + '/') for r in roots):
+            return 'its image reads %s, which this root fits' % x['path']
+        tree = t['tree']
+        if x['pid'] in tree and (not starts_of(tree[x['pid']]) or any(abs(x['launched'] - s) <= CLOCK_SLACK for s in starts_of(tree[x['pid']]))):
+            return 'pid %d is in the process tree' % x['pid']
+        if x['parent'] in tree and min(starts_of(tree[x['parent']]), default=0) - CLOCK_SLACK <= x['launched']:
+            return 'its parent, pid %d, is in the process tree' % x['parent']
+    return None
+
+
+def gate_host(rec, new_reports, reports, left, session_names, trees, root):
     fails = ['owner sentinel changed: ' + k for k in rec['sentinels_changed']]
     fails += ['process left under the root: %(pid)d %(path)s' % x for x in left]
     fails += ['same-group survivor after exit, killed: pid %(pid)d parent %(parent)d %(image)s' % x for x in rec['group_survivors']]
@@ -488,9 +569,10 @@ def gate_host(rec, new_reports, own_names, left, session_names):
         fails.append('process group after exit: ' + rec['group_after_exit'])
     fails += ['left in %s: %s' % (VAR_TMP, n) for n in session_names]
     rec['diagnostic_reports_new'] = sorted(new_reports)
-    own = [n for n in sorted(new_reports) if re.match(r'(.+?)-\d{4}-\d{2}-\d{2}-\d{6}', n) and re.match(r'(.+?)-\d{4}-\d{2}-\d{2}-\d{6}', n)[1] in own_names]
-    rec['diagnostic_reports_own'] = own
-    fails += ['crash report during the run: ' + n for n in own]
+    why = {n: 'it cannot be parsed' if x is None else report_is_ours(x, trees, root) for n, x in reports.items()}
+    rec['diagnostic_reports_own'] = sorted(n for n, y in why.items() if y)
+    rec['diagnostic_reports_not_ours'] = [dict(report=n, pid=reports[n]['pid'], parent=reports[n]['parent'], path=reports[n]['path']) for n, y in sorted(why.items()) if not y]
+    fails += ['crash report during the run: %s: %s' % (n, why[n]) for n in rec['diagnostic_reports_own']]
     return fails
 
 
@@ -576,12 +658,13 @@ def attempt(name, stage):
     rec['descendants_alive_after_exit'] = [dict(pid=q, image=a, first_image=sampler.tree[q]['path'], parent=parents.get(q, {}).get('parent')) for q, a in sorted(alive.items()) if a]
     save(d / 'process-tree.json', sorted(sampler.tree.values(), key=lambda r: r['seconds']))
     save(d / 'process-outside-tree.json', sorted(sampler.other.values(), key=lambda r: r['seconds']))
-    save(d / 'process-args.json', list(sampler.args.values()))
+    arg_rows = list(sampler.args.values()) + sampler.later_args
+    save(d / 'process-args.json', arg_rows)
     save(d / 'window-rows.json', sampler.window_rows)
     rec['sampler_errors'] = sampler.__dict__.get('errors', [])[:10]
     rec['window_listed_on_screen'] = sampler.window_seen.is_set()
     time.sleep(8)  # Rows reach log show up to about 5 seconds late.
-    names = set(TOOLS) | {os.path.basename(r['path']) for r in sampler.tree.values() if r['path']} | {os.path.basename(r['path']) for r in sampler.other.values() if r['path']}
+    names = set(TOOLS) | {os.path.basename(p) for r in list(sampler.tree.values()) + list(sampler.other.values()) for p in images_of(r)}
     rec['log'], created, named, sensitive = query_log(d, rec['started'], rec['ended'], names, set(sampler.tree))
     rec['t_cleanup'] = t_cleanup(before, (rec['started'], rec['ended']), created, set(sampler.tree))
     after = t_listing()
@@ -599,7 +682,8 @@ def attempt(name, stage):
         except OSError as e:
             guard_unread = ['the guard failed: its log cannot be read: %r' % e]
     (d / 'general-board.log').write_bytes(guard_text)
-    xctest = [q for q, r in sampler.tree.items() if os.path.basename(r['path'] or '') == 'xctest']
+    xctest = xctest_pids(sampler.tree)
+    rec['fork_window_once'] = [dict(r, grants=sorted({x['target'] for x in sensitive if x['pid'] == r['pid']})) for r in sampler.tree.values() if forked_once(r, sampler.tree)]
     guard_fails, rec['guard'] = gate_guard(guard_text.decode('utf-8', 'replace'), xctest)
     guard_fails = guard_unread + guard_fails
     failures = []
@@ -612,16 +696,18 @@ def attempt(name, stage):
     failures += gate_windows(rec, sampler.window_samples, stage)
     failures += gate_sensitive(sensitive)
     failures += gate_identity(sensitive, sampler.tree)
-    failures += gate_outside(sampler.other, sampler.args, str(R))
+    failures += gate_outside(sampler.other, sampler.args, str(R), sampler.tree)
     if kind == 'A':
         failures += gate_xctestrun(S / 'target/xcode/Build/Products')
     failures += guard_fails
-    failures += gate_env(list(sampler.args.values()), kind == 'B')
+    failures += gate_env(arg_rows, kind == 'B')
     failures += gate_counts(stage, out)
     failures += gate_t(rec, named)
-    failures += gate_host(rec, L.diag_names(OWNER) - diag_before, names, L.images_under(R), var_tmp_session_names())
+    LANE_TREES.append(dict(tree=sampler.tree, started=rec['started'], read=time.time()))
+    new_reports = L.diag_names(OWNER) - diag_before
+    failures += gate_host(rec, new_reports, own_name_reports(new_reports, names, OWNER), L.images_under(R), var_tmp_session_names(), LANE_TREES, str(R))
     rec['gate_failures'] = failures
-    save(d / 'gates.json', dict(failures=failures, guard=rec['guard'], window_samples=sampler.window_samples, sensitive_totals={t: sum(r['count'] for r in sensitive if r['target'] == t) for t in SENSITIVE}, sensitive_processes=sorted({(r['target'], r['process']) for r in sensitive}), t_new_foreign=rec['t_new_foreign'], diagnostic_reports_new=rec['diagnostic_reports_new'], diagnostic_reports_own=rec['diagnostic_reports_own']))
+    save(d / 'gates.json', dict(failures=failures, guard=rec['guard'], window_samples=sampler.window_samples, sensitive_totals={t: sum(r['count'] for r in sensitive if r['target'] == t) for t in SENSITIVE}, sensitive_processes=sorted({(r['target'], r['process']) for r in sensitive}), t_new_foreign=rec['t_new_foreign'], diagnostic_reports_new=rec['diagnostic_reports_new'], diagnostic_reports_own=rec['diagnostic_reports_own'], diagnostic_reports_not_ours=rec['diagnostic_reports_not_ours']))
     save(d / 'receipt.json', rec)
     rec['safety'] = [x for x in failures if x.startswith(('a window', 'stopped: a window', 'owner sentinel', 'general board', 'the guard failed', 'sensitive grant', 'process left', 'same-group process still', 'foreign T object', 'a process outside', 'a test bundle'))]
     L.say('native attempt', name, 'exit', rec['exit'], 'seconds', rec['seconds'], 'gate failures', len(failures))
@@ -671,9 +757,10 @@ def run(ctx, attempts=(('G1', 'G'), ('A1', 'A'), ('B1', 'B'))):
         bad = L.compare_copy(S, R, ignore=('target',))[0]  # New names are the build's own; the end compare reads them.
         if bad:
             raise L.Custody('native copy changed before attempt %s: %s' % (name, bad[:5]))
+        L.stop_on_configs(S, R / 'home/.cargo', 'attempt ' + name)
         with ctx['busy']():
             rec = attempt(name, stage)
-        out['attempts'][name] = {k: rec.get(k) for k in ('exit', 'seconds', 'stopped', 'gate_failures', 'window_samples', 'group_after_exit', 'group_survivors', 'descendants_alive_after_exit', 'guard', 'diagnostic_reports_new', 'sentinels_changed', 't_new_foreign', 'safety')}
+        out['attempts'][name] = {k: rec.get(k) for k in ('exit', 'seconds', 'stopped', 'gate_failures', 'window_samples', 'group_after_exit', 'group_survivors', 'descendants_alive_after_exit', 'guard', 'diagnostic_reports_new', 'diagnostic_reports_not_ours', 'sentinels_changed', 't_new_foreign', 'safety', 'fork_window_once')}
         out['reasons'] += [name + ': ' + x for x in rec['gate_failures']]
         out['safety'] = rec['safety'] or None
     moved = {p: h for p, h in pins.items() if L.sha(p) != h}

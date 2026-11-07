@@ -1,6 +1,6 @@
 """Shared helpers of the guarded check: hashes, pins, one held child, the total alarm, what the owner's Mac looks like.
 Every signal goes to a process group this run started, through its Popen handle, with the leader kept unreaped so its PID stays reserved."""
-import ctypes, errno, hashlib, json, os, pwd, re, select, signal, stat, subprocess, sys, time, unicodedata
+import ctypes, errno, hashlib, json, os, pwd, re, select, signal, stat, struct, subprocess, sys, time, unicodedata
 from pathlib import Path
 
 PY = '/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python'
@@ -330,11 +330,18 @@ def sentinels(owner=OWNER):
 LIB = ctypes.CDLL('/usr/lib/libproc.dylib')
 LIB.proc_pidpath.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
 LIB.proc_listallpids.argtypes = [ctypes.c_void_p, ctypes.c_int]
+LIB.proc_pidinfo.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
 
 
 def image(pid):
     buf = ctypes.create_string_buffer(4096)
     return buf.value.decode('utf-8', 'replace') if LIB.proc_pidpath(pid, buf, len(buf)) > 0 else None
+
+
+def start_time(pid):
+    """The kernel's start time of a pid, [seconds, microseconds], or None when it is gone. exec keeps it and a reused pid does not share it: proc_bsdinfo, flavor 3, holds it at byte 120."""
+    buf = ctypes.create_string_buffer(136)
+    return list(struct.unpack_from('<QQ', buf.raw, 120)) if LIB.proc_pidinfo(pid, 3, 0, buf, 136) == 136 else None
 
 
 def images_under(root):
@@ -394,11 +401,17 @@ def swiftlint_path(source, home):
 
 
 def absent_configs(source, cargo_home):
-    """Cargo config files Cargo would read and the route does not expect. None may exist: the source's own .cargo/config.toml is the only one."""
-    out = [str(Path(source) / '.cargo/config')]
+    """Cargo config files Cargo would read, the audit tool's, which it reads from ./.cargo and from the Cargo home, and the Cargo home's bin, where a planted cargo-audit, cargo-deny, cargo-fuzz or rustc would run in the route's place. None may exist: the source's own .cargo/config.toml is the only config."""
+    out = [str(Path(source) / '.cargo/config'), str(Path(source) / '.cargo/audit.toml')]
     for p in Path(source).parents:
         out += [str(p / '.cargo/config'), str(p / '.cargo/config.toml')]
-    return out + [str(Path(cargo_home) / 'config'), str(Path(cargo_home) / 'config.toml')]
+    return out + [str(Path(cargo_home) / n) for n in ('config', 'config.toml', 'audit.toml', 'bin')]
+
+
+def stop_on_configs(source, cargo_home, before):
+    left = [p for p in absent_configs(source, cargo_home) if os.path.lexists(p)]
+    if left:
+        raise Custody('A Cargo home bin or Cargo or audit config files the route does not expect, before %s: %s' % (before, left[:5]))
 
 
 # ---- The guard library: one build per run, from the tool copy, read by the Rust rows that hold a board or window line and by xctest.

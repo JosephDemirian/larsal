@@ -153,7 +153,7 @@ compare_copy = L.compare_copy
 
 
 def tool_files(folder):
-    return sorted(p for q in (Path(folder), Path(folder) / 'tables') if q.is_dir() for p in q.iterdir() if p.is_file())
+    return sorted(p for q in (Path(folder), Path(folder) / 'tables') if q.is_dir() for p in q.iterdir() if p.is_file() and p.name != '.DS_Store')
 
 
 def tool_hashes(folder):
@@ -239,13 +239,15 @@ def main():
     steps = [s for s in ORDER if s in steps]
     os.umask(0o077)
     import gc_summary
-    try:  # Before any run time is spent: the summary would refuse the same file at the end.
-        if a.baseline:
-            gc_summary.baseline_tests(a.baseline, steps == ORDER)
-    except (OSError, ValueError) as e:
-        sys.exit('refused: the baseline %s: %s' % (a.baseline, e))
     started, wall = time.monotonic(), time.time()
     given, commit, tree = resolve(a.target, a.repo)
+    try:  # Before any run time is spent: the summary would refuse the same files at the end.
+        if a.baseline:
+            gc_summary.baseline_tests(a.baseline, steps == ORDER, commit)
+            if a.waivers:
+                gc_summary.waiver_rows(a.waivers)
+    except (OSError, ValueError) as e:
+        sys.exit('refused: the baseline %s or its waivers %s: %s' % (a.baseline, a.waivers, e))
     R = Path(subprocess.run(['/usr/bin/mktemp', '-d', '/private/tmp/larsal-gc-%s-XXXX' % commit[:7]], env=L.SMALL_ENV, capture_output=True, check=True).stdout.decode().strip())
     os.chmod(R, 0o700)
     assert len(str(R / 's')) <= 37, 'W-15: source root too long: ' + str(R / 's')
@@ -267,7 +269,7 @@ def main():
         ctx['withheld'] = dict(row['grants']['withheld'])
         L.say('grants: %d rows, %d withheld' % (row['grants']['rows'], len(ctx['withheld'])))
         source_row['counts'] = run_export(given, commit, tree, R, R / 'tool')
-        L.say('tool against the commit:', gc_pins.tool_drift(L.load(R / 'manifest.json')['rows'], tool_before) or 'equal, or the commit holds no tool')
+        L.say('tool against the commit:', gc_pins.tool_drift(L.load(R / 'manifest.json')['rows'], tool_before) or 'equal')
         toolchain = L.rust_toolchain(R / 'e')
         row['executables_before'] = executables(toolchain)
         route_red = gc_pins.route_failures(R / 'e', R / 'tool')

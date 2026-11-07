@@ -64,10 +64,8 @@ def prepare(R, tool):
 def build(r, toolchain):
     rows, streams = [], {}
     P = r / 'proof/build'
-    absent = L.absent_configs(r / 'source', r / 'cargo-home')
     for lane in LANES:
-        left = [p for p in absent if os.path.lexists(p)]
-        assert not left, 'Cargo config files outside the source: %s' % left
+        L.stop_on_configs(r / 'source', r / 'cargo-home', 'build ' + lane)
         env = lane_env(str(r), lane, toolchain)
         env['CARGO_BUILD_JOBS'] = '4'
         L.check_sealed()
