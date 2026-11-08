@@ -20,7 +20,7 @@ larsal-format  ── reads and writes vault files and key files
 larsal-model   ── the data types
 larsal-crypto  ── the only door to crypto crates
 
-Plug-ins to larsal-ffi: larsal-browser (E7), larsal-autotype (E8), larsal-sshagent (E9), larsal-hwkey (E10), larsal-share (E11), larsal-files (E22; reached from E22-S4)
+Plug-ins to larsal-ffi: larsal-browser (E7), larsal-autotype (E8), larsal-sshagent (E9), larsal-hwkey (E10), larsal-share (E11), larsal-files (E22; reached from E22-S4), larsal-folders (E23; reached from E23-S4)
 larsal-cli: the command line tool, built on larsal-core and larsal-platform
 ```
 
@@ -48,6 +48,7 @@ Dependencies point down only. `larsal-crypto` depends on no other crate of ours;
 │   ├── larsal-hwkey/           (E10)
 │   ├── larsal-share/           (E11)
 │   ├── larsal-files/           (E22) file encryption in the public file format
+│   ├── larsal-folders/         (E23) encrypted folders in the public classic format 8
 │   └── uniffi-bindgen/      the bindings generator, pinned to the same UniFFI version
 ├── macos/                   Larsal.xcodeproj, Larsal/, LarsalTests/, LarsalUITests/, Larsal.entitlements, LarsalCore/Package.swift
 ├── extension/               our browser extension (E7, decision D4)
@@ -77,14 +78,19 @@ The only crate that imports crypto crates. Small enough to read in one sitting.
 | `secret.rs` | `SecretBytes`, `SecretString`: memory wiped on drop, no `Clone`, `Debug` prints `[hidden]`, no `Display`, constant-time equality |
 | `random.rs` | The OS random source only: `fill`, `bytes(n)`, `below(n)` without bias. Fails closed if the OS source fails. |
 | `hash.rs` | SHA-256, SHA-512, SHA-1 (SHA-1 only where a format or standard demands it) |
-| `mac.rs` | HMAC-SHA-256, HMAC-SHA-1, HMAC-SHA-512 (one-time passwords, FEA-04), constant-time verify |
+| `mac.rs` | HMAC-SHA-256, HMAC-SHA-1, HMAC-SHA-512 (one-time passwords, FEA-04), constant-time verify. E23: HMAC-SHA-384 and -512 checks (RFC 4231). |
 | `cipher.rs` | AES-256-CBC with PKCS#7 padding, Twofish-CBC, ChaCha20. Encrypt and decrypt, streaming for large data. One generic error for any decrypt failure. |
 | `stream.rs` | Keystreams for protected fields: ChaCha20 (version 4), Salsa20 (reading version 3) |
-| `kdf.rs` | Argon2d, Argon2id, AES-KDF. Parameter limits. `benchmark(target)` returns settings that take the target time on this Mac. For encrypted imports (FEA-08, LD-142): PBKDF2 with HMAC-SHA-256 or HMAC-SHA-512, HKDF-Expand with SHA-256, and Argon2id, each refusing settings outside the FEA-08.68 ranges before any work. For file encryption (E22, LD-379): scrypt, refusing a cost above its ceiling before any work. |
+| `kdf.rs` | Argon2d, Argon2id, AES-KDF. Parameter limits. `benchmark(target)` returns settings that take the target time on this Mac. For encrypted imports (FEA-08, LD-142): PBKDF2 with HMAC-SHA-256 or HMAC-SHA-512, HKDF-Expand with SHA-256, and Argon2id, each refusing settings outside the FEA-08.68 ranges before any work. For file encryption (E22, LD-379): scrypt, refusing a cost above its ceiling before any work. E23: `scrypt_settings`, RFC 7914 validity (N below 2^(16r), p within its limit) apart from the cost ceiling (LD-376). |
 | `bridge.rs` (E7) | The browser bridge channel: X25519 key exchange, HKDF-SHA256 with one key per direction, AES-256-GCM with 12-byte nonces; the extension does the same with WebCrypto (LD-274 (1)) |
 | `sign.rs` (E7) | ECDSA P-256 and Ed25519, for passkeys |
 | `aead.rs` (E22) | ChaCha20-Poly1305 in place (RFC 8439): seal and open with the caller's key, nonce and associated data. No arrangement of chunks or counters. An open checks the tag first and leaves the data unchanged when it fails. |
 | `bech32.rs` (E22) | Original Bech32 text for keys, never Bech32m: read and write with a checked prefix, length and padding; private text only in `SecretString`, decoded keys only in `SecretBytes` |
+| `gcm.rs` (E23) | AES-256-GCM with a caller's nonce, for formats that fix their own nonce rule (NIST CAVP vectors). |
+| `siv.rs` (E23) | AES-SIV, RFC 5297 (both appendix vectors). |
+| `keywrap.rs` (E23) | AES key wrap, RFC 3394 section 4.6. |
+| `text.rs` (E23) | NFC normalization of passwords, with its bound after normalization. |
+| `base64.rs` | Padded URL-safe base64 with one text per value (E23). |
 | `ssh.rs` (E9) | OpenSSH private keys through `ssh-key`: parse, public parts, decrypt with a round ceiling checked first, private fields in the agent's wire form as `SecretBytes` (INT-06.6 to INT-06.10). E9-S2: Ed25519 and ECDSA P-256 signatures for Larsal's own agent and the session binding check, through `ed25519-dalek` and `p256` (INT-06.33) |
 
 Must: standard test vectors for every function. No state, no file access, no logging.
@@ -107,6 +113,31 @@ File encryption (E22-S3; FIL-01, FIL-03): one file in the public file format, in
 | `error.rs` | The fixed messages of FIL-03. Every failure a file can cause is the one `Error::Decrypt`; the internal cause reaches only the crate's vector runner |
 
 Must: `testdata/age-testkit/` holds the published test files (C2SP/CCTV, see its `SOURCE.md`), pinned by count and hash, and they run in every `cargo test`. The runner also proves itself on `testdata/derived/`, written by a separate script from the public format text and the RFC vectors. Tests name their FIL rows.
+
+### larsal-folders
+
+Encrypted folders (E23-S3; FIL-04, FIL-06): a folder of files, each file and each name encrypted on its own, in the public classic format 8 with SIV_GCM, profile classic8-gcm-local-1 of LD-372. Every other profile is refused by name. It arranges the format and the flow; every primitive and random byte comes through larsal-crypto, every descriptor call through larsal-platform. `#![forbid(unsafe_code)]`. No process, no network. No FFI yet: E23-S4 adds the screens' side. Content goes in 32 KiB chunks on at most 4 scoped worker threads and 8 buffers, in order, with no runtime crate.
+
+| File | What it does |
+|---|---|
+| `vault.rs` | Create, unlock, lock (revoked flag at once, then the key lock waits for running passes and the keys drop), listing, lookup, the session's stores. |
+| `format.rs` | The signed configuration and the key file, read strictly and bounded before any key work. |
+| `keys.rs` | The master keys and their wrap. |
+| `names.rs` | Names sealed with the parent ID, storage paths, shortened names. |
+| `content.rs` | The header, the chunk pipeline, small objects. |
+| `read.rs` | Snapshot, Validated, write_to. |
+| `write.rs` | Every change, by private staging, recovery copies first, exclusive rename or swap. |
+| `recovery.rs` | The journal with its MAC, resume and discard. |
+| `budget.rs` | The shared header ledger. |
+| `stores.rs` | The local stores, proven private. |
+| `limits.rs` | Every limit in one place. |
+| `error.rs` | The fixed messages. |
+| `seam.rs` | Fault points, test builds only. |
+| `fuzz_door.rs` | The fuzz target's way in, feature `fuzz-door`, never on in a product build. |
+
+Must: `testdata/desktop-vault/` holds a demo vault the format's public desktop app made (MIT, see its `SOURCE.md`), pinned by name and hash, and it opens in every `cargo test`. The library-made vaults are AGPL and never in the tree: their tests are ignored and read `LARSAL_PEER_VAULTS`. Tests name their FIL rows.
+
+It installs no allocator: the scrypt crate's working blocks rely on the zeroing allocator of the front end, so `larsal-ffi`'s must stay in the path.
 
 ### larsal-model
 
@@ -187,7 +218,7 @@ The operating system. Traits in the crate root, macOS code in `macos/`. Windows 
 | `memory.rs` | The zeroing global allocator (LD-133, LD-193): every block Rust frees is zeroed before the system gets it back; installed by the `larsal` tool and larsal-ffi. `lock` keeps key pages out of swap (`mlock`, APP-11.9); larsal-format's `keys::LockedKey` uses it for every key it holds |
 | `net.rs` | One HTTPS client (rustls) for opt-in features, with timeouts and no cookies; its certificate check is Larsal's own verifier over macOS's trust evaluation (`macos/trust.rs`, LD-247 (2)). Since E16-S6 also GET and PUT with the caller's headers for the sync routes, and the pinned path for Larsal's demo server (SYN-01.2, P17): only the certificate whose SHA-256 is the pin, never macOS's trust evaluation, the handshake signatures still checked; the fingerprint read is one handshake that sends no request |
 | `device_key.rs` | The P-256 sign-in key (SYN-04.1, P5; E16-S6) through `security-framework`'s safe API: the Secure Enclave, this device only, or a software key in the data protection keychain on an Intel Mac without one (both after W-02); the login keychain for the app until W-02; an in-memory test-seam key for tests (LD-317). Signs and gives the 65-byte public key; never the private key's bytes |
-| `macos/` | Bridges to macOS APIs. The only place `unsafe` is allowed in this crate; every block has a `// SAFETY:` note (enforced by `clippy::undocumented_unsafe_blocks`). Since E5-S1: the per-user temp folder, the socket peer user id, terminal echo for `--password-stdin` (a quit signal at the prompt puts the terminal back first, then ends Larsal, as `readpassphrase(3)` does), kernel and OS versions; one quit-signal guard (`signals.rs`) for the echo-off prompt and the command line's clip wait (E12-S1: SIGINT, SIGTERM, SIGQUIT and SIGHUP are noted, the cleanup runs, then the signal ends the process; a signal ignored at start stays ignored, LD-178); the local UTC offset from `localtime_r` (LD-178). Quit signals and the M09-06 alert are Swift (`macos/`) |
+| `macos/` | Bridges to macOS APIs. The only place `unsafe` is allowed in this crate; every block has a `// SAFETY:` note (enforced by `clippy::undocumented_unsafe_blocks`). Since E5-S1: the per-user temp folder, the socket peer user id, terminal echo for `--password-stdin` (a quit signal at the prompt puts the terminal back first, then ends Larsal, as `readpassphrase(3)` does), kernel and OS versions; one quit-signal guard (`signals.rs`) for the echo-off prompt and the command line's clip wait (E12-S1: SIGINT, SIGTERM, SIGQUIT and SIGHUP are noted, the cleanup runs, then the signal ends the process; a signal ignored at start stays ignored, LD-178); the local UTC offset from `localtime_r` (LD-178). Quit signals and the M09-06 alert are Swift (`macos/`). Since E23-S3, `macos/folder.rs` gains the descriptor steps a folder needs: open_dir, open_dir_in, make_dir_in, names_in, info_in, info_of, open_regular_in, remove_dir_in, rename_new_in (exclusive), swap_in, free_bytes. Each works relative to an open folder, with no link followed. |
 
 Lock signals and screen protection are Swift (`macos/Larsal/Platform/`), as in proven Mac apps.
 
@@ -251,10 +282,11 @@ The command line tool `larsal` (E12). Same operations as the app. Password promp
 | `larsal-hwkey` | E10 | Hardware key challenge-response over USB |
 | `larsal-share` | E11 | Shared groups and remote sync |
 | `larsal-files` | E22 | File encryption in the public file format: see its section above. No FFI until E22-S4 |
+| `larsal-folders` | E23 | Encrypted folders in the public classic format 8: see its section above. No FFI until E23-S4 |
 
 ### Other folders
 
-- `fuzz/`: one target per parser: vault file, key file, KDF map, document, TOTP link, search query, Auto-Type sequence, CSV import, JSON import, .1pux import (ZIP), OPVault import, version 1 import, browser message, file format (armor, header, chunks and the validated decrypt flow).
+- `fuzz/`: one target per parser: vault file, key file, KDF map, document, TOTP link, search query, Auto-Type sequence, CSV import, JSON import, .1pux import (ZIP), OPVault import, version 1 import, browser message, file format (armor, header, chunks and the validated decrypt flow), folder format (configuration, key file, names, shortened names, content, and sealed round trips).
 - `testdata/`: demo vaults with demo passwords and their expected exports (JSON). `testdata/README.md` lists each file and its password. Never a real vault. The reference app's own test vaults stay outside this folder; tests read them through `REF_TESTDATA`.
 - `tests/`: interop tests (need `REF_CLI`) and end-to-end tests.
 - `scripts/`: `check.sh` runs every quick gate. `build-core.sh` builds the Rust static library, runs `uniffi-bindgen-swift` in library mode and wraps the result in the `LarsalCore` package (host target only; the x86_64 slice and `lipo` wait for E14). `check-names.sh` is the name guard; it stores the banned words encoded, so the script itself stays clean. `check-vendor.sh` (E0-S7) proves that every build reads only this tree (`vendor/` and our crates) and that no stub is built for a Mac. `make-testdata.sh` makes demo vaults. `interop.sh` runs interop tests. `repro-build.sh` is the release build: the `larsal` tool, `liblarsal_ffi.a` and Larsal.app with fixed settings (locked crates, build paths mapped to fixed names, a fixed `SOURCE_DATE_EPOCH`), then `make-sbom.sh` (CycloneDX bill of materials and third-party notices) and the SHA-256 of every file, all in `target/repro/`; it builds a copy of the tree in one fixed folder (`/private/tmp/larsal-repro`), compiles `Assets.car` again when actool's race changes its appearance order, and records the toolchain in `BUILDINFO`, so two runs on the same toolchain give the same hashes wherever the tree is (AT-J04, LD-222).
