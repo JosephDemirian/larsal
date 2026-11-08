@@ -214,6 +214,20 @@ impl SecretString {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    /// Appends `c` when it fits the capacity, so the buffer never moves. Inside this
+    /// crate only, for a result written once (`text.rs`). False when it does not fit.
+    pub(crate) fn push_within_capacity(&mut self, c: char) -> bool {
+        let fits = self
+            .0
+            .len()
+            .checked_add(c.len_utf8())
+            .is_some_and(|n| n <= self.0.capacity());
+        if fits {
+            self.0.push(c);
+        }
+        fits
+    }
 }
 
 impl From<&str> for SecretString {

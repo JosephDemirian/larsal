@@ -52,6 +52,29 @@ pub fn hmac_sha512(key: &[u8], parts: &[&[u8]]) -> Result<SecretBytes, Error> {
     compute::<Hmac<sha2::Sha512>>(key, parts)
 }
 
+/// HMAC-SHA-384 of `parts` joined in order, keyed with `key`. Always 48 bytes. A
+/// folder configuration may be signed with it (FIL-04.1).
+///
+/// # Errors
+/// Same as [`hmac_sha256`].
+pub fn hmac_sha384(key: &[u8], parts: &[&[u8]]) -> Result<SecretBytes, Error> {
+    compute::<Hmac<sha2::Sha384>>(key, parts)
+}
+
+/// True only if `tag` is the full 48-byte HMAC-SHA-384 of `parts` under `key`, with
+/// the guarantees of [`verify_hmac_sha256`].
+#[must_use]
+pub fn verify_hmac_sha384(key: &[u8], parts: &[&[u8]], tag: &[u8]) -> bool {
+    verify::<Hmac<sha2::Sha384>>(key, parts, tag)
+}
+
+/// True only if `tag` is the full 64-byte HMAC-SHA-512 of `parts` under `key`, with
+/// the guarantees of [`verify_hmac_sha256`].
+#[must_use]
+pub fn verify_hmac_sha512(key: &[u8], parts: &[&[u8]], tag: &[u8]) -> bool {
+    verify::<Hmac<sha2::Sha512>>(key, parts, tag)
+}
+
 /// True only if `tag` is the full 32-byte HMAC-SHA-256 of `parts` under `key`.
 ///
 /// Guarantees: the comparison takes the same time wherever the first

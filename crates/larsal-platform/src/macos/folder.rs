@@ -92,6 +92,300 @@ pub fn rename_in(dir: &File, from: &OsStr, to: &OsStr) -> io::Result<()> {
     }
 }
 
+/// What a name in an open folder is. A link is never followed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NodeType {
+    /// A regular file.
+    File,
+    /// A folder.
+    Dir,
+    /// A symbolic link.
+    Link,
+    /// A FIFO, a device or a socket.
+    Other,
+}
+
+/// What `fstat(2)` says of one object: its identity, its size and its times.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NodeInfo {
+    /// What it is.
+    pub kind: NodeType,
+    /// Its device.
+    pub dev: u64,
+    /// Its inode.
+    pub ino: u64,
+    /// How many names it has.
+    pub nlink: u64,
+    /// Its size in bytes.
+    pub size: u64,
+    /// Modified: seconds and nanoseconds.
+    pub modified: (i64, i64),
+    /// Changed: seconds and nanoseconds.
+    pub changed: (i64, i64),
+}
+
+fn node_type(mode: libc::mode_t) -> NodeType {
+    match mode & libc::S_IFMT {
+        libc::S_IFREG => NodeType::File,
+        libc::S_IFDIR => NodeType::Dir,
+        libc::S_IFLNK => NodeType::Link,
+        _ => NodeType::Other,
+    }
+}
+
+/// E23-S3: what `name` in the open folder `dir` is; a link there is described,
+/// never followed.
+///
+/// # Errors
+/// The system's error; `NotFound` when nothing has that name.
+pub fn info_in(dir: &File, name: &OsStr) -> io::Result<NodeInfo> {
+    let name = c_name(name)?;
+    let mut st = MaybeUninit::<libc::stat>::uninit();
+    // SAFETY: `dir` stays open while borrowed, `name` is a NUL-terminated string
+    // that lives across the call, and `st` is valid for writes of a stat.
+    // assume_init runs only after fstatat returned 0, which filled every field.
+    let st = unsafe {
+        let flags = libc::AT_SYMLINK_NOFOLLOW;
+        if libc::fstatat(dir.as_raw_fd(), name.as_ptr(), st.as_mut_ptr(), flags) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        st.assume_init()
+    };
+    Ok(NodeInfo {
+        kind: node_type(st.st_mode),
+        // `as u64` as the standard library's own `MetadataExt::dev` converts it.
+        dev: st.st_dev as u64,
+        ino: st.st_ino,
+        nlink: u64::from(st.st_nlink),
+        size: u64::try_from(st.st_size).unwrap_or(0),
+        modified: (st.st_mtime, st.st_mtime_nsec),
+        changed: (st.st_ctime, st.st_ctime_nsec),
+    })
+}
+
+/// E23-S3: the same description of an object already open.
+///
+/// # Errors
+/// The system's error.
+pub fn info_of(file: &File) -> io::Result<NodeInfo> {
+    let m = file.metadata()?;
+    Ok(NodeInfo {
+        kind: node_type(libc::mode_t::try_from(m.mode()).unwrap_or(0)),
+        dev: m.dev(),
+        ino: m.ino(),
+        nlink: m.nlink(),
+        size: m.size(),
+        modified: (m.mtime(), m.mtime_nsec()),
+        changed: (m.ctime(), m.ctime_nsec()),
+    })
+}
+
+/// E23-S3: opens the folder at `path` and never follows a link at its last step,
+/// never waits, and refuses anything but a folder.
+///
+/// # Errors
+/// The system's error; `InvalidInput` for a link or anything but a folder.
+pub fn open_dir(path: &std::path::Path) -> io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
+        .open(path)
+        .map_err(not_this_kind)
+}
+
+fn not_this_kind(e: io::Error) -> io::Error {
+    match e.raw_os_error() {
+        Some(libc::ELOOP | libc::ENOTDIR) => io::Error::from(io::ErrorKind::InvalidInput),
+        _ => e,
+    }
+}
+
+fn open_at(dir: &File, name: &OsStr, flags: libc::c_int) -> io::Result<File> {
+    let name = c_name(name)?;
+    let flags = flags | libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC;
+    // SAFETY: `dir` stays open while borrowed and `name` is a NUL-terminated string
+    // that lives across the call; without O_CREAT openat reads no third argument.
+    let fd = unsafe { libc::openat(dir.as_raw_fd(), name.as_ptr(), flags) };
+    if fd < 0 {
+        return Err(not_this_kind(io::Error::last_os_error()));
+    }
+    // SAFETY: openat returned a new descriptor that nothing else owns.
+    Ok(unsafe { File::from_raw_fd(fd) })
+}
+
+/// E23-S3: opens the folder `name` in the open folder `dir`. A link is refused at
+/// the open itself, so no look before it can be raced.
+///
+/// # Errors
+/// The system's error; `InvalidInput` for a link or anything but a folder.
+pub fn open_dir_in(dir: &File, name: &OsStr) -> io::Result<File> {
+    open_at(dir, name, libc::O_DIRECTORY)
+}
+
+/// E23-S3: opens the regular file `name` in the open folder `dir` to read. A link
+/// is refused at the open itself, the open never waits (a FIFO has no writer to
+/// wait for), and the open object is checked (FIL-06.4).
+///
+/// # Errors
+/// The system's error; `InvalidInput` for a link or anything but a regular file.
+pub fn open_regular_in(dir: &File, name: &OsStr) -> io::Result<File> {
+    let f = open_at(dir, name, libc::O_NOCTTY)?;
+    if f.metadata()?.is_file() {
+        Ok(f)
+    } else {
+        Err(io::Error::from(io::ErrorKind::InvalidInput))
+    }
+}
+
+/// E23-S3: makes the folder `name` in the open folder `dir`, with mode `mode`.
+///
+/// # Errors
+/// The system's error; `AlreadyExists` when `name` is taken.
+pub fn make_dir_in(dir: &File, name: &OsStr, mode: u16) -> io::Result<()> {
+    let name = c_name(name)?;
+    // SAFETY: `dir` stays open while borrowed and `name` is a NUL-terminated string
+    // that lives across the call.
+    if unsafe { libc::mkdirat(dir.as_raw_fd(), name.as_ptr(), mode) } == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+/// E23-S3: removes the empty folder `name` from the open folder `dir`. A folder
+/// that holds anything stays, with all it holds.
+///
+/// # Errors
+/// The system's error; `DirectoryNotEmpty` when it holds anything.
+pub fn remove_dir_in(dir: &File, name: &OsStr) -> io::Result<()> {
+    let name = c_name(name)?;
+    // SAFETY: `dir` stays open while borrowed and `name` is a NUL-terminated string
+    // that lives across the call.
+    if unsafe { libc::unlinkat(dir.as_raw_fd(), name.as_ptr(), libc::AT_REMOVEDIR) } == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+fn rename_flagged(
+    from_dir: &File,
+    from: &OsStr,
+    to_dir: &File,
+    to: &OsStr,
+    flags: libc::c_uint,
+) -> io::Result<()> {
+    let (from, to) = (c_name(from)?, c_name(to)?);
+    // SAFETY: both folders stay open while borrowed, and both names are
+    // NUL-terminated strings that live across the call.
+    let done = unsafe {
+        libc::renameatx_np(
+            from_dir.as_raw_fd(),
+            from.as_ptr(),
+            to_dir.as_raw_fd(),
+            to.as_ptr(),
+            flags,
+        )
+    };
+    if done == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+/// E23-S3 (FIL-06.6): moves `from` to `to` only if nothing has that name, at the
+/// system's own atomic check. It never replaces.
+///
+/// # Errors
+/// The system's error; `AlreadyExists` when `to` is taken, with both untouched; a
+/// volume without this call says `Unsupported`.
+pub fn rename_new_in(from_dir: &File, from: &OsStr, to_dir: &File, to: &OsStr) -> io::Result<()> {
+    rename_flagged(from_dir, from, to_dir, to, libc::RENAME_EXCL)
+}
+
+/// E23-S3 (FIL-06.6): swaps the two names at once, so neither name is ever missing
+/// and the object that was at `b` stays whole at `a`.
+///
+/// # Errors
+/// The system's error, with both untouched; a volume without this call says
+/// `Unsupported`.
+pub fn swap_in(a_dir: &File, a: &OsStr, b_dir: &File, b: &OsStr) -> io::Result<()> {
+    rename_flagged(a_dir, a, b_dir, b, libc::RENAME_SWAP)
+}
+
+/// E23-S3 (FIL-06.13): the bytes this process may still write on the volume of the
+/// open file or folder.
+///
+/// # Errors
+/// The system's error.
+pub fn free_bytes(file: &File) -> io::Result<u64> {
+    let mut st = MaybeUninit::<libc::statfs>::uninit();
+    // SAFETY: `file` stays open while borrowed and `st` is valid for writes of a
+    // statfs. assume_init runs only after fstatfs returned 0, which filled it.
+    let st = unsafe {
+        if libc::fstatfs(file.as_raw_fd(), st.as_mut_ptr()) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        st.assume_init()
+    };
+    Ok(st.f_bavail.saturating_mul(u64::from(st.f_bsize)))
+}
+
+/// Closes a directory stream once.
+struct DirStream(*mut libc::DIR);
+
+impl Drop for DirStream {
+    fn drop(&mut self) {
+        // SAFETY: the pointer came from fdopendir, is not null, and is closed only
+        // here. closedir also closes the descriptor the stream took over.
+        unsafe { libc::closedir(self.0) };
+    }
+}
+
+/// E23-S3 (FIL-06.3): the names in the open folder `dir`, without `.` and `..`, in
+/// the system's order. It stops at `limit + 1` names, so more than `limit` is an
+/// answer and hostile size is no memory. `dir`'s own read position is not used.
+///
+/// # Errors
+/// The system's error, including one in the middle of the listing.
+pub fn names_in(dir: &File, limit: usize) -> io::Result<Vec<std::ffi::OsString>> {
+    let own = open_at(dir, OsStr::new("."), libc::O_DIRECTORY)?;
+    let fd = std::os::fd::IntoRawFd::into_raw_fd(own);
+    // SAFETY: `fd` is an open descriptor we own; on success the stream owns it.
+    let stream = unsafe { libc::fdopendir(fd) };
+    if stream.is_null() {
+        let e = io::Error::last_os_error();
+        // SAFETY: fdopendir failed, so `fd` is still ours to close, once.
+        unsafe { libc::close(fd) };
+        return Err(e);
+    }
+    let stream = DirStream(stream);
+    let mut names = Vec::new();
+    while names.len() <= limit {
+        // SAFETY: __error returns this thread's errno location, always valid. It is
+        // cleared so that a null from readdir can tell the end from a failure.
+        unsafe { *libc::__error() = 0 };
+        // SAFETY: the stream is open and used by this thread only. The entry stays
+        // valid until the next readdir on it, and is read before that.
+        let entry = unsafe { libc::readdir(stream.0) };
+        if entry.is_null() {
+            let e = io::Error::last_os_error();
+            if e.raw_os_error() == Some(0) {
+                break;
+            }
+            return Err(e);
+        }
+        // SAFETY: the system NUL-terminates d_name, and `entry` is valid (above).
+        let name = unsafe { std::ffi::CStr::from_ptr((*entry).d_name.as_ptr()) }.to_bytes();
+        if name != b"." && name != b".." {
+            names.push(OsStr::from_bytes(name).to_owned());
+        }
+    }
+    Ok(names)
+}
+
 /// F-101 (LD-225 (1)): opens the file at `path` to read, never waiting: a
 /// path that is not a regular file after links (a FIFO, a device, a
 /// socket, a folder) is refused before any open, the open does not block
@@ -452,6 +746,107 @@ mod tests {
         );
         // The older open, kept for its callers, does follow.
         assert!(open_regular(&link).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// E23-S3, FIL-06.6: an exclusive move refuses a taken name and leaves both; a
+    /// swap keeps both objects whole under each other's name.
+    #[test]
+    fn fil06_t06_exclusive_rename_and_swap() {
+        let dir = private_dir("rename-new");
+        let open = File::open(&dir).unwrap();
+        let (a, b, c) = (OsStr::new("a"), OsStr::new("b"), OsStr::new("c"));
+        std::fs::write(dir.join("a"), b"A").unwrap();
+        std::fs::write(dir.join("b"), b"B").unwrap();
+        let taken = rename_new_in(&open, a, &open, b).unwrap_err();
+        assert_eq!(taken.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(std::fs::read(dir.join("a")).unwrap(), b"A");
+        assert_eq!(std::fs::read(dir.join("b")).unwrap(), b"B");
+        swap_in(&open, a, &open, b).unwrap();
+        assert_eq!(std::fs::read(dir.join("a")).unwrap(), b"B");
+        assert_eq!(std::fs::read(dir.join("b")).unwrap(), b"A");
+        rename_new_in(&open, a, &open, c).unwrap();
+        assert!(!dir.join("a").exists());
+        assert_eq!(std::fs::read(dir.join("c")).unwrap(), b"B");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// E23-S3, FIL-06.3: the opens below a folder refuse a link at the open, and a
+    /// FIFO at once with no wait for a writer; the description never follows.
+    #[test]
+    fn fil06_t03_opens_in_a_folder_follow_nothing() {
+        let dir = private_dir("open-in");
+        let open = File::open(&dir).unwrap();
+        std::fs::write(dir.join("file"), b"demo").unwrap();
+        std::fs::create_dir(dir.join("sub")).unwrap();
+        std::os::unix::fs::symlink(dir.join("file"), dir.join("link")).unwrap();
+        std::os::unix::fs::symlink(dir.join("sub"), dir.join("dirlink")).unwrap();
+        let status = Command::new("/usr/bin/mkfifo")
+            .arg(dir.join("fifo"))
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let n = OsStr::new;
+        assert!(open_regular_in(&open, n("file")).is_ok());
+        assert!(open_dir_in(&open, n("sub")).is_ok());
+        for bad in ["link", "fifo", "sub", "dirlink"] {
+            let e = open_regular_in(&open, n(bad)).unwrap_err();
+            assert_eq!(e.kind(), io::ErrorKind::InvalidInput, "{bad}");
+        }
+        for bad in ["dirlink", "link", "file"] {
+            let e = open_dir_in(&open, n(bad)).unwrap_err();
+            assert_eq!(e.kind(), io::ErrorKind::InvalidInput, "{bad}");
+        }
+        assert_eq!(
+            open_regular_in(&open, n("none")).unwrap_err().kind(),
+            io::ErrorKind::NotFound
+        );
+        assert_eq!(
+            open_dir(&dir.join("dirlink")).unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert!(open_dir(&dir).is_ok());
+        assert_eq!(info_in(&open, n("link")).unwrap().kind, NodeType::Link);
+        assert_eq!(info_in(&open, n("fifo")).unwrap().kind, NodeType::Other);
+        assert_eq!(info_in(&open, n("sub")).unwrap().kind, NodeType::Dir);
+        let f = info_in(&open, n("file")).unwrap();
+        assert_eq!((f.kind, f.size, f.nlink), (NodeType::File, 4, 1));
+        assert_eq!(
+            info_of(&open_regular_in(&open, n("file")).unwrap()).unwrap(),
+            f
+        );
+        make_dir_in(&open, n("made"), 0o700).unwrap();
+        assert_eq!(
+            make_dir_in(&open, n("made"), 0o700).unwrap_err().kind(),
+            io::ErrorKind::AlreadyExists
+        );
+        std::fs::write(dir.join("made/x"), b"x").unwrap();
+        assert_eq!(
+            remove_dir_in(&open, n("made")).unwrap_err().kind(),
+            io::ErrorKind::DirectoryNotEmpty
+        );
+        assert!(dir.join("made/x").exists());
+        std::fs::remove_file(dir.join("made/x")).unwrap();
+        remove_dir_in(&open, n("made")).unwrap();
+        assert!(free_bytes(&open).unwrap() > 0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// E23-S3, FIL-06.3: every name once, no dots, and the limit says "more".
+    #[test]
+    fn fil06_t03_names_stop_at_the_limit() {
+        let dir = private_dir("names-in");
+        let open = File::open(&dir).unwrap();
+        assert!(names_in(&open, 3).unwrap().is_empty());
+        for i in 0..5 {
+            std::fs::write(dir.join(format!("n{i}")), b"").unwrap();
+        }
+        let mut all = names_in(&open, 10).unwrap();
+        all.sort();
+        assert_eq!(all, ["n0", "n1", "n2", "n3", "n4"]);
+        assert_eq!(names_in(&open, 5).unwrap().len(), 5);
+        assert_eq!(names_in(&open, 3).unwrap().len(), 4, "limit + 1 says more");
+        assert_eq!(names_in(&open, 0).unwrap().len(), 1);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

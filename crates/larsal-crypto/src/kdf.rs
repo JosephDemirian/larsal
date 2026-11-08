@@ -803,19 +803,45 @@ pub fn pbkdf2(
 /// FIL-03.2. That is 1 GiB of working memory (128 x r x N bytes).
 pub const SCRYPT_MAX_COST: u64 = 1 << 23;
 
+/// Whether scrypt may run with N = 2^`log_n`: first the ceiling, a cost N * r * p of
+/// 1 to [`SCRYPT_MAX_COST`] and N above 1; then RFC 7914's validity, N below
+/// 2^(16 * r) by a comparison of exponents that cannot overflow, and p within its
+/// bound. Validity is not the ceiling: r = 1, N = 2^16 fits the ceiling and is
+/// invalid (LD-376).
+///
+/// # Errors
+/// [`Error::KdfCost`] for a cost out of range; [`Error::KdfSettings`] for settings
+/// RFC 7914 does not allow. Nothing is allocated.
+pub fn scrypt_settings(log_n: u8, r: u32, p: u32) -> Result<(), Error> {
+    let cost = u64::from(r)
+        .checked_mul(u64::from(p))
+        .and_then(|rp| 1u64.checked_shl(u32::from(log_n))?.checked_mul(rp))
+        .ok_or(Error::KdfCost)?;
+    if log_n == 0 || !(1..=SCRYPT_MAX_COST).contains(&cost) {
+        return Err(Error::KdfCost);
+    }
+    // r is at least 1 here, since the cost is. RFC 7914: p <= (2^32 - 1) * 32 / (128 * r).
+    let p_limit = (u64::from(u32::MAX).saturating_mul(32))
+        .checked_div(u64::from(r).saturating_mul(128))
+        .ok_or(Error::KdfCost)?;
+    if u64::from(log_n) >= u64::from(r).saturating_mul(16) || u64::from(p) > p_limit {
+        return Err(Error::KdfSettings);
+    }
+    Ok(())
+}
+
 /// scrypt (RFC 7914) with N = 2^`log_n`, giving `len` bytes.
 ///
-/// Guarantees: a cost of 0, or over [`SCRYPT_MAX_COST`], is refused before any
-/// work or allocation; the result is exactly `len` bytes in a [`SecretBytes`];
+/// Guarantees: settings [`scrypt_settings`] refuses are refused before any work or
+/// allocation; the result is exactly `len` bytes in a [`SecretBytes`];
 /// 256 KiB of stack below the call is zeroed after it. The crate's own working
 /// blocks are plain heap: the zeroing allocator of the `larsal` tool and
 /// larsal-ffi wipes them when they are freed (LD-379 has no zeroize feature
 /// for this crate).
 ///
 /// # Errors
-/// [`Error::KdfCost`] for a cost out of range; [`Error::KeyLength`] for `len`
-/// 0 or above [`IMPORT_MAX_KEY`]; [`Error::KdfSettings`] if the crate refuses
-/// the settings.
+/// As [`scrypt_settings`]; [`Error::KeyLength`] for `len` 0 or above
+/// [`IMPORT_MAX_KEY`]; [`Error::KdfSettings`] if the crate refuses the settings.
 pub fn scrypt(
     password: &[u8],
     salt: &[u8],
@@ -824,13 +850,7 @@ pub fn scrypt(
     p: u32,
     len: usize,
 ) -> Result<SecretBytes, Error> {
-    let cost = u64::from(r)
-        .checked_mul(u64::from(p))
-        .and_then(|rp| 1u64.checked_shl(u32::from(log_n))?.checked_mul(rp))
-        .ok_or(Error::KdfCost)?;
-    if log_n == 0 || !(1..=SCRYPT_MAX_COST).contains(&cost) {
-        return Err(Error::KdfCost);
-    }
+    scrypt_settings(log_n, r, p)?;
     if !(1..=IMPORT_MAX_KEY).contains(&len) {
         return Err(Error::KeyLength);
     }

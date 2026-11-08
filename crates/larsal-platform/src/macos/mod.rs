@@ -25,8 +25,10 @@ pub(crate) mod trust;
 #[cfg(feature = "code-sign")]
 pub use codesign::peer_meets;
 pub use folder::{
-    create_in, dataless, has_acl, ignores_ownership, is_file_in, keep_file_info, open_regular,
-    open_regular_nofollow, remove_in, rename_in,
+    NodeInfo, NodeType, create_in, dataless, free_bytes, has_acl, ignores_ownership, info_in,
+    info_of, is_file_in, keep_file_info, make_dir_in, names_in, open_dir, open_dir_in,
+    open_regular, open_regular_in, open_regular_nofollow, remove_dir_in, remove_in, rename_in,
+    rename_new_in, swap_in,
 };
 pub use instance::{effective_uid, peer_uid, user_temp_dir};
 pub use pipe::ignore_broken_pipes;

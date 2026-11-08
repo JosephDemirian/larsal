@@ -14,7 +14,7 @@
 
 use crate::Error;
 use crate::secret::{SecretBytes, SecretString, scrubbed};
-use base64ct::{Base64, Base64Unpadded, Base64UrlUnpadded, Encoding};
+use base64ct::{Base64, Base64Unpadded, Base64Url, Base64UrlUnpadded, Encoding};
 
 /// The base64 forms Larsal writes and reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +36,10 @@ pub enum Form {
     /// unused low bits must be zero, so one byte string has exactly one text
     /// (the file header, FIL-01.2).
     Unpadded,
+    /// The URL-safe alphabet with `=` padding, written and read. Read: the padding is
+    /// exactly what the encoding writes and the unused low bits must be zero, so one
+    /// byte string has exactly one text (folder names, FIL-04.10).
+    UrlPadded,
 }
 
 /// `bytes` as base64 text in `form`.
@@ -111,12 +115,14 @@ fn encoded(form: Form, bytes: &[u8]) -> Vec<u8> {
         Form::Padded | Form::PaddingOptional => Base64::encoded_len(bytes),
         Form::Url => Base64UrlUnpadded::encoded_len(bytes),
         Form::Unpadded => Base64Unpadded::encoded_len(bytes),
+        Form::UrlPadded => Base64Url::encoded_len(bytes),
     };
     let mut out = vec![0; len];
     let n = match form {
         Form::Padded | Form::PaddingOptional => Base64::encode(bytes, &mut out),
         Form::Url => Base64UrlUnpadded::encode(bytes, &mut out),
         Form::Unpadded => Base64Unpadded::encode(bytes, &mut out),
+        Form::UrlPadded => Base64Url::encode(bytes, &mut out),
     }
     .map_or(0, str::len);
     out.truncate(n);
@@ -141,6 +147,7 @@ fn decode_in(form: Form, text: &[u8], buf: &mut [u8]) -> Result<usize, Error> {
             .map(<[u8]>::len)
             .ok(),
         Form::Unpadded => Base64Unpadded::decode(text, buf).map(<[u8]>::len).ok(),
+        Form::UrlPadded => Base64Url::decode(text, buf).map(<[u8]>::len).ok(),
     };
     n.ok_or(Error::Base64)
 }
