@@ -1,0 +1,27 @@
+[package]
+name = "larsal-qr"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# Show as QR Code's matrix and Wi-Fi join text (FEA-10, E21-S3), shared by the
+# Mac app's core (larsal-ffi) and the `larsal` tool (larsal-cli). The one crate
+# that imports `qrcode` (LD-198). No tests of its own: larsal-ffi's and
+# larsal-cli's tests drive it, so it adds no test program.
+[lib]
+test = false
+doctest = false
+
+[features]
+# Tests only: `written`, the join text with its own buffer, for larsal-ffi's
+# join tests (QR-T11, F-064). Never in a product build.
+test-join = []
+
+[lints]
+workspace = true
+
+[dependencies]
+larsal-crypto = { workspace = true }
+larsal-model = { workspace = true }
+qrcode = { workspace = true }

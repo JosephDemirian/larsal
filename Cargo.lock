@@ -938,6 +938,7 @@ dependencies = [
  "larsal-hwkey",
  "larsal-model",
  "larsal-platform",
+ "larsal-qr",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
@@ -1010,6 +1011,7 @@ dependencies = [
  "larsal-hwkey",
  "larsal-model",
  "larsal-platform",
+ "larsal-qr",
  "larsal-share",
  "larsal-sshagent",
  "larsal-sync",
@@ -1091,6 +1093,15 @@ dependencies = [
  "larsal-crypto",
  "larsal-format",
  "larsal-model",
+]
+
+[[package]]
+name = "larsal-qr"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+ "larsal-model",
+ "qrcode",
 ]
 
 [[package]]

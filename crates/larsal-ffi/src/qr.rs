@@ -20,26 +20,31 @@ use larsal_crypto::hash::{Algorithm, Hasher};
 use larsal_crypto::secret::{SecretBytes, SecretString};
 use larsal_model::{Entry, Time, Vault};
 
-use crate::edit::{EditState, Qr, qr_eci26, showable};
+use crate::edit::{EditState, Qr, qr_of, showable};
 use crate::session::{LarsalError, MAX_TEXT, Session};
 use crate::views::{check_field, find, now, parse_id, resolved_at};
 
-/// FEA-10.9: version 40 at level H less the ECI, mode and count headers.
-const MAX_BYTES: usize = 1_272;
+#[cfg(test)]
+use larsal_qr::MAX_BYTES;
+use larsal_qr::Refusal;
 /// FEA-10.17: pixels per module of a saved or shared image.
 const PNG_PITCH: usize = 8;
 
+// The card's words live once, in larsal-qr, for the app and the `larsal` tool.
 /// `MSG-QR-TOO-LARGE`.
-const TOO_LARGE: &str =
-    "This value is too large for one QR code. Nothing was shown, saved or shared.";
+#[cfg(test)]
+const TOO_LARGE: &str = Refusal::TooLarge.message();
 /// `MSG-QR-EMPTY`.
-const EMPTY: &str = "This field is empty.";
+#[cfg(test)]
+const EMPTY: &str = Refusal::Empty.message();
 /// `MSG-QR-FAILED`.
-const FAILED: &str = "The QR code could not be made.";
+const FAILED: &str = Refusal::Failed.message();
 /// `MSG-QR-WIFI-INVALID`.
-const WIFI_INVALID: &str = "This Wi-Fi entry is incomplete or has invalid settings.";
+#[cfg(test)]
+const WIFI_INVALID: &str = Refusal::WifiInvalid.message();
 /// `MSG-QR-WIFI-UNSUPPORTED`.
-const WIFI_UNSUPPORTED: &str = "This network type cannot be shared as a Wi-Fi join code. Show an individual field as text instead.";
+#[cfg(test)]
+const WIFI_UNSUPPORTED: &str = Refusal::WifiUnsupported.message();
 /// `MSG-QR-SAVE-FAILED`.
 const SAVE_FAILED: &str = "The QR image could not be saved.";
 /// `MSG-QR-SHARE-FAILED`.
@@ -132,15 +137,12 @@ fn made(e: &Entry, place: &[u8], payload: &[u8]) -> (SecretBytes, Vec<u8>) {
     )
 }
 
-/// FEA-10.9: the size is decided on the final bytes, before the encoder.
+/// FEA-10.9: the size is decided on the final bytes, before the encoder
+/// (larsal-qr, the path the `larsal` tool shares).
 fn encode(payload: &[u8]) -> Result<Qr, LarsalError> {
-    if payload.is_empty() {
-        return Err(refused(EMPTY));
-    }
-    if payload.len() > MAX_BYTES {
-        return Err(refused(TOO_LARGE));
-    }
-    qr_eci26(payload).map_err(|_| refused(FAILED))
+    larsal_qr::encode(payload)
+        .map(qr_of)
+        .map_err(|r| refused(r.message()))
 }
 
 /// The text and revision of `source` as it reads now, with its clock at `at`.
@@ -435,194 +437,18 @@ impl Session {
 }
 
 // ---------------------------------------------------------------------------
-// The Wi-Fi join text (FEA-10.4 to .6).
+// The Wi-Fi join text (FEA-10.4 to .6): larsal-qr makes it, for the app and the
+// `larsal` tool alike.
 
-/// The stored settings of a join, read literally.
-struct Wire<'a> {
-    kind: &'a str,
-    ssid: &'a str,
-    /// `None` for an open network, even with a stale password.
-    password: Option<&'a str>,
-    hidden: bool,
-    enterprise: Option<Enterprise<'a>>,
-}
-
-/// LD-361: the selected enterprise serialization.
-struct Enterprise<'a> {
-    eap: &'a str,
-    identity: &'a str,
-    anonymous: Option<&'a str>,
-    phase2: &'a str,
-}
-
-/// FEA-10.6's table, from exact stored values.
-fn wire(e: &Entry) -> Result<Wire<'_>, LarsalError> {
-    let invalid = || refused(WIFI_INVALID);
-    let filled = |name: &'static str| e.field(name).map(|f| f.value.expose()).unwrap_or_default();
-    let control = |text: &str| text.chars().any(|c| c.is_ascii_control());
-    let hidden = match e.field("Hidden").map(|f| f.value.expose()) {
-        None | Some("false") => false,
-        Some("true") => true,
-        Some(_) => return Err(invalid()),
-    };
-    let (ssid, security, password) = (
-        e.value("UserName"),
-        e.value("Security"),
-        e.value("Password"),
-    );
-    if security.is_empty() || ssid.is_empty() || control(security) {
-        return Err(invalid());
-    }
-    let kind = match security {
-        "WPA" | "WPA Personal" | "WPA2 Personal" | "WPA/WPA2 Personal" | "WPA2/WPA3 Personal" => {
-            "WPA"
-        }
-        "WEP" => "WEP",
-        "Open" | "nopass" => "nopass",
-        "WPA2-EAP" => "WPA2-EAP",
-        _ => return Err(refused(WIFI_UNSUPPORTED)),
-    };
-    let enterprise = if kind == "WPA2-EAP" {
-        // Missing fields are INVALID (FEA-10.4). Other profiles stay open work,
-        // never arbitrary E/PH2: a method that is not the selected one decides
-        // before what that method would need (FEA-10.6).
-        for (name, selected) in [("EAP Method", "TTLS"), ("Phase 2 Method", "MSCHAPV2")] {
-            let method = filled(name);
-            if method.is_empty() || control(method) {
-                return Err(invalid());
-            }
-            if method != selected {
-                return Err(refused(WIFI_UNSUPPORTED));
-            }
-        }
-        if filled("Identity").is_empty() {
-            return Err(invalid());
-        }
-        Some(Enterprise {
-            eap: "TTLS",
-            identity: filled("Identity"),
-            anonymous: Some(filled("Anonymous Identity")).filter(|a| !a.is_empty()),
-            phase2: "MSCHAPV2",
-        })
-    } else {
-        None
-    };
-    let open = kind == "nopass";
-    if !open && password.is_empty() {
-        return Err(invalid());
-    }
-    let out = Wire {
-        kind,
-        ssid,
-        password: (!open).then_some(password),
-        hidden,
-        enterprise,
-    };
-    if out.strings().any(control) {
-        return Err(invalid());
-    }
-    Ok(out)
-}
-
-impl Wire<'_> {
-    /// The stored strings the join carries.
-    fn strings(&self) -> impl Iterator<Item = &str> {
-        let enterprise = self.enterprise.as_ref();
-        [
-            Some(self.ssid),
-            self.password,
-            enterprise.map(|x| x.identity),
-            enterprise.and_then(|x| x.anonymous),
-        ]
-        .into_iter()
-        .flatten()
-    }
-}
-
-fn special(c: char) -> bool {
-    matches!(c, '\\' | ';' | ',' | ':' | '"')
-}
-
-/// FEA-10.5: S and P only, nonempty even-length ASCII hex.
-fn hex_looking(text: &str) -> bool {
-    !text.is_empty() && text.len().is_multiple_of(2) && text.bytes().all(|b| b.is_ascii_hexdigit())
-}
-
-/// `‹key›‹value›;` with each special character escaped once.
-fn push(out: &mut String, key: &str, value: &str, wrap: bool) {
-    let quoted = wrap && hex_looking(value);
-    out.push_str(key);
-    if quoted {
-        out.push('"');
-    }
-    for c in value.chars() {
-        if special(c) {
-            out.push('\\');
-        }
-        out.push(c);
-    }
-    if quoted {
-        out.push('"');
-    }
-    out.push(';');
-}
-
-/// The room [`push`] takes.
-fn room(key: &str, value: &str, wrap: bool) -> usize {
-    let quotes = if wrap && hex_looking(value) { 2 } else { 0 };
-    key.len() + value.len() + value.matches(special).count() + quotes + 1
-}
-
-/// FEA-10.5's stable order, in one buffer of the exact size, so no part of
-/// the password is left in a grown one (F-064, Rust rule 3).
-fn join_buffer(w: &Wire<'_>) -> String {
-    let hidden = if w.hidden { "true" } else { "false" };
-    let mut size = "WIFI:;".len()
-        + room("T:", w.kind, false)
-        + room("S:", w.ssid, true)
-        + room("H:", hidden, false);
-    size += w.password.map_or(0, |p| room("P:", p, true));
-    if let Some(x) = &w.enterprise {
-        size += room("E:", x.eap, false)
-            + room("I:", x.identity, false)
-            + room("PH2:", x.phase2, false);
-        size += x.anonymous.map_or(0, |a| room("A:", a, false));
-    }
-    let mut out = String::with_capacity(size);
-    out.push_str("WIFI:");
-    push(&mut out, "T:", w.kind, false);
-    push(&mut out, "S:", w.ssid, true);
-    if let Some(p) = w.password {
-        push(&mut out, "P:", p, true);
-    }
-    push(&mut out, "H:", hidden, false);
-    if let Some(x) = &w.enterprise {
-        push(&mut out, "E:", x.eap, false);
-        push(&mut out, "I:", x.identity, false);
-        if let Some(a) = x.anonymous {
-            push(&mut out, "A:", a, false);
-        }
-        push(&mut out, "PH2:", x.phase2, false);
-    }
-    out.push(';');
-    out
-}
-
-/// The join text of `e`. LD-361: enterprise Join stays unavailable until a
-/// named receiver proves the association and its trust; its text exists only
-/// for that later proof.
+/// The join text of `e`. LD-361: enterprise Join stays unavailable.
 fn join_text(e: &Entry) -> Result<SecretString, LarsalError> {
-    let w = wire(e)?;
-    if w.enterprise.is_some() {
-        return Err(refused(WIFI_UNSUPPORTED));
-    }
-    Ok(SecretString::new(join_buffer(&w)))
+    larsal_qr::join_text(e).map_err(|r| refused(r.message()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::edit::EditText;
+    use crate::edit::{EditText, qr_eci26};
     use crate::test_dir::TempDir;
     use crate::views::FieldKind;
     use larsal_model::{Field, Uuid};
@@ -651,7 +477,7 @@ mod tests {
     }
 
     fn written(fields: &[(&str, &str)]) -> String {
-        join_buffer(&wire(&entry(fields)).ok().unwrap())
+        larsal_qr::written(&entry(fields)).unwrap()
     }
 
     #[test]

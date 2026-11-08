@@ -43,10 +43,16 @@ larsal-share = { workspace = true }
 larsal-platform = { workspace = true, features = ["appkit", "memory"] }
 larsal-sshagent = { workspace = true }
 larsal-sync = { workspace = true, optional = true }
-qrcode = { workspace = true }
+# E21-S3: Show as QR Code's matrix and join text, shared with larsal-cli.
+larsal-qr = { workspace = true }
 uniffi = { workspace = true }
 
 [dev-dependencies]
+# edit.rs's ECI test builds the expected bits by hand; the matrix itself comes
+# from larsal-qr (E21-S3).
+qrcode = { workspace = true }
+# qr.rs's join tests read the written join text, enterprise included (E21-S3).
+larsal-qr = { workspace = true, features = ["test-join"] }
 # tests/memory.rs: the probe that tells the zeroing allocator from the system's (E6-S6).
 larsal-platform = { workspace = true, features = ["test-memory"] }
 # F-107: unit tests answer every hardware key choice with the software key

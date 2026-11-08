@@ -1288,42 +1288,27 @@ fn qr(text: &[u8]) -> Result<Qr, LarsalError> {
 
 /// The QR symbol of Show as QR Code (FEA-10.8, LD-359): as [`qr`] with one
 /// ECI designator 26 (UTF-8) before its one byte segment. Never a fallback
-/// to another level, a truncation or a second segment.
+/// to another level, a truncation or a second segment. The product path is
+/// larsal-qr `encode`, which makes this symbol; tests compare with it.
+#[cfg(test)]
 pub(crate) fn qr_eci26(text: &[u8]) -> Result<Qr, LarsalError> {
     symbol(text, Some(26))
 }
 
+/// The matrix of the one encoder the `larsal` tool shares (larsal-qr, E21-S3).
 fn symbol(text: &[u8], eci: Option<u32>) -> Result<Qr, LarsalError> {
-    use qrcode::bits::Bits;
-    use qrcode::{Color, EcLevel, QrCode, Version};
-    let fail = || LarsalError::Refused("The QR code could not be made.".to_owned());
-    let code = (1..=40)
-        .find_map(|v| {
-            let mut bits = Bits::new(Version::Normal(v));
-            if let Some(designator) = eci {
-                bits.push_eci_designator(designator).ok()?;
-            }
-            bits.push_byte_data(text).ok()?;
-            bits.push_terminator(EcLevel::H).ok()?;
-            QrCode::with_bits(bits, EcLevel::H).ok()
-        })
-        .ok_or_else(fail)?;
-    let width = code.width();
-    let size = width.saturating_add(8);
-    let colors = code.to_colors();
-    let mut modules = vec![0u8; size.saturating_mul(size)];
-    for (i, c) in colors.iter().enumerate() {
-        if *c == Color::Dark {
-            let (y, x) = (i / width, i % width);
-            if let Some(m) = modules.get_mut((y.saturating_add(4)) * size + x.saturating_add(4)) {
-                *m = 1;
-            }
-        }
+    larsal_qr::symbol(text, eci)
+        .map(qr_of)
+        .ok_or_else(|| LarsalError::Refused(larsal_qr::Refusal::Failed.message().to_owned()))
+}
+
+/// The record of a shared matrix: one copy of its modules, freed through this
+/// library's zeroing allocator; the matrix itself is wiped when it drops here.
+pub(crate) fn qr_of(m: larsal_qr::Matrix) -> Qr {
+    Qr {
+        size: count(m.size()),
+        modules: m.modules().to_vec(),
     }
-    Ok(Qr {
-        size: count(size),
-        modules,
-    })
 }
 
 impl EditState {
