@@ -13,6 +13,7 @@
 mod args;
 mod commands;
 mod hwkey;
+mod qr;
 mod shell;
 mod term;
 mod vault;

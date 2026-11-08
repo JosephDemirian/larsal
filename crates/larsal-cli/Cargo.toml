@@ -23,6 +23,9 @@ larsal-format = { workspace = true }
 larsal-hwkey = { workspace = true }
 larsal-model = { workspace = true }
 larsal-platform = { workspace = true, features = ["appkit", "memory"] }
+# E21-S3: show --qr takes the matrix and the Wi-Fi join text from the one
+# encoder the Mac app uses (FEA-10.22, .23).
+larsal-qr = { workspace = true }
 
 [dev-dependencies]
 # The signal cases reset quit signals first (LD-180); the memory cases stack

@@ -3,6 +3,7 @@
 //! takes the shell's open vault), runs, and saves once at its end.
 
 use crate::args::{self, Parsed};
+use crate::qr;
 use crate::term::{self, Res, fail};
 use crate::vault::{self, Creds, Session, Unlock, find_entry, find_group, now};
 use crate::zone::{self, Local};
@@ -417,6 +418,9 @@ fn size_text(n: u64) -> String {
 }
 
 fn show(p: &Parsed, open: &mut Option<Session>) -> Res {
+    if p.flag("qr") || p.flag("wifi") || p.flag("stdout") {
+        return show_qr(p, open);
+    }
     let path = rest(p, open)[0];
     let mut own = None;
     let s = session(p, open, &mut own)?;
@@ -500,6 +504,68 @@ fn show(p: &Parsed, open: &mut Option<Session>) -> Res {
         term::out_pair("", code.expose());
     }
     if ok { Ok(()) } else { Err(term::Fail) }
+}
+
+/// `show --qr` (FEA-10.22, .23). In this order, the syntax, the explicit
+/// disclosure and the stream are checked before the unlock; then the one value
+/// is selected as show prints it (`-s` for the Password and one `-a` with the
+/// full resolution, `--totp` the current code, `--wifi` the join text), made
+/// into the matrix and printed. Field errors are show's own.
+fn show_qr(p: &Parsed, open: &mut Option<Session>) -> Res {
+    let names = p.values("attributes");
+    let (code, wifi) = (p.flag("totp"), p.flag("wifi"));
+    let selectors = usize::from(!names.is_empty()) + usize::from(code) + usize::from(wifi);
+    if !p.flag("qr")
+        || names.len() > 1
+        || selectors > 1
+        || p.flag("all")
+        || p.flag("show-attachments")
+    {
+        return Err(qr::refuse(qr::OPTIONS));
+    }
+    let reveal = p.flag("show-protected");
+    if !reveal && (wifi || selectors == 0) {
+        return Err(qr::refuse(qr::AUTH));
+    }
+    let raw = p.flag("stdout");
+    if !raw && !term::stdout_tty() {
+        return Err(qr::refuse(qr::PIPE));
+    }
+    let path = rest(p, open)[0];
+    let mut own = None;
+    let s = session(p, open, &mut own)?;
+    let (e, _) = find_entry(&s.vault, path).ok_or_else(|| no_entry(path))?;
+    let t = now();
+    let value = if code {
+        totp::code_for(e, t).ok_or_else(|| fail(format!("{path} has no one-time password.")))?
+    } else if wifi {
+        larsal_qr::join_text(e).map_err(|r| fail(r.message()))?
+    } else {
+        let local = Local;
+        let full = refs::Context {
+            zone: &local,
+            otp: totp::code_for,
+            display: false,
+            ..refs::Context::new(Some(&s.vault), t)
+        };
+        match names.first() {
+            // Show's Password line, never its (hidden) marker or its label.
+            None => e.field("Password").map_or_else(
+                || SecretString::new(String::new()),
+                |f| refs::resolve(f.value.expose(), e, &full).text,
+            ),
+            Some(name) => match pick(e, path, name)? {
+                Pick::Uuid => SecretString::new(uuid_text(e.uuid)),
+                Pick::Tags => SecretString::new(e.tags().join(",")),
+                Pick::Field(_, f) => refs::resolve(f.value.expose(), e, &full).text,
+            },
+        }
+    };
+    let matrix = larsal_qr::encode(value.expose().as_bytes()).map_err(|r| fail(r.message()))?;
+    // The value and the vault this command unlocked are wiped before output.
+    drop(value);
+    drop(own);
+    qr::print(matrix, raw)
 }
 
 /// A copy of the vault for the command line's search: every group's search

@@ -39,4 +39,4 @@ pub use signals::{QuitGuard, catch_quit};
 pub use system::{host_name, kernel, thread_cpu_time, utc_offset};
 #[cfg(feature = "appkit")]
 pub use system::{os_version, physical_memory};
-pub use terminal::{EchoOff, echo_off};
+pub use terminal::{EchoOff, echo_off, window_size};

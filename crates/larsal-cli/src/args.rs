@@ -162,6 +162,21 @@ const SHOW: &[Opt] = &[
     flag("all", None, "Print every field."),
     flag("show-attachments", None, "List the attached files."),
     flag("totp", Some('t'), "Print the current one-time password."),
+    flag(
+        "qr",
+        None,
+        "Print one value as a QR code: -s for the password, or one -a, --totp or --wifi.",
+    ),
+    flag(
+        "wifi",
+        None,
+        "With --qr and -s: the Wi-Fi join code of a Wi-Fi entry.",
+    ),
+    flag(
+        "stdout",
+        None,
+        "With --qr: plain block characters, also to a pipe or a file.",
+    ),
 ];
 
 const CLIP: &[Opt] = &[

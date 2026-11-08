@@ -4,6 +4,7 @@
 //! `readpassphrase(3)` does: the signal is noted (by `signals.rs`), the read
 //! stops, the settings and the earlier signal actions are put back, then the
 //! signal is raised again. A signal ignored at start stays ignored (LD-178).
+//! Also the terminal's size, for `larsal show --qr` (FEA-10.23).
 
 use super::signals::{self, QuitGuard};
 use std::io;
@@ -50,6 +51,25 @@ pub fn echo_off(fd: BorrowedFd<'_>) -> io::Result<EchoOff<'_>> {
         return Err(error);
     }
     Ok(EchoOff { fd, saved, quit })
+}
+
+/// The size of the terminal `fd` as (columns, rows) (`show --qr`, FEA-10.23).
+/// `None` when `fd` is not a terminal or the terminal does not know its size
+/// (a size of 0).
+#[must_use]
+pub fn window_size(fd: BorrowedFd<'_>) -> Option<(u16, u16)> {
+    let mut size = libc::winsize {
+        ws_row: 0,
+        ws_col: 0,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
+    // SAFETY: `fd` stays open while borrowed and `size` is a valid winsize
+    // that TIOCGWINSZ fills; nothing else is read or kept.
+    if unsafe { libc::ioctl(fd.as_raw_fd(), libc::TIOCGWINSZ, &mut size) } != 0 {
+        return None;
+    }
+    (size.ws_col > 0 && size.ws_row > 0).then_some((size.ws_col, size.ws_row))
 }
 
 impl EchoOff<'_> {

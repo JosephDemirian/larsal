@@ -21,6 +21,9 @@ use std::time::{Duration, Instant};
 
 const APP: &str = env!("CARGO_BIN_EXE_larsal");
 
+// E21-S3: `show --qr`, with its own QR reader (tests/qr/).
+mod qr;
+
 // ---------------------------------------------------------------------------
 // Harness.
 
