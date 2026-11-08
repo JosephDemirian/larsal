@@ -1,5 +1,5 @@
 {
- "reviewed_commit": "7c973ebc7c7aacda5348dcfb05203af55a4e28c5",
+ "reviewed_commit": "522afbd0043b7c6688fed2e3af0663078a4cba4c",
  "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit, apart from the rows labelled F-334, whose hash is the one at that round's merge commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "reviews": {
   "R2b": {
@@ -41,6 +41,11 @@
    "what": "Pins moved by this story's diff, and own_agent's pin of crates/larsal-qr by that row's own rule. Its C1 and Sensitive C2 read the whole diff over two rounds; its proof: LD row of the merge.",
    "source": "commit 7c973ebc7c7aacda5348dcfb05203af55a4e28c5",
    "limits": "Content equality to the reviewed diff, carried onto Main by a three-way pick whose two shared files keep the reviewed lines; not a new review of any grant."
+  },
+  "F-440": {
+   "what": "Pins moved by the QR focus test fix: three test files in macos/LarsalTests. Its C1 and C2 read the whole diff; its proof: LD row of the merge.",
+   "source": "commit 522afbd0043b7c6688fed2e3af0663078a4cba4c",
+   "limits": "Content equality to the reviewed diff; not a new review of any grant."
   }
  },
  "byte_checks": {
@@ -233,24 +238,24 @@
    "checks": []
   },
   "needs:unix-bind": {
-   "review": "E21-S2",
+   "review": "F-440",
    "why": "Where the single-instance channel and the browser channel are bound, and the tests that use them.",
    "pins": {
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
     "crates/larsal-browser/src/server.rs": "e33a795590bbf1312bcbd415c2b0cdb82c5e3701",
     "crates/larsal-ffi/tests/app09.rs": "f11e2cdd066e6e1c25a5c9cee9586c606a38f811",
-    "macos/LarsalTests": "688a6b3265db2fce413a8647f484c6e3c6e27a88"
+    "macos/LarsalTests": "3b65ead715ed8ca2df103596eb6142432e973974"
    },
    "checks": []
   },
   "needs:unix-connect": {
-   "review": "E21-S2",
+   "review": "F-440",
    "why": "Where the channels are connected to, and the tests that do it.",
    "pins": {
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
     "crates/larsal-browser/src/server.rs": "e33a795590bbf1312bcbd415c2b0cdb82c5e3701",
     "crates/larsal-ffi/tests/app09.rs": "f11e2cdd066e6e1c25a5c9cee9586c606a38f811",
-    "macos/LarsalTests": "688a6b3265db2fce413a8647f484c6e3c6e27a88"
+    "macos/LarsalTests": "3b65ead715ed8ca2df103596eb6142432e973974"
    },
    "checks": []
   },
@@ -287,10 +292,10 @@
    "checks": []
   },
   "needs:xctest-lsd": {
-   "review": "E21-S2",
+   "review": "F-440",
    "why": "As the pasteboard row: this service turns the legacy board type into the modern one when a test reads its private board.",
    "pins": {
-    "macos/LarsalTests": "688a6b3265db2fce413a8647f484c6e3c6e27a88",
+    "macos/LarsalTests": "3b65ead715ed8ca2df103596eb6142432e973974",
     "macos/Larsal": "35a15b68c87ba43fd708607c33d4a41e8c369e3e",
     "macos/Larsal.xcodeproj": "1541b80c07c9718c3d4b71a7065e679c76b52cb4",
     "crates/larsal-ffi/src/session.rs": "a45b5b4e46ebd5001d7547e96e001ddb15cb53c0",
@@ -300,18 +305,18 @@
    "checks": []
   },
   "needs:xctest-nsird": {
-   "review": "E21-S2",
+   "review": "F-440",
    "why": "The T72 test that makes this atomic write.",
    "pins": {
-    "macos/LarsalTests": "688a6b3265db2fce413a8647f484c6e3c6e27a88"
+    "macos/LarsalTests": "3b65ead715ed8ca2df103596eb6142432e973974"
    },
    "checks": []
   },
   "needs:xctest-pasteboard": {
-   "review": "E21-S2",
+   "review": "F-440",
    "why": "The tests, the app code they run, the project that names them, session.rs where a session picks its board, and the platform files where general and private are chosen. N1b read these sources; no one reads a later change unless this pin stops it.",
    "pins": {
-    "macos/LarsalTests": "688a6b3265db2fce413a8647f484c6e3c6e27a88",
+    "macos/LarsalTests": "3b65ead715ed8ca2df103596eb6142432e973974",
     "macos/Larsal": "35a15b68c87ba43fd708607c33d4a41e8c369e3e",
     "macos/Larsal.xcodeproj": "1541b80c07c9718c3d4b71a7065e679c76b52cb4",
     "crates/larsal-ffi/src/session.rs": "a45b5b4e46ebd5001d7547e96e001ddb15cb53c0",
@@ -321,10 +326,10 @@
    "checks": []
   },
   "needs:xctest-window": {
-   "review": "E21-S3",
+   "review": "F-440",
    "why": "The tests that make real windows, the app code they run, and the project that names them. N1b read these sources. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml holds the build profiles and .cargo/config.toml chooses where crates come from; a line added to either could turn debug assertions off, and hidden() is always false without them. The whole autotype crate is pinned, so a new key event caller there takes the line too. macos/Larsal holds the Swift call.",
    "pins": {
-    "macos/LarsalTests": "688a6b3265db2fce413a8647f484c6e3c6e27a88",
+    "macos/LarsalTests": "3b65ead715ed8ca2df103596eb6142432e973974",
     "macos/Larsal": "35a15b68c87ba43fd708607c33d4a41e8c369e3e",
     "macos/Larsal.xcodeproj": "1541b80c07c9718c3d4b71a7065e679c76b52cb4",
     "crates/larsal-ffi/src/autotype.rs": "3f6b84400b2bb6f5025a7af720ea9eaee7d2f962",
