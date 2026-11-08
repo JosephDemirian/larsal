@@ -47,10 +47,8 @@ def setUpModule():
 
 
 def tearDownModule():
-    # LD-276: after the suite run, macOS's own log shows no keychain write by a PID of the run.
-    found = driver.keychain_commits(driver.keychain_log(RUN["start"], time.time()), driver.RUN_PIDS | {os.getpid()})
-    if found:
-        raise driver.OwnerFilesChanged("STOP (LD-276): a process of this run wrote a keychain: " + "; ".join(found))
+    # LD-276, LD-278 (3): after the suite run, macOS's own log shows no keychain write by a PID of the run.
+    driver.check_keychain_log(RUN["start"])
 
 
 def temp_folder(case):
@@ -374,6 +372,21 @@ class GuardTests(unittest.TestCase):
         self.assertIn("front", lines)
         self.assertEqual(lines[-1], "done")
 
+    def test_the_guard_compiles_with_its_module_caches_in_its_own_folder(self):
+        # swiftc's module caches go into the guard's own run folder, whatever the caller's environment says.
+        calls = []
+        owner = {"CLANG_MODULE_CACHE_PATH": "/owner/clang", "SWIFT_MODULECACHE_PATH": "/owner/swift",
+                 "TMPDIR": "/owner/tmp"}
+        with mock.patch.object(driver, "_guard", []), mock.patch.dict(os.environ, owner), \
+                mock.patch.object(driver.subprocess, "run", lambda argv, **k: calls.append((argv, k["env"]))):
+            folder = os.path.dirname(driver.guard_binary())
+        self.addCleanup(shutil.rmtree, folder, True)
+        (argv, env), = calls
+        self.assertEqual(argv[:3], ["/usr/bin/xcrun", "swiftc", "-O"])
+        self.assertTrue(folder.startswith("/tmp/larsal-guard-"), folder)
+        self.assertEqual((env["CLANG_MODULE_CACHE_PATH"], env["SWIFT_MODULECACHE_PATH"], env["TMPDIR"]),
+                         (os.path.join(folder, "clang"), os.path.join(folder, "swift"), folder))
+
     def test_window_guard_keeps_looking_and_is_quiet_for_a_root_with_no_window(self):
         # The shell keeps itself as the guard's parent ("; :" after it), so the guard is two levels under ROOT.
         command = "'%s' %d --dry-run; :" % (driver.guard_binary(), os.getpid())
@@ -440,6 +453,25 @@ class GuardTests(unittest.TestCase):
             with self.assertRaisesRegex(driver.OwnerFilesChanged, r"STOP \(LD-276\)"):
                 tearDownModule()
         self.assertEqual(windows[0][0], RUN["start"])  # the window opens when the suite run starts
+
+    def test_check_keychain_log_stops_on_a_write_by_a_pid_of_the_run_only(self):
+        # LD-278 (3): the one helper every suite calls after its run (test_extension.py too).
+        line = ("2026-11-08 06:00:00.001 Df larsal-bridge[%d:1a2b] [com.apple.securityd:atomicfile] 0x1 commited "
+                "/tmp/x/login.keychain-db.sb-1 to /tmp/x/login.keychain-db")
+        other = max(driver.RUN_PIDS | {os.getpid()}) + 100000  # no PID of this run
+        windows = []
+        log = lambda pid: lambda start, end: windows.append((start, end)) or line % pid
+        with mock.patch.object(driver, "keychain_log", log(other)):
+            driver.check_keychain_log(1793479500.0)  # macOS's own write: no stop
+        with mock.patch.object(driver, "RUN_PIDS", driver.RUN_PIDS | {other}):
+            with mock.patch.object(driver, "keychain_log", log(other)):
+                with self.assertRaisesRegex(driver.OwnerFilesChanged, r"STOP \(LD-276\).*larsal-bridge"):
+                    driver.check_keychain_log(1793479500.0)  # a PID the run added (Larsal, larsal-bridge)
+        with mock.patch.object(driver, "keychain_log", log(os.getpid())):
+            with self.assertRaises(driver.OwnerFilesChanged):
+                driver.check_keychain_log(1793479500.0)  # the test process itself
+        self.assertEqual([w[0] for w in windows], [1793479500.0] * 3)
+        self.assertTrue(all(time.time() - 60 < w[1] <= time.time() for w in windows))  # up to now
 
     def test_keychain_log_reads_securityd_for_the_whole_window_and_fails_when_log_fails(self):
         calls = []

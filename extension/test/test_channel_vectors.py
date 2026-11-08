@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import unittest
+from unittest import mock
 
 sys.dont_write_bytecode = True  # no __pycache__ in the tree
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -134,10 +135,8 @@ def setUpModule():
 
 
 def tearDownModule():
-    # LD-276: after the run, macOS's own log shows no keychain write by a PID of the run.
-    found = driver.keychain_commits(driver.keychain_log(RUN["start"], time.time()), driver.RUN_PIDS | {os.getpid()})
-    if found:
-        raise driver.OwnerFilesChanged("STOP (LD-276): a process of this run wrote a keychain: " + "; ".join(found))
+    # LD-276, LD-278 (3): after the run, macOS's own log shows no keychain write by a PID of the run.
+    driver.check_keychain_log(RUN["start"])
 
 
 class ChannelVectorsInWebCrypto(unittest.TestCase):
@@ -148,6 +147,13 @@ class ChannelVectorsInWebCrypto(unittest.TestCase):
         self.assertEqual(set(got), set(EXPECTED))
         for name, value in EXPECTED.items():
             self.assertEqual(got[name], value, name)
+
+    def test_the_run_ends_with_the_keychain_check(self):
+        # LD-276, LD-278 (3): tearDownModule calls driver.check_keychain_log for the whole run.
+        calls = []
+        with mock.patch.object(driver, "check_keychain_log", calls.append):
+            tearDownModule()
+        self.assertEqual(calls, [RUN["start"]])
 
 
 if __name__ == "__main__":

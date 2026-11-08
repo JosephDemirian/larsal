@@ -145,16 +145,29 @@ def keychain_commits(log, pids):
     return found
 
 
+def check_keychain_log(start):
+    """LD-276, LD-278 (3): after a run that started at `start` (a time.time() value), macOS's own log
+    shows no keychain write by a PID of the run (RUN_PIDS) or by this process. Every suite that starts
+    Chrome or Larsal calls it once, after the run; a write stops the run with OwnerFilesChanged."""
+    found = keychain_commits(keychain_log(start, time.time()), RUN_PIDS | {os.getpid()})
+    if found:
+        raise OwnerFilesChanged("STOP (LD-276): a process of this run wrote a keychain: " + "; ".join(found))
+
+
 _guard = []
 
 
 def guard_binary():
-    """Compiles window_guard.swift once per process into a folder under /tmp."""
+    """Compiles window_guard.swift once per process into a folder under /tmp. The compiler's module
+    caches go into that folder too, whatever the caller's environment says, so it never writes the
+    owner's caches."""
     if not _guard:
         folder = tempfile.mkdtemp(prefix="larsal-guard-", dir="/tmp")
         atexit.register(shutil.rmtree, folder, True)
         binary = os.path.join(folder, "window_guard")
-        env = dict(os.environ, DEVELOPER_DIR=DEVELOPER_DIR, TMPDIR=folder)
+        env = dict(os.environ, DEVELOPER_DIR=DEVELOPER_DIR, TMPDIR=folder,
+                   CLANG_MODULE_CACHE_PATH=os.path.join(folder, "clang"),
+                   SWIFT_MODULECACHE_PATH=os.path.join(folder, "swift"))
         subprocess.run(
             ["/usr/bin/xcrun", "swiftc", "-O", "-o", binary, os.path.join(HERE, "window_guard.swift")],
             check=True, capture_output=True, env=env)
