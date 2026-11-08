@@ -1,0 +1,28 @@
+[package]
+name = "larsal-folders"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E23-S3: a folder of files, each file and name encrypted on its own, in the public
+# classic format 8 (spec FIL-04, FIL-06; profile classic8-gcm-local-1 of LD-372). This
+# crate arranges the format and the flow. Every primitive comes through larsal-crypto
+# (rule 3), every descriptor call through larsal-platform, the bounded JSON reader
+# through larsal-model. No new outside crate. Only tests and a fuzz target call it yet.
+[dependencies]
+larsal-crypto = { workspace = true }
+larsal-model = { workspace = true }
+larsal-platform = { workspace = true, features = ["memory"] }
+
+[dev-dependencies]
+# The probe allocator of tests/wipe.rs (test tools only).
+larsal-platform = { workspace = true, features = ["test-memory"] }
+
+[features]
+# The fuzz target's way to the readers in memory. Never on in a product build: a
+# user's file goes through capture (FIL-06.4).
+fuzz-door = []
+
+[lints]
+workspace = true

@@ -26,6 +26,8 @@ larsal-proto = { path = "../crates/larsal-proto" }
 larsal-browser = { path = "../crates/larsal-browser" }
 # E22-S3: file encryption (FIL-01, FIL-03).
 larsal-files = { path = "../crates/larsal-files", features = ["fuzz-door"] }
+# E23-S3: a folder of files encrypted one by one, classic format 8 (FIL-04).
+larsal-folders = { path = "../crates/larsal-folders", features = ["fuzz-door"] }
 png = { version = "=0.18.1", default-features = false }
 # E4-S13: the import targets build ZIP files from fuzz input (base64 from larsal-crypto).
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
@@ -275,6 +277,14 @@ bench = false
 [[bin]]
 name = "file_decrypt"
 path = "fuzz_targets/file_decrypt.rs"
+test = false
+doc = false
+bench = false
+
+# Vault configuration, masterkey file, names, shortened nodes and stored content of a folder vault (FIL-04, FIL-06.2, FIL-06.3; E23-S3).
+[[bin]]
+name = "folder_readers"
+path = "fuzz_targets/folder_readers.rs"
 test = false
 doc = false
 bench = false
