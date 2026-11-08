@@ -1,5 +1,5 @@
 {
- "reviewed_commit": "522afbd0043b7c6688fed2e3af0663078a4cba4c",
+ "reviewed_commit": "2ed2b0b5423df78ef796d4e93e17274936d47e03",
  "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit, apart from the rows labelled F-334, whose hash is the one at that round's merge commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "reviews": {
   "R2b": {
@@ -46,6 +46,11 @@
    "what": "Pins moved by the QR focus test fix: three test files in macos/LarsalTests. Its C1 and C2 read the whole diff; its proof: LD row of the merge.",
    "source": "commit 522afbd0043b7c6688fed2e3af0663078a4cba4c",
    "limits": "Content equality to the reviewed diff; not a new review of any grant."
+  },
+  "E7-S7c": {
+   "what": "Pins moved by this story's diff (crates/larsal-browser gains the test_larsal example). Its C1 and Sensitive C2 read the whole diff over three rounds; its proof: LD row of the merge.",
+   "source": "commit 2ed2b0b5423df78ef796d4e93e17274936d47e03",
+   "limits": "Content equality to the reviewed diff, carried onto Main by a three-way pick; not a new review of any grant."
   }
  },
  "byte_checks": {
@@ -553,30 +558,30 @@
    ]
   },
   "workspace:larsal-browser/int01": {
-   "review": "F-334",
+   "review": "E7-S7c",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "3f1006df64e6f068ad70e607d5c9c69c65c43a41"
+    "crates/larsal-browser": "a2a492773529438e6c359af0fab8aacddbc5de02"
    },
    "checks": [
     "class /tmp/larsal-browser-"
    ]
   },
   "workspace:larsal-browser/int01_setup": {
-   "review": "F-334",
+   "review": "E7-S7c",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "3f1006df64e6f068ad70e607d5c9c69c65c43a41"
+    "crates/larsal-browser": "a2a492773529438e6c359af0fab8aacddbc5de02"
    },
    "checks": [
     "class /tmp/larsal-e7s6-"
    ]
   },
   "workspace:larsal-browser/larsal_browser": {
-   "review": "F-334",
+   "review": "E7-S7c",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "3f1006df64e6f068ad70e607d5c9c69c65c43a41"
+    "crates/larsal-browser": "a2a492773529438e6c359af0fab8aacddbc5de02"
    },
    "checks": [
     "class /tmp/larsal-browser-"
