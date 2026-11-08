@@ -152,7 +152,8 @@
   "vault_header": "9793328a96509d07e4cc2c8f0e0190cc7b255141bb073b2e9a8b815354fdfb9e",
   "vault_open": "b6f60adc394cff67fb587aadd0ab710a5dc89f8e072056743fb5cf6541fb2273",
   "word_list": "198fecda65b9c30b6c03f2eac28f24460f36f04b9cfbc0442b550ced8f8de62a",
-  "file_decrypt": "cc9a5a6ad53a92c7896f8d69c273989ac981c2bd17d7d3c4341d5e16e16fc288"
+  "file_decrypt": "cc9a5a6ad53a92c7896f8d69c273989ac981c2bd17d7d3c4341d5e16e16fc288",
+  "folder_readers": "a6370f1c9b7a38f3b179fb89d69252ce6bf02bd6fb7ffb9d679011c67826e9af"
  },
  "fuzz_bins": {
   "autotype_match": [
@@ -364,9 +365,16 @@
    "test = false",
    "doc = false",
    "bench = false"
+  ],
+  "folder_readers": [
+   "name = \"folder_readers\"",
+   "path = \"fuzz_targets/folder_readers.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
   ]
  },
- "fuzz_cargo_rest_sha256": "7d044c244665025f41f7ee9f6ab13268d4bce58ecc0d53aa1f2618c36ee69e35",
+ "fuzz_cargo_rest_sha256": "a013bdbf22b6ce920672b3b9fcc6f54be848b1b585acc02cfa3c074767798e8d",
  "binaries": {
   "guard-board.dylib": "e5d2cbe53eee2039ad7638cfdb780a9e8634cfa99cf93d7750d4cd7fc56b4b39",
   "swiftlint": "52112ece2dfa99c2442a1367f9a365d43784714cf224c3675bf8bc2f18ebd7c8"

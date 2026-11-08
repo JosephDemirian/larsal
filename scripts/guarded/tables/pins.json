@@ -1,5 +1,5 @@
 {
- "reviewed_commit": "64d017d164b97a040b55aee15467dcf450422086",
+ "reviewed_commit": "4a405feb32ff7b6b650b56c91d324debe2c89a1f",
  "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit, apart from the rows labelled F-334, whose hash is the one at that round's merge commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "reviews": {
   "R2b": {
@@ -30,6 +30,11 @@
   "E21-S2": {
    "what": "Pins moved by this story's diff. Its C1 and Sensitive C2 read the whole diff over four rounds; its proof: LD row of the merge.",
    "source": "commit 64d017d164b97a040b55aee15467dcf450422086",
+   "limits": "Content equality to the reviewed diff, not a new review of the R2b and N1b grants."
+  },
+  "E23-S3": {
+   "what": "Pins moved by this story's diff, and own_agent's pins of crates/larsal-files and crates/larsal-folders by that row's own rule. Its C1 and Sensitive C2 read the whole diff over three rounds; its proof: LD row of the merge.",
+   "source": "commit 4a405feb32ff7b6b650b56c91d324debe2c89a1f",
    "limits": "Content equality to the reviewed diff, not a new review of the R2b and N1b grants."
   }
  },
@@ -330,10 +335,10 @@
    "checks": []
   },
   "net:larsal-platform/larsal_platform": {
-   "review": "E21-S2",
+   "review": "E23-S3",
    "why": "The owner crate holds this program and every sensitive route it tests: clipboard.rs and macos/pasteboard.rs for the boards, device_key.rs for the key, macos/keyboard.rs for the event calls behind the window line.",
    "pins": {
-    "crates/larsal-platform": "d5f4716f44bed3f1affb0093576bda5d24c8aff0"
+    "crates/larsal-platform": "b8094dac260dda78b292c539244457c548f50537"
    },
    "checks": [
     "key-route",
@@ -764,10 +769,10 @@
    ]
   },
   "workspace:larsal-platform/larsal_platform": {
-   "review": "E21-S2",
+   "review": "E23-S3",
    "why": "The owner crate holds this program and every sensitive route it tests: clipboard.rs and macos/pasteboard.rs for the boards, device_key.rs for the key, macos/keyboard.rs for the event calls behind the window line.",
    "pins": {
-    "crates/larsal-platform": "d5f4716f44bed3f1affb0093576bda5d24c8aff0"
+    "crates/larsal-platform": "b8094dac260dda78b292c539244457c548f50537"
    },
    "checks": [
     "key-route",
@@ -799,27 +804,29 @@
    ]
   },
   "workspace:larsal-sshagent/own_agent": {
-   "review": "E21-S2",
-   "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate. Every workspace crate it links is pinned too: the five named in the manifests' normal dependencies, walked from larsal-sshagent, and crates/log, which the workspace lane links through larsal-platform's net feature, ureq and ureq-proto. Read from the Cargo.toml files and the proof run's build fingerprints. larsal-server and larsal-proto are in the lock's closure only through larsal-platform's dev-dependencies, so they are not linked. The root Cargo.toml, .cargo/config.toml, Cargo.lock, rust-toolchain.toml and vendor/ choose what those crates are and what third-party code they link: a dependency renamed with package =, a [patch] or a vendored crate's change takes this row to base too. The workspace lane also builds larsal-hwkey, larsal-proto, larsal-server, larsal-share and uniffi-bindgen, which no other row pins, and a build script in one can rewrite this program's bytes, so they are pinned here too.",
+   "review": "E23-S3",
+   "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate. Every workspace crate it links is pinned too: the five named in the manifests' normal dependencies, walked from larsal-sshagent, and crates/log, which the workspace lane links through larsal-platform's net feature, ureq and ureq-proto. Read from the Cargo.toml files and the proof run's build fingerprints. larsal-server and larsal-proto are in the lock's closure only through larsal-platform's dev-dependencies, so they are not linked. The root Cargo.toml, .cargo/config.toml, Cargo.lock, rust-toolchain.toml and vendor/ choose what those crates are and what third-party code they link: a dependency renamed with package =, a [patch] or a vendored crate's change takes this row to base too. The workspace lane also builds larsal-files, larsal-folders, larsal-hwkey, larsal-proto, larsal-server, larsal-share and uniffi-bindgen, which no other row pins, and a build script in one can rewrite this program's bytes, so they are pinned here too.",
    "pins": {
     "crates/larsal-sshagent": "03f5ccca25bdd1897f8839b9336f9f1d20346742",
     "crates/larsal-sshagent/tests/own_agent.rs": "6d42a36090a7949962c1c9990b9085b9d2f34fe7",
     "crates/larsal-core": "84a13f6f74fb1f99eea0c2db7cfbf72a4bfbdf94",
-    "crates/larsal-crypto": "de16aadc18c924062f763603f08ee2f832e3c0ae",
+    "crates/larsal-crypto": "251c7717d991872b965834a82ff003314fbe5531",
     "crates/larsal-format": "46b951efc522922fcced71c9f27299dad535924e",
     "crates/larsal-model": "877dc01bc7e64112930b04de41582e44de16ecdb",
-    "crates/larsal-platform": "d5f4716f44bed3f1affb0093576bda5d24c8aff0",
+    "crates/larsal-platform": "b8094dac260dda78b292c539244457c548f50537",
     "crates/log": "efbf07781cc71f04015826a647fafc4e9dd11171",
     "Cargo.toml": "01d23aff3a4d8b5952f68b9c84545d32eda8ebd8",
     ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860",
-    "Cargo.lock": "47270a1d7ec1e2f5aefe7617ca1344e407659191",
+    "Cargo.lock": "1ce8a38450c24c3a06250bd913aa1ae3ca480f50",
     "rust-toolchain.toml": "9ec55b3b621dbc75fc68817cd51b96e407d3c94c",
     "vendor": "5208e0b235db01f0321deea3b67d8adb1ff85ed5",
     "crates/larsal-hwkey": "93fee36734cf50df7ad25678f7b214625aef7b6e",
     "crates/larsal-proto": "b7b1990312f8ffa202d0156785bf395c4c52855a",
     "crates/larsal-server": "fe8e4ebba052fc6028498d0ba8a4a53782895f31",
     "crates/larsal-share": "4902d5c3c8e71b960fc121a07631c70f0bb81d66",
-    "crates/uniffi-bindgen": "de7bff401b51daadce5cad8254645c22e26701e6"
+    "crates/uniffi-bindgen": "de7bff401b51daadce5cad8254645c22e26701e6",
+    "crates/larsal-files": "cfa91f3b61b5527bda8af3c807af975171dca554",
+    "crates/larsal-folders": "106b96c13b2e2b35fdcf738cd4e21b2529122841"
    },
    "checks": [
     "class /tmp/e9s1-",
