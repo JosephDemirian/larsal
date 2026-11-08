@@ -505,7 +505,7 @@ Order: E16-S1 waits for E15-S1 (both edit MOD-11). E16-S2, E16-S3 and E16-S6 wai
 ## E17 Accounts and billing (larsal-sync, larsal-server, macos/)
 
 Goal now (LD-262 (2)): an account that never gives the server a password, with a Recovery Kit, and new Macs approved by a code both screens show. Later (LD-262 (2)): plans, payments and license files, once E16 to E18 work. Design and sources: [spec/research/sync-server.md](../spec/research/sync-server.md) P5, P6, P10.
-Order: E17-S1 waits for E16-S2, E16-S5 and E16-S7b. E17-S2 waits for E17-S1. E17-S3 waits for E16-S7b and E17-S1 (LD-266 (1)). E17-S2, E17-S3 and E18-S2 all wait for E17-S1 and all edit larsal-sync and larsal-server's store, so they run one at a time, in that order: E17-S2, then E17-S3, then E18-S2 (team.md, LD-267). E17-S4 waits for E17-S1 to E17-S3 and E16-S8. E17-S5 to E17-S7 start only when E16 to E18 work and the owner says go.
+Order: E17-S1 waits for E16-S2, E16-S5, E16-S7b and E25-S3 (LD-510). E17-S2 waits for E17-S1. E17-S3 waits for E16-S7b and E17-S1 (LD-266 (1)). E17-S2, E17-S3 and E18-S2 all wait for E17-S1 and all edit larsal-sync and larsal-server's store, so they run one at a time, in that order: E17-S2, then E17-S3, then E18-S2 (team.md, LD-267). E17-S4 waits for E17-S1 to E17-S3 and E16-S8. E17-S5 to E17-S7 start only when E16 to E18 work and the owner says go.
 
 **E17-S1 Sign-up, account keys and the Recovery Kit.** Now (LD-262). The account secret, the identity and X25519 keys, the two-secret wrap and its blob on the server, the recovery public key (P6); the key-file parts of personal server vaults are now wrapped to the account's own X25519 key (P7); PUT signing of personal vaults starts here: each upload carries the identity key's Ed25519 signature over vault id, version and SHA-256 (P4, P11); the wrap through the server replaces the E16-S7b test helper's copy of the key-file part (LD-266 (2)) (SYN-06).
 - Checks: given every row and file of the server and the right account password but not the account secret, a test opens nothing; the Recovery Kit and the password restore the account into an empty demo app state; a wrong password or kit gives a plain error with no detail; the account secret is `SecretBytes` in the E16-S6 device store (the this-device-only check is carried open until W-02, as in E16-S6); a key-file part reaches a second client through the server, and the test helper no longer copies it; an upload with a missing or wrong signature is refused by the other client; two Checkers.
@@ -538,7 +538,7 @@ Order: E17-S1 waits for E16-S2, E16-S5 and E16-S7b. E17-S2 waits for E17-S1. E17
 ## E18 Family and team sharing (larsal-sync, larsal-proto, larsal-server, larsal-server-teams, macos/)
 
 Goal: a family of up to 6 people and a small team share vaults through Larsal's server on 127.0.0.1; every member is checked with a code both people compare; a removed member gets no new key, and Larsal lists the passwords they saw. Built now on this Mac only (LD-262 (2)). Design and sources: [spec/research/sync-server.md](../spec/research/sync-server.md) P8 to P13, P19, P23 to P25 (the lead's rulings LD-263, LD-266 and LD-267).
-Order: E18-S1 waits for E16-S1 (both add to spec/README.md's list, and SHR-03 builds on SYN-05). E18-S2 waits for E18-S1, E16-S5, E16-S7b and E17-S1 (LD-266 (1)), and runs after E17-S2 and E17-S3, one at a time in that order (LD-267). E18-S3 waits for E18-S2, E16-S2 and E16-S7b. E18-S4 waits for E18-S3 and E17-S2. E18-S5 waits for E18-S4. E18-S6 waits for E18-S5 (E14-S2's licence text is done). E18-S7 waits for E18-S3 to E18-S5 and E16-S8. E18-S8 waits for E18-S5.
+Order: E18-S1 waits for E16-S1 (both add to spec/README.md's list, and SHR-03 builds on SYN-05). E18-S2 waits for E18-S1, E16-S5, E16-S7b, E17-S1 (LD-266 (1)) and E25-S3 (LD-510), and runs after E17-S2 and E17-S3, one at a time in that order (LD-267). E18-S3 waits for E18-S2, E16-S2 and E16-S7b. E18-S4 waits for E18-S3 and E17-S2. E18-S5 waits for E18-S4. E18-S6 waits for E18-S5 (E14-S2's licence text is done). E18-S7 waits for E18-S3 to E18-S5 and E16-S8. E18-S8 waits for E18-S5.
 
 **E18-S1 Spec cards for sharing.** A Spec agent writes, in the card template and added to spec/README.md's list: `spec/sharing/` SHR-01 Shared vault keys, wraps and epochs (P8), SHR-02 The signed member list (P9), SHR-03 Invites, roles and write checks (P10, P11; the compare itself is SYN-05), SHR-04 Removal, leaving and the list of passwords a removed member saw (P12, P13; entries deleted for good show as one line with their count and dates, for example "3 items deleted for good since <name> joined; Larsal can no longer name them" (LD-290 (5)), because FMT-15.1 keeps only an id and a deletion time). It proposes the hostile-server attack rows (BW01, BW02, BW08, BW09, LP07, DL02, rollback, fork) for plan/attacks-and-checks.md. LD-269 (5) amends this story.
 - Checks: every rule has an ID and at least one test case; a second Spec agent reviewed each card; every choice links spec/research/sync-server.md or a standard; the name guard passes.
@@ -774,6 +774,36 @@ Order: E24-S1 can start at once (spec and frames only). E24-S2 waits for E24-S1.
 - Status: todo
 
 **E24-S7 Red team run against passkeys and SSH keys.** The Red team tries: a page or app that asks for another site's passkey; a hostile import file; a program that asks Larsal's agent to sign without approval or by pretending to be an approved one; a forwarded agent used from another machine; a git signature made with the wrong key.
+- Checks: every attack is refused or shown to the user, each by a test named after it that fails when its defence is undone (in a private copy, rule 11); no Critical or High open.
+- Status: todo
+
+
+## E25 Quantum-safe keys (larsal-crypto, larsal-sync, larsal-files, larsal-server, macos/), now (LD-509, LD-510)
+
+Goal: nothing Larsal stores or sends today can be opened later by a quantum computer. The vault itself already holds: AES-256, ChaCha20 and Argon2 are symmetric, and a quantum computer at best halves their strength, which leaves 128 bits. The risk is every place a key travels under a public key (X25519 today), because an attacker can record it now and open it once a large quantum computer exists ("harvest now, decrypt later"). Each such place gets a hybrid: the classical key and a NIST post-quantum key (ML-KEM-768, FIPS 203) together, so an attacker must break both. Zero-knowledge stays the core promise (LD-340): the server still learns nothing.
+Order: E25-S1 can start at once (spec only). E25-S2 waits for E25-S1. E25-S3 waits for E25-S2; E17-S1 and E18-S2 wait for E25-S3, so no classical-only wrap ever reaches a server. E25-S4 waits for E25-S2 and E22-S4. E25-S5 waits for E25-S1 and E16-S3. E25-S6 waits for E25-S3 to E25-S5.
+
+**E25-S1 Research and spec cards for quantum-safe keys.** A Spec agent with web reads lists every public-key use in Larsal and its plan (sync and sharing wraps P7 and P8, account keys, member-list signatures P9, file encryption recipients, encrypted folders, the browser channel, the link to Larsal's server, SSH keys and passkeys), and for each one says: can it be recorded now and opened later, and what proven apps and standards do (NIST FIPS 203 and 204, the IETF hybrid KEM drafts for HPKE and TLS, X25519MLKEM768 in TLS, the messaging apps' hybrid handshakes, age's hybrid recipient type). It picks the hybrid KEM and its HPKE suite, the hybrid signature (Ed25519 with ML-DSA-65) and where signatures need it, the implementation to copy into `vendor/` unchanged (rule 3), the published known-answer vectors, the size cost per wrap, and the exact words Larsal may use about quantum safety (only what is true; SSH keys and passkeys follow their outside standards and say so).
+- Checks: every rule has an ID and at least one test case; every choice links a public source (AGENTS.md rule 9); a second Spec agent reviewed each card; the name guard passes.
+- Status: todo
+
+**E25-S2 Post-quantum building blocks in larsal-crypto.** ML-KEM-768, the hybrid KEM and its HPKE suite, and ML-DSA-65 signing and checking, from E25-S1's pick, copied into `vendor/` unchanged; only larsal-crypto imports them.
+- Checks: every published known-answer vector passes; a changed ciphertext, key or signature is refused; secret keys wipe on drop; fuzz targets for each decode; check-vendor and cargo deny pass; Checker 2 (crypto) signs.
+- Status: todo
+
+**E25-S3 Hybrid sync and sharing keys.** Account keys (E17-S1), the vault's key-file part wrap (P7) and group key wraps (P8) use E25-S3's hybrid suite; the member list (P9) is signed with the hybrid signature where E25-S1 says. The suite id in each wrap record (sync-server research, section 11) names it.
+- Checks: a wrap opens only with both private keys (a test that breaks the classical half alone, and one that breaks the post-quantum half alone, both fail to open); a server that strips or swaps the post-quantum half is refused (downgrade test); the test server's stored bytes hold no key in readable form (E13-S8's zero-knowledge check); sizes match E25-S1.
+- Status: todo
+
+**E25-S4 Post-quantum file recipients.** File encryption (E22) reads and writes age's hybrid recipient type, so a file sent to a person's public key is quantum-safe; this closes the "post-quantum age files are unsupported" limit.
+- Checks: the published vectors for that type pass; Larsal and a separately approved peer tool open each other's files both ways; a classical recipient still works and is labelled as not quantum-safe.
+- Status: todo
+
+**E25-S5 Quantum-safe link to Larsal's server.** Larsal's server and the Mac app agree X25519MLKEM768 in TLS 1.3, as major browsers and the Mac's own network stack now do.
+- Checks: a test client offering only classical groups is shown in the server's test log; the Mac app's connection to the loopback test server uses the hybrid group; nothing else in the zero-knowledge proof changes.
+- Status: todo
+
+**E25-S6 Red team run against quantum-safe keys.** The Red team tries: stripping or swapping the post-quantum half of a wrap, signature or TLS offer; a wrong-size or malformed post-quantum key; mixing an old classical-only record into a new vault; a test oracle that "breaks" X25519 on recorded bytes and tries to open them.
 - Checks: every attack is refused or shown to the user, each by a test named after it that fails when its defence is undone (in a private copy, rule 11); no Critical or High open.
 - Status: todo
 
