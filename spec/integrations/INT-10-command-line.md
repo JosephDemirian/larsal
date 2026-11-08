@@ -92,7 +92,7 @@ Every command that unlocks `VAULT` (C01 to C06, C09, C10, C12, C14, C18 to C26) 
 | generate | G |
 | passphrase | `-W`, `--words` N; `-w`, `--word-list` PATH |
 | ls | `-R`, `--recursive`; `-f`, `--flatten` |
-| show | `-a`, `--attributes` NAME (repeatable); `-s`, `--show-protected`; `--all`; `--show-attachments`; `-t`, `--totp` |
+| show | `-a`, `--attributes` NAME (repeatable); `-s`, `--show-protected`; `--all`; `--show-attachments`; `-t`, `--totp`; `--qr`, `--wifi` and `--stdout` (one value as a QR code; `--wifi` and `--stdout` only with `--qr`; FEA-10.22, FEA-10.23) |
 | clip | `-a`, `--attribute` NAME (default `Password`); `-t`, `--totp`; `-b`, `--best-match` |
 | analyze | `-H`, `--hash-file` FILE (reference: `-H`, `--hibp`; its `--okon` PATH is not accepted, INT-10.32) |
 | estimate | `-a`, `--advanced` |

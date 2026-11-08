@@ -25,7 +25,7 @@ The owner chose Larsal (decision D1); these are its product names and identifier
 | Thing | Name |
 |---|---|
 | Product name in UI and docs | Larsal |
-| Rust crates | `larsal-crypto`, `larsal-model`, `larsal-format`, `larsal-core`, `larsal-platform`, `larsal-ffi`, `larsal-cli`, and later `larsal-browser`, `larsal-autotype`, `larsal-sshagent`, `larsal-hwkey`, `larsal-share` |
+| Rust crates | `larsal-crypto`, `larsal-model`, `larsal-format`, `larsal-core`, `larsal-platform`, `larsal-ffi`, `larsal-cli`, `larsal-qr`, `larsal-files`, `larsal-folders`, and later `larsal-browser`, `larsal-autotype`, `larsal-sshagent`, `larsal-hwkey`, `larsal-share` |
 | Command line tool | `larsal` |
 | Xcode project | `macos/Larsal.xcodeproj`, scheme `Larsal` |
 | macOS bundle id | `app.larsal.desktop` |
