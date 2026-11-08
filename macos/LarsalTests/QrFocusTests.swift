@@ -186,6 +186,9 @@ struct QrFocusTests {
 
     @Test("QR-T16 FEA-10.13: the fallback target is the list: real arrow keys reach it only after its turn")
     func listTakesFocus() async throws {
+        // Its turns go to `QrFocus.shared`, whose turns the other QR tests count.
+        let seams = await QrSeams.begin()
+        defer { seams.restore() }
         let demo = try QrDemo.window("qr-list-focus")
         defer { demo.window.lockAll() }
         let main = demo.main
