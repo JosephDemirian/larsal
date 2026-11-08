@@ -67,11 +67,10 @@ struct QrFocusReturnTests {
         let window = QrKeyWindow(
             contentRect: NSRect(origin: CGPoint(x: -20_000, y: -20_000), size: size), styleMask: [.borderless],
             backing: .buffered, defer: false)
-        // Earlier tests' windows stay in memory, unrendered, with their buttons.
-        QrFocus.shared.there = []
         let root = MainWindow(model: demo.window).frame(width: size.width, height: size.height)
             .background { EntryQrItems(state: MenuState(window: demo.window)).opacity(0) }
-        let host = QrDemo.placed(NSHostingView(rootView: root), size: size, window: window)
+        let host = NSHostingView(rootView: root)
+        window.layOut { _ = QrDemo.placed(host, size: size, window: window) }
         seams.mainWindow = window
         try await QrDemo.render(host)
         return (window, host)
@@ -219,11 +218,11 @@ struct QrFocusReturnTests {
         #expect(names == want, "\(names)")
     }
 
-    /// Each QR button takes real focus by its own turn, since a text field in a
-    /// never-ordered window keeps Tab; then the real shortcut. What each asked for.
+    /// Each QR button of this window takes real focus by its own turn, since a text
+    /// field in a never-ordered window keeps Tab; then the real shortcut. What each asked for.
     private func eachButton(_ main: VaultModel, _ host: NSView, _ shortcut: NSEvent) async throws -> Set<QrRequest> {
         var names: Set<QrRequest> = []
-        for button in QrFocus.shared.there {
+        for button in try #require(host.window as? QrKeyWindow).buttons {
             QrFocus.shared.give(to: main, button: button)
             try await until(host) { QrFocus.shared.held == button }
             #expect(QrFocus.shared.held == button)
@@ -266,6 +265,8 @@ struct QrFocusReturnTests {
         let (window, host) = try await mainWindow(demo, seams)
         #expect(window.makeFirstResponder(host))
         let shortcut = try QrDemo.key(12, "q", [.control, .option, .command])
+        // Another window's QR button, as a suite running side by side shows one: never this window's.
+        try await QrDemo.render(QrDemo.placed(NSHostingView(rootView: QrFieldButton(model: main, field: "PIN"))))
         let onEntry = try await eachButton(main, host, shortcut)
         #expect(onEntry == [.draft(name: "UserName"), .draft(name: "Password")], "\(onEntry)")
         // Into a text field. Focus there saves to the draft and reads Rust's view, which
@@ -282,9 +283,7 @@ struct QrFocusReturnTests {
         popup.revoke()
         try await until(host) { window.firstResponder is NSText }
         #expect((window.firstResponder as? NSText) != nil, "the text field has the focus again")
-        editor.page = .advanced
-        // The old page goes with the change's own motion.
-        for _ in 0..<100 where QrFocus.shared.there.count != 2 { try await QrDemo.render(host) }
+        window.layOut { editor.page = .advanced }
         let onAdvanced = try await eachButton(main, host, shortcut)
         #expect(onAdvanced == [.draft(name: "PIN"), .draft(name: "Private key note")], "\(onAdvanced)")
     }

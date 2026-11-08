@@ -343,8 +343,20 @@ extension QrDemo {
 /// A never-ordered window that says it is key, so SwiftUI's focus runs with
 /// no window on screen and no focus taken (AGENTS.md rule 10).
 final class QrKeyWindow: NSWindow {
+    /// The QR buttons that appeared at its last `layOut`. `QrFocus.shared.there`
+    /// holds every window's, and other suites add theirs while a test waits.
+    private(set) var buttons: Set<Namespace.ID> = []
     override var isKeyWindow: Bool { true }
     override var canBecomeKey: Bool { true }
+
+    /// Makes `change` and lays the window out with no await between, so no
+    /// other suite's window adds a button meanwhile: what appears is this one's.
+    func layOut(after change: () -> Void) {
+        let others = QrFocus.shared.there
+        change()
+        contentView?.layoutSubtreeIfNeeded()
+        buttons = QrFocus.shared.there.subtracting(others)
+    }
 }
 
 extension QrDemo {
