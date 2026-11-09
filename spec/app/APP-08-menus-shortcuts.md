@@ -71,6 +71,10 @@ APP-08.3 **File menu.**
 | `action.save_copy` | Save a Copy… | – | the shown vault is unlocked | APP-05.6 |
 | `ACT-IMPORT` | Import… | – | always | FEA-08.1 |
 | – | Export ▸ "CSV…" (`ACT-EXPORT-CSV`), "HTML…" (`ACT-EXPORT-HTML`), "XML…" (`ACT-EXPORT-XML`) | – | the shown vault is unlocked | FEA-09 |
+| – | Encrypt File… | – | always | Opens the file sheet on its Encrypt side (FIL-02.1, E22-S4) |
+| – | Decrypt File… | – | always | Opens the file sheet on its Decrypt side (FIL-02.1, E22-S4) |
+
+After Export: a separator, then "Encrypt File…" and "Decrypt File…", no shortcut, enabled with no vault open (FIL-02.1).
 
 APP-08.4 **Edit menu.** Undo (⌘Z), Redo (⇧⌘Z), Cut (⌘X), Copy (⌘C), Paste (⌘V), Select All (⌘A) act on the focused text field, as on every Mac; AppKit text fields take these keys through the native menu items, so the items must exist. Copy follows APP-03.7 and APP-03.19: with text selected in the shown vault it runs `copy.selection`; with no selection and one entry selected it runs `copy.password`; in a dialog's own field it is the plain copy. Then a separator and `action.find` "Find…" (⌘F, mockup): focuses the search field and selects its text (FEA-01); enabled when the shown vault is unlocked. Larsal has no undo for vault changes (the reference has none).
 
