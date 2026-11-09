@@ -587,7 +587,7 @@ fn int10_2_d_unknown_option() {
     assert!(o.out.is_empty());
     assert_eq!(
         o.err,
-        "larsal generate: unknown option --bogus. Run larsal help generate to see its options.\n"
+        "larsal generate: unknown option. Run larsal help generate to see its options.\n"
     );
 }
 
@@ -699,13 +699,13 @@ fn int10_4_b_unknown_command_and_top_level_option() {
     assert_eq!(o.code, Some(1));
     assert_eq!(
         o.err,
-        "larsal: there is no command bogus. Run larsal help to see the commands.\n"
+        "larsal: there is no such command. Run larsal help to see the commands.\n"
     );
     let o = d.run(&["--bogus"], "");
     assert_eq!(o.code, Some(1));
     assert_eq!(
         o.err,
-        "larsal: unknown option --bogus. Run larsal help to see the commands.\n"
+        "larsal: unknown option. Run larsal help to see the commands.\n"
     );
     assert!(o.out.is_empty());
 }
@@ -1094,7 +1094,7 @@ fn int10_14_a_hardware_key_slot_values() {
         assert_eq!(o.code, Some(1));
         assert_eq!(
             o.err,
-            "larsal ls: 3 is not a slot (1 or 2) with an optional serial. Run larsal help ls to see its options.\n"
+            "larsal ls: the hardware key value is not a slot (1 or 2) with an optional serial. Run larsal help ls to see its options.\n"
         );
     }
     let devices = larsal_hwkey::usb::UsbBus::new().list().unwrap();
@@ -2269,7 +2269,7 @@ fn int10_32_b_hash_file_option() {
     assert_eq!(o.code, Some(1));
     assert_eq!(
         o.err,
-        "larsal analyze: unknown option --okon. Run larsal help analyze to see its options.\n"
+        "larsal analyze: unknown option. Run larsal help analyze to see its options.\n"
     );
     let o = d.run(
         &["analyze", "--hibp", "h.txt", "password-only.larsalvault"],
@@ -2840,7 +2840,7 @@ fn int10_45_a_shell_on_a_terminal_pty() {
     let t = p.finish();
     assert!(t.contains("Recycle Bin/"), "{t}");
     assert!(t.contains("Uuid: {00000000-0000-0000-0000-00000000000a}"));
-    assert!(t.contains("There is no command bogus here. Type help to see the commands."));
+    assert!(t.contains("There is no such command here. Type help to see the commands."));
     assert!(t.contains("There is no command export here. Type help to see the commands."));
     assert!(t.contains("larsal ls: VAULT is missing. Run larsal help ls to see its options."));
     assert!(t.contains("STATUS:0"));
@@ -2883,9 +2883,11 @@ fn int10_46_a_shell_words() {
         o.out,
         "{00000000-0000-0000-0000-00000000000a}\n{00000000-0000-0000-0000-00000000000a}\n"
     );
-    assert!(o.err.ends_with(
-        "larsal show: unexpected argument demo. Run larsal help show to see its options.\n"
-    ));
+    assert!(
+        o.err.ends_with(
+            "larsal show: unexpected argument. Run larsal help show to see its options.\n"
+        )
+    );
 }
 
 #[test]

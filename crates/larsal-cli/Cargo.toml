@@ -18,6 +18,9 @@ workspace = true
 [dependencies]
 larsal-core = { workspace = true }
 larsal-crypto = { workspace = true }
+# E22-S5: encrypt and decrypt, through the same crate the Mac app calls
+# (FIL-02.18).
+larsal-files = { workspace = true }
 larsal-format = { workspace = true }
 # F-107: the --hw-key slot over USB (INT-07, E10-S1).
 larsal-hwkey = { workspace = true }
@@ -37,6 +40,9 @@ larsal-crypto = { workspace = true }
 # INT-07.29); never in a product build.
 larsal-format = { workspace = true, features = ["software-key"] }
 larsal-model = { workspace = true }
+# E22-S5 story check 1: fil02 makes and opens files through the Mac app's own
+# files bridge (E22-S4), against the built `larsal`. Tests only.
+larsal-ffi = { path = "../larsal-ffi" }
 # The clip cases read and write the private named pasteboard of the `larsal`
 # process under test (AGENTS.md rule 10: never the general pasteboard).
 objc2 = { workspace = true }

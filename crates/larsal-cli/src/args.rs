@@ -306,6 +306,90 @@ const ATT_IMPORT: &[Opt] = &[flag(
     "Replace an attachment of that name.",
 )];
 
+/// FIL-02.18: encrypt and decrypt. No option takes a passphrase as its value.
+const FILE_OUTPUT: &[Opt] = &[val(
+    "output",
+    None,
+    "FILE",
+    "Write to FILE, a new file; an existing file is never replaced.",
+)];
+
+const FILE_SECRET: &[Opt] = &[
+    flag(
+        "passphrase",
+        None,
+        "Type the passphrase at the terminal, without echo.",
+    ),
+    val(
+        "passphrase-file",
+        None,
+        "FILE",
+        "Read the passphrase from FILE; one final line end is dropped.",
+    ),
+    val(
+        "passphrase-entry",
+        None,
+        "ENTRY",
+        "Use the Password of ENTRY in the vault of --vault.",
+    ),
+];
+
+const FILE_VAULT: &[Opt] = &[val(
+    "vault",
+    None,
+    "VAULT",
+    "The vault of --generate, --passphrase-entry or --identity-entry.",
+)];
+
+/// FIL-02.21: quiet drops progress and the success line; never a prompt,
+/// a warning or an error. It stands before UNLOCK, whose quiet it replaces.
+const FILE_QUIET: &[Opt] = &[flag(
+    "quiet",
+    Some('q'),
+    "No progress or success lines; prompts, warnings and errors still print.",
+)];
+
+const ENCRYPT: &[Opt] = &[
+    flag(
+        "generate",
+        None,
+        "Make a passphrase of ten words and save it in the vault first.",
+    ),
+    val(
+        "group",
+        None,
+        "GROUP",
+        "With --generate: the group of the new entry.",
+    ),
+    val(
+        "title",
+        None,
+        "TITLE",
+        "With --generate: the title of the new entry.",
+    ),
+    val(
+        "recipient",
+        None,
+        "KEY",
+        "Encrypt to the public key KEY; give it again for more.",
+    ),
+];
+
+const DECRYPT: &[Opt] = &[
+    val(
+        "identity-file",
+        None,
+        "FILE",
+        "Use the private keys in FILE.",
+    ),
+    val(
+        "identity-entry",
+        None,
+        "ENTRY",
+        "Use the private keys in the Password of ENTRY.",
+    ),
+];
+
 const NONE: &[Opt] = &[];
 
 /// One command of the table (C01 to C28).
@@ -502,6 +586,32 @@ pub const COMMANDS: &[Cmd] = &[
         &[SHOW, UNLOCK],
         "Print an entry's fields.",
     ),
+    cmd(
+        "encrypt",
+        &["INPUT"],
+        &[
+            FILE_OUTPUT,
+            ENCRYPT,
+            FILE_SECRET,
+            FILE_VAULT,
+            FILE_QUIET,
+            UNLOCK,
+        ],
+        "Encrypt a file to a new file in the public file format.",
+    ),
+    cmd(
+        "decrypt",
+        &["INPUT"],
+        &[
+            FILE_OUTPUT,
+            FILE_SECRET,
+            DECRYPT,
+            FILE_VAULT,
+            FILE_QUIET,
+            UNLOCK,
+        ],
+        "Decrypt a file to a new, readable file.",
+    ),
     cmd("exit", &[], &[NONE], "Leave the shell."),
     cmd("quit", &[], &[NONE], "Leave the shell."),
 ];
@@ -512,7 +622,7 @@ pub fn lookup(name: &str, shell: bool) -> Option<&'static Cmd> {
         .iter()
         .find(|c| c.name == name || c.alias == Some(name))?;
     let shell_only = matches!(c.name, "exit" | "quit");
-    let outside_only = matches!(c.name, "export" | "import");
+    let outside_only = matches!(c.name, "export" | "import" | "encrypt" | "decrypt");
     let ok = if shell { !outside_only } else { !shell_only };
     ok.then_some(c)
 }
@@ -562,7 +672,9 @@ impl Parsed {
     }
 }
 
-/// The `<problem>` of M10-02.
+/// The `<problem>` of M10-02. Its words never repeat what the user typed:
+/// an unknown option, an extra argument or a value may be a password given
+/// by mistake (SC2-04).
 #[derive(Debug, PartialEq, Eq)]
 pub enum Problem {
     Unknown(String),
@@ -580,11 +692,14 @@ pub enum Problem {
 impl core::fmt::Display for Problem {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Unknown(o) => write!(f, "unknown option {o}"),
+            Self::Unknown(_) => write!(f, "unknown option"),
             Self::NeedsValue(o) => write!(f, "{o} needs a value"),
             Self::Missing(a) => write!(f, "{a} is missing"),
-            Self::Extra(a) => write!(f, "unexpected argument {a}"),
-            Self::BadSlot(v) => write!(f, "{v} is not a slot (1 or 2) with an optional serial"),
+            Self::Extra(_) => write!(f, "unexpected argument"),
+            Self::BadSlot(_) => write!(
+                f,
+                "the hardware key value is not a slot (1 or 2) with an optional serial"
+            ),
             Self::Help => write!(f, "help asked for"),
             Self::PasswordArgument => write!(f, "estimate takes no password argument"),
         }
@@ -727,7 +842,9 @@ pub fn parse(cmd: &'static Cmd, words: &[String], vault_open: bool) -> Result<Pa
         let mut values = seen.iter().filter(|(l, _)| *l == o.long).map(|(_, v)| v);
         match o.value {
             None if values.next().is_some() => given.push((o.long, None)),
-            Some(_) if o.long == "attributes" => given.extend(values.map(|v| (o.long, v.clone()))),
+            Some(_) if matches!(o.long, "attributes" | "recipient") => {
+                given.extend(values.map(|v| (o.long, v.clone())));
+            }
             Some(_) => given.extend(values.next_back().map(|v| (o.long, v.clone()))),
             None => {}
         }
@@ -801,7 +918,13 @@ pub fn command_help(c: &Cmd) -> String {
     }
     s.push_str(&format!("\n{}\n\nOptions:\n", c.help));
     let groups: &[&[Opt]] = c.opts;
+    let mut shown: Vec<&str> = Vec::new();
     for o in groups.iter().flat_map(|g| g.iter()) {
+        // FILE_QUIET stands in for UNLOCK's quiet: the first one counts.
+        if shown.contains(&o.long) {
+            continue;
+        }
+        shown.push(o.long);
         let short = o.short.map_or("    ".to_owned(), |c| format!("-{c}, "));
         let name = match o.value {
             Some(v) => format!("{short}--{} {v}", o.long),

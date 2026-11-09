@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::{self, IsTerminal, Read, Write};
 use std::os::fd::AsFd;
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// A command failed; its message is already on stderr. Exit code 1.
 #[derive(Debug)]
@@ -15,6 +16,21 @@ pub struct Fail;
 
 /// A command's result.
 pub type Res<T = ()> = Result<T, Fail>;
+
+/// Set once a write to stdout or stderr failed.
+static BROKEN: AtomicBool = AtomicBool::new(false);
+
+/// True once a line could not be written to stdout or stderr (FIL-02.21:
+/// encrypt and decrypt then fail).
+pub fn broken() -> bool {
+    BROKEN.load(Ordering::Relaxed)
+}
+
+fn written(result: io::Result<()>) {
+    if result.is_err() {
+        BROKEN.store(true, Ordering::Relaxed);
+    }
+}
 
 /// Longest line kept, in bytes; the rest of a longer line is read and dropped.
 const MAX_LINE: usize = 65_536;
@@ -73,16 +89,14 @@ pub fn out_parts(parts: &[&str]) {
         } else {
             Cow::Borrowed(*part)
         } {
-            Cow::Borrowed(t) => {
-                let _ = o.write_all(t.as_bytes());
-            }
+            Cow::Borrowed(t) => written(o.write_all(t.as_bytes())),
             Cow::Owned(t) => {
                 let t = SecretString::new(t);
-                let _ = o.write_all(t.expose().as_bytes());
+                written(o.write_all(t.expose().as_bytes()));
             }
         }
     }
-    let _ = o.write_all(b"\n");
+    written(o.write_all(b"\n"));
 }
 
 /// Raw bytes on stdout (attachment-export `--stdout`): exact, never escaped.
@@ -101,8 +115,8 @@ pub fn err(line: &str) {
     };
     let _ = io::stdout().flush();
     let mut e = io::stderr().lock();
-    let _ = e.write_all(text.as_bytes());
-    let _ = e.write_all(b"\n");
+    written(e.write_all(text.as_bytes()));
+    written(e.write_all(b"\n"));
 }
 
 /// An error line `larsal: <text>`; the command then exits 1.
@@ -123,7 +137,7 @@ pub fn prompt(text: &str, quiet: bool) {
         Cow::Borrowed(text)
     };
     let mut e = io::stderr().lock();
-    let _ = e.write_all(text.as_bytes());
+    written(e.write_all(text.as_bytes()));
     let _ = e.flush();
 }
 

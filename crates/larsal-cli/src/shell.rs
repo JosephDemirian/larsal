@@ -36,8 +36,14 @@ fn run(open: &mut Option<Session>) {
             break;
         }
         let Some(cmd) = args::lookup(first, true) else {
+            // A command of the table by its own name, never the word typed:
+            // it may be a password (SC2-04).
+            let named = args::lookup(first, false).map_or_else(
+                || "such command".to_owned(),
+                |c| format!("command {}", c.name),
+            );
             term::err(&format!(
-                "There is no command {first} here. Type help to see the commands."
+                "There is no {named} here. Type help to see the commands."
             ));
             continue;
         };

@@ -3,8 +3,9 @@
 //! Guarantees:
 //! - start-up in the order of INT-10.1: hardening first, then the arguments,
 //!   help and version, the crypto self-test, the option checks, the command;
-//! - exit code 0 or 1 only (D-INT10-2); stdout carries only data and success
-//!   lines, stderr everything else (INT-10.6);
+//! - exit code 0 or 1 only (D-INT10-2), except `encrypt` and `decrypt`,
+//!   which follow FIL-02.21 (`files.rs`); stdout carries only data and
+//!   success lines, stderr everything else (INT-10.6);
 //! - no option or environment variable takes a secret (SR-13, INT-10.16);
 //!   passwords are read without echo on a terminal and live only in wiping
 //!   types; nothing secret is printed unless the command asks for it.
@@ -12,6 +13,7 @@
 
 mod args;
 mod commands;
+mod files;
 mod hwkey;
 mod qr;
 mod shell;
@@ -64,20 +66,21 @@ fn start(words: &[String]) -> u8 {
             print!("{}", license_notice());
             return 0;
         }
+        // Neither error repeats the word: it may be a password (SC2-04).
         f if f.starts_with('-') => {
-            term::err(&format!(
-                "larsal: unknown option {f}. Run larsal help to see the commands."
-            ));
+            term::err("larsal: unknown option. Run larsal help to see the commands.");
             return 1;
         }
         _ => {}
     }
     let Some(cmd) = args::lookup(first, false) else {
-        term::err(&format!(
-            "larsal: there is no command {first}. Run larsal help to see the commands."
-        ));
+        term::err("larsal: there is no such command. Run larsal help to see the commands.");
         return 1;
     };
+    // E22-S5: encrypt and decrypt keep FIL-02.21's exit codes and words.
+    if matches!(cmd.name, "encrypt" | "decrypt") {
+        return files::run(cmd, &words[1..]);
+    }
     let p = match args::parse_or_report(cmd, &words[1..], false) {
         args::Outcome::Run(p) => p,
         args::Outcome::Help => return 0,
