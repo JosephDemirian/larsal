@@ -21,8 +21,8 @@ larsal-model   ── the data types
 larsal-crypto  ── the only door to crypto crates
 larsal-qr      ── the QR matrix and Wi-Fi join text of Show as QR Code; the only importer of `qrcode` (used by larsal-ffi and larsal-cli)
 
-Plug-ins to larsal-ffi: larsal-browser (E7), larsal-autotype (E8), larsal-sshagent (E9), larsal-hwkey (E10), larsal-share (E11), larsal-files (E22; reached from E22-S4), larsal-folders (E23; reached from E23-S4)
-larsal-cli: the command line tool, built on larsal-core and larsal-platform, and larsal-qr for `show --qr`
+Plug-ins to larsal-ffi: larsal-browser (E7), larsal-autotype (E8), larsal-sshagent (E9), larsal-hwkey (E10), larsal-share (E11), larsal-files (E22; reached from E22-S4, and from larsal-cli in E22-S5), larsal-folders (E23; reached from E23-S4)
+larsal-cli: the command line tool, built on larsal-core and larsal-platform, larsal-qr for `show --qr`, and larsal-files for `encrypt` and `decrypt` (E22-S5), the last through the workspace table
 ```
 
 Dependencies point down only. `larsal-crypto` depends on no other crate of ours; `larsal-model` depends only on `larsal-crypto`, for its secret types (spec/decisions.md LD-75).
@@ -273,7 +273,7 @@ Must: no secret is kept beyond Show: the view model drops the Show value on Hide
 
 ### larsal-cli
 
-The command line tool `larsal` (E12). Same operations as the app. Password prompts without echo. Never prints a secret unless the command asks for it. `show --qr` prints one selected value as a QR code in block characters (FEA-10.22, .23, E21-S3): only to a terminal large enough for it, or with `--stdout` as plain cells to a pipe or file; its matrix comes from larsal-qr, the encoder the app uses.
+The command line tool `larsal` (E12). Same operations as the app. Password prompts without echo. Never prints a secret unless the command asks for it. `show --qr` prints one selected value as a QR code in block characters (FEA-10.22, .23, E21-S3): only to a terminal large enough for it, or with `--stdout` as plain cells to a pipe or file; its matrix comes from larsal-qr, the encoder the app uses. `encrypt` and `decrypt` (FIL-02.18 to FIL-02.22, E22-S5) call larsal-files' public API only, the same functions the app's bridge calls. larsal-cli's tests (fil02 only) also link larsal-ffi, by a path dev-dependency, to prove story check 1 through the app's files bridge; in that test build Cargo unifies larsal-platform's `code-sign` feature into the `larsal` it builds, as a workspace build already does, and larsal-cli calls none of it (C1R3-06).
 
 ### larsal-qr
 

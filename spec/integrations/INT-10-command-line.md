@@ -67,6 +67,8 @@ C01 to C26 run as `larsal COMMAND`. C27 and C28 exist only in the shell. The ref
 | C26 | `show` | same | VAULT ENTRY | Print an entry's fields. |
 | C27 | `exit` | same | none | Leave the shell. |
 | C28 | `quit` | same | none | Leave the shell. |
+| C29 | `encrypt` | none | `larsal encrypt INPUT --output FILE (--generate --vault VAULT --group GROUP --title TITLE \| --passphrase \| --passphrase-file FILE \| --passphrase-entry ENTRY --vault VAULT \| --recipient KEY [--recipient KEY ...]) [-q] [unlock options with --vault]` | outside the shell only (FIL-02.18, E22-S5) |
+| C30 | `decrypt` | none | `larsal decrypt INPUT\|- --output FILE (--passphrase \| --passphrase-file FILE \| --passphrase-entry ENTRY --vault VAULT \| --identity-file FILE \| --identity-entry ENTRY --vault VAULT) [-q] [unlock options with --vault]` | outside the shell only (FIL-02.18, E22-S5) |
 
 ### Unlock options
 
@@ -118,7 +120,7 @@ Every command that unlocks `VAULT` (C01 to C06, C09, C10, C12, C14, C18 to C26) 
 | Any error: usage, unlock, path not found, save failed, search with no result, show or clip with an unknown field, clip of an empty field | 1 |
 | A quit signal (SIGINT, SIGTERM, SIGQUIT, SIGHUP) at a prompt, during the clip wait or in the shell | ended by that signal, after the terminal is restored and the clipboard is cleared if still ours (INT-10.12, INT-10.29) |
 
-Larsal never uses 2 or any other code (D-INT10-2).
+Larsal uses no other code (D-INT10-2), except `encrypt` and `decrypt`, which follow FIL-02.21 (INT-10.8).
 
 ### Messages
 
@@ -126,8 +128,8 @@ Larsal's own words. `<vault>`, `<path>`, `<file>` are shown as typed. Errors sta
 
 | ID | Stream | When | Text (Larsal) |
 |---|---|---|---|
-| M10-01 | stderr | Unknown command | larsal: there is no command <name>. Run larsal help to see the commands. |
-| M10-02 | stderr | Unknown option, option without its value, missing or extra argument | larsal <command>: <problem>. Run larsal help <command> to see its options. `<problem>` is one of: unknown option <option>; <option> needs a value; <argument> is missing; unexpected argument <argument>; <value> is not a slot (1 or 2) with an optional serial (for `--hw-key`, INT-07.27, LD-175). |
+| M10-01 | stderr | Unknown command | larsal: there is no such command. Run larsal help to see the commands. (The word typed is never repeated: it may be a password given by mistake.) |
+| M10-02 | stderr | Unknown option, option without its value, missing or extra argument | larsal <command>: <problem>. Run larsal help <command> to see its options. `<problem>` is one of: unknown option; <option> needs a value; <argument> is missing; unexpected argument; the hardware key value is not a slot (1 or 2) with an optional serial (for `--hw-key`, INT-07.27, LD-175). <option> and <argument> are names from the command's own table, never a word the user typed. |
 | M10-03 | stdout | F01, F02 | "Larsal command line tool.", the usage line `Usage: larsal COMMAND [OPTIONS] ARGUMENTS, or larsal -h \| -v \| --license \| --debug-info`, then one line per command: the name and its one-line help |
 | M10-10 | stderr | Unlock password prompt | `Vault password for <vault>: ` (no newline; a newline follows the read) |
 | M10-11 | stderr | VAULT does not exist | larsal: <vault> does not exist. |
@@ -202,7 +204,7 @@ Larsal's own words. `<vault>`, `<path>`, `<file>` are shown as typed. Errors sta
 | M10-92 | stderr | estimate got a password argument | larsal: estimate does not take the password as an argument, because other programs can read arguments. Pipe it in, or type it at the prompt. |
 | M10-93 | stderr | estimate prompt, terminal only | `Password to rate: ` |
 | M10-94 | stdout | estimate result | `Characters <n>`, TAB, `Bits <e>`, TAB, `Log10 <g>` |
-| M10-95 | stderr | Shell: unknown command | There is no command <name> here. Type help to see the commands. |
+| M10-95 | stderr | Shell: unknown command | "There is no command <name> here. Type help to see the commands." only when <name> is a command of INT-10's table outside the shell (export, import, encrypt, decrypt), by its table name; any other word: "There is no such command here. Type help to see the commands." |
 | M10-96 | stderr | Shell prompt (terminal only) | `larsal (<name>)> `, where <name> is the vault name, or its file name when the name is empty; `larsal> ` with no vault open |
 | M10-97 | stderr | merge `-s`: the source does not open with the target's key | larsal: cannot open <source> with the credentials of <target>: <APP-06 text> |
 
@@ -216,13 +218,13 @@ Messages are in the language of setting S-UI-01 (APP-01); this card gives the En
 
 ### General
 
-INT-10.1 **Start-up order.** (1) Process hardening (APP-11.1: before reading arguments, stdin, settings or files). (2) Read the two settings of INT-10.9, read only. (3) Parse the arguments; a usage error prints M10-02 or M10-01 and exits 1. (4) F01 to F05 and `help` print and exit 0. (5) Crypto self-test (APP-11.10); a failure prints M11-02 and exits 1 before any prompt. (6) Check the command's options and arguments (INT-10.5). (7) Run the command. Release builds install the zeroing allocator (LD-133). Reference: self-test first, then settings, then the arguments; its hardening comes after the self-test (APP-11.1).
+INT-10.1 **Start-up order.** (1) Process hardening (APP-11.1: before reading arguments, stdin, settings or files). (2) Read the two settings of INT-10.9, read only. (3) Parse the arguments; a usage error prints M10-02 or M10-01 and exits 1, except a usage error of `encrypt` or `decrypt`, which exits 2 (FIL-02.21). (4) F01 to F05 and `help` print and exit 0. (5) Crypto self-test (APP-11.10); a failure prints M11-02 and exits 1 before any prompt. (6) Check the command's options and arguments (INT-10.5). (7) Run the command. Release builds install the zeroing allocator (LD-133). Reference: self-test first, then settings, then the arguments; its hardening comes after the self-test (APP-11.1).
 
 INT-10.2 **Syntax.** As in "Command line syntax" above. Same as the reference (its option parser has the same forms).
 
 INT-10.3 **Help, version, debug info, license.** F01 and F02 print M10-03 (aliases not shown). F03 prints only the version number, as the reference does, so scripts can read it. F04 prints the lines of APP-09.4 for the `larsal` binary (product and version, build type, revision, OS, CPU, kernel, features built in, crypto crates and versions) and never a path, setting or vault value. F05 prints Larsal's current source-available license notice (LD-345), fixed text with no path of this Mac, no setting and no vault value, in this order: `Larsal command line tool <version>`; `Copyright (C) 2026 Joseph Demirian`; `Larsal Source-Available License 1.0`; `You may inspect, download, build and run unmodified copies under LICENSE.`; `Modification, resale and using this code in a competing product require`; `separate written permission. Third-party components retain their own rights.`; `There is NO WARRANTY, to the extent permitted by law.`; an empty line; `LICENSE and THIRD-PARTY-NOTICES.md ship in Larsal.app/Contents/Resources`; `and beside this tool in a release folder.`; an empty line; the built-in word list's attribution, the one text `larsal_core::generator::wordlist::ATTRIBUTION` of FEA-03, word for word. F05 is Larsal's own flag: the usage line of M10-03 names it, and F03 is unchanged (the version number alone). `larsal COMMAND -h` (or `--help`) prints that command's usage, options and arguments on stdout and exits 0, whatever valid options come before it; an unknown option earlier on the line is reported first (M10-02), as the standard option parser reads left to right (LD-180). Reference: a command's help goes to stderr with exit 1, and a missing argument is reported first (observed: `ls --help` gave the missing-argument error).
 
-INT-10.4 **Commands and aliases.** The commands are exactly C01 to C26 outside the shell and C01 to C13, C15, C16, C18 to C28 inside it (INT-10.45). The reference spellings `diceware`, `--hibp`, `-y`, `--yubikey`, `--yubikey-from`, and `-k` as the key file to set in db-create and import, work as hidden aliases (D-INT10-1). Anything else is M10-01 (command) or M10-02 (option), exit 1. An unknown top-level option with no command (`larsal --bogus`) is M10-02 without a command name (`larsal: unknown option --bogus. Run larsal help to see the commands.`), exit 1; the reference prints its usage on stdout and exits 0 (observed).
+INT-10.4 **Commands and aliases.** The commands are exactly C01 to C26, C29 `encrypt` and C30 `decrypt` outside the shell, and C01 to C13, C15, C16, C18 to C28 inside it (INT-10.45). The reference spellings `diceware`, `--hibp`, `-y`, `--yubikey`, `--yubikey-from`, and `-k` as the key file to set in db-create and import, work as hidden aliases (D-INT10-1). Anything else is M10-01 (command) or M10-02 (option), exit 1. An unknown top-level option with no command (`larsal --bogus`) is "larsal: unknown option. Run larsal help to see the commands.", exit 1; the word typed is never repeated, as it may be a password given by mistake; the reference prints its usage on stdout and exits 0 (observed).
 
 INT-10.5 **Options are checked before any password is read.** Usage, conflicting options (M10-31, M10-62, M10-82), edit with nothing to change (M10-30), generator options (M10-32), SECONDS (M10-61), `-t` (M10-77), a missing `--hash-file` (M10-85), an existing target file (M10-75) and a password argument to estimate (M10-92) are all reported before the first prompt. Reference: several of these come after the unlock, so the user types the password for nothing.
 
@@ -230,7 +232,7 @@ INT-10.6 **Streams.** stdout carries only data and success lines; every prompt g
 
 INT-10.7 **Quiet.** `-q` drops prompts, notes (M10-16, M10-17, MOD-13.16), info lines (M10-86) and success lines. It never drops an error, the export warning M10-88 or requested data (for example attachment bytes with `--stdout`). With `-q`, merge prints no change lines and no M10-52 (parity). Reference: `-q` also hides every unlock error, so a wrong password exits 1 with no output (observed), and clip's field-not-found error; it does not hide the analyze info line, the success lines of mv and db-edit (observed) or the new-password prompts of db-create, import and db-edit `-p` (source) (D-INT10-3).
 
-INT-10.8 **Exit codes.** As in the table. The option parser's own code for usage errors is replaced by 1 (D-INT10-2).
+INT-10.8 **Exit codes.** As in the table. The option parser's own code for usage errors is replaced by 1 (D-INT10-2). Except `encrypt` and `decrypt`, which follow FIL-02.21: 0 only after the output is complete and every line is written, 1 error, 2 usage error, 130 handled cancel (a declined low work factor, a declined weak passphrase, a no answer), and a quit signal ends the process by that signal.
 
 INT-10.9 **Settings and other state.** The tool reads S-UI-01 (language) and the key derivation speed record of CRY-02.14 from Larsal's settings, read only (D-INT10-6). It writes no setting, keeps no recent list, no shell history and no log of commands, never uses quick unlock (APP-04) and never contacts a running Larsal. A vault open in Larsal and changed by `larsal` is a change on disk for Larsal (APP-05). Reference: reads only its language setting.
 
@@ -340,7 +342,7 @@ INT-10.44 **help and close.** `help` prints M10-03; `help COMMAND` prints that c
 
 ### The shell
 
-INT-10.45 **open.** Unlocks VAULT (INT-10.11 to INT-10.15); a failure exits 1. Then it reads command lines from stdin, one at a time, until `exit`, `quit` or end of input, and exits 0. On a terminal it prints M10-96 before each line. While a vault is open, the commands that unlock VAULT act on it and take no VAULT argument; with no vault open they take VAULT as outside the shell. The other commands are unchanged. `export` and `import` are not shell commands (M10-95). Each changing command saves at once (INT-10.20). `close` closes the vault (wiped). `open VAULT` inside the shell first closes the current vault, then unlocks the new one; on failure no vault is open. Errors do not end the shell. Lines are read one at a time, so piped input works: `printf 'pw\nls\n' | larsal open v` lists v. Reference: piped input is lost after the password (observed: nothing after the first prompt); it keeps an in-memory line history with line editing (D-INT10-8).
+INT-10.45 **open.** Unlocks VAULT (INT-10.11 to INT-10.15); a failure exits 1. Then it reads command lines from stdin, one at a time, until `exit`, `quit` or end of input, and exits 0. On a terminal it prints M10-96 before each line. While a vault is open, the commands that unlock VAULT act on it and take no VAULT argument; with no vault open they take VAULT as outside the shell. The other commands are unchanged. `export` and `import` are not shell commands (M10-95). `encrypt` and `decrypt` are not shell commands, like `export` and `import`; inside `open` they answer M10-95 ("There is no command encrypt here."). Each changing command saves at once (INT-10.20). `close` closes the vault (wiped). `open VAULT` inside the shell first closes the current vault, then unlocks the new one; on failure no vault is open. Errors do not end the shell. Lines are read one at a time, so piped input works: `printf 'pw\nls\n' | larsal open v` lists v. Reference: piped input is lost after the password (observed: nothing after the first prompt); it keeps an in-memory line history with line editing (D-INT10-8).
 
 INT-10.46 **Shell line splitting.** Spaces and tabs separate words. A backslash makes the next character literal. A double quote that starts a word, or closes an open quote, groups words; other double quotes are literal. Single quotes are literal. An empty line does nothing. Same as the reference.
 
@@ -436,6 +438,8 @@ Decided: spec/decisions.md LD-171; review findings R10-1 to R10-4: LD-172 (all e
 | C26 | `show` | `show` | same | INT-10.28 |
 | C27 | `exit` (shell) | `exit` | same | INT-10.47 |
 | C28 | `quit` (shell) | `quit` | same | INT-10.47 |
+| C29 | none | `encrypt` | Larsal adds | FIL-02.18, E22-S5 |
+| C30 | none | `decrypt` | Larsal adds | FIL-02.18, E22-S5 |
 | T1 | no command: usage, exit 0 | same | same | F01 |
 | T2 | `-h`, `--help` | same | same | F02 |
 | T3 | `--help-all` (toolkit options) | alias of `--help` | Larsal differs | Larsal has no toolkit options |
@@ -471,14 +475,14 @@ Demo files: copy `testdata/*.larsalvault` and `testdata/*.larsalkey` into `/tmp/
 | INT-10.2-a | — | `larsal generate -L12`; `larsal generate --length=12`; `larsal generate -L 12` | Each prints 12 characters; exit 0 |
 | INT-10.2-b | — | `larsal generate -ln -L 40` | 40 characters, only lower-case letters and digits |
 | INT-10.2-c | — | `printf 'demo-pass-1\n' \| larsal ls password-only.larsalvault -- -R` | M10-21 for `-R`; exit 1 |
-| INT-10.2-d | — | `larsal generate --bogus` | M10-02 names `--bogus`; stdout empty; exit 1 |
+| INT-10.2-d | — | `larsal generate --bogus` | M10-02 "unknown option", never the word `--bogus`; stdout empty; exit 1 |
 | INT-10.3-a | — | `larsal`; `larsal --help`; `larsal --help-all` | stdout lists the 26 commands C01 to C26 (no `diceware`); exit 0 |
 | INT-10.3-b | — | `larsal -v`; `larsal --version` | One line, the version number only; exit 0 |
 | INT-10.3-c | — | `larsal --debug-info` | Version, build type, OS, CPU, kernel, features, crypto crates; no path, no setting; exit 0 |
 | INT-10.3-d | — | `larsal show --help`; `larsal ls password-only.larsalvault --help` | Each command's help on stdout; exit 0; no prompt. Reference: stderr, exit 1, the first with the missing-argument error (observed) |
 | INT-10.3-e | — | `larsal --license`; `larsal -v`; `larsal -h` | The F05 notice of INT-10.3: the copyright line, `Larsal Source-Available License 1.0`, the unmodified-use permission and written-permission restrictions, `NO WARRANTY`, `LICENSE` and `THIRD-PARTY-NOTICES.md` with where they ship, and `ATTRIBUTION` word for word as the last line; exit 0; then the version number alone (INT-10.3-b unchanged); then the usage line names `--license`. Test `e14_2_the_license_and_word_list_notices_are_shown` (crates/larsal-cli/tests/license.rs). The reference has no such flag (parity T6) |
 | INT-10.4-a | — | `larsal diceware -W 3`; `larsal passphrase -W 3` | Three lower-case words each; exit 0 |
-| INT-10.4-b | — | `larsal bogus`; `larsal --bogus` | M10-01; M10-02 without a command name; exit 1 each. Reference: the second prints its usage on stdout, exit 0 (observed) |
+| INT-10.4-b | — | `larsal bogus`; `larsal --bogus` | M10-01; M10-02 without a command name; exit 1 each; neither message repeats `bogus`. Reference: the second prints its usage on stdout, exit 0 (observed) |
 | INT-10.5-a | pty | `larsal clip password-only.larsalvault "Demo login" abc` | M10-61; no M10-10 prompt; exit 1 |
 | INT-10.5-b | pty | `larsal add -g -p w.larsalvault X`; `larsal db-edit -p --unset-password w.larsalvault` | M10-31; M10-82; no prompt; exit 1 each |
 | INT-10.6-a | — | `printf 'demo-pass-4\nentry-pw\n' \| larsal add -p w.larsalvault New1 >o 2>e` | `o` holds only M10-40; `e` holds M10-10 and M10-33. Reference: its entry prompt is in `o` (observed) |
@@ -566,7 +570,7 @@ Demo files: copy `testdata/*.larsalvault` and `testdata/*.larsalkey` into `/tmp/
 | INT-10.42-a | `in.txt` with any text | `attachment-import w "Full demo entry" notes.txt in.txt`; with `-f`; `attachment-import w "Full demo entry" notes.txt none.txt` | M10-56; replaced, one history item; M10-56 (the name is checked before the file, as the reference, observed) |
 | INT-10.43-a | — | `attachment-rm w "Full demo entry" new.txt`; `... notes.txt` | M10-55; removed |
 | INT-10.44-a | — | `larsal help ls`; `larsal help nothing`; `larsal close` | ls help, exit 0; M10-03, exit 0; no output, exit 0 |
-| INT-10.45-a | pty | `larsal open rich-v3.larsalvault`, then `demo-pass-4`, `ls`, `show "Full demo entry"`, `bogus`, `export`, `close`, `ls`, `quit` | Prompt `larsal (Rich demo)> `; the listing; the fields; M10-95 twice; after close the prompt `larsal> `; `ls` gives M10-02 (VAULT missing); exit 0 |
+| INT-10.45-a | pty | `larsal open rich-v3.larsalvault`, then `demo-pass-4`, `ls`, `show "Full demo entry"`, `bogus`, `export`, `close`, `ls`, `quit` | Prompt `larsal (Rich demo)> `; the listing; the fields; M10-95 twice (`bogus` gives M10-95's "no such command" form and `export` its "There is no command export here." form); after close the prompt `larsal> `; `ls` gives M10-02 (VAULT missing); exit 0 |
 | INT-10.45-b | — | `printf 'demo-pass-4\nls\nquit\n' \| larsal open rich-v3.larsalvault` | The root listing on stdout; no shell prompt. Reference: nothing after its first prompt (observed) |
 | INT-10.45-c | pty, shell on w.larsalvault | `add S5`, then (before quit) the reference lists w | `S5` is already in the file |
 | INT-10.46-a | Shell on rich-v3 | `show "Full demo entry"`; `show Full\ demo\ entry`; `show Full demo entry` | Same entry twice; third: M10-02 (unexpected argument) |
