@@ -247,6 +247,7 @@ fn text<'a>(r: &'a Map, key: &str) -> Option<&'a str> {
 
 impl Target {
     /// Reads `url`, `top_url`, `form_url` (when `form`) and `http_auth`.
+    /// A page with a host needs `top_url` (INT-01.30, F-276): error 14.
     fn read(r: &Map, o: &Options, form: bool) -> Result<Self, u8> {
         let url = text(r, "url").ok_or(code::NOT_A_PAGE)?;
         let form_url = if form { text(r, "form_url") } else { None };
@@ -254,7 +255,11 @@ impl Target {
         let p = page.host().unwrap_or_default();
         let f = page.form_host().filter(|f| *f != p);
         let line = match page.host() {
-            Some(p) => other_site(&p, text(r, "top_url"), f.as_deref())?,
+            Some(p) => other_site(
+                &p,
+                text(r, "top_url").ok_or(code::NOT_A_PAGE)?,
+                f.as_deref(),
+            )?,
             None => None,
         };
         Ok(Self {
@@ -277,15 +282,13 @@ impl Target {
 /// INT-02.19: the line when the registrable domain of the top page or of
 /// F differs from P's (a host without one stands for itself). A `top_url`
 /// Larsal cannot read: error 14.
-fn other_site(p: &str, top_url: Option<&str>, f: Option<&str>) -> Result<Option<String>, u8> {
+fn other_site(p: &str, top_url: &str, f: Option<&str>) -> Result<Option<String>, u8> {
     let site = |h: &str| registrable_domain(h).unwrap_or_else(|| h.to_owned());
-    if let Some(top) = top_url {
-        let top = url_host(top).ok_or(code::NOT_A_PAGE)?;
-        if site(&top) != site(p) {
-            return Ok(Some(format!(
-                "This sign-in form is inside a frame from {p} on {top}."
-            )));
-        }
+    let top = url_host(top_url).ok_or(code::NOT_A_PAGE)?;
+    if site(&top) != site(p) {
+        return Ok(Some(format!(
+            "This sign-in form is inside a frame from {p} on {top}."
+        )));
     }
     Ok(f.filter(|f| site(f) != site(p))
         .map(|f| format!("This form sends what you type to {f}.")))
@@ -767,7 +770,8 @@ impl VaultSide {
 
     /// The entries `ids` names that this page may see or that search and
     /// recent could give, with their states, in the order asked; `page`:
-    /// only those INT-02.13 keeps for the page (`code.get`).
+    /// only those INT-02.13 keeps for the page (`code.get`). `meter` is the
+    /// request's one work meter (LD-326 (1), F-277).
     fn picks(
         &self,
         uses: &[Use],
@@ -775,9 +779,9 @@ impl VaultSide {
         t: &Target,
         o: &Options,
         page: bool,
+        meter: &Cell<usize>,
     ) -> Vec<Pick> {
         let now = self.vaults.now();
-        let meter = Cell::new(COPY_BUDGET);
         let mut out: Vec<(usize, Pick)> = Vec::new();
         for (at, u) in uses.iter().enumerate() {
             if !ids.iter().any(|(vid, _)| *vid == u.vid) {
@@ -785,7 +789,7 @@ impl VaultSide {
             }
             self.vaults.with(u.id, &mut |v, dir| {
                 let index = EntryIndex::new(v);
-                let ctx = full(v, dir, now, &meter, &index);
+                let ctx = full(v, dir, now, meter, &index);
                 for (e, _, flags) in visible(v, &u.names) {
                     let Some(asked) = ids
                         .iter()
@@ -826,14 +830,13 @@ impl VaultSide {
 
     /// The prompt rows of `asked` (INT-02.18): title and user name,
     /// resolved for display, plain text.
-    fn rows(&self, uses: &[Use], asked: &[Pick]) -> Vec<Row> {
+    fn rows(&self, uses: &[Use], asked: &[Pick], meter: &Cell<usize>) -> Vec<Row> {
         let now = self.vaults.now();
-        let meter = Cell::new(COPY_BUDGET);
         let mut rows: Vec<(usize, Row)> = Vec::new();
         for (at, u) in uses.iter().enumerate() {
             self.vaults.with(u.id, &mut |v, dir| {
                 let index = EntryIndex::new(v);
-                let ctx = display(v, dir, now, &meter, &index);
+                let ctx = display(v, dir, now, meter, &index);
                 for (i, p) in asked.iter().enumerate().filter(|(_, p)| p.at == at) {
                     if let Some(e) = live(v, p.id) {
                         let row = Row {
@@ -877,7 +880,9 @@ impl VaultSide {
 
     /// The picks given after INT-02.18's prompt for those in state ask,
     /// and whether a dialog showed. Error 6 when the user denied, the time
-    /// ran out or the vault locked; 42 when the line is full.
+    /// ran out or the vault locked; 42 when the line is full. The given
+    /// picks are in the order asked (INT-02.21).
+    #[allow(clippy::too_many_arguments)]
     fn decide(
         &self,
         r: &Request<'_>,
@@ -886,8 +891,9 @@ impl VaultSide {
         t: &Target,
         o: &Options,
         page: bool,
+        meter: &Cell<usize>,
     ) -> Result<(Vec<Pick>, bool), u8> {
-        let picks = self.picks(uses, ids, t, o, page);
+        let picks = self.picks(uses, ids, t, o, page, meter);
         if picks.is_empty() {
             return Err(if page { code::BAD_ID } else { code::NONE });
         }
@@ -895,15 +901,21 @@ impl VaultSide {
             return Ok((picks, false));
         }
         let _wait = r.session.wait().ok_or(code::BUSY)?;
+        // Every pick at the prompt's turn, in the order asked (F-275), and
+        // those of them in state ask.
+        let mut all: Vec<Pick> = Vec::new();
         let mut asked: Vec<Pick> = Vec::new();
-        let mut ready: Vec<Pick> = Vec::new();
         let remember = (!t.http_auth && t.line.is_none()).then(|| format!("Remember for {}", t.p));
         let mut make = || {
             // Checked again at its turn: an earlier answer may have
             // remembered (INT-02 edge cases).
-            let now: Vec<Pick> = self.picks(uses, ids, t, o, page);
-            (asked, ready) = now.into_iter().partition(|p| p.state == State::Ask);
-            let rows = self.rows(uses, &asked);
+            all = self.picks(uses, ids, t, o, page, meter);
+            asked = all
+                .iter()
+                .filter(|p| p.state == State::Ask)
+                .cloned()
+                .collect();
+            let rows = self.rows(uses, &asked, meter);
             let vault = asked.first().and_then(|p| uses.get(p.at)).map(|u| u.id)?;
             (rows.len() == asked.len()).then(|| {
                 Question::Access(Access {
@@ -932,7 +944,10 @@ impl VaultSide {
         };
         let may_remember = remember.is_some();
         match outcome {
-            Outcome::NotNeeded if !ready.is_empty() => Ok((ready, false)),
+            Outcome::NotNeeded if !all.is_empty() => Ok((
+                all.into_iter().filter(|p| p.state != State::Ask).collect(),
+                false,
+            )),
             Outcome::Answered(Answer::Allow { checked, remember }) => {
                 if remember && may_remember {
                     let marks: Vec<_> = asked
@@ -942,14 +957,16 @@ impl VaultSide {
                         .collect();
                     self.remember(uses, &marks);
                 }
-                let mut given = ready;
-                given.extend(
-                    asked
-                        .into_iter()
-                        .zip(checked.into_iter().chain(core::iter::repeat(false)))
-                        .filter(|(_, c)| *c)
-                        .map(|(p, _)| p),
-                );
+                let yes: Vec<(usize, Uuid)> = asked
+                    .iter()
+                    .zip(checked.into_iter().chain(core::iter::repeat(false)))
+                    .filter(|(_, c)| *c)
+                    .map(|(p, _)| (p.at, p.id))
+                    .collect();
+                let given: Vec<Pick> = all
+                    .into_iter()
+                    .filter(|p| p.state != State::Ask || yes.contains(&(p.at, p.id)))
+                    .collect();
                 if given.is_empty() {
                     return Err(code::DENIED);
                 }
@@ -988,10 +1005,10 @@ impl VaultSide {
         &self,
         uses: &[Use],
         given: &[Pick],
+        meter: &Cell<usize>,
         give: &dyn Fn(&str, &Entry, &Pick, &Context<'_>) -> Option<Map>,
     ) -> Vec<Map> {
         let now = self.vaults.now();
-        let meter = Cell::new(COPY_BUDGET);
         let mut out: Vec<(usize, Map)> = Vec::new();
         for (at, u) in uses.iter().enumerate() {
             if !given.iter().any(|p| p.at == at) {
@@ -1001,7 +1018,7 @@ impl VaultSide {
                 let mut used = Vec::new();
                 {
                     let index = EntryIndex::new(v);
-                    let ctx = full(v, dir, now, &meter, &index);
+                    let ctx = full(v, dir, now, meter, &index);
                     for (i, p) in given.iter().enumerate().filter(|(_, p)| p.at == at) {
                         if let Some(m) = live(v, p.id).and_then(|e| give(&u.vid, e, p, &ctx)) {
                             out.push((i, m));
@@ -1028,9 +1045,10 @@ impl VaultSide {
         let uses = self.usable(r, o)?;
         let ids = read_ids(r.content)?;
         let t = Target::read(r.content, o, true)?;
-        let (given, asked) = self.decide(r, &uses, &ids, &t, o, false)?;
+        let meter = Cell::new(COPY_BUDGET);
+        let (given, asked) = self.decide(r, &uses, &ids, &t, o, false, &meter)?;
         let extra = o.extra_fields;
-        let list = self.give(&uses, &given, &|vid, e, p, ctx| {
+        let list = self.give(&uses, &given, &meter, &|vid, e, p, ctx| {
             let mut m = Map::new();
             m.insert("vault".into(), vid.into());
             m.insert("id".into(), site::entry_id(e.uuid).into());
@@ -1085,8 +1103,9 @@ impl VaultSide {
             .ok_or(code::BAD_ID)?;
         let ids = [(vault.to_owned(), id)];
         let t = Target::read(r.content, o, false)?;
+        let meter = Cell::new(COPY_BUDGET);
         // No valid one-time settings: error 15, before any prompt.
-        let kept = self.picks(&uses, &ids, &t, o, true);
+        let kept = self.picks(&uses, &ids, &t, o, true, &meter);
         let first = kept.first().ok_or(code::BAD_ID)?;
         let mut valid = false;
         if let Some(u) = uses.get(first.at) {
@@ -1098,8 +1117,8 @@ impl VaultSide {
         if !valid {
             return Err(code::NONE);
         }
-        let (given, asked) = self.decide(r, &uses, &ids, &t, o, true)?;
-        let list = self.give(&uses, &given, &|_, e, _, ctx| {
+        let (given, asked) = self.decide(r, &uses, &ids, &t, o, true, &meter)?;
+        let list = self.give(&uses, &given, &meter, &|_, e, _, ctx| {
             let s = larsal_core::totp::settings(e)?;
             let mut m = Map::new();
             m.insert("code".into(), s.code(ctx.now)?.expose().into());

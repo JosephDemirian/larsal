@@ -9,6 +9,8 @@ pub mod autotype;
 pub mod autotype_typing;
 pub mod bridge_vaults;
 pub mod browser;
+#[cfg(debug_assertions)]
+mod browser_seam;
 pub mod cli;
 pub mod copies;
 pub mod edit;

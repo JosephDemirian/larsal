@@ -256,7 +256,7 @@ pub fn read_entry_id(text: &str) -> Option<Uuid> {
 
 /// INT-02.9: `_LAST_USED_` + each name in the vault's custom data, and
 /// name → time in the entry's `BrowserLastUse` item (compact JSON, names
-/// sorted, at most [`MAX_USES`]: the oldest time goes first). A view-state
+/// sorted, at most [`MAX_USES`]: the oldest times go first, in one sort). A view-state
 /// change: no history item, no modification time moves.
 pub fn record_use(v: &mut Vault, entry: Uuid, names: &[String], now: Time) {
     let at = iso(now);
@@ -282,20 +282,14 @@ pub fn record_use(v: &mut Vault, entry: Uuid, names: &[String], now: Time) {
     for n in names {
         uses.insert(n.clone(), at.as_str().into());
     }
-    while uses.len() > MAX_USES {
-        // ISO texts of one form sort as their times.
-        let oldest = uses
-            .iter()
-            .min_by(|a, b| a.1.as_str().cmp(&b.1.as_str()))
-            .map(|(n, _)| n.clone());
-        match oldest {
-            Some(n) => {
-                uses.remove(&n);
-            }
-            None => break,
-        }
-    }
+    // F-273: one sort, newest first, then the first 16 (a hostile item may
+    // hold about 100,000 names). ISO texts of one form sort as their times;
+    // of equal times the names that sort first go first.
+    let mut kept: Vec<(String, Value)> = uses.into_iter().collect();
+    kept.sort_by(|a, b| (b.1.as_str(), &b.0).cmp(&(a.1.as_str(), &a.0)));
+    kept.truncate(MAX_USES);
     // The map's members come out sorted by name.
+    let uses: Map = kept.into_iter().collect();
     set_item(
         &mut e.custom_data,
         LAST_USE,

@@ -429,6 +429,26 @@ fn int_02_29_browser_page_stores_its_options() {
     assert!(keys.contains(&"Browser site access"));
 }
 
+/// F-281, INT-02.16: the editor writes the site access item as the bridge
+/// does: a full list drops its oldest hosts in list order, so a host just
+/// added stays even when it sorts last.
+#[test]
+fn f281_int02_16_the_editor_keeps_a_host_added_to_a_full_list() {
+    let (s, v, _) = personal("full-allow");
+    s.begin_edit(v, entry_id(&s, v, "GitHub")).unwrap();
+    for n in 0..1000 {
+        s.add_site(v, format!("h{n:04}.example"), false).unwrap();
+    }
+    s.add_site(v, "zz.example".into(), false).unwrap();
+    let allow = s.editor(v).unwrap().allow;
+    assert_eq!(allow.len(), 1000);
+    assert!(
+        allow.contains(&"zz.example".to_owned()),
+        "the host just added"
+    );
+    assert!(!allow.contains(&"h0000.example".to_owned()), "the oldest");
+}
+
 #[test]
 fn mod_05_open_save_and_wipe() {
     use std::os::unix::fs::PermissionsExt;

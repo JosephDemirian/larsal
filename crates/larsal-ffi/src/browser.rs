@@ -11,14 +11,16 @@
 //! in the test's instance folder (`<folder>/home` stands for the home
 //! folder, `<folder>/group` for the app-group container), never the user's
 //! (INT-01.10). Only the page's words and switch states cross to Swift.
+//! The bridge answers over the app's session with the vault side of
+//! E7-S2 (bridge_vaults.rs, LD-556).
 
 use crate::instance;
 use crate::larsal_settings::LarsalSettingsStore;
+use crate::session::Session;
 use larsal_browser::{
-    ADDON_ID, Bridge, Browser, Clock, Handler, Listeners, MI01_04, Manifests, Request, STORE_IDS,
+    ADDON_ID, Bridge, Browser, Clock, Listeners, MI01_04, Manifests, STORE_IDS, SharedHandler,
     Signed, Trouble,
 };
-use larsal_model::json::Map;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
@@ -66,22 +68,9 @@ pub struct BrowserPage {
     pub notes: Vec<BrowserNote>,
 }
 
-/// The vault side until E7-S2: `status` lists no vault; every other
-/// request gets error 1 (no vault the request may use is unlocked).
-struct NoVaults;
-
-impl Handler for NoVaults {
-    fn handle(&mut self, request: &Request<'_>) -> Result<Map, u8> {
-        if request.kind != "status" {
-            return Err(1);
-        }
-        let mut reply = Map::new();
-        reply.insert(
-            "vaults".into(),
-            larsal_model::json::Value::Array(Vec::new()),
-        );
-        Ok(reply)
-    }
+/// The vault side over the app's one session (INT-02, E7-S2).
+fn app_vaults() -> Arc<dyn SharedHandler> {
+    crate::bridge_vaults::handler(Arc::downgrade(&Session::shared()))
 }
 
 struct State {
@@ -141,7 +130,7 @@ impl Browsers {
                 group.into()
             },
         });
-        Arc::new(Self::with(settings, &home, &temp, signed))
+        Arc::new(Self::with(settings, &home, &temp, signed, app_vaults()))
     }
 
     /// Tests and Mac QA: a throwaway `folder`; the sockets go in it, the
@@ -150,7 +139,13 @@ impl Browsers {
     #[must_use]
     pub fn in_folder(settings: Arc<LarsalSettingsStore>, folder: String) -> Arc<Self> {
         let folder = PathBuf::from(folder);
-        Arc::new(Self::with(settings, &folder.join("home"), &folder, None))
+        Arc::new(Self::with(
+            settings,
+            &folder.join("home"),
+            &folder,
+            None,
+            app_vaults(),
+        ))
     }
 
     /// The launch's end (INT-01.11): with S-BRW-01 on, every setup file of
@@ -168,7 +163,12 @@ impl Browsers {
             Vec::new()
         };
         self.state().rewrite = rewrite;
-        self.apply()
+        let notes = self.apply();
+        #[cfg(debug_assertions)]
+        if crate::browser_seam::on() {
+            crate::browser_seam::ready();
+        }
+        notes
     }
 
     /// After the settings page's OK, Reset or Import (APP-01.3): the
@@ -249,11 +249,29 @@ impl Browsers {
         home: &Path,
         temp: &Path,
         signed: Option<Signed>,
+        vaults: Arc<dyn SharedHandler>,
     ) -> Self {
-        let bridge = Arc::new(Mutex::new(Bridge::new(
+        // LD-556: a test launch that asks for it tells and answers the
+        // dialogs on its standard input and output (debug builds only).
+        #[cfg(debug_assertions)]
+        let seam = crate::browser_seam::on();
+        #[cfg(debug_assertions)]
+        let vaults = if seam {
+            crate::browser_seam::logged(vaults)
+        } else {
+            vaults
+        };
+        let bridge = Arc::new(Mutex::new(Bridge::shared(
             env!("CARGO_PKG_VERSION"),
-            Box::new(NoVaults),
+            vaults,
         )));
+        #[cfg(debug_assertions)]
+        if seam {
+            crate::browser_seam::start(
+                Arc::clone(crate::bridge_vaults::line()),
+                Arc::clone(&bridge),
+            );
+        }
         let clock: Clock = Arc::new(Instant::now);
         Self {
             settings,
@@ -369,7 +387,13 @@ mod tests {
             team: "ABCDE12345".into(),
             group: group.clone(),
         };
-        let b = Browsers::with(settings.clone(), &dir.join("home"), dir, Some(signed));
+        let b = Browsers::with(
+            settings.clone(),
+            &dir.join("home"),
+            dir,
+            Some(signed),
+            crate::bridge_vaults::handler(std::sync::Weak::new()),
+        );
         assert!(b.page().safari_allowed);
         let socket = group.join(larsal_browser::SAFARI_SOCKET);
         for (json, on) in [

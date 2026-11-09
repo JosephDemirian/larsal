@@ -414,7 +414,7 @@ impl VaultSettings {
                         name: a.name,
                     })
                     .collect(),
-                site_access: u32::try_from(settings::site_access_count(v)).unwrap_or(u32::MAX),
+                site_access: u32::try_from(site_access_count(v)).unwrap_or(u32::MAX),
             })
         })
     }
@@ -752,6 +752,18 @@ impl VaultSettings {
     }
 }
 
+/// INT-02.30 (F-280): the live entries whose site access item lists at
+/// least one host, read by the bridge's one reader (INT-02.16).
+fn site_access_count(v: &Vault) -> usize {
+    v.root
+        .all_entries()
+        .filter(|e| {
+            let l = larsal_browser::Lists::of(e);
+            !l.allow.is_empty() || !l.deny.is_empty()
+        })
+        .count()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -816,5 +828,47 @@ mod tests {
             }
         ));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// INT-02.30, T71 (F-280): an item that lists no host, or is not JSON,
+    /// is not counted.
+    #[test]
+    fn t71_int02_30_entries_with_an_item_listing_no_host_are_not_counted() {
+        let folder = crate::test_dir::TempDir::new("e7s2-t71");
+        let path = folder.join("Vault.larsalvault");
+        let demo = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../testdata/option-a-personal.larsalvault");
+        std::fs::copy(demo, &path).unwrap();
+        let s = Session::new();
+        let id = s.open(path.to_string_lossy().into_owned()).unwrap();
+        assert_eq!(
+            s.unlock(id, Some("demo-pass-7".into()), None).unwrap(),
+            UnlockResult::Unlocked
+        );
+        let vs = VaultSettings::new(Arc::clone(&s), id);
+        vs.forget_site_access().unwrap();
+        assert_eq!(vs.view().unwrap().site_access, 0);
+        s.with_edit(id, |v, _, _, _| {
+            let ids: Vec<_> = v.root.all_entries().map(|e| e.uuid).take(4).collect();
+            let t = now();
+            for (n, id) in ids.into_iter().enumerate() {
+                larsal_core::edit::change_entry(v, id, t, |e| {
+                    let mut l = larsal_browser::Lists::default();
+                    if n < 2 {
+                        l.add(&[format!("site{n}.example")], n == 0);
+                    }
+                    l.write(e, t);
+                    if n == 3 {
+                        let item = e.custom_data.items.last_mut().unwrap();
+                        item.value = SecretString::new("{not json".into());
+                    }
+                })
+                .unwrap();
+            }
+            Ok(())
+        })
+        .unwrap();
+        // E2 and E6 list hosts; E1 holds {"Allow":[],"Deny":[]}; one is not JSON.
+        assert_eq!(vs.view().unwrap().site_access, 2);
     }
 }

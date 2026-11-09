@@ -1043,8 +1043,6 @@ const BROWSER_OPTIONS: [&str; 3] = [
     "BrowserSkipAutoSubmit",
     "BrowserOnlyHttpAuth",
 ];
-/// Most hosts per site access list (INT-02.16).
-const MAX_SITES: usize = 1000;
 
 /// One option of the Browser page: the entry's value, or the group's that
 /// decides it (INT-02.14; the switch is then disabled with MI02-11).
@@ -1117,39 +1115,6 @@ pub(crate) fn site_access(e: &Entry) -> (Vec<String>, Vec<String>) {
     // One reader of the item: the bridge's (INT-02.16).
     let lists = larsal_browser::Lists::of(e);
     (lists.allow, lists.deny)
-}
-
-/// Writes the site access item (INT-02.16): compact, `Allow`, `Deny`,
-/// `Realm` in that order, sorted lists of at most 1,000 hosts, `Realm` as
-/// read.
-fn write_site_access(e: &mut Entry, allow: &[String], deny: &[String]) {
-    let Ok(key) = std::str::from_utf8(SITE_ACCESS) else {
-        return;
-    };
-    let realm = custom_value(e, SITE_ACCESS)
-        .and_then(|t| json::from_str(t).ok())
-        .and_then(|v| {
-            v.get("Realm")
-                .and_then(json::Value::as_str)
-                .map(str::to_owned)
-        })
-        .unwrap_or_default();
-    let clip = |l: &[String]| -> Vec<String> {
-        let mut l = l.to_vec();
-        l.sort();
-        l.dedup();
-        l.truncate(MAX_SITES);
-        l
-    };
-    // A JSON object keeps its members in key order; build the text in the
-    // card's order instead.
-    let text = format!(
-        "{{\"Allow\":{},\"Deny\":{},\"Realm\":{}}}",
-        json::Value::from(clip(allow)),
-        json::Value::from(clip(deny)),
-        json::Value::from(realm)
-    );
-    set_custom(e, key, Some(text));
 }
 
 /// The groups from the root down to `group`.
@@ -2402,15 +2367,11 @@ impl Session {
             LarsalError::Refused("That is not a website address Larsal can use.".to_owned())
         })?;
         self.with_draft(vault, |_, d| {
-            let (mut allow, mut denied) = site_access(&d.entry);
-            allow.retain(|h| *h != host);
-            denied.retain(|h| *h != host);
-            if deny {
-                denied.push(host);
-            } else {
-                allow.push(host);
-            }
-            write_site_access(&mut d.entry, &allow, &denied);
+            // One writer of the item, the bridge's (F-281): a full list
+            // drops its oldest hosts in list order, never the one added.
+            let mut lists = larsal_browser::Lists::of(&d.entry);
+            lists.add(&[host], !deny);
+            lists.write(&mut d.entry, now());
             Ok(())
         })
     }
@@ -2422,13 +2383,13 @@ impl Session {
     /// `Refused` when no editor is open.
     pub fn remove_site(&self, vault: u64, host: String, deny: bool) -> Result<(), LarsalError> {
         self.with_draft(vault, |_, d| {
-            let (mut allow, mut denied) = site_access(&d.entry);
+            let mut lists = larsal_browser::Lists::of(&d.entry);
             if deny {
-                denied.retain(|h| *h != host);
+                lists.deny.retain(|h| *h != host);
             } else {
-                allow.retain(|h| *h != host);
+                lists.allow.retain(|h| *h != host);
             }
-            write_site_access(&mut d.entry, &allow, &denied);
+            lists.write(&mut d.entry, now());
             Ok(())
         })
     }

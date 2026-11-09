@@ -20,7 +20,7 @@ const NAME_TAKEN: &str = "A browser with this name is already connected. Choose 
 
 /// The app's one line of bridge dialogs (INT-02.15). A change of the
 /// dialog on screen tells the window; a new one brings Larsal to the front.
-fn line() -> &'static Arc<Prompts> {
+pub(crate) fn line() -> &'static Arc<Prompts> {
     static LINE: OnceLock<Arc<Prompts>> = OnceLock::new();
     LINE.get_or_init(|| {
         Arc::new(Prompts::new(
@@ -312,6 +312,36 @@ mod tests {
             session: live,
             keys: (&[1; 32], &[2; 32]),
         })
+    }
+
+    /// F-279 (1): a fresh settings store gives the card's defaults, and each
+    /// S-BRW key the vault side reads reaches its option (a misspelled key
+    /// would read as off).
+    #[test]
+    fn f279_1_every_s_brw_setting_reaches_the_vault_side() {
+        let s = Session::new();
+        let side = SessionVaults(Arc::downgrade(&s));
+        assert_eq!(side.options(), Options::default());
+        let folder = TempDir::new("bridge-options");
+        std::fs::write(
+            folder.join("settings.json"),
+            r#"{"browser.notify":false,"browser.match_scheme":false,"browser.best_match_only":true,"browser.allow_expired":true,"browser.search_all_vaults":true,"browser.never_ask_access":true,"browser.skip_http_auth_ask":true,"browser.extra_fields":false}"#,
+        )
+        .unwrap();
+        s.settings.use_folder(folder.to_string_lossy().into_owned());
+        assert_eq!(
+            side.options(),
+            Options {
+                notify: false,
+                match_scheme: false,
+                best_only: true,
+                allow_expired: true,
+                search_all: true,
+                never_ask: true,
+                skip_http_ask: true,
+                extra_fields: false,
+            }
+        );
     }
 
     fn unsaved(s: &Session, v: u64) -> bool {

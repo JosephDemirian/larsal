@@ -479,10 +479,13 @@ impl Run<'_, '_> {
     }
 
     /// Whether a field's value shows masked: display mode and a protected
-    /// field (its own flag, or the vault's flag for a standard field).
+    /// field (its own flag, or the vault's flag for a standard field). The
+    /// Password field always counts as protected (F-272, MOD-12.16): a file
+    /// made elsewhere may store it plain with the vault's flag off.
     fn masked(&self, name: &str, f: &Field) -> bool {
         self.ctx.display
             && (f.protected
+                || name == "Password"
                 || (STANDARD_FIELDS.contains(&name)
                     && self
                         .ctx

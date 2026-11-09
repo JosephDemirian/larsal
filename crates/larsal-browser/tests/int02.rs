@@ -7,9 +7,9 @@
 //! to `laptop`) and the recycle bin, entries E1 to E10. Demo data only.
 
 use larsal_browser::{
-    Answer, Changed, Live, MAX_QUEUE, OpenVault, Options, Prompts, Question, Request,
+    Answer, Changed, Live, MAX_QUEUE, MAX_USES, OpenVault, Options, Prompts, Question, Request,
     SharedHandler, State, VaultSide, Vaults, entry_id, last_use, names, pairing_words,
-    read_entry_id, vault_id,
+    read_entry_id, record_use, valid_name, vault_id,
 };
 use larsal_crypto::base64::{self, Form};
 use larsal_crypto::secret::SecretString;
@@ -641,14 +641,14 @@ fn t10_int02_5_pairing_words_of_the_int01_demo_keys() {
     let a = hex("de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f");
     let c = hex("8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a");
     let i = hex("8f40c5adb68f25624ae5b214ea767a6ec94d829d3d7b5e1ad1ba6f3e2138285f");
-    // INT-01.50's current A, C and I give SHA-256 476bfcad…411f7e; T10's
-    // listed digest e5c612d6… is of earlier demo keys (the card's words
-    // for it, "suspense bagginess crucial mongoose", follow from the same
-    // word step). Both computed outside Larsal with the shipped word list.
+    // INT-01.50's current A, C and I: T10's digest and words as
+    // proposed-cards.md gives them (the card's e5c612d6… and "suspense
+    // bagginess crucial mongoose" are of earlier demo keys). Both computed
+    // outside Larsal with the shipped word list.
     let d = larsal_crypto::hash::sha256(&[b"browser-bridge pairing v1", &a, &c, &i]);
     assert_eq!(
-        d.expose()[..8],
-        [0x47, 0x6b, 0xfc, 0xad, 0xf9, 0x8c, 0x72, 0x6d]
+        d.expose()[..],
+        hex("476bfcadf98c726d495cce25e223594fbe660319e0c7fee7b7523636a7411f7e")
     );
     assert_eq!(
         pairing_words(&a, &c, &i),
@@ -773,7 +773,7 @@ fn t25_int02_13_a_restricted_group_reaches_its_browser() {
             &Live::default(),
             Some(&K2),
             "logins.find",
-            r#""url":"https://example.com/login""#,
+            r#""url":"https://example.com/login","top_url":"https://example.com/login""#,
         )
         .unwrap();
     assert_eq!(titles(&list(&found)), ["Example (work)", "E9"]);
@@ -1227,7 +1227,7 @@ fn t32_int02_15_the_17th_waiting_request_gets_42() {
                 &live,
                 Some(&K1),
                 "logins.get",
-                &format!(r#"{ids},"url":"https://example.com/""#),
+                &format!(r#"{ids},"url":"https://example.com/","top_url":"https://example.com/""#),
             )
         }));
         std::thread::sleep(Duration::from_millis(5));
@@ -1244,7 +1244,10 @@ fn t32_int02_15_the_17th_waiting_request_gets_42() {
         &late_live,
         Some(&K1),
         "logins.get",
-        &format!(r#"{},"url":"https://example.com/""#, f.ids(&[2])),
+        &format!(
+            r#"{},"url":"https://example.com/","top_url":"https://example.com/""#,
+            f.ids(&[2])
+        ),
     );
     assert_eq!(late, Err(42));
     watchdog.join().unwrap();
@@ -1266,7 +1269,10 @@ fn t59_int01_44_a_session_has_at_most_4_requests_waiting() {
             &live,
             Some(&K1),
             "logins.get",
-            &format!(r#"{},"url":"https://example.com/""#, f.ids(&[2]))
+            &format!(
+                r#"{},"url":"https://example.com/","top_url":"https://example.com/""#,
+                f.ids(&[2])
+            )
         ),
         Err(42)
     );
@@ -1495,7 +1501,7 @@ fn t52_int02_21_a_hidden_entry_is_never_given() {
 #[test]
 fn int02_21_ids_must_be_1_to_20_well_formed_pairs() {
     let f = Fixture::new();
-    let page = r#""url":"https://example.com/""#;
+    let page = r#""url":"https://example.com/","top_url":"https://example.com/""#;
     assert_eq!(f.k1("logins.get", page), Err(18));
     assert_eq!(f.k1("logins.get", &format!(r#""ids":[],{page}"#)), Err(18));
     assert_eq!(
@@ -1705,4 +1711,279 @@ fn site_access_state_of_int02_17() {
         ),
         State::Denied
     );
+}
+
+// ---------------------------------------------------------------------------
+// E7-S2 round 2: Checker 1's findings F-272 to F-281.
+
+/// A password field stored without protection, as a file made elsewhere
+/// may hold it.
+fn plain_password(e: &mut Entry, value: &str) {
+    e.set_field(
+        "Password".into(),
+        Field {
+            value: SecretString::new(value.into()),
+            protected: false,
+        },
+    );
+}
+
+#[test]
+fn f272_r02_2_a_password_stored_plain_with_protect_password_off_never_reaches_a_summary() {
+    let f = Fixture::new();
+    f.v(|v| v.meta.memory_protection.password = false);
+    f.e(1, |e| plain_password(e, "demo-secret-pass-1"));
+    for user in [
+        "{PASSWORD}".to_owned(),
+        "{S:Password}".to_owned(),
+        format!("{{REF:P@I:{}}}", entry_id(id(1))),
+    ] {
+        f.e(7, |e| {
+            plain_password(e, "demo-secret-pass");
+            set(e, "UserName", &user);
+        });
+        let found = f.find("https://example.net/").unwrap();
+        assert_eq!(s(&found[0], "username"), "", "{user}");
+        assert_eq!(found[0]["hidden_value"], Value::Bool(true), "{user}");
+        let text = json::to_string(&Value::Array(
+            found.into_iter().map(Value::Object).collect(),
+        ));
+        assert!(!text.contains("demo-secret-pass"), "{user}: {text}");
+    }
+}
+
+/// `{"0":"","1":"",…}` of about 1,000,000 bytes, as a shared or merged vault
+/// may bring it, with `n00` to `n19` used at 00:00:00 to 00:00:19.
+fn hostile_last_use() -> String {
+    let mut text = String::from("{");
+    for n in 0..20 {
+        text.push_str(&format!(r#""n{n:02}":"2026-01-01T00:00:{n:02}Z","#));
+    }
+    let mut n = 0u32;
+    while text.len() < 1_000_000 {
+        text.push_str(&format!(r#""{n}":"","#));
+        n += 1;
+    }
+    text.pop();
+    text.push('}');
+    assert!(text.len() < 1_048_576);
+    text
+}
+
+#[test]
+fn f273_int02_9_a_hostile_last_use_item_is_cut_in_one_sort() {
+    let mut v = vault_v();
+    let e1 = v.root.groups[0]
+        .entries
+        .iter_mut()
+        .find(|e| e.uuid == id(1))
+        .unwrap();
+    e1.custom_data
+        .items
+        .push(item("BrowserLastUse", &hostile_last_use()));
+    let start = Instant::now();
+    record_use(&mut v, id(1), &["demo".into()], time(T));
+    let took = start.elapsed();
+    assert!(took < Duration::from_secs(1), "took {took:?}");
+    let e1 = v.root.groups[0]
+        .entries
+        .iter()
+        .find(|e| e.uuid == id(1))
+        .unwrap();
+    let Ok(Value::Object(kept)) = json::from_str(e1.custom_data.get("BrowserLastUse").unwrap())
+    else {
+        panic!()
+    };
+    let mut want: Vec<String> = (5..20).map(|n| format!("n{n:02}")).collect();
+    want.push("demo".into());
+    want.sort();
+    assert_eq!(kept.keys().cloned().collect::<Vec<_>>(), want);
+}
+
+#[test]
+fn f279_4_int02_9_a_17th_name_drops_the_oldest() {
+    let mut v = vault_v();
+    for n in 0..MAX_USES {
+        let at = i64::try_from(n).unwrap();
+        record_use(&mut v, id(1), &[format!("b{n:02}")], time(T + at));
+    }
+    let names = |v: &Vault| {
+        let e1 = &v.root.groups[0].entries[0];
+        let Ok(Value::Object(m)) = json::from_str(e1.custom_data.get("BrowserLastUse").unwrap())
+        else {
+            panic!()
+        };
+        m.keys().cloned().collect::<Vec<_>>()
+    };
+    assert_eq!(names(&v).len(), 16);
+    record_use(&mut v, id(1), &["a17".into()], time(T + 100));
+    let after = names(&v);
+    assert_eq!(after.len(), 16);
+    assert!(after.contains(&"a17".to_owned()) && !after.contains(&"b00".to_owned()));
+    assert!(after.contains(&"b01".to_owned()));
+}
+
+/// E12: a copy of E2 whose Allow holds `example.com`.
+fn allowed_copy(f: &Fixture) {
+    f.v(|v| {
+        v.root.groups[0].entries.push(entry(
+            12,
+            "Example (copy)",
+            "copy",
+            "x12",
+            "https://example.com",
+        ));
+    });
+    set_site(f, 12, r#"{"Allow":["example.com"],"Deny":[]}"#);
+}
+
+#[test]
+fn f274_1_f275_int02_18_21_an_ask_entry_beside_an_allowed_one_asks_in_order() {
+    let f = Fixture::new();
+    allowed_copy(&f);
+    let screen = f.answer(|q| {
+        let Question::Access(a) = q else { panic!() };
+        // Only the entry in state ask is a row; the allowed one is given
+        // without it (INT-02.18).
+        assert_eq!(a.rows.len(), 1);
+        assert_eq!(a.rows[0].title, "Example (work)");
+        allow_all(q)
+    });
+    let got = f.get(&[2, 12], "https://example.com/").unwrap();
+    screen.join().unwrap();
+    // INT-02.21: in the order asked.
+    assert_eq!(titles(&got), ["Example (work)", "Example (copy)"]);
+    let got = {
+        let screen = f.answer(allow_all);
+        let got = f.get(&[12, 2], "https://example.com/").unwrap();
+        screen.join().unwrap();
+        got
+    };
+    assert_eq!(titles(&got), ["Example (copy)", "Example (work)"]);
+}
+
+#[test]
+fn f274_2_int02_17_never_ask_still_asks_for_http_sign_in() {
+    let f = Fixture::new();
+    f.options(|o| o.never_ask = true);
+    let screen = f.answer(allow_all);
+    let got = f.k1(
+        "logins.get",
+        &format!(
+            r#"{},"url":"http://192.168.1.1/","top_url":"http://192.168.1.1/","http_auth":true"#,
+            f.ids(&[5])
+        ),
+    );
+    assert!(got.is_ok());
+    let Question::Access(q) = screen.join().unwrap() else {
+        panic!()
+    };
+    assert_eq!(q.rows.len(), 1);
+    assert_eq!(q.remember, None);
+}
+
+#[test]
+fn f274_3_int02_21_22_an_expired_entry_is_never_an_outside_fill() {
+    let f = Fixture::new();
+    let watchdog = Watchdog::new(&f);
+    assert_eq!(f.get(&[4], "https://shop.example.org/"), Err(15));
+    assert!(!watchdog.fired(), "a prompt showed for the expired entry");
+    assert_eq!(f.shows.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn f276_int01_30_a_page_request_without_top_url_gets_14() {
+    let f = Fixture::new();
+    set_site(&f, 1, r#"{"Allow":["mail.example.com"],"Deny":[]}"#);
+    let page = r#""url":"https://mail.example.com/login""#;
+    assert_eq!(f.k1("logins.find", page), Err(14));
+    assert_eq!(
+        f.k1("logins.get", &format!("{},{page}", f.ids(&[1]))),
+        Err(14)
+    );
+    let vid = f.vid(0);
+    assert_eq!(
+        f.k1(
+            "code.get",
+            &format!(r#""vault":"{vid}","id":"{}",{page}"#, entry_id(id(1)))
+        ),
+        Err(14)
+    );
+    assert_eq!(f.shows.load(Ordering::SeqCst), 0);
+    // With it, the same requests are answered.
+    let both =
+        r#""url":"https://mail.example.com/login","top_url":"https://mail.example.com/login""#;
+    assert!(
+        f.k1("logins.get", &format!("{},{both}", f.ids(&[1])))
+            .is_ok()
+    );
+}
+
+/// Eight distinct patterns over `text`, each replacing `q` with `r`: every
+/// resolution of it compiles eight patterns, about 17.5 of COPY_BUDGET's 100
+/// million meter units (refs.rs COMPILE_UNITS; measured), while each
+/// compile is cheap in time.
+fn costly(lead: &str, text: &str) -> String {
+    let mut out = lead.to_owned();
+    for n in 0..8 {
+        out.push_str(&format!("{{T-REPLACE-RX:/{text}/q|{n}/r/}}"));
+    }
+    out
+}
+
+#[test]
+fn f277_ld326_1_one_work_meter_bounds_the_whole_logins_get() {
+    // E2 asks. Its additional URL (always resolved, INT-03.2) costs about
+    // 17.5 at each of the two looks before the prompt (35), its title and
+    // user name 17.5 each for the prompt's row (70) and again for the reply
+    // (87.5, then 105): in one meter of 100 the reply's user name and
+    // password run out; with a meter per step (picks 35, rows 35, reply
+    // 52.5) none would, nor with any one step on a meter of its own.
+    let f = Fixture::new();
+    f.e(2, |e| {
+        set(e, "KP2A_URL", &costly("https://example.com/", ""));
+        set(e, "Title", &costly("T", "q"));
+        set(e, "UserName", &costly("U", "q"));
+        set(e, "Password", &costly("P", "q"));
+    });
+    let screen = f.answer(allow_all);
+    let got = f.get(&[2], "https://example.com/").unwrap();
+    screen.join().unwrap();
+    assert_eq!(s(&got[0], "title"), "Trrrrrrrr");
+    assert_ne!(s(&got[0], "username"), "Urrrrrrrr");
+    assert_ne!(s(&got[0], "password"), "Prrrrrrrr");
+}
+
+#[test]
+fn f279_2_int02_19_a_frame_of_the_same_site_on_another_host_is_not_another_site() {
+    let f = Fixture::new();
+    f.v(|v| {
+        v.root.groups[0]
+            .entries
+            .push(entry(12, "Login", "l", "x12", "https://login.example.com"));
+    });
+    let screen = f.answer(allow_all);
+    let got = f.k1(
+        "logins.get",
+        &format!(
+            r#"{},"url":"https://login.example.com/","top_url":"https://www.example.com/""#,
+            f.ids(&[12])
+        ),
+    );
+    assert!(got.is_ok());
+    let Question::Access(q) = screen.join().unwrap() else {
+        panic!()
+    };
+    assert_eq!(q.line, None);
+    assert_eq!(
+        q.remember.as_deref(),
+        Some("Remember for login.example.com")
+    );
+}
+
+#[test]
+fn f279_3_int02_2_a_name_of_64_characters_is_valid() {
+    let n64 = "é".repeat(64);
+    assert_eq!(valid_name(&n64), Some(n64.as_str()));
+    assert_eq!(valid_name(&"é".repeat(65)), None);
 }
