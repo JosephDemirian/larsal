@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title></title>
+<link rel="stylesheet" href="popup.css">
+<script type="module" src="popup.js"></script>
+</head>
+<!-- The toolbar popup (INT-11.23; story E7-S7d): Option A's frames extension-popup-app-not-reachable,
+     -first-connection and -vault-locked, and the no-vault line (D-INT11-2). It holds no words: popup.js
+     sets each element's text from the message its data-msg names (INT-11.22), with textContent only. -->
+<body>
+<div class="xp" role="dialog" data-label="MI11_101_a">
+
+<div class="xcenter" data-frame="not-reachable" hidden>
+  <span class="tile lg gray"><i class="ph-fill ph-plugs-connected" aria-hidden="true"></i></span>
+  <h3 data-msg="MI11_01"></h3>
+  <p id="reach-text"></p>
+  <div class="xchecks" id="checks">
+    <div><i class="ph-fill mark" id="mark-0" aria-hidden="true"></i><span class="check"><span data-msg="MI11_03"></span><br><small id="hint-0"></small></span></div>
+    <div><i class="ph-fill mark" id="mark-1" aria-hidden="true"></i><span class="check"><span data-msg="MI11_05"></span><br><small data-msg="MI11_06"></small></span></div>
+    <div><i class="ph-fill mark" id="mark-2" aria-hidden="true"></i><span class="check"><span id="check-2"></span><br><small data-msg="MI11_08"></small></span></div>
+  </div>
+  <div class="pair" id="reach-buttons">
+    <button class="btn lg" id="try" data-msg="MI11_09"></button>
+    <button class="btn lg primary open" data-msg="MI11_10"></button>
+  </div>
+</div>
+
+<div class="xcenter" data-frame="first-connection" hidden>
+  <span class="tile lg teal"><i class="ph-fill ph-plugs-connected" aria-hidden="true"></i></span>
+  <h3 id="connect-title"></h3>
+  <p data-msg="MI11_12"></p>
+  <div class="words" id="words"><span></span><span></span><span></span><span></span></div>
+  <div class="help waiting" id="waiting"><i class="ph ph-hourglass" aria-hidden="true"></i> <span data-msg="MI11_13"></span></div>
+  <div class="refused" id="refused" hidden>
+    <p class="help bad line" data-msg="MI11_61"></p>
+    <button class="btn lg primary wide" id="again" data-msg="MI11_09"></button>
+  </div>
+  <button class="btn lg wide" id="cancel" data-msg="MI11_14"></button>
+</div>
+
+<div class="xcenter" data-frame="locked" hidden>
+  <span class="tile xl teal"><i class="ph-fill ph-keyhole" aria-hidden="true"></i></span>
+  <h3 id="locked-title"></h3>
+  <p data-msg="MI11_16"></p>
+  <button class="btn xl primary wide" id="unlock"><i class="ph ph-fingerprint" aria-hidden="true"></i><span data-msg="MI11_19"></span></button>
+  <p class="help bad line" id="unlock-refused" hidden></p>
+  <!-- MI11-20 is a line with no action until E7-S7f gives it one (D-INT11-3): not a control, no tab stop. -->
+  <div class="btn ghost others" id="others" hidden><span id="others-text"></span> <i class="ph ph-caret-down" aria-hidden="true"></i></div>
+</div>
+
+<div class="xcenter" data-frame="no-vault" hidden>
+  <p class="line" data-msg="MI11_64"></p>
+  <button class="btn lg primary wide open" data-msg="MI11_10"></button>
+</div>
+
+<div data-frame="ready" hidden></div>
+
+</div>
+</body>
+</html>

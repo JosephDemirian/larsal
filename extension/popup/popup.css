@@ -1,0 +1,109 @@
+/* The toolbar popup's look: Option A (design/option-a, locked by the owner 2026-10-27), the rules the
+   frames extension-popup-app-not-reachable, -first-connection and -vault-locked use, copied from
+   design/option-a/app.css with the same values. The light and dark tokens are app.css's `.win.light`
+   and `.win.dark`; the popup follows the browser's colour scheme. Fonts: IBM Plex (OFL) and Phosphor
+   2.1.2 (MIT), the files of design/option-a/vendor, with their licences in fonts/. */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: block; src: url("fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: block; src: url("fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: block; src: url("fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: block; src: url("fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Phosphor"; font-weight: normal; font-style: normal; font-display: block; src: url("fonts/Phosphor.woff2") format("woff2"); }
+@font-face { font-family: "Phosphor-Fill"; font-weight: normal; font-style: normal; font-display: block; src: url("fonts/Phosphor-Fill.woff2") format("woff2"); }
+
+:root {
+  --surface: #ffffff; --raised: #f5f7f7; --active: #e7eaeb; --hover: #f3f5f5;
+  --border: #e2e5e6; --rule: #edeff0; --control: #cdd0d3;
+  --text: #131416; --muted: #5d6062; --primary: #1d1f20; --on-primary: #ffffff; --primary-hover: #34373a;
+  --accent: #1b6c80; --positive: #1e7b4f; --negative: #c4242a;
+  --panel: var(--surface);
+  --teal: #22a6bd; --gray: #8e8e93;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #131315; --raised: #19191c; --active: #232327; --hover: #1a1a1d;
+    --border: #222226; --rule: #1c1c1f; --control: #3a3a40;
+    --text: #ededef; --muted: #9b9ba2; --primary: #ededef; --on-primary: #0b0b0d; --primary-hover: #ffffff;
+    --accent: #52b6c9; --positive: #3dd68c; --negative: #ff6b70;
+    --panel: #161618; /* app.css: .win.dark .xp */
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { width: 360px; background: var(--panel); color: var(--text); font: 400 14px/20px "IBM Plex Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; text-align: left; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 6px; }
+
+/* Phosphor (vendor/phosphor/regular.css and fill.css): the classes and the glyphs these frames use. */
+.ph, .ph-fill { speak: never; font-style: normal; font-weight: normal; font-variant: normal; text-transform: none;
+  letter-spacing: 0; font-feature-settings: "liga"; font-variant-ligatures: discretionary-ligatures;
+  -webkit-font-smoothing: antialiased; font-size: 16px; line-height: 1; }
+.ph { font-family: "Phosphor" !important; }
+.ph-fill { font-family: "Phosphor-Fill" !important; }
+.ph.ph-fingerprint:before { content: "\e23e"; }
+.ph.ph-caret-down:before { content: "\e136"; }
+.ph.ph-hourglass:before { content: "\e2b2"; }
+.ph-fill.ph-keyhole:before { content: "\ea78"; }
+.ph-fill.ph-plugs-connected:before { content: "\eb5a"; }
+.ph-fill.ph-check-circle:before { content: "\e184"; }
+.ph-fill.ph-x-circle:before { content: "\e4f8"; }
+.ph-fill.ph-circle-dashed:before { content: "\e602"; }
+
+/* app.css: .tile */
+.tile { flex: none; width: 22px; height: 22px; border-radius: 6px; background: var(--c); display: grid; place-items: center; color: #fff; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.08); }
+.tile .ph-fill, .tile .ph { font-size: 13px; }
+.tile.lg { width: 44px; height: 44px; border-radius: 11px; } .tile.lg .ph-fill { font-size: 24px; }
+.tile.xl { width: 64px; height: 64px; border-radius: 16px; } .tile.xl .ph-fill { font-size: 34px; }
+.tile.teal { --c: var(--teal); } .tile.gray { --c: var(--gray); }
+
+/* app.css: .btn */
+.btn { height: 32px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; border: 1px solid var(--control); background: var(--surface); font-weight: 500; white-space: nowrap; transition: background-color .15s, border-color .15s; }
+.btn:hover { background: var(--hover); }
+.btn:active { background: var(--active); }
+.btn.lg { height: 36px; padding: 0 14px; }
+.btn.xl { height: 44px; padding: 0 18px; font-size: 15px; border-radius: 10px; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.ghost { border-color: transparent; background: none; color: var(--muted); }
+.btn.ghost:hover { background: var(--hover); color: var(--text); }
+.btn.wide { width: 100%; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+
+/* app.css: .help */
+.help { font-size: 12px; line-height: 16px; color: var(--muted); margin-top: 6px; }
+.help.bad { color: var(--negative); }
+
+/* app.css: .xp (the popup's panel: the browser draws its edge and shadow), .xcenter, .xchecks, .words */
+.xp { display: flex; flex-direction: column; overflow: hidden; }
+.xcenter { padding: 28px 24px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0; }
+.xcenter h3 { margin: 16px 0 6px; font-size: 16px; font-weight: 600; }
+.xcenter p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 18px; }
+.xchecks { width: 100%; text-align: left; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+.xchecks div { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; font-size: 13px; line-height: 18px; }
+.xchecks div + div { border-top: 1px solid var(--rule); }
+.xchecks .ph-fill { font-size: 16px; margin-top: 1px; }
+.words { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+.words span { font-family: var(--mono); font-size: 14px; padding: 6px 10px; border-radius: 8px; background: var(--raised); }
+
+/* The mockup's inline styles of these frames, as classes (mockup.js EXT.offline, .pairing, .locked). */
+.xchecks .check { flex: 1; }
+.xchecks small { color: var(--muted); }
+.mark.done { color: var(--positive); } .mark.done:before { content: "\e184"; }
+.mark.failed { color: var(--negative); } .mark.failed:before { content: "\e4f8"; }
+.mark.unknown { color: var(--muted); } .mark.unknown:before { content: "\e602"; }
+.pair { display: flex; gap: 8px; width: 100%; }
+.pair .btn { flex: 1; }
+.help.waiting { margin: 0 0 16px; }
+.btn.others { margin-top: 8px; pointer-events: none; } /* a line with no action (D-INT11-3): no hover */
+
+/* States Option A does not draw (D-INT11-2): a failed request's words in one line under the frame's
+   text (INT-11.33), and the popup's line with no vault open. */
+.xcenter p.line { margin: 0 0 12px; }
+.xcenter p.help.bad { color: var(--negative); font-size: 12px; line-height: 16px; }
+.refused { width: 100%; margin-bottom: 8px; }
+#unlock-refused { margin: 8px 0 0; }

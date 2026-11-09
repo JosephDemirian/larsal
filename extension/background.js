@@ -2,25 +2,29 @@
 // port to larsal-bridge (INT-11.8), the WebCrypto channel (INT-11.7), requests
 // matched to their replies by `req` and nonce (INT-11.10), Larsal's notices
 // (INT-01.46), and the routing table with its sender checks (INT-11.11,
-// INT-11.12). Later stories each add one module and its row in ROUTES.
+// INT-11.12). Later stories each add one module and its row in ROUTES; E7-S7d
+// adds the popup's first routes (status, connect, cancel, unlock) and the
+// pairing words (words.js).
 //
 // What it holds (INT-11 "Parts"): the port; the session (its non-extractable
 // keys, `sid` and requests in flight) until it ends (the port closes, a new
-// hello, plain error 3, 4, 41, 44 or 45); the one `connect` in flight; the
-// "page" ports of the open popup and options page (INT-11.8's pace). It keeps
-// no reply: each need asks Larsal again. storage.local holds only
-// `last_app_version`; the identification key lives in IndexedDB (idkey.js).
+// hello, plain error 3, 4, 41, 44 or 45); the one `connect` and the one `unlock` in flight; the
+// "page" ports of the open popup and options page (INT-11.8's pace); whether
+// Larsal denied the last `connect` (INT-11.25). It keeps no reply: each need
+// asks Larsal again. storage.local holds only `last_app_version`; the
+// identification key lives in IndexedDB (idkey.js).
 
 import * as channel from './channel.js';
 import { identification } from './idkey.js';
 import { classify } from './routes.js';
 import { Requests, decode, encode, same } from './wire.js';
+import { PAIRING, pairingWords } from './words.js';
 
 globalThis.browser ??= chrome;
 
 const HOST = 'app.larsal.browser';
 const BROWSER = 'Chrome';
-/** INT-11.10: the wait for a reply to a request that does not wait for the user. */
+/** INT-11.10: the wait for a reply to a request that does not wait for the user, and for a hello's answer. */
 const WAIT = 60_000;
 /** INT-11.8: a reconnected port that closes this soon is not tried again until the next need. */
 const QUICK = 1_000;
@@ -32,6 +36,11 @@ let reach = 'unknown'; // "ok", 44 (not running), 45 (integration off), "not-rea
 let session = null;
 let pairing = null; // the one `connect` in flight (INT-11.25)
 let redo = false; // from a plain error 3 or 41 until the new hello's `check` ends (again)
+let fours = false; // from a plain error 4 until the state read of its new hello ends (INT-11.10)
+let refused = false; // Larsal denied the last `connect` (error 6), until the next one (INT-11.25)
+let unlocking = null; // the one `unlock` in flight (INT-11.26)
+let reached = false; // the last state read found Larsal reachable (the pages are told when it changes)
+let list = null; // words.txt's lines, read once (INT-11.39)
 const pages = new Set(); // the "page" ports of the open popup and options page (INT-11.8)
 let pace = null; // the 1-second timer while a page is open
 let pacing = null; // the state read of the last tick, while it runs
@@ -90,7 +99,11 @@ function take(mine, message) {
       if (n !== 4) mine.answer.reject(fail((reach = n === 44 || n === 45 ? n : 'not-reachable')));
     } else if (n === 4) {
       end('not-reachable'); // INT-11.10: a new hello, no retry
-      state();
+      if (fours) return; // a second plain 4 in a row: not reachable, no hello until the next need (INT-11.8)
+      fours = true;
+      state().finally(() => {
+        fours = false;
+      });
     } else if (n === 44 || n === 45) {
       end((reach = n)); // the port stays open; the next need says hello (INT-11.8)
     }
@@ -113,10 +126,14 @@ async function hello(mine, once) {
   const c = await channel.keyPair();
   const C = await channel.publicBytes(c.publicKey);
   if (link !== mine) throw fail(reach);
+  let timer;
   const reply = await new Promise((resolve, reject) => {
     mine.answer = { resolve, reject };
+    // A hello that gets no answer ends after INT-11.10's wait: Larsal is not reachable (LD-520 (1)).
+    timer = setTimeout(() => reject(fail((reach = 'not-reachable'))), WAIT);
     mine.port.postMessage({ type: 'hello', versions: [1], key: encode(C), browser: BROWSER });
   }).finally(() => {
+    clearTimeout(timer);
     mine.answer = null;
   });
   const A = decode(reply.key, 32);
@@ -257,22 +274,74 @@ async function unbox(message) {
  * each ask. No reply is kept.
  */
 async function state() {
+  let got;
   try {
     const s = await ready();
     const check = await request('check', {}, { prove: true });
     const status = await request('status');
-    return { reach, app: s.app, check, status, connecting: pairing !== null };
+    got = { reach, app: s.app, check, status, connecting: pairing !== null, refused };
+    // INT-11.25, INT-11.39: the first connection shows the words of the session its `connect` goes on.
+    if (check.error === 8 && s === session) got.words = await words(s);
   } catch (e) {
-    return { reach: e.reach ?? 'not-reachable' };
+    got = { reach: e.reach ?? 'not-reachable' };
   }
+  // INT-11.8, INT-11.10: when a state read finds Larsal reachable where the last one did not, or the other way
+  // round, the open pages read the state again (after a plain 4 too, whose new hello no page asked for).
+  if (got.reach !== 'ended' && (got.reach === 'ok') !== reached) {
+    reached = got.reach === 'ok';
+    tell();
+  }
+  return got;
 }
 
-/** `connect` (INT-11.25): at most one waits for Larsal's dialog. */
+/** INT-11.39: the four pairing words of session `s` and the identification key, as Larsal shows them. */
+async function words(s) {
+  list ??= fetch(browser.runtime.getURL('words.txt'))
+    .then((r) => r.text())
+    .then((t) => t.split('\n').slice(0, -1));
+  const I = await channel.publicBytes((await identification()).publicKey);
+  const input = new Uint8Array([...text.encode(PAIRING), ...s.A, ...s.C, ...I]);
+  return pairingWords(new Uint8Array(await crypto.subtle.digest('SHA-256', input)), await list);
+}
+
+/**
+ * `connect` (INT-11.25): at most one waits for Larsal's dialog. Larsal's Deny (error 6) is kept until
+ * the next `connect`, so the next popup shows MI11-61 with Try Again in place of a new dialog.
+ */
 function pair() {
-  pairing ??= request('connect', {}, { prove: true, waits: true }).finally(() => {
-    pairing = null;
-  });
+  refused = false;
+  pairing ??= request('connect', {}, { prove: true, waits: true })
+    .then((reply) => {
+      refused = reply.error === 6;
+      return reply;
+    })
+    .finally(() => {
+      pairing = null;
+    });
   return pairing;
+}
+
+/**
+ * The popup's Cancel on the first connection (INT-11.25, port route): the session ends first, so
+ * every caller still waiting under it (the `connect` too) is told `ended` at once; then a new hello
+ * on the same port replaces the session in Larsal, which closes its Connect dialog as Deny
+ * (INT-01.20, LD-520 (5)).
+ */
+async function cancel() {
+  if (session) end('ended');
+  await ready();
+  return {};
+}
+
+/**
+ * `unlock` (INT-11.26, B8): no field at all; Larsal shows its own unlock panel, or answers error 1. At most one
+ * waits, as for `connect`: a second Unlock while one waits sends nothing and gets the same reply.
+ */
+function unlock() {
+  unlocking ??= request('unlock', {}, { waits: true }).finally(() => {
+    unlocking = null;
+  });
+  return unlocking;
 }
 
 /**
@@ -296,6 +365,8 @@ const ROUTES = new Map([
   ['popup.status', [['P'], state]],
   ['options.status', [['P'], state]],
   ['popup.connect', [['P'], pair]],
+  ['popup.cancel', [['P'], cancel]],
+  ['popup.unlock', [['P'], unlock]],
   ['fields.found', [['C'], fieldsFound]],
 ]);
 
@@ -310,18 +381,16 @@ browser.runtime.onMessage.addListener((message, sender, reply) => {
 /**
  * INT-11.8: while Larsal answers 44 or 45, a new hello every second as long as a
  * popup or the options page is open, so Larsal started later is reached without
- * a reload; once reached, the pages read the state again.
+ * a reload; once reached, the pages read the state again (state() tells them).
  */
 function tick() {
   if (!pages.size) {
     clearInterval(pace);
     pace = null;
   } else if ((reach === 44 || reach === 45) && !session) {
-    pacing ??= state()
-      .then((got) => got.reach === 'ok' && tell())
-      .finally(() => {
-        pacing = null;
-      });
+    pacing ??= state().finally(() => {
+      pacing = null;
+    });
   }
 }
 

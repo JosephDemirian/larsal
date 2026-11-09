@@ -1,4 +1,52 @@
 {
+  "MI11_01": { "message": "Larsal is not reachable" },
+  "MI11_02": { "message": "The extension talks only to the Larsal on this Mac. Check these, then try again." },
+  "MI11_03": { "message": "Larsal is installed" },
+  "MI11_04": {
+    "message": "Version $VERSION$ in Applications",
+    "placeholders": { "version": { "content": "$1" } }
+  },
+  "MI11_04_b": {
+    "message": "Install Larsal, or turn on $BROWSER$ in Larsal › Settings › Browser Integration",
+    "placeholders": { "browser": { "content": "$1" } }
+  },
+  "MI11_05": { "message": "Larsal is running" },
+  "MI11_06": { "message": "Open Larsal, then click Try Again" },
+  "MI11_07": {
+    "message": "Browser Integration is on for $BROWSER$",
+    "placeholders": { "browser": { "content": "$1" } }
+  },
+  "MI11_08": { "message": "Settings › Browser Integration" },
+  "MI11_09": { "message": "Try Again" },
+  "MI11_10": { "message": "Open Larsal" },
+  "MI11_11": {
+    "message": "Connect $BROWSER$ to Larsal",
+    "placeholders": { "browser": { "content": "$1" } }
+  },
+  "MI11_12": { "message": "Switch to Larsal and allow the connection. Check that Larsal shows the same four words." },
+  "MI11_13": { "message": "Waiting for Larsal…" },
+  "MI11_14": { "message": "Cancel" },
+  "MI11_15": {
+    "message": "$VAULT$ is locked",
+    "placeholders": { "vault": { "content": "$1" } }
+  },
+  "MI11_16": { "message": "Unlock it in Larsal. You confirm with Touch ID in Larsal, so your vault password never goes through the browser." },
+  "MI11_19": { "message": "Unlock in Larsal" },
+  "MI11_20": {
+    "message": "Other vaults: $NAMES$",
+    "placeholders": { "names": { "content": "$1" } }
+  },
+  "MI11_60": {
+    "message": "This browser is too old for Larsal. Update $BROWSER$ to version $VERSION$ or later.",
+    "placeholders": { "browser": { "content": "$1" }, "version": { "content": "$2" } }
+  },
+  "MI11_61": { "message": "Larsal did not allow this connection." },
+  "MI11_64": { "message": "No vault is open in Larsal." },
+  "MI11_103": {
+    "message": "Larsal does not open its unlock panel for browsers. Unlock $VAULT$ in Larsal.",
+    "placeholders": { "vault": { "content": "$1" } }
+  },
+  "MI11_101_a": { "message": "Larsal" },
   "MI11_98_l": { "message": "Open the Larsal popup" },
   "MI11_98_m": { "message": "Fill the best match" },
   "MI11_98_n": { "message": "Generate a password" }

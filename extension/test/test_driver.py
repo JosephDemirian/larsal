@@ -549,5 +549,40 @@ class DemoServerTests(unittest.TestCase):
         self.assertEqual(get("site-a.test", "/../site-b.test/frame.html"), 404)
 
 
+class WorkerReady(unittest.TestCase):
+    """F-476, LD-520 (4): Chrome.worker returns only once the worker answers a trivial evaluate."""
+
+    class Fake:
+        def __init__(self, answers):
+            self.answers, self.calls = list(answers), []
+
+        def eval(self, expression, timeout=30):
+            self.calls.append((expression, timeout))
+            answer = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]  # the last one stays
+            if isinstance(answer, Exception):
+                time.sleep(min(timeout, 0.05))  # no answer: Chrome's reply wait ran out
+                raise answer
+            return answer
+
+    def test_worker_waits_for_a_trivial_evaluate_before_the_first_real_one(self):
+        chrome = driver.Chrome.__new__(driver.Chrome)
+        fake = self.Fake([driver.DriverError("Runtime.evaluate: no answer from Chrome"), 1])
+        targets = {"targetInfos": [{"type": "service_worker", "url": "chrome-extension://%s/background.js" % ("a" * 32),
+                                    "targetId": "T"}]}
+        with mock.patch.object(chrome, "send", lambda *a, **k: targets, create=True), \
+                mock.patch.object(chrome, "attach", lambda target: fake, create=True):
+            self.assertIs(chrome.worker("a" * 32), fake)
+        self.assertEqual([c[0] for c in fake.calls], ["1", "1"])  # the first try got no answer; the second did
+        self.assertTrue(all(c[1] <= 5 for c in fake.calls))
+
+    def test_a_worker_that_never_answers_fails_within_its_bound(self):
+        start = time.monotonic()
+        fake = self.Fake([driver.DriverError("no answer")])
+        with self.assertRaisesRegex(driver.DriverError, "never answered a trivial evaluate"):
+            driver.Chrome.answering(fake, ready=0.3, each=0.1)
+        self.assertLess(time.monotonic() - start, 2)
+        self.assertGreater(len(fake.calls), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

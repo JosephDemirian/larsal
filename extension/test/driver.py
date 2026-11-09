@@ -480,16 +480,30 @@ class Chrome:
         return Session(self, self.send("Target.attachToTarget", {"targetId": target, "flatten": True})["sessionId"],
                        target)
 
-    def worker(self, extension_id, timeout=10):
-        """Attaches to the extension's service worker."""
+    def worker(self, extension_id, timeout=10, ready=30):
+        """Attaches to the extension's service worker, and returns once it answers a trivial evaluate
+        (each try waits at most 5 s, all of them `ready` s): a worker that is still starting may leave
+        the first Runtime.evaluate without an answer (F-476), so no real one is ever the first."""
         prefix = "chrome-extension://%s/" % extension_id
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             for info in self.send("Target.getTargets")["targetInfos"]:
                 if info["type"] == "service_worker" and info["url"].startswith(prefix):
-                    return self.attach(info["targetId"])
+                    return self.answering(self.attach(info["targetId"]), ready)
             time.sleep(0.1)
         raise DriverError("no service worker for " + extension_id)
+
+    @staticmethod
+    def answering(session, ready=30, each=5):
+        """`session` once `1` evaluates to 1 in it; DriverError when no try answers within `ready` s."""
+        deadline, last = time.monotonic() + ready, None
+        while time.monotonic() < deadline:
+            try:
+                if session.eval("1", timeout=min(each, max(0.1, deadline - time.monotonic()))) == 1:
+                    return session
+            except DriverError as e:
+                last = e
+        raise DriverError("the service worker never answered a trivial evaluate: %s" % last)
 
     def pids(self):
         """Chrome's PID, every process under it, and every process whose command line names this

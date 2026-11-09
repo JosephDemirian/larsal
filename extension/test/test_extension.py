@@ -1,4 +1,4 @@
-"""Tests of the extension core, Chrome build (story E7-S7c; INT-11, INT-01).
+"""Tests of the extension core, Chrome build (stories E7-S7c, E7-S7d; INT-11, INT-01).
 
 Run, after building Larsal's two test programs (`larsal-bridge`, and the test
 Larsal of crates/larsal-browser/examples/test_larsal.rs):
@@ -17,6 +17,8 @@ rules 5, 7, 10, 11).
 """
 
 import base64
+import hashlib
+import html.parser
 import json
 import os
 import re
@@ -42,6 +44,8 @@ TARGET = os.environ.get("CARGO_TARGET_DIR") or os.path.join(os.path.dirname(EXTE
 BRIDGE = os.path.join(TARGET, "debug", "larsal-bridge")
 LARSAL = os.path.join(TARGET, "debug", "examples", "test_larsal")
 JSC = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+CARD = os.path.join(os.path.dirname(EXTENSION), "spec", "integrations", "INT-11-browser-extension.md")
+BINARY = (".woff2",)  # the fonts: no text to search
 
 # INT-11.1 and its test T01: what no file of a package may hold.
 BANNED = (
@@ -146,7 +150,8 @@ AS_CONTENT_PORT = """(async () => {
   return results.map((r) => r.result);
 })()"""
 # A host that answers each hello with an all-zero key (INT-11.7 step 3, T13), or with "version-2" a usable key
-# (X25519's base point) and version 2 (INT-01.20); it logs each message's type and browser.
+# (X25519's base point) and version 2 (INT-01.20), or with "silent" never; it logs each message's type and
+# browser, and each hello's key in the log's ".keys" file.
 ZERO_HOST = """import base64, json, struct, sys
 stdin, stdout = sys.stdin.buffer, sys.stdout.buffer
 while True:
@@ -156,6 +161,11 @@ while True:
     message = json.loads(stdin.read(struct.unpack("=I", head)[0]))
     with open(sys.argv[1], "a") as log:
         log.write("%s %s\\n" % (message.get("type"), message.get("browser")))
+    if message.get("type") == "hello":
+        with open(sys.argv[1] + ".keys", "a") as log:
+            log.write("%s\\n" % message.get("key"))
+    if sys.argv[2:] == ["silent"]:
+        continue
     answer = {"type": "error", "error": 44}
     if message.get("type") == "hello":
         answer = {"type": "hello", "version": 1, "sid": "zero", "app": "0.1.0",
@@ -170,8 +180,8 @@ while True:
 # frame both ways and logs "<type> <step>" for each frame from Chrome. For each box it takes the next
 # step of the plan file (a JSON list; "pass" when empty): "pass"; "drop" (never answered); "hold" (answered with
 # plain 4 when Chrome's next hello comes, before that hello goes on: "hello after-4"); "other-sid" (Larsal's next
-# box comes back under another sid); or a number, a plain error answered in Larsal's place (the box never
-# reaches it).
+# box comes back under another sid); a number, a plain error answered in Larsal's place (the box never
+# reaches it); or ["late", seconds, "pass" or a number], the same after that many seconds ("late-pass", "late-41").
 PROXY = """import json, os, struct, subprocess, sys, threading
 plan, log, pids, program = sys.argv[1:5]
 child = subprocess.Popen([program] + sys.argv[5:], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -220,6 +230,9 @@ while True:
         break
     kind = json.loads(data).get("type")
     what = step() if kind == "box" else "pass"
+    late = what if isinstance(what, list) else None
+    if late:
+        what = "late-%s" % late[2]
     if kind == "hello" and held:
         held.pop()
         what = "after-4"
@@ -229,6 +242,10 @@ while True:
     if what == "hold":
         held.append(1)
     if what in ("drop", "hold"):
+        continue
+    if late:
+        threading.Timer(late[1], lambda d=data, then=late[2]: write(child.stdin, d) if then == "pass" else
+                        write(sys.stdout.buffer, json.dumps({"type": "error", "error": then}).encode())).start()
         continue
     if isinstance(what, int):
         write(sys.stdout.buffer, json.dumps({"type": "error", "error": what}).encode())
@@ -307,6 +324,44 @@ def banned(name, text, allowed=()):
     return found + ["%s: %s" % (name, u) for u in URL.findall(text) if u not in allowed]
 
 
+class _Text(html.parser.HTMLParser):
+    """Every text of a page's body that is not white space, with the element it sits in."""
+
+    def __init__(self):
+        super().__init__()
+        self.found, self.tags = [], []
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in ("br", "meta", "link", "i", "input"):
+            self.tags.append(tag)
+
+    def handle_endtag(self, tag):
+        if self.tags and self.tags[-1] == tag:
+            self.tags.pop()
+
+    def handle_data(self, data):
+        if data.strip() and "body" in self.tags:
+            self.found.append((self.tags[-1], data.strip()))
+
+
+def popup_text(path):
+    """The words written into a page's markup (none may be: INT-11.22)."""
+    parser = _Text()
+    with open(path, encoding="utf-8") as f:
+        parser.feed(f.read())
+    return parser.found
+
+
+# Every way to put text or markup into a page other than textContent, aria-label and the title (INT-11.1).
+WRITERS = (r"\binnerText\b", r"\bouterText\b", r"createTextNode", r"\.(?:append|prepend|after|before|replaceChildren|"
+           r"replaceWith)\(", r"insertAdjacent", r"nodeValue", r"createContextualFragment", r"setHTML",
+           r"setAttribute\((?!'aria-label')", r"\.textContent \+=")
+
+
+def writers(code):
+    return [p for p in WRITERS if re.search(p, code)]
+
+
 def package(folder, dev=False):
     return build.build("chrome", os.path.join(folder, "chrome"), dev)
 
@@ -382,14 +437,28 @@ class PackageChecks(unittest.TestCase):
     def test_a_package_holds_only_the_files_it_uses(self):
         out = package(self.folder)
         files = sorted(os.path.relpath(os.path.join(d, f), out) for d, _, fs in os.walk(out) for f in fs)
-        used, todo = set(), ["background.js"]  # the service worker and every module it imports
+        # The service worker and the popup, and every file they load: modules they import, the popup's
+        # script and stylesheet, the stylesheet's fonts; words.txt, which the background reads (INT-11.39).
+        used, todo = set(), ["background.js", "popup/popup.html"]
         while todo:
             name = todo.pop()
             used.add(name)
+            if name.endswith(BINARY):
+                continue
             with open(os.path.join(EXTENSION, name)) as f:
-                todo += [m for m in re.findall(r"^import .* from '\./([\w.]+)';$", f.read(), re.M) if m not in used]
-        self.assertEqual(files, sorted(used | {"manifest.json", "_locales/en/messages.json"}))
-        for name in build.FILES:
+                text = f.read()
+            found = re.findall(r"^import .* from '(\.\.?/[\w./]+)';$", text, re.M)
+            found += re.findall(r'<(?:script|link)\b[^>]*\b(?:src|href)="([\w./]+)"', text)
+            found += re.findall(r'url\("([\w./-]+)"\)', text)
+            for ref in found:
+                ref = os.path.normpath(os.path.join(os.path.dirname(name), ref))
+                if ref not in used:
+                    todo.append(ref)
+        self.assertEqual(files, sorted(used | set(build.LICENCES) | {"manifest.json", "_locales/en/messages.json",
+                                                                    "words.txt"}))
+        with open(os.path.join(EXTENSION, "background.js")) as f:
+            self.assertIn("fetch(browser.runtime.getURL('words.txt'))", f.read())
+        for name in build.FILES + build.LICENCES:
             with open(os.path.join(out, name), "rb") as a, open(os.path.join(EXTENSION, name), "rb") as b:
                 self.assertEqual(a.read(), b.read(), name)  # copied as written: no bundler, no minifier
         with self.assertRaises(FileExistsError):
@@ -401,9 +470,14 @@ class PackageChecks(unittest.TestCase):
         found = []
         for d, _, fs in os.walk(out):
             for f in fs:
+                name = os.path.relpath(os.path.join(d, f), out)
+                if name.endswith(BINARY):
+                    continue
                 with open(os.path.join(d, f), encoding="utf-8") as text:
-                    found += banned(os.path.relpath(os.path.join(d, f), out), text.read(),
-                                    hosts if f == "manifest.json" else ())
+                    text = text.read()
+                if name in build.LICENCES:  # licence text, never loaded: its own address stays as written
+                    text = text.replace("http://scripts.sil.org/OFL", "")
+                found += banned(name, text, hosts if f == "manifest.json" else ())
         self.assertEqual(found, [])
         self.assertTrue(all("package.json" not in f and ".min." not in f for f in build.FILES))
 
@@ -428,13 +502,78 @@ class PackageChecks(unittest.TestCase):
             out = package(os.path.join(self.folder, "dev" if dev else "store"), dev)
             for d, _, fs in os.walk(out):
                 for f in fs:
-                    with open(os.path.join(d, f), encoding="utf-8") as text:
-                        self.assertNotIn(SEAM, text.read(), f)
+                    with open(os.path.join(d, f), "rb") as data:
+                        self.assertNotIn(SEAM.encode(), data.read(), f)
         for name, (file, old, new) in SEAMS.items():
             with open(os.path.join(EXTENSION, file)) as f:
                 self.assertEqual(f.read().count(old), 1, name)
             self.assertIn(SEAM, new, name)
         self.assertIn("const WAIT = 60_000;", SEAMS["short-wait"][1])  # the card's 60 s, in every built package
+
+    def test_words_txt_is_larsals_list_with_fea_03s_check_value(self):
+        # INT-11.39, T68: 7,776 lines, one word and one LF each, FEA-03's check value; first abacus, last zoom.
+        with open(os.path.join(package(self.folder), "words.txt"), "rb") as f:
+            data = f.read()
+        self.assertEqual(hashlib.sha256(data).hexdigest(), build.WORDS_SHA256)
+        lines = data.decode("ascii").split("\n")
+        self.assertEqual((len(lines), lines[0], lines[7775], lines[7776]), (7777, "abacus", "zoom", ""))
+        # A changed list fails the build.
+        changed = os.path.join(self.folder, "list.txt")
+        with open(build.WORD_LIST) as f, open(changed, "w") as g:
+            g.write(f.read().replace("\tzoom\n", "\tzoo\n"))
+        with mock.patch.object(build, "WORD_LIST", changed):
+            with self.assertRaises(SystemExit):
+                package(os.path.join(self.folder, "changed"))
+
+    def test_the_popup_takes_every_word_from_a_message_and_sets_it_with_text_content_only(self):
+        # INT-11.22, INT-11.1: popup.html holds no text, only elements naming a message (data-msg, data-label);
+        # popup.js writes text only with textContent, aria-label and the title; no other way into the page.
+        with open(os.path.join(EXTENSION, "_locales", "en", "messages.json")) as f:
+            messages = json.load(f)
+        self.assertEqual(popup_text(os.path.join(EXTENSION, "popup", "popup.html")), [])
+        with open(os.path.join(EXTENSION, "popup", "popup.html")) as f:
+            page = f.read()
+        named = re.findall(r'data-(?:msg|label)="(\w+)"', page)
+        # INT-11.1: no inline script and no event attribute (the default CSP would refuse both anyway).
+        self.assertEqual(re.findall(r"<script(?![^>]*\bsrc=)[^>]*>", page), [])
+        self.assertEqual(re.findall(r"\son\w+=", page), [])
+        self.assertEqual(re.findall(r"<script[^>]*>", page), ['<script type="module" src="popup.js">'])
+        self.assertTrue(named)
+        self.assertEqual(sorted(set(named) - set(messages)), [])
+        with open(os.path.join(EXTENSION, "popup", "popup.js")) as f:
+            code = f.read()
+        self.assertEqual(writers(code), [])
+        said = set(re.findall(r"say\('(\w+)'", code))
+        self.assertEqual(sorted(said - set(messages)), [])
+        self.assertEqual(len(re.findall(r"\.textContent = ", code)), 9)  # each place a text is set
+        for text in ("el.innerText = x", "el.outerText = x", "document.createTextNode(x)", "el.append(x)",
+                     "el.insertAdjacentText('a', x)", "node.nodeValue = x", "el.prepend(x)", "el.after(x)",
+                     "el.before(x)", "el.replaceChildren(x)", "el.replaceWith(x)", "range.createContextualFragment(x)",
+                     "el.setHTMLUnsafe(x)", "el.setAttribute('title', x)", "el.textContent += x"):
+            self.assertNotEqual(writers(text), [], text)  # the search sees each other way in
+
+    def test_each_message_is_int_11s_text_under_its_id(self):
+        # INT-11.22: a message's name is its MI11 id with "_" for "-" and the space; its text is the card's,
+        # with each placeholder a substitution ($NAME$ for the card's ‹name›).
+        with open(os.path.join(EXTENSION, "_locales", "en", "messages.json")) as f:
+            messages = json.load(f)
+        with open(CARD, encoding="utf-8") as f:
+            rows = {m.group(1): m.group(2) for m in re.finditer(r"^\| (MI11-\d+(?: [a-z])?) \| [^|]+\| [^|]+\| (.+) \|$",
+                                                               f.read(), re.M)}
+        for name, message in messages.items():
+            self.assertRegex(name, r"^MI11_\d+(?:_[a-z])?$")
+            card_id = re.sub(r"^MI11_(\d+)(?:_([a-z]))?$", lambda m: "MI11-" + m.group(1) + (" " + m.group(2) if m.group(2) else ""), name)
+            text = re.sub(r"\$(\w+)\$", lambda m: "‹%s›" % m.group(1).lower(), message["message"])
+            if card_id.startswith("MI11-98 "):  # no table row: the locked frame's labels (text under the table)
+                continue
+            if card_id in rows:
+                row = rows[card_id]
+            else:  # a "b" text lives in its row's parentheses
+                row = rows[card_id.split(" ")[0]]
+            self.assertIn(text, row, name)
+            for key, holder in message.get("placeholders", {}).items():
+                self.assertIn("$%s$" % key.upper(), message["message"], name)
+                self.assertRegex(holder["content"], r"^\$[1-9]$", name)
 
     def test_the_suite_run_ends_with_the_keychain_check(self):
         # LD-276, LD-278 (3): tearDownModule calls driver.check_keychain_log for the whole run.
@@ -722,8 +861,10 @@ class ChromeWithLarsal(unittest.TestCase):
         self.assertEqual(self.page.eval(OPTIONS_IN_A_FRAME), "none")
         time.sleep(1)
         self.assertEqual(self.larsal.since(mark), [])
-        # Routes of the popup and the options page are refused from a content script: no reply, nothing done.
-        for route in ("popup.connect", "popup.status", "options.status", "no.such.route"):
+        # Every route of the popup and the options page (P only, INT-11.12) is refused from a content script:
+        # no reply, nothing done.
+        for route in ("popup.status", "popup.connect", "popup.cancel", "popup.unlock", "options.status",
+                      "no.such.route"):
             mark = self.larsal.mark()
             body = json.dumps({"route": route, "url": self.page_url(), "origin": "chrome-extension://" + self.id})
             got = self.page.eval(AS_CONTENT % {"match": "https://site-a.test/*", "message": body})
@@ -828,6 +969,10 @@ class ChromeWithLarsal(unittest.TestCase):
         self.assertEqual(self.status(), {"reach": "not-reachable"})
         self.assertEqual(read(), "hello Chrome\n" * 4)  # the need's hello and its one more; never a box
         self.assertEqual(len(pid_log(self.zero_pids)), 1)  # the port stays open
+        with open(log + ".keys") as f:
+            keys = f.read().split()
+        self.assertEqual(len(keys), 4)
+        self.assertEqual(len(set(keys)), 4)  # INT-11.7 step 1: a new key pair C for each hello, never one again
 
     def test_12a_a_hello_reply_of_another_version_makes_no_session(self):
         # INT-01.20: the background speaks version 1 only; a hello reply with version 2 (and a usable key) is
@@ -957,6 +1102,85 @@ class ChromeWithLarsal(unittest.TestCase):
         self.assertEqual(self.requests_since(mark), ["check", "status"])
         self.assertEqual(self.status()["reach"], "ok")
 
+    def test_15d_a_second_plain_4_in_a_row_reports_not_reachable_with_no_further_hello(self):
+        # INT-11.10, LD-520 (2): plain 4 ends the session and a hello follows; when the new session's state read
+        # gets plain 4 too, Larsal is not reachable and no hello follows until the next need (INT-11.8, no loop).
+        self.plan(4, 4)
+        seen = len(self.proxy_log())
+        self.assertEqual(self.status(), {"reach": "not-reachable"})
+        time.sleep(1.5)
+        self.assertEqual(self.proxy_log()[seen:], ["box 4", "hello pass", "box 4"])
+        self.assertEqual(self.status()["reach"], "ok")  # the next need says hello
+        self.assertEqual(self.proxy_log()[seen + 3:], ["hello pass", "box pass", "box pass"])
+
+    def test_15e_a_request_sent_again_then_queued_is_sent_on_after_the_next_plain_41(self):
+        # INT-11.10: after a plain 41 each request's box is sent once more; one that is queued on the new session
+        # when the next 41 comes has not gone out there, so it goes on again and is not a second failure. Eight
+        # reads A (seven dropped, the eighth 41); while the new hello's check is late, eight reads B take the
+        # slots (six dropped, the seventh 41 late, the eighth dropped), so A waits in the queue at B's 41.
+        self.plan(*["drop"] * 7, 41, ["late", 2.5, "pass"], *["drop"] * 6, ["late", 3, 41], "drop")
+        seen = len(self.proxy_log())
+        reads = "Promise.all(Array.from({ length: 8 }, () => %s))" % STATUS
+        self.page.eval("window.a = %s; 1" % reads)
+        self.assertTrue(wait_for(lambda: "box late-pass" in self.proxy_log()[seen:], 5), self.proxy_log()[seen:])
+        self.page.eval("window.b = %s; 1" % reads)
+        got = self.page.eval("Promise.all([window.a, window.b])", timeout=SHORT_WAIT + 15)
+        self.assertEqual([[g["reach"] for g in half] for half in got], [["ok"] * 8, ["ok"] * 8])
+        self.assertEqual(self.proxy_log()[seen:seen + 19],
+                         ["box drop"] * 7 + ["box 41", "hello pass", "box late-pass"] + ["box drop"] * 6
+                         + ["box late-41", "box drop", "hello pass"])
+
+    def test_15f_a_connect_queued_at_a_plain_41_goes_to_the_new_session(self):
+        # INT-11.10, INT-11.25: only a waiting request whose box went out is told the session ended; a connect
+        # still queued past the 8 in flight (INT-01.44) goes to the new session, and Larsal shows its dialog once.
+        self.plan(*["drop"] * 7, ["late", 1.5, 41])
+        mark, seen = self.larsal.mark(), len(self.proxy_log())
+        self.page.eval("window.reads = Promise.all(Array.from({ length: 8 }, () => %s)); 1" % STATUS)
+        self.assertTrue(wait_for(lambda: "box late-41" in self.proxy_log()[seen:], 5), self.proxy_log()[seen:])
+        self.page.eval("window.pair = chrome.runtime.sendMessage({ route: 'popup.connect' }); 1")
+        self.assertEqual([g["reach"] for g in self.page.eval("window.reads", timeout=SHORT_WAIT + 15)], ["ok"] * 8)
+        question = self.larsal.wait(r"^question (\d+) connect ", mark)
+        self.larsal.say("deny %s" % question.group(1))
+        self.assertEqual(self.page.eval("window.pair", timeout=15).get("error"), 6)  # Larsal's own Deny
+        self.assertEqual(self.status()["refused"], True)  # INT-11.25: MI11-61 with Try Again
+        lines = self.larsal.since(mark)
+        self.assertEqual(len([line for line in lines if line.startswith("question ")]), 1, lines)
+        self.assertEqual(self.proxy_log()[seen:seen + 9], ["box drop"] * 7 + ["box late-41", "hello pass"])
+
+    def test_15g_a_failed_check_after_a_plain_41_tells_each_caller_why(self):
+        # INT-11.10, INT-11.24: when the new hello after a plain 41 gets 44 (Larsal quit), each request of the
+        # ended session is told 44, so the popup shows its marks, not only "not reachable".
+        self.stop_larsal()
+        self.plan(41)
+        seen = len(self.proxy_log())
+        self.assertEqual(self.status(), {"reach": 44})
+        self.assertEqual(self.proxy_log()[seen:], ["box 41", "hello pass"])
+        self.start_larsal()
+        self.assertEqual(self.status()["reach"], "ok")
+
+    def test_15h_cancel_ends_the_session_first_then_says_hello(self):
+        # INT-11.25, LD-520 (5): the popup's Cancel on the first connection ends the session, so the waiting
+        # connect's caller is told "ended" at once; a new hello then replaces the session in Larsal, which ends
+        # its Connect dialog. The next connect is a new dialog with new words (a new session).
+        mark, seen = self.larsal.mark(), len(self.proxy_log())
+        self.page.eval("window.pair = chrome.runtime.sendMessage({ route: 'popup.connect' }); 1")
+        first = self.larsal.wait(r"^question (\d+) connect (.+)$", mark)
+        self.assertEqual(self.status()["connecting"], True)
+        seen = len(self.proxy_log())
+        self.assertEqual(self.page.eval("chrome.runtime.sendMessage({ route: 'popup.cancel' })"), {})
+        self.assertEqual(self.page.eval("window.pair"), {"error": "ended"})
+        self.assertEqual(self.proxy_log()[seen:seen + 1], ["hello pass"])  # nothing under the old session first
+        got = self.status()
+        self.assertEqual((got["reach"], got["connecting"], got["check"]["error"]), ("ok", False, 8))
+        again = self.larsal.mark()
+        self.page.eval("window.pair = chrome.runtime.sendMessage({ route: 'popup.connect' }); 1")
+        second = self.larsal.wait(r"^question (\d+) connect (.+)$", again)
+        self.assertNotEqual(second.group(1), first.group(1))
+        self.assertNotEqual(second.group(2), first.group(2))
+        self.assertEqual(second.group(2).split()[-4:], got["words"])  # INT-11.39: the popup's words are Larsal's
+        self.larsal.say("deny %s" % second.group(1))
+        self.assertEqual(self.page.eval("window.pair", timeout=15).get("error"), 6)
+
     def test_16_a_request_with_no_reply_fails_as_not_reachable_after_the_wait(self):
         # INT-11.10, T21: a request that does not wait for the user fails as not reachable after 60 seconds
         # (SHORT_WAIT in the test package); the session lives on.
@@ -1007,6 +1231,24 @@ class ChromeWithLarsal(unittest.TestCase):
         got = self.page.eval(FIRST_KEY_WINS)
         self.assertNotEqual(got["made"], got["first"])
         self.assertEqual((got["returned"], got["stored"], got["restored"]), (got["first"], got["first"], True))
+
+
+    def test_21_a_hello_with_no_answer_ends_after_the_wait_as_not_reachable(self):
+        # INT-11.10, LD-520 (1): a host that reads the hello and never answers; the hello ends after the wait
+        # (SHORT_WAIT in the test package) and Larsal is not reachable; the port stays open, and the next need
+        # says hello on it.
+        log = os.path.join(self.folder, "silent-log")
+        self.setup_host(self.script("silent.sh", 'echo $$ >> "%s"\nexec "%s" -B -I "%s" "%s" silent\n'
+                                    % (self.zero_pids, sys.executable, driver.inside(self.home, "zero.py"), log)))
+        before = len(pid_log(self.zero_pids))
+        start = time.monotonic()
+        self.assertEqual(self.page.eval(STATUS, timeout=SHORT_WAIT + 15), {"reach": "not-reachable"})
+        self.assertGreaterEqual(time.monotonic() - start, SHORT_WAIT - 0.5)
+        self.assertLess(time.monotonic() - start, SHORT_WAIT + 5)
+        self.assertEqual(self.page.eval(STATUS, timeout=SHORT_WAIT + 15), {"reach": "not-reachable"})
+        with open(log) as f:
+            self.assertEqual(f.read(), "hello Chrome\n" * 2)
+        self.assertEqual(len(pid_log(self.zero_pids)), before + 1)  # one host, one port
 
 
 class ChromeWithoutX25519(unittest.TestCase):

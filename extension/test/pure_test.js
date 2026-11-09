@@ -1,6 +1,8 @@
 // The extension's pure modules under macOS's own JavaScript shell (INT-11.43;
-// story E7-S7c): wire.js (strict base64, the request table) and routes.js (the
-// sender classes). No browser and no outside package. Run:
+// stories E7-S7c, E7-S7d): wire.js (strict base64, the request table), routes.js
+// (the sender classes), words.js (the pairing words' step, T68) and
+// popup/state.js (the popup frame of INT-11.23, T51; INT-11.24's marks). No
+// browser and no outside package. Run:
 //
 //     /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc -m extension/test/pure_test.js
 //
@@ -9,6 +11,8 @@
 
 import { MAX_IN_FLIGHT, Requests, decode, encode, same } from '../wire.js';
 import { classify, webOrigin } from '../routes.js';
+import { PAIRING, WORDS, pairingWords } from '../words.js';
+import { choose, marks } from '../popup/state.js';
 
 const failed = [];
 function test(name, body) {
@@ -215,6 +219,67 @@ test('an in-page frame is ours under frames/, in a subframe of a tab', () => {
   eq(kind({ ...frame, frameId: undefined }), null);
   eq(kind({ ...frame, url: page('/frame/menu.html') }), null);
   eq(kind({ ...frame, url: page('/background.js') }), null);
+});
+
+// T68: the word step alone, over a stand-in list of 7,776 lines.
+const LIST = Array.from({ length: WORDS }, (_, i) => `W${i}`);
+const digest = (n) => {
+  const d = new Uint8Array(32).fill(0xee); // bytes 8 to 31 take no part
+  for (let i = 7; i >= 0; i--) {
+    d[i] = Number(n & 0xffn);
+    n >>= 8n;
+  }
+  return d;
+};
+
+test('the pairing words: N = 0 gives the first line, N = 7,775 the last, four times base 7,776', () => {
+  eq(PAIRING, 'browser-bridge pairing v1');
+  eq(pairingWords(digest(0n), LIST), ['w0', 'w0', 'w0', 'w0']);
+  eq(pairingWords(digest(7775n), LIST), ['w7775', 'w0', 'w0', 'w0']);
+  const n = 1n + 2n * 7776n + 3n * 7776n ** 2n + 4n * 7776n ** 3n + 5n * 7776n ** 4n; // a fifth digit is left out
+  eq(pairingWords(digest(n), LIST), ['w1', 'w2', 'w3', 'w4']);
+  eq(pairingWords(digest(2n ** 64n - 1n), LIST).length, 4); // the whole 64 bits, unsigned
+  eq(pairingWords(digest(2n ** 64n - 1n), LIST)[0], `w${Number((2n ** 64n - 1n) % 7776n)}`);
+});
+
+const vault = (name, state, shown = false) => ({ name, state, shown });
+const ok = (vaults, check = { vaults: [] }, more = {}) => ({ reach: 'ok', status: { vaults }, check, ...more });
+
+test("INT-11.24's marks: no host, 44 and 45", () => {
+  eq(marks('not-reachable'), ['failed', 'unknown', 'unknown']);
+  eq(marks(44), ['done', 'failed', 'unknown']);
+  eq(marks(45), ['done', 'done', 'failed']);
+  eq(marks(undefined), ['failed', 'unknown', 'unknown']);
+});
+
+test('INT-11.23: too old, then no port, 44 or 45, then a session that ended', () => {
+  eq(choose({ reach: 'too-old' }), { frame: 'not-reachable', tooOld: true });
+  eq(choose({ reach: 'not-reachable' }), { frame: 'not-reachable', marks: marks('not-reachable') });
+  eq(choose({ reach: 44 }), { frame: 'not-reachable', marks: marks(44) });
+  eq(choose({ reach: 45 }), { frame: 'not-reachable', marks: marks(45) });
+  eq(choose({ reach: 'ended' }), { frame: 'again' });
+  eq(choose(undefined).frame, 'not-reachable');
+  eq(choose({ error: 'not-reachable' }).frame, 'not-reachable');
+});
+
+test('INT-11.23: the locked row comes before the no-proof row; no vault comes before both', () => {
+  const locked = ok([vault('Personal', 'locked', true), vault('Work', 'locked'), vault('Family', 'unlocked')], { error: 8 });
+  eq(choose(locked), { frame: 'locked', vault: 'Personal', others: ['Work', 'Family'] });
+  eq(choose(ok([vault('Personal', 'locked', true)], { error: 1 })), { frame: 'locked', vault: 'Personal', others: [] });
+  eq(choose(ok([], { error: 8 })), { frame: 'no-vault' });
+  eq(choose({ reach: 'ok', check: { error: 8 } }), { frame: 'no-vault' });
+});
+
+test('INT-11.23: error 8 with the shown vault unlocked is the first connection, with its words', () => {
+  const words = ['harbor', 'quill', 'ember', 'forty-two'];
+  const first = ok([vault('Work', 'locked'), vault('Personal', 'unlocked', true)], { error: 8 }, { words });
+  eq(choose(first), { frame: 'first-connection', words, connecting: false, refused: false });
+  eq(choose({ ...first, connecting: true, refused: true }).connecting, true);
+  eq(choose({ ...first, refused: true }).refused, true);
+  eq(choose({ ...first, words: undefined }).words, []);
+  eq(choose(ok([vault('Personal', 'unlocked', true)], { vaults: [{ id: 'x' }] })), { frame: 'ready' });
+  // The shown vault decides; with none marked shown, the first one.
+  eq(choose(ok([vault('Personal', 'unlocked'), vault('Work', 'locked')], { error: 8 })).frame, 'first-connection');
 });
 
 if (failed.length) throw new Error(`pure: ${failed.length} failed: ${failed.join('; ')}`);
