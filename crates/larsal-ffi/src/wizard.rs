@@ -696,6 +696,15 @@ fn vault_like(name: &str) -> bool {
 /// APP-07.13: writes a new XML 2.0 key file at `path` (mode 0400, never
 /// over an existing file, LD-99), then reads it back (FMT-18.23).
 pub(crate) fn make_key_file(path: &Path) -> Result<(KeyFileKey, String), Outcome> {
+    write_key_file(path, None)
+}
+
+/// [`make_key_file`], of the key-file part `part` when given: FMT-18.20's
+/// layout, FMT-18.22, FMT-18.23 (SYN-03.12, FMT-18.21's one exception).
+pub(crate) fn write_key_file(
+    path: &Path,
+    part: Option<&[u8; 32]>,
+) -> Result<(KeyFileKey, String), Outcome> {
     let name = messages::clean_name(&file_name(path));
     if std::fs::symlink_metadata(path).is_ok() {
         return Err(refused(
@@ -714,7 +723,10 @@ pub(crate) fn make_key_file(path: &Path) -> Result<(KeyFileKey, String), Outcome
             ),
         )
     };
-    let bytes = create_key_file().map_err(|_| failed(ErrorKind::Other))?;
+    let bytes = match part {
+        Some(part) => larsal_format::keyfile::xml2_layout(part),
+        None => create_key_file().map_err(|_| failed(ErrorKind::Other))?,
+    };
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)

@@ -4,9 +4,13 @@
 # other feature its Cargo.toml lists; every target; normal and build edges)
 # holds larsal-sync, when the tree with `sync` does not, or when any tree cannot
 # be read whole: cargo failed, the feature is missing, or the list lacks a crate
-# every tree holds. Fails too when scripts/build-core.sh names `sync` or
-# --all-features: SYN-03 keeps sync off in the app build. E16-S7b and E16-S9 take
-# this out when they turn it on.
+# every tree holds. Fails too when scripts/build-core.sh or scripts/repro-build.sh
+# (with its `rsync` taken out first) names `sync` or --all-features: SYN-03 keeps
+# sync off in the app build. E16-S9 takes this out when it turns it on.
+#
+# Those two checks are a text match. It cannot see a feature assembled at run time
+# (`f=sy; f+=nc`), one set from an environment variable or a wrapper, one asked by
+# another script, or one from Cargo config. The real build is what proves the link.
 #
 #   scripts/check-sync-link.sh
 set -euo pipefail
@@ -41,6 +45,11 @@ build_core=$(cat scripts/build-core.sh)
 case $build_core in
   *sync* | *--all-features*) red "scripts/build-core.sh asks for sync: it stays off in the app build" ;;
 esac
+repro_build=$(cat scripts/repro-build.sh)
+repro_build=${repro_build//rsync/}
+case $repro_build in
+  *sync* | *--all-features*) red "scripts/repro-build.sh asks for sync: it stays off in the app build" ;;
+esac
 others=$(sed -n '/^\[features\]/,/^\[/s/^\([A-Za-z0-9_-][A-Za-z0-9_-]*\) *=.*/\1/p' \
   crates/larsal-ffi/Cargo.toml)
 fail=0
@@ -60,5 +69,6 @@ done
 lane --features sync
 links_sync || red "larsal-ffi with sync shows no larsal-sync: this check reads nothing"
 [ "$fail" -eq 0 ] || red "larsal-ffi links larsal-sync without its sync feature"
-echo "larsal-ffi: no larsal-sync with default features or any feature but sync; present with sync; build-core.sh asks for no sync"
+echo "larsal-ffi: no larsal-sync with default features or any feature but sync; present with sync; build-core.sh and repro-build.sh name no sync"
+echo "text match only for the two scripts: it cannot see a feature assembled at run time, an environment variable or wrapper, another script, or Cargo config"
 echo "check-sync-link: PASS"

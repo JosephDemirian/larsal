@@ -79,7 +79,7 @@ impl Local for Fake {
         self.file.clone().map(|f| Ok((f, m(1_500, 4, 65_536))))
     }
 
-    fn merge(&self, server: &[u8]) -> Merge {
+    fn merge(&self, server: &[u8], _version: u64) -> Merge {
         self.merges.fetch_add(1, Ordering::SeqCst);
         (self.merge)(server)
     }
@@ -387,6 +387,10 @@ fn syn03_8_wrong_key_other_vault_and_busy_upload_nothing() {
         (
             Merge::WrongKey,
             Report::of(Status::NeedsPassword, vec![Message::OtherKey]),
+        ),
+        (
+            Merge::OldKey,
+            Report::of(Status::ReplacedPassword, vec![Message::OldKey]),
         ),
         (Merge::OtherVault, Report::error(Message::OtherVault)),
         (Merge::Failed, Report::error(Message::Error)),
@@ -716,7 +720,7 @@ fn syn03_14_t31_a_file_not_proven_sends_no_put_and_ends_in_an_error() {
         fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>> {
             Some(Err(Unproven(self.0.clone())))
         }
-        fn merge(&self, _: &[u8]) -> Merge {
+        fn merge(&self, _: &[u8], _: u64) -> Merge {
             unreachable!()
         }
     }
@@ -756,7 +760,7 @@ fn syn03_5_after_a_412_the_next_try_reads_and_proves_again() {
                 Some(Err(Unproven(Message::LocalFile)))
             }
         }
-        fn merge(&self, _: &[u8]) -> Merge {
+        fn merge(&self, _: &[u8], _: u64) -> Merge {
             unreachable!()
         }
     }

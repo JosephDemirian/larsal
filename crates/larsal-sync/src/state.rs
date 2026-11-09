@@ -8,20 +8,25 @@
 //! version seen with the SHA-256 of its server bytes, the newest change
 //! time, file version and KDF settings of the last server version this Mac
 //! accepted or uploaded (SYN-03.7), and the SHA-256 of the local file after
-//! the last run.
+//! the last run. Per file that needs a key-file part: where that part is
+//! (SYN-03.1 step 2), which survives a failed upload and the end of a link
+//! because the file still needs the part to open. Per vault, by its root group
+//! id: the keys this Mac retired (MOD-11.31, LD-267 (2)), as salted digests.
 //!
 //! Guarantees: the file holds ids, versions, times, public KDF settings,
-//! hashes, a public key and a key label: never a password, a key, a
-//! key-file part or a session token (SYN-04.6). It is written atomically
+//! hashes, salted digests, a public key and key labels: never a password, a
+//! key, a key-file part or a session token (SYN-04.6). It is written atomically
 //! (a temp file, then a rename) with mode 0600. A file that does not read,
 //! is over 1 MiB, or holds a key or value this reader does not know is
 //! [`Error::Bad`] and is never written over by the caller (as F-241's
 //! state file); only a missing file reads as empty.
 
 use larsal_core::guard::{kdf_json, kdf_of};
+use larsal_core::retired::{Record, record_json, record_of_json};
 use larsal_model::json::{self, Map, Value};
 use larsal_model::{FileVersion, Kdf, Time, Uuid};
 pub use larsal_proto::messages::{AccountId, DeviceId, VaultId};
+use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::Path;
 
@@ -90,6 +95,25 @@ pub struct Link {
     pub seen: Measures,
 }
 
+/// Where the key-file part of one local file lives (SYN-03.1 step 2): never
+/// the part itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Part {
+    /// The local file's path.
+    pub file: String,
+    /// The vault's root group id.
+    pub root: Uuid,
+    /// The part's label in the device store, as [`part_label`] makes it.
+    pub label: String,
+}
+
+/// The device store's label of the part of the server vault `vault_id` on the
+/// server at `address`.
+#[must_use]
+pub fn part_label(address: &str, vault_id: VaultId) -> String {
+    format!("{address} {vault_id}")
+}
+
 /// The whole state.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct State {
@@ -97,6 +121,10 @@ pub struct State {
     pub servers: Vec<Server>,
     /// The links, one per server vault.
     pub links: Vec<Link>,
+    /// The files that need a part, one entry per file.
+    pub parts: Vec<Part>,
+    /// The keys this Mac retired, by vault root (MOD-11.31, LD-267 (2)).
+    pub retired: BTreeMap<Uuid, Vec<Record>>,
 }
 
 /// Why a state file was not taken.
@@ -118,6 +146,18 @@ impl State {
     /// The server entry for `address`, to change.
     pub fn server_mut(&mut self, address: &str) -> Option<&mut Server> {
         self.servers.iter_mut().find(|s| s.address == address)
+    }
+
+    /// Keeps `records` for the vault `root`, each once; true when one was new.
+    pub fn keep_retired(&mut self, root: Uuid, records: &[Record]) -> bool {
+        let kept = self.retired.entry(root).or_default();
+        let before = kept.len();
+        for r in records {
+            if !kept.contains(r) {
+                kept.push(r.clone());
+            }
+        }
+        kept.len() > before
     }
 
     /// The state read from `path`; a missing file is the empty state.
@@ -167,6 +207,14 @@ impl State {
         let mut m = Map::new();
         m.insert("servers".into(), Value::Array(servers));
         m.insert("links".into(), Value::Array(links));
+        let parts = self.parts.iter().map(part_json).collect();
+        m.insert("parts".into(), Value::Array(parts));
+        let mut retired = Map::new();
+        for (root, records) in &self.retired {
+            let records = records.iter().map(record_json).collect();
+            retired.insert(hex(&root.0), Value::Array(records));
+        }
+        m.insert("retired".into(), Value::Object(retired));
         Value::Object(m)
     }
 
@@ -175,7 +223,7 @@ impl State {
     #[must_use]
     pub fn read(bytes: &[u8]) -> Option<Self> {
         let v = json::from_slice_unique(bytes).ok()?;
-        let m = only(&v, &["servers", "links"])?;
+        let m = only(&v, &["servers", "links", "parts", "retired"])?;
         let servers = m
             .get("servers")?
             .as_array()?
@@ -188,7 +236,28 @@ impl State {
             .iter()
             .map(link_of)
             .collect::<Option<Vec<_>>>()?;
-        Some(Self { servers, links })
+        // A state E16-S7a wrote has neither of the last two keys.
+        let parts = match m.get("parts") {
+            None => Vec::new(),
+            Some(p) => p.as_array()?.iter().map(part_of).collect::<Option<_>>()?,
+        };
+        let mut retired = BTreeMap::new();
+        if let Some(r) = m.get("retired") {
+            for (root, records) in r.as_object()? {
+                let records = records
+                    .as_array()?
+                    .iter()
+                    .map(record_of_json)
+                    .collect::<Option<_>>()?;
+                retired.insert(Uuid(unhex(&root.clone().into())?), records);
+            }
+        }
+        Some(Self {
+            servers,
+            links,
+            parts,
+            retired,
+        })
     }
 }
 
@@ -311,6 +380,23 @@ fn link_of(v: &Value) -> Option<Link> {
     })
 }
 
+fn part_json(p: &Part) -> Value {
+    let mut m = Map::new();
+    m.insert("file".into(), p.file.clone().into());
+    m.insert("root".into(), hex(&p.root.0).into());
+    m.insert("label".into(), p.label.clone().into());
+    Value::Object(m)
+}
+
+fn part_of(v: &Value) -> Option<Part> {
+    let m = only(v, &["file", "root", "label"])?;
+    Some(Part {
+        file: m.get("file")?.as_str()?.to_owned(),
+        root: Uuid(unhex(m.get("root")?)?),
+        label: m.get("label")?.as_str()?.to_owned(),
+    })
+}
+
 #[cfg(test)]
 // Rust rule 4 exempts tests; clippy.toml has no test switch for this lint.
 #[allow(clippy::arithmetic_side_effects)]
@@ -356,6 +442,24 @@ mod tests {
                     },
                 },
             }],
+            parts: vec![Part {
+                file: "/tmp/demo.larsalvault".into(),
+                root: Uuid([5; 16]),
+                label: part_label("https://127.0.0.1:8443", VaultId::from_bytes([3; 16])),
+            }],
+            retired: BTreeMap::from([(
+                Uuid([5; 16]),
+                vec![Record {
+                    salt: [1; 32],
+                    digest: [2; 32],
+                    alone: Some([3; 32]),
+                    kdf: larsal_crypto::kdf::KdfParams::AesKdf {
+                        rounds: 60_000,
+                        seed: vec![4; 32],
+                    },
+                    v4: true,
+                }],
+            )]),
         }
     }
 
@@ -403,5 +507,31 @@ mod tests {
             State::read(br#"{"servers":[],"servers":[],"links":[]}"#),
             None
         );
+    }
+
+    /// SYN-03.1 step 2, LD-267 (2): the part's place and the retired-key
+    /// records round-trip and hold salted digests, never a part; a key the
+    /// reader does not know in them is a bad file; a state E16-S7a wrote, with
+    /// neither, still reads; a record is kept once.
+    #[test]
+    fn syn03_3_parts_and_retired_keys_round_trip() {
+        let mut s = sample();
+        let good = json::to_string(&s.to_json());
+        assert_eq!(State::read(good.as_bytes()).as_ref(), Some(&s));
+        for (from, to) in [
+            (r#""label":"https"#, r#""part":"00","label":"https"#),
+            (r#""digest":""#, r#""key":"00","digest":""#),
+            (r#""retired":{"05"#, r#""retired":{"5"#),
+        ] {
+            assert!(good.contains(from), "{from}");
+            let bad = good.replacen(from, to, 1);
+            assert_eq!(State::read(bad.as_bytes()), None, "{to}");
+        }
+        let old = State::read(br#"{"servers":[],"links":[]}"#).unwrap();
+        assert!(old.parts.is_empty() && old.retired.is_empty());
+        let record = s.retired[&Uuid([5; 16])][0].clone();
+        assert!(!s.keep_retired(Uuid([5; 16]), std::slice::from_ref(&record)));
+        assert!(s.keep_retired(Uuid([6; 16]), &[record]));
+        assert_eq!(s.retired.len(), 2);
     }
 }

@@ -4,10 +4,14 @@
 //! LD-269 (2), LD-288 (2)) and the rollback guard's values (APP-05.26;
 //! LD-267 (3), LD-269 (4); spec/research/sync-server.md P18 (6)): the
 //! newest change time seen, the SHA-256 of the last bytes read or written,
-//! the newest file version and the strongest KDF settings seen.
+//! the newest file version and the strongest KDF settings seen. Also the
+//! highest `MasterKeyChanged` seen, in a version read or written or in any
+//! copy of the vault Larsal opened, so a real key change goes past it (LD-264).
+//! And the device store labels of the vault's key-file parts kept for sync,
+//! so a lost sync state still finds them (C1R3B-01).
 //!
 //! Guarantees: the file holds salts, salted digests, public KDF settings,
-//! times and checksums only, never a key or password byte; it is written
+//! times, checksums and public labels only, never a key or password byte; it is written
 //! 0600 through larsal-core's safe export write; a memory-only settings store
 //! keeps the state in memory only, and so does a run that found the file
 //! unreadable, too large or bad, or holding a value that does not read or
@@ -18,8 +22,7 @@
 
 use crate::session::Session;
 use larsal_core::guard::{kdf_json, kdf_of};
-use larsal_core::retired::Record;
-use larsal_crypto::kdf::{Argon2Type, KdfParams};
+use larsal_core::retired::{self, Record};
 use larsal_model::json::{self, Map, Value};
 use larsal_model::{FileVersion, Kdf, Time, Uuid, Vault};
 use std::collections::BTreeMap;
@@ -43,6 +46,12 @@ pub(crate) struct Seen {
     pub(crate) version: Option<FileVersion>,
     /// The strongest KDF settings seen (MOD-11.19 limit 1).
     pub(crate) kdf: Option<Kdf>,
+    /// The highest `MasterKeyChanged` seen: in a version read or written, or
+    /// in a copy of the vault opened to merge or compare (LD-264).
+    pub(crate) key: Option<Time>,
+    /// The device store labels of its key-file parts kept for sync, never a
+    /// part (SYN-03.3; C1R3B-01).
+    pub(crate) parts: Vec<String>,
 }
 
 /// The rollback guard's compare of one version of a vault (APP-05.26).
@@ -125,6 +134,16 @@ impl Seen {
         {
             self.kdf = Some(v.encryption.kdf);
         }
+        self.key_seen(v.meta.master_key_changed);
+    }
+
+    /// `key` was seen; true when it is above every one before.
+    fn key_seen(&mut self, key: Time) -> bool {
+        let up = self.key.is_none_or(|k| key > k);
+        if up {
+            self.key = Some(key);
+        }
+        up
     }
 }
 
@@ -168,6 +187,8 @@ impl Session {
 
     /// MOD-11.31: this Mac retired a key of the vault `root`.
     pub(crate) fn retire(&self, root: Uuid, record: Record) {
+        #[cfg(feature = "sync")]
+        self.sync_retire(root, &record);
         self.local(|m| {
             m.entry(root).or_default().retired.push(record);
             ((), true)
@@ -195,6 +216,48 @@ impl Session {
                 .up(v, bytes, version.or(v.read_version));
             ((), true)
         });
+    }
+
+    /// C1R3B-01: the device store labels of the key-file parts kept for sync of
+    /// the vault `root`, as this file keeps them.
+    #[cfg(feature = "sync")]
+    pub(crate) fn part_labels(&self, root: Uuid) -> Vec<String> {
+        self.local(|m| {
+            (
+                m.get(&root).map(|s| s.parts.clone()).unwrap_or_default(),
+                false,
+            )
+        })
+    }
+
+    /// C1R3B-01: `label` holds a key-file part of the vault `root`.
+    #[cfg(feature = "sync")]
+    pub(crate) fn keep_part_label(&self, root: Uuid, label: &str) {
+        self.local(|m| {
+            let parts = &mut m.entry(root).or_default().parts;
+            let new = !parts.iter().any(|l| l == label);
+            if new {
+                parts.push(label.to_owned());
+            }
+            ((), new)
+        });
+    }
+
+    /// LD-264: a copy of the vault `root` with the key time `key` was opened.
+    pub(crate) fn key_seen(&self, root: Uuid, key: Time) {
+        self.local(|m| ((), m.entry(root).or_default().key_seen(key)));
+    }
+
+    /// LD-264: the earliest `MasterKeyChanged` a real key change of the vault
+    /// `root` may take: one second past the highest seen.
+    pub(crate) fn key_floor(&self, root: Uuid) -> Time {
+        self.local(|m| {
+            let seen = m.get(&root).and_then(|s| s.key);
+            (
+                seen.map_or(Time(i64::MIN), |k| Time(k.0.saturating_add(1))),
+                false,
+            )
+        })
     }
 
     /// APP-05.26 (MOD-12.12): the user changed the encryption settings in
@@ -228,57 +291,6 @@ fn unhex32(v: &Value) -> Option<[u8; 32]> {
     <[u8; 32]>::try_from(unhex(v.as_str()?)?).ok()
 }
 
-fn kind_name(d: bool) -> &'static str {
-    if d { "d" } else { "id" }
-}
-
-fn params_json(k: &KdfParams) -> Value {
-    let mut m = Map::new();
-    match k {
-        KdfParams::AesKdf { rounds, seed } => {
-            m.insert("aes".into(), (*rounds).into());
-            m.insert("seed".into(), hex(seed).into());
-        }
-        KdfParams::Argon2 {
-            kind,
-            version,
-            iterations,
-            memory_kib,
-            lanes,
-            salt,
-        } => {
-            m.insert("argon2".into(), kind_name(*kind == Argon2Type::D).into());
-            m.insert("v".into(), (*version).into());
-            m.insert("i".into(), (*iterations).into());
-            m.insert("m".into(), (*memory_kib).into());
-            m.insert("p".into(), (*lanes).into());
-            m.insert("salt".into(), hex(salt).into());
-        }
-    }
-    Value::Object(m)
-}
-
-fn params_of(v: &Value) -> Option<KdfParams> {
-    if let Some(rounds) = v["aes"].as_u64() {
-        return Some(KdfParams::AesKdf {
-            rounds,
-            seed: unhex(v["seed"].as_str()?)?,
-        });
-    }
-    Some(KdfParams::Argon2 {
-        kind: match v["argon2"].as_str()? {
-            "d" => Argon2Type::D,
-            "id" => Argon2Type::Id,
-            _ => return None,
-        },
-        version: v["v"].as_u64()?,
-        iterations: v["i"].as_u64()?,
-        memory_kib: v["m"].as_u64()?,
-        lanes: v["p"].as_u64()?,
-        salt: unhex(v["salt"].as_str()?)?,
-    })
-}
-
 /// True when every key of the object `v` is one of `keys` (F-241: `save`
 /// writes no other, so a key it does not know is a bad byte, or a file of
 /// a newer Larsal, and is never dropped without a word).
@@ -287,41 +299,11 @@ fn only(v: &Value, keys: &[&str]) -> bool {
         .is_some_and(|m| m.keys().all(|k| keys.contains(&k.as_str())))
 }
 
-fn record_of(v: &Value) -> Option<Record> {
-    if !only(v, &["salt", "digest", "alone", "kdf", "v4"]) {
-        return None;
-    }
-    Some(Record {
-        salt: unhex32(&v["salt"])?,
-        digest: unhex32(&v["digest"])?,
-        alone: match &v["alone"] {
-            Value::Null => None,
-            a => Some(unhex32(a)?),
-        },
-        kdf: params_of(&v["kdf"])?,
-        v4: v["v4"].as_bool()?,
-    })
-}
-
 fn save(vaults: &BTreeMap<Uuid, Seen>) -> Map {
     let mut out = Map::new();
     for (root, s) in vaults {
         let mut m = Map::new();
-        let records: Vec<Value> = s
-            .retired
-            .iter()
-            .map(|r| {
-                let mut o = Map::new();
-                o.insert("salt".into(), hex(&r.salt).into());
-                o.insert("digest".into(), hex(&r.digest).into());
-                if let Some(a) = r.alone {
-                    o.insert("alone".into(), hex(&a).into());
-                }
-                o.insert("kdf".into(), params_json(&r.kdf));
-                o.insert("v4".into(), r.v4.into());
-                Value::Object(o)
-            })
-            .collect();
+        let records: Vec<Value> = s.retired.iter().map(retired::record_json).collect();
         m.insert("retired".into(), records.into());
         if let Some(n) = s.newest {
             m.insert("newest".into(), n.0.into());
@@ -337,6 +319,13 @@ fn save(vaults: &BTreeMap<Uuid, Seen>) -> Map {
         }
         if let Some(k) = &s.kdf {
             m.insert("kdf".into(), kdf_json(k));
+        }
+        if let Some(k) = s.key {
+            m.insert("key".into(), k.0.into());
+        }
+        if !s.parts.is_empty() {
+            let parts: Vec<Value> = s.parts.iter().map(|l| l.as_str().into()).collect();
+            m.insert("parts".into(), parts.into());
         }
         out.insert(hex(&root.0), Value::Object(m));
     }
@@ -377,12 +366,20 @@ fn load(path: &std::path::Path) -> Option<BTreeMap<Uuid, Seen>> {
     map.iter()
         .map(|(root, v)| {
             let root = Uuid(<[u8; 16]>::try_from(unhex(root)?).ok()?);
-            if !only(v, &["retired", "newest", "sha256", "version", "kdf"]) {
+            if !only(
+                v,
+                &[
+                    "retired", "newest", "sha256", "version", "kdf", "key", "parts",
+                ],
+            ) {
                 return None;
             }
             let seen = Seen {
                 retired: there(&v["retired"], |a| {
-                    a.as_array()?.iter().map(record_of).collect::<Option<_>>()
+                    a.as_array()?
+                        .iter()
+                        .map(retired::record_of_json)
+                        .collect::<Option<_>>()
                 })?
                 .unwrap_or_default(),
                 newest: there(&v["newest"], |n| n.as_i64().map(Time))?,
@@ -395,6 +392,14 @@ fn load(path: &std::path::Path) -> Option<BTreeMap<Uuid, Seen>> {
                     _ => None,
                 })?,
                 kdf: there(&v["kdf"], kdf_of)?,
+                key: there(&v["key"], |n| n.as_i64().map(Time))?,
+                parts: there(&v["parts"], |a| {
+                    a.as_array()?
+                        .iter()
+                        .map(|l| l.as_str().map(str::to_owned))
+                        .collect::<Option<_>>()
+                })?
+                .unwrap_or_default(),
             };
             Some((root, seen))
         })
@@ -404,6 +409,7 @@ fn load(path: &std::path::Path) -> Option<BTreeMap<Uuid, Seen>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use larsal_crypto::kdf::{Argon2Type, KdfParams};
     use larsal_model::{Argon2Kind, Group};
 
     /// The state round-trips through its file: records with one and two
@@ -451,6 +457,8 @@ mod tests {
                     memory_kib: 1024,
                     lanes: 1,
                 }),
+                key: Some(Time(64_000_000_000)),
+                parts: vec!["0123456789abcdef".into()],
             },
         );
         let path = dir.join("vault-state.json");
@@ -464,6 +472,8 @@ mod tests {
         assert_eq!(s.sha, Some([10; 32]));
         assert_eq!(s.version, Some(FileVersion { major: 4, minor: 1 }));
         assert_eq!(s.kdf, m[&Uuid([9; 16])].kdf);
+        assert_eq!(s.key, Some(Time(64_000_000_000)));
+        assert_eq!(s.parts, ["0123456789abcdef"]);
         std::fs::write(&path, b"not json").unwrap();
         assert!(load(&path).is_none(), "a bad file is never read as empty");
         std::fs::remove_file(&path).unwrap();

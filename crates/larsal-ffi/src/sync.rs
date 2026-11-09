@@ -1,9 +1,10 @@
 //! Sync with Larsal's own server (E16-S7a; SYN-03, SYN-04), larsal-ffi's `sync`
 //! feature over larsal-sync: adding a server and pinning its certificate
 //! (SYN-01.2, SYN-01.14), sign-up with a new device key (SYN-04.2,
-//! LD-325 (5) (a)), putting a vault on the server (SYN-03.1 step 3),
-//! taking a server vault to this Mac (SYN-03.2), and each open vault's runs
-//! on its schedule (SYN-03.4) with their status (SYN-03.13).
+//! LD-325 (5) (a)), putting a vault on the server (SYN-03.1) with its key-file
+//! part (P7), taking a server vault to this Mac (SYN-03.2), each open vault's
+//! runs on its schedule (SYN-03.4) with their status (SYN-03.13), and the
+//! key-change cases (SYN-03.8, SYN-03.9; LD-264).
 //!
 //! Guarantees:
 //! - Nothing runs by itself: Swift calls [`Session::sync_tick`] (off the
@@ -20,16 +21,28 @@
 //!   (LD-317 (2)): they use the test-seam key only.
 //! - The state file holds no password, key, key-file part or token
 //!   (SYN-03.3, SYN-04.6); the session token lives in larsal-sync's client.
+//! - The key-file part lives in the device store and, while unlocked, in the
+//!   saver's locked pages, never in a vault, the state file, a log or a request.
+//!   It reaches the device store and its place reaches the state file before
+//!   the vault's key changes, so a failure at any step leaves a vault that opens.
+//!   Tests use a map in memory, never a keychain (LD-317 (2)).
 //! - Only a file that passes SYN-03.5 step 2 goes up: every read of the file
-//!   for an upload is [`Session::sync_read`]'s.
+//!   for an upload is [`Session::sync_read`]'s. It also needs the part and no
+//!   field 12 (F-321, F-322).
 //! - Every text here is Larsal's own (SYN-01.9).
 
 use crate::session::{LarsalError, Session};
+use crate::wizard::{self, Answer, Outcome};
+use larsal_core::retired::Record;
+use larsal_core::settings::{self, Changes, KeyChange, PasswordPart};
 use larsal_core::{guard::newest, storage};
-use larsal_model::{FileVersion, Uuid, Vault};
+use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_format::keyfile::{KeyFileKey, read_key_file};
+use larsal_format::limits::Limits;
+use larsal_model::{FileVersion, Kdf, Time, Uuid, Vault};
 use larsal_platform::device_key::{DeviceKey, KeyError};
 use larsal_sync::client::{self, Fail, Server};
-use larsal_sync::state::{Account, Link, Measures, State};
+use larsal_sync::state::{Account, Link, Measures, Part, State, VaultId, part_label};
 use larsal_sync::sync::{
     Clock, Local, Merge, Message, Report, Schedule, Status, SystemClock, Unproven,
 };
@@ -38,6 +51,62 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 type Client = Server<DeviceKey>;
+
+/// The key file's name in Vault Settings for a part Larsal made (SYN-03.12).
+const PART_NAME: &str = "Kept for sync";
+
+/// SYN-03.2: the root of a download's link and pointer until its first run
+/// reads the root its unlock opened (the root is inside the encrypted file).
+const UNKNOWN_ROOT: Uuid = Uuid([0; 16]);
+
+/// SYN-03.12 (C1-A12): a key file typed in a sheet for a linked file that is
+/// not its part.
+pub(crate) const PART_OTHER: (&str, &str) = (
+    "MSG-SYNC-PART-OTHER",
+    "This vault is on a server, so it opens with its key file kept for sync. This key file is another one.",
+);
+
+/// SYN-03.12 (C1R2-02): a sheet, or a key file typed, for a linked file while
+/// the device store gives no part: nothing can be checked against the part, so
+/// nothing is taken (fail closed). The way back (C1R3B-02, C1R4-01): an unlock
+/// with a typed factor and the saved key file of the file as it was last synced
+/// stores the part again; or an unlock where the part is kept.
+pub(crate) const PART_UNREAD: (&str, &str) = (
+    "MSG-SYNC-PART-UNREAD",
+    "This vault is on a server, and macOS did not give Larsal its key file kept for sync, so nothing was changed. To get it back, unlock the vault on a Mac that keeps that key file, or put back the vault file as it was last synced and unlock it with its password or hardware key and the key file you saved with Save as key file.",
+);
+
+/// SYN-03.12: a vault with a key-file part kept for sync keeps a typed factor:
+/// a key change, or a copy's key in a sheet, with the part alone (C2bR3-1).
+pub(crate) const TYPED_KEPT: (&str, &str) = (
+    "MSG-SYNC-TYPED-KEPT",
+    "This vault's key file is kept for sync, so it also needs a password or a hardware key.",
+);
+
+/// How the device store reads a key-file part, from [`Session::sync_start`] on.
+/// ponytail: a pointer, not a plain call, only because `unlock` reaches it: a test
+/// program never calls `sync_start`, so it links no keychain symbol (LD-325 (5d)).
+/// Its ceiling: a launch that forgets `sync_start` fails unlocks until the first tick.
+#[cfg(not(test))]
+static PART_READ: std::sync::OnceLock<PartRead> = std::sync::OnceLock::new();
+
+#[cfg(not(test))]
+type PartRead = fn(&str) -> Result<SecretBytes, KeyError>;
+
+/// How the way back at unlock (C1R3B-02) writes a part, from [`Session::sync_start`]
+/// on: a pointer for the same reason as [`PART_READ`].
+#[cfg(not(test))]
+static PART_KEEP: std::sync::OnceLock<PartKeep> = std::sync::OnceLock::new();
+
+#[cfg(not(test))]
+type PartKeep = fn(&str, &SecretBytes) -> Result<(), KeyError>;
+
+/// Whether a link of `links` names `file` and last synced the bytes `sha` hashes.
+fn last_synced(links: &[Link], file: &str, sha: &[u8; 32]) -> bool {
+    links
+        .iter()
+        .any(|l| l.file == file && larsal_crypto::secret::ct_eq(sha, &l.local_sha))
+}
 
 /// The measures the rollback guard compares (SYN-03.7) of `v`.
 pub(crate) fn measures(v: &Vault) -> Measures {
@@ -87,6 +156,11 @@ pub struct SyncState {
     pub synced_at: Option<u64>,
     /// The last run's messages, in order.
     pub messages: Vec<SyncMessage>,
+    /// SYN-03.8: show the unlock sheet for the server copy, with
+    /// `sync_open_copy`. True once from [`Session::sync_tick`] after the first
+    /// run that needs a password and after a run the user asked for: never for
+    /// a 60-second tick (T18).
+    pub ask_key: bool,
 }
 
 /// A vault on a server (`GET /v1/vaults`).
@@ -114,16 +188,16 @@ struct Open {
     /// run belongs to the file and the unlock the vault left, so it reads and
     /// merges nothing more and its report is not the new one's.
     left: bool,
-}
-
-/// A download waiting for its unlock to be linked (SYN-03.2).
-#[derive(Debug, Clone)]
-struct Pending {
-    server: String,
-    vault_id: larsal_sync::state::VaultId,
-    path: PathBuf,
-    version: u64,
-    sha: [u8; 32],
+    /// The next run is the unlock's or Sync now's, not a tick's (SYN-03.8).
+    asked: bool,
+    /// [`SyncState::ask_key`].
+    ask_key: bool,
+    /// SYN-03.2: the SHA-256 and the measures of the bytes this unlock opened;
+    /// a download's link takes its root only when they are the downloaded ones.
+    opened: Option<([u8; 32], Measures)>,
+    /// SYN-03.9 (C1-A7b): after Merge anyway, the vault's measures from before
+    /// it, so the copy's times reach no link record at the upload that follows.
+    answered: Option<Measures>,
 }
 
 /// A local transfer owns its file/root or server vault until commit or cancellation.
@@ -131,9 +205,20 @@ struct Claim {
     path: PathBuf,
     root: Option<Uuid>,
     remote: Option<(String, larsal_sync::state::VaultId)>,
+    /// C1R4-03: the links with no root yet (file, downloaded SHA-256) a download
+    /// replaces; they stay until it commits.
+    replaces: Vec<(String, [u8; 32])>,
 }
 
 impl Claim {
+    fn replaces(&self, l: &Link) -> bool {
+        l.root == UNKNOWN_ROOT
+            && self
+                .replaces
+                .iter()
+                .any(|(f, s)| *f == l.file && larsal_crypto::secret::ct_eq(s, &l.local_sha))
+    }
+
     fn overlaps(&self, other: &Self) -> bool {
         self.path == other.path
             || self.root.is_some_and(|root| other.root == Some(root))
@@ -180,7 +265,6 @@ struct Inner {
     state: State,
     servers: BTreeMap<String, Arc<Mutex<Client>>>,
     vaults: BTreeMap<u64, Open>,
-    pending: Vec<Pending>,
     transfers: Vec<Arc<Claim>>,
     /// Servers whose certificate changed: no run until the user adds the
     /// server again (SYN-03.10).
@@ -188,6 +272,13 @@ struct Inner {
     /// Tests: the clock's time at the start of each run of a linked vault.
     #[cfg(test)]
     runs: Vec<(u64, u64)>,
+    /// Tests: the device store of the key-file parts, never a keychain
+    /// (LD-317 (2)); `second`'s helper copies it (LD-266 (2)).
+    #[cfg(test)]
+    device_store: BTreeMap<String, SecretBytes>,
+    /// Tests: the device store refuses every write and every read.
+    #[cfg(test)]
+    store_refuses: bool,
 }
 
 /// The sync of one session (Session's `sync` field).
@@ -202,11 +293,14 @@ impl Default for Syncs {
             state: State::default(),
             servers: BTreeMap::new(),
             vaults: BTreeMap::new(),
-            pending: Vec::new(),
             transfers: Vec::new(),
             stopped: BTreeSet::new(),
             #[cfg(test)]
             runs: Vec::new(),
+            #[cfg(test)]
+            device_store: BTreeMap::new(),
+            #[cfg(test)]
+            store_refuses: false,
         }))
     }
 }
@@ -216,8 +310,15 @@ impl Syncs {
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// The vault `id` was unlocked: its schedule starts (SYN-03.4).
-    pub(crate) fn unlocked(&self, id: u64, path: &Path, root: Uuid) {
+    /// The vault `id` was unlocked from the bytes `opened` hashes and measures:
+    /// its schedule starts (SYN-03.4).
+    pub(crate) fn unlocked(
+        &self,
+        id: u64,
+        path: &Path,
+        root: Uuid,
+        opened: Option<([u8; 32], Measures)>,
+    ) {
         let mut i = self.inner();
         let now = i.clock.now_ms();
         let prior = i.vaults.remove(&id);
@@ -235,6 +336,10 @@ impl Syncs {
                 schedule,
                 report,
                 synced_at: None,
+                asked: true,
+                ask_key: false,
+                opened,
+                answered: None,
             },
         );
     }
@@ -246,12 +351,22 @@ impl Syncs {
 
     /// APP-05.6 Save As: the vault `id` now lives at `path`. A link names
     /// one local file (SYN-03.3), so the new file has none: it syncs nothing
-    /// under the old link, and the old file keeps its link.
+    /// under the old link, and the old file keeps its link. The new file has the
+    /// vault's key, so it opens with the same key-file part.
     pub(crate) fn moved(&self, id: u64, path: &Path) {
-        if let Some(o) = self.inner().vaults.get_mut(&id).filter(|o| o.path != path) {
-            o.path = path.to_path_buf();
-            o.report = None;
-            o.left = o.schedule.running();
+        let mut i = self.inner();
+        let Some(o) = i.vaults.get_mut(&id).filter(|o| o.path != path) else {
+            return;
+        };
+        let old = std::mem::replace(&mut o.path, path.to_path_buf());
+        o.report = None;
+        o.left = o.schedule.running();
+        let old = old.to_string_lossy();
+        if let Some(part) = i.state.parts.iter().find(|p| p.file == old).cloned() {
+            let file = path.to_string_lossy().into_owned();
+            i.state.parts.retain(|p| p.file != file);
+            i.state.parts.push(Part { file, ..part });
+            i.save();
         }
     }
 
@@ -297,27 +412,37 @@ impl Inner {
         }
     }
 
-    fn has_server_vault(&self, server: &str, vault_id: larsal_sync::state::VaultId) -> bool {
-        self.state
-            .links
-            .iter()
-            .any(|l| l.server == server && l.vault_id == vault_id)
-            || self
-                .pending
-                .iter()
-                .any(|p| p.server == server && p.vault_id == vault_id)
+    /// SYN-03.1 step 2: `part` is where its file's key-file part lives, on disk
+    /// before the file's key changes: a state that does not reach the disk stops
+    /// the change, since the vault would not open after it. The labels no file
+    /// uses now.
+    fn keep_part(&mut self, part: Part) -> Result<Vec<String>, LarsalError> {
+        let before = self.state.parts.clone();
+        self.state.parts.retain(|p| p.file != part.file);
+        self.state.parts.push(part);
+        let saved = match &self.file {
+            Some(Some(path)) if !self.unread => self.state.save(path).is_ok(),
+            _ => false,
+        };
+        if !saved {
+            self.state.parts = before;
+            return Err(refused(
+                "Larsal could not write its sync state. Nothing was changed or uploaded.",
+            ));
+        }
+        Ok(before
+            .into_iter()
+            .map(|p| p.label)
+            .filter(|label| !self.state.parts.iter().any(|p| &p.label == label))
+            .collect())
     }
 
     fn unavailable(&self, claim: &Claim) -> bool {
-        self.state
-            .links
-            .iter()
-            .any(|l| Path::new(&l.file) == claim.path || claim.root == Some(l.root))
-            || self.pending.iter().any(|p| p.path == claim.path)
-            || claim
-                .remote
-                .as_ref()
-                .is_some_and(|(server, id)| self.has_server_vault(server, *id))
+        let links = || self.state.links.iter().filter(|l| !claim.replaces(l));
+        links().any(|l| Path::new(&l.file) == claim.path || claim.root == Some(l.root))
+            || claim.remote.as_ref().is_some_and(|(server, id)| {
+                links().any(|l| l.server == *server && l.vault_id == *id)
+            })
             || (claim.root.is_none() && self.vaults.values().any(|o| o.path == claim.path))
     }
 
@@ -347,7 +472,57 @@ impl Inner {
         self.state
             .links
             .iter()
-            .position(|l| l.file == file && l.root == open.root)
+            .position(|l| l.file == file && l.root == open.root && l.root != UNKNOWN_ROOT)
+    }
+
+    /// SYN-03.2, F-288: the download linked to the file of the open vault `id`
+    /// takes the root its unlock opened, with that unlock's measures and the
+    /// keys this Mac retired from that root (`records`), when that unlock
+    /// opened the downloaded bytes and nothing else names the root or the
+    /// server vault. Otherwise the link goes and the pointer stays, so the
+    /// file still opens. The link's place.
+    fn adopt(&mut self, id: u64, records: &[Record]) -> Option<usize> {
+        let open = self.vaults.get(&id)?;
+        let file = open.path.to_string_lossy().into_owned();
+        let n = self
+            .state
+            .links
+            .iter()
+            .position(|l| l.file == file && l.root == UNKNOWN_ROOT)?;
+        let link = &self.state.links[n];
+        let (root, opened) = (open.root, open.opened);
+        let taken = opened.filter(|(sha, _)| {
+            root != UNKNOWN_ROOT
+                && larsal_crypto::secret::ct_eq(sha, &link.local_sha)
+                && !self.state.links.iter().enumerate().any(|(m, l)| {
+                    m != n
+                        && (l.root == root
+                            || (l.server == link.server && l.vault_id == link.vault_id))
+                })
+                && !self.transfers.iter().any(|c| {
+                    c.path == open.path
+                        || c.root == Some(root)
+                        || c.remote.as_ref().is_some_and(|(server, vault_id)| {
+                            *server == link.server && *vault_id == link.vault_id
+                        })
+                })
+        });
+        let Some((_, seen)) = taken else {
+            self.state.links.remove(n);
+            self.save();
+            return None;
+        };
+        let link = &mut self.state.links[n];
+        link.root = root;
+        link.seen = seen;
+        for p in &mut self.state.parts {
+            if p.file == file {
+                p.root = root;
+            }
+        }
+        self.state.keep_retired(root, records);
+        self.save();
+        Some(n)
     }
 }
 
@@ -414,6 +589,11 @@ fn open_key(_label: &str, _public: &[u8; 65]) -> Result<DeviceKey, KeyError> {
     Err(KeyError::Missing)
 }
 
+/// The key of a key-file part: FMT-18's 32 bytes, used as they are.
+fn part_key(part: &SecretBytes) -> Option<KeyFileKey> {
+    read_key_file(std::io::Cursor::new(part.expose()), &Limits::DEFAULT).ok()
+}
+
 /// 32 hex digits of 16 bytes from larsal-crypto's random source.
 fn random_hex() -> Result<String, LarsalError> {
     let mut b = [0u8; 16];
@@ -430,11 +610,16 @@ struct OpenVault<'a> {
 
 impl Local for OpenVault<'_> {
     fn read(&self) -> Option<Result<(Vec<u8>, Measures), Unproven>> {
-        self.session.sync_read(self.vault)
+        // SYN-03.9 (C1-A7b): after Merge anyway, the measures from before it.
+        let answered = self
+            .session
+            .sync_with(|i| i.vaults.get(&self.vault).and_then(|o| o.answered));
+        let read = self.session.sync_read(self.vault)?;
+        Some(read.map(|(bytes, measures)| (bytes, answered.unwrap_or(measures))))
     }
 
-    fn merge(&self, server: &[u8]) -> Merge {
-        self.session.merge_server(self.vault, server)
+    fn merge(&self, server: &[u8], version: u64) -> Merge {
+        self.session.merge_server(self.vault, server, version)
     }
 }
 
@@ -454,7 +639,87 @@ impl Session {
         f(&mut i)
     }
 
+    /// SYN-03.2 (C1R2-03): drops each link with no root yet (a download before
+    /// its first run) that no run can link any more: its file is gone or moved,
+    /// or holds other bytes than the download. A download that a vault unlocked
+    /// now opened from that file is never dropped (`adopt` takes it), and a file
+    /// that does not read for a moment (permissions, busy) keeps its link
+    /// (C1R3B-03). Its pointer stays, as `adopt` keeps it, so a file still opens.
+    /// Such a link then blocks nothing: a new download of its server vault, the
+    /// list and the next run.
+    fn sync_drop_stale(&self) {
+        let waiting: Vec<(String, [u8; 32])> = self.sync_with(|i| {
+            i.state
+                .links
+                .iter()
+                .filter(|l| l.root == UNKNOWN_ROOT)
+                .map(|l| (l.file.clone(), l.local_sha))
+                .collect()
+        });
+        let stale: Vec<(String, [u8; 32])> = waiting
+            .into_iter()
+            .filter(|(file, sha)| {
+                let path = Path::new(file);
+                match larsal_platform::macos::open_regular(&larsal_core::storage::real_path(path))
+                    .map_err(|e| larsal_format::Error::Io(e.kind()))
+                    .and_then(|f| larsal_format::detect::read_vault(f, &Limits::DEFAULT))
+                {
+                    Ok(bytes) => {
+                        if larsal_crypto::secret::ct_eq(&larsal_sync::sync::hash(&bytes), sha) {
+                            return false;
+                        }
+                    }
+                    // Gone or moved; any other read failure is for a moment.
+                    Err(larsal_format::Error::Io(kind)) if kind != std::io::ErrorKind::NotFound => {
+                        return false;
+                    }
+                    Err(_) => {}
+                }
+                !self.sync_download_open(path, sha)
+            })
+            .collect();
+        self.sync_drop_links(&stale);
+    }
+
+    /// Whether a vault unlocked now opened the downloaded bytes `sha` from the
+    /// file `path` (SYN-03.2: `adopt` takes its link at the next run).
+    fn sync_download_open(&self, path: &Path, sha: &[u8; 32]) -> bool {
+        let opened: Vec<u64> = self.sync_with(|i| {
+            i.vaults
+                .iter()
+                .filter(|(_, o)| {
+                    o.path == path
+                        && o.opened
+                            .is_some_and(|(opened, _)| larsal_crypto::secret::ct_eq(&opened, sha))
+                })
+                .map(|(id, _)| *id)
+                .collect()
+        });
+        // The session lock is taken outside the sync lock, a leaf.
+        opened
+            .into_iter()
+            .any(|id| self.with_open(id, |_, p, _| Ok(p == path)).unwrap_or(false))
+    }
+
+    /// Drops the links with no root yet of `stale` (file and downloaded SHA-256);
+    /// their pointers stay.
+    fn sync_drop_links(&self, stale: &[(String, [u8; 32])]) {
+        if stale.is_empty() {
+            return;
+        }
+        self.sync_with(|i| {
+            i.state.links.retain(|l| {
+                l.root != UNKNOWN_ROOT
+                    || !stale
+                        .iter()
+                        .any(|(f, s)| *f == l.file && larsal_crypto::secret::ct_eq(s, &l.local_sha))
+            });
+            i.save();
+        });
+    }
+
     fn sync_reserve(&self, claim: Claim) -> Result<Transfer<'_>, LarsalError> {
+        self.sync_drop_stale();
         let claim = Arc::new(claim);
         self.sync_with(|i| {
             if i.unavailable(&claim) || i.transfers.iter().any(|c| c.overlaps(&claim)) {
@@ -470,12 +735,343 @@ impl Session {
         })
     }
 
-    /// The vault `id` was saved: a run 2 s later (SYN-03.4).
+    /// SYN-03.1 step 2: keeps `part` in the device store (the login keychain
+    /// until W-02). Tests: a map, never a keychain (LD-317 (2)).
+    #[cfg(not(test))]
+    fn part_put(&self, label: &str, part: &SecretBytes) -> Result<(), KeyError> {
+        larsal_platform::device_key::part_put(label, part)
+    }
+
+    #[cfg(test)]
+    fn part_put(&self, label: &str, part: &SecretBytes) -> Result<(), KeyError> {
+        self.sync_with(|i| {
+            if i.store_refuses {
+                return Err(KeyError::Missing);
+            }
+            let bytes = SecretBytes::new(part.expose().to_vec());
+            i.device_store.insert(label.to_owned(), bytes);
+            Ok(())
+        })
+    }
+
+    #[cfg(not(test))]
+    fn part_get(&self, label: &str) -> Option<SecretBytes> {
+        PART_READ.get()?(label).ok()
+    }
+
+    /// Tests: `store_refuses` fails the read too, as a keychain that denies it.
+    #[cfg(test)]
+    fn part_get(&self, label: &str) -> Option<SecretBytes> {
+        self.sync_with(|i| {
+            i.device_store
+                .get(label)
+                .filter(|_| !i.store_refuses)
+                .map(|part| SecretBytes::new(part.expose().to_vec()))
+        })
+    }
+
+    #[cfg(not(test))]
+    fn part_keep(&self, label: &str, part: &SecretBytes) -> Result<(), KeyError> {
+        PART_KEEP.get().ok_or(KeyError::Missing)?(label, part)
+    }
+
+    #[cfg(test)]
+    fn part_keep(&self, label: &str, part: &SecretBytes) -> Result<(), KeyError> {
+        self.part_put(label, part)
+    }
+
+    #[cfg(not(test))]
+    fn part_remove(&self, label: &str) {
+        // ponytail: a part that macOS would not remove stays in the keychain,
+        // where nothing names it; a keychain clean-up can come with Stop syncing.
+        let _ = larsal_platform::device_key::part_remove(label);
+    }
+
+    #[cfg(test)]
+    fn part_remove(&self, label: &str) {
+        self.sync_with(|i| i.device_store.remove(label));
+    }
+
+    /// SYN-03.2: the key-file part of the file at `path`, when the state has a
+    /// pointer for that file and the device store the part.
+    pub(crate) fn sync_part(&self, path: &Path) -> Option<(KeyFileKey, String)> {
+        let file = path.to_string_lossy();
+        let label = self.sync_with(|i| {
+            let part = i.state.parts.iter().find(|p| p.file == file);
+            part.map(|p| p.label.clone())
+        })?;
+        let part = self.part_get(&label)?;
+        Some((part_key(&part)?, PART_NAME.to_owned()))
+    }
+
+    /// C1R3B-01: whether `key` is a key-file part this Mac keeps for the vault
+    /// `root`: its bytes equal, by a constant-time compare, a part the device
+    /// store holds under a label of that root, from a pointer or a link in the
+    /// sync state or from this Mac's vault state. So a Finder copy and a lost
+    /// sync state still find it; a key file this Mac never kept is none.
+    pub(crate) fn sync_root_part(&self, root: Uuid, key: &KeyFileKey) -> bool {
+        self.root_labels(root)
+            .iter()
+            .filter_map(|label| self.part_get(label).as_ref().and_then(part_key))
+            .any(|part| larsal_crypto::secret::ct_eq(part.key().expose(), key.key().expose()))
+    }
+
+    /// The labels this Mac knows for the vault `root`'s parts: its vault state's,
+    /// and the sync state's pointers and links.
+    fn root_labels(&self, root: Uuid) -> Vec<String> {
+        let mut labels = self.part_labels(root);
+        labels.extend(self.sync_with(|i| {
+            let pointers = i.state.parts.iter().filter(|p| p.root == root);
+            let links = i.state.links.iter().filter(|l| l.root == root);
+            pointers
+                .map(|p| p.label.clone())
+                .chain(links.map(|l| part_label(&l.server, l.vault_id)))
+                .collect::<Vec<_>>()
+        }));
+        labels.sort();
+        labels.dedup();
+        labels
+    }
+
+    /// SYN-03.12 (C1R4-04): whether the vault `root` has a part on this Mac that
+    /// the device store gives none of, so a sheet for any copy of it (a Finder
+    /// copy too) cannot check a typed key against the part.
+    pub(crate) fn sync_root_unread(&self, root: Uuid) -> bool {
+        let labels = self.root_labels(root);
+        !labels.is_empty() && labels.iter().all(|label| self.part_get(label).is_none())
+    }
+
+    /// SYN-03.12 (C1R4-01): whether `sha` is the SHA-256 of the bytes a link of
+    /// the file at `path` last synced. Those bytes went up keyed by the part, so a
+    /// key file that opens them with the typed factor is the part.
+    pub(crate) fn sync_last_synced(&self, path: &Path, sha: &[u8; 32]) -> bool {
+        let file = path.to_string_lossy();
+        self.sync_with(|i| last_synced(&i.state.links, &file, sha))
+    }
+
+    /// SYN-03.5 step 2 (C1R4-01): whether `key` is the part the device store
+    /// holds for the file at `path`, by a constant-time compare.
+    pub(crate) fn sync_is_part(&self, path: &Path, key: &KeyFileKey) -> bool {
+        self.sync_part(path).is_some_and(|part| {
+            larsal_crypto::secret::ct_eq(part.0.key().expose(), key.key().expose())
+        })
+    }
+
+    /// C1R3B-02, C1R4-01: the unlock `id` opened its linked file with a typed
+    /// factor and the typed key file `key` while the device store gave no part,
+    /// from the bytes a link of that file last synced: the key file is the part,
+    /// so the store keeps it again under the file's pointer.
+    pub(crate) fn sync_restore_part(&self, id: u64, key: &KeyFileKey) {
+        let label = self.sync_with(|i| {
+            let o = i.vaults.get(&id)?;
+            let file = o.path.to_string_lossy();
+            let ours = o
+                .opened
+                .is_some_and(|(sha, _)| last_synced(&i.state.links, &file, &sha));
+            let part = i.state.parts.iter().find(|p| p.file == file);
+            part.filter(|_| ours).map(|p| p.label.clone())
+        });
+        if let Some(label) = label.filter(|l| self.part_get(l).is_none()) {
+            // ponytail: a store that refuses the write leaves the unlock as it
+            // is; the next unlock with the saved key file tries again.
+            let _ = self.part_keep(&label, &SecretBytes::new(key.key().expose().to_vec()));
+        }
+    }
+
+    /// SYN-03.12 (C2bR3-1): whether `key`, given with no typed factor for a copy
+    /// of the vault `root` open from `path`, is the part alone of a vault with a
+    /// part: `path` has a pointer, or `key` is a part this Mac keeps for `root`.
+    pub(crate) fn sync_part_alone(
+        &self,
+        path: &Path,
+        root: Uuid,
+        key: Option<&KeyFileKey>,
+    ) -> bool {
+        key.is_some_and(|key| self.sync_has_part(path) || self.sync_root_part(root, key))
+    }
+
+    /// SYN-03.12 (C1-A1): whether the state has a key-file part pointer for the
+    /// file at `path`, linked or not.
+    pub(crate) fn sync_has_part(&self, path: &Path) -> bool {
+        let file = path.to_string_lossy();
+        self.sync_with(|i| i.state.parts.iter().any(|p| p.file == file))
+    }
+
+    /// SYN-03.12: the key file an unlock or a sheet uses for the file at `path`,
+    /// given `typed`, the one the user typed. A file no link names takes
+    /// `typed`, else its part when it has one. No sheet replaces the part of a
+    /// linked file: `typed` is taken only when it is the part (C1-A12,
+    /// `PART_OTHER`), and when the device store gives no part nothing is taken
+    /// (C1R2-02, `PART_UNREAD`): a typed key file cannot be checked, and a
+    /// password alone would give the vault a key without its part.
+    pub(crate) fn sync_sheet_key(
+        &self,
+        path: &Path,
+        typed: Option<(KeyFileKey, String)>,
+    ) -> Result<Option<(KeyFileKey, String)>, (&'static str, &'static str)> {
+        let file = path.to_string_lossy();
+        if !self.sync_with(|i| i.state.links.iter().any(|l| l.file == file)) {
+            return Ok(typed.or_else(|| self.sync_part(path)));
+        }
+        let Some(part) = self.sync_part(path) else {
+            return Err(PART_UNREAD);
+        };
+        match typed {
+            Some(t) if !larsal_crypto::secret::ct_eq(part.0.key().expose(), t.0.key().expose()) => {
+                Err(PART_OTHER)
+            }
+            typed => Ok(Some(typed.unwrap_or(part))),
+        }
+    }
+
+    /// Whether a link names the file `file` and the vault `root`.
+    pub(crate) fn sync_links_file(&self, file: &Path, root: Uuid) -> bool {
+        let file = file.to_string_lossy();
+        self.sync_with(|i| {
+            i.state
+                .links
+                .iter()
+                .any(|l| l.file == file && l.root == root)
+        })
+    }
+
+    /// Whether the open vault `vault` is linked (SYN-03.12).
+    pub(crate) fn sync_linked(&self, vault: u64) -> bool {
+        self.with_open(vault, |v, path, _| Ok((path.to_path_buf(), v.root.uuid)))
+            .is_ok_and(|(path, root)| self.sync_links_file(&path, root))
+    }
+
+    /// LD-267 (2): the keys this Mac retired from the server vault `root`.
+    pub(crate) fn sync_retired(&self, root: Uuid) -> Vec<Record> {
+        self.sync_with(|i| i.state.retired.get(&root).cloned().unwrap_or_default())
+    }
+
+    /// LD-267 (2): this Mac retired a key of the vault `root`, kept in the state
+    /// when that vault has a part or a link. Earlier ones come at the link.
+    pub(crate) fn sync_retire(&self, root: Uuid, record: &Record) {
+        self.sync_with(|i| {
+            let ours = i.state.links.iter().any(|l| l.root == root)
+                || i.state.parts.iter().any(|p| p.root == root);
+            if ours && i.state.keep_retired(root, std::slice::from_ref(record)) {
+                i.save();
+            }
+        });
+    }
+
+    /// SYN-03.1 steps 1 and 2, LD-427. The vault's `F` goes to the device store
+    /// under `label` and its place to the state, before anything of the vault
+    /// changes. A vault with a key file keeps it, with its name, its key and
+    /// its `MasterKeyChanged`; any other gets a random 32-byte part through the
+    /// credential change (MOD-12.10), and the key it had is retired. Field 12
+    /// goes. The vault saves when either changed it; with neither, its file
+    /// stays as it is.
+    fn sync_key_part(
+        &self,
+        vault: u64,
+        file: String,
+        root: Uuid,
+        label: String,
+    ) -> Result<(), LarsalError> {
+        let saver = self
+            .with_edit_view(vault, |_, s| s.saver.clone())?
+            .ok_or(LarsalError::Locked)?;
+        let mut sv = crate::saving::locked(&saver);
+        let fresh = sv.key_file.is_none();
+        let part = match &sv.key_file {
+            Some(key) => SecretBytes::new(key.key().expose().to_vec()),
+            None => larsal_crypto::random::bytes(32)
+                .map_err(|_| refused("The random source failed. Try again."))?,
+        };
+        let key = part_key(&part).ok_or_else(|| refused("The key part could not be made."))?;
+        self.part_put(&label, &part)
+            .map_err(|_| refused("macOS could not keep this vault's key part. Nothing changed."))?;
+        let replaced = self.sync_with(|i| {
+            i.keep_part(Part {
+                file,
+                root,
+                label: label.clone(),
+            })
+        });
+        let replaced = match replaced {
+            Ok(replaced) => replaced,
+            Err(e) => {
+                self.part_remove(&label);
+                return Err(e);
+            }
+        };
+        for old in replaced {
+            self.part_remove(&old);
+        }
+        self.keep_part_label(root, &label);
+        // MOD-11.31: as `change_key`, none while an earlier change is unsaved.
+        let pending = self.with_edit_view(vault, |_, s| s.disk.new_key)?;
+        let retiring = if fresh && !pending {
+            Some(self.record_of(&sv)?)
+        } else {
+            None
+        };
+        let changes = Changes {
+            key: Some(KeyChange {
+                password: PasswordPart::Untouched,
+                had_password: sv.password.is_some(),
+                key_file: true,
+                hardware: sv.hardware.is_some(),
+                min_quality: wizard::min_quality(self),
+            }),
+            confirmed: wizard::confirms(&[Answer::NoPassword]),
+            ..Changes::default()
+        };
+        // LD-264: past every key time this Mac has seen for the vault.
+        let floor = self.key_floor(root);
+        let save = self.with_edit(vault, |v, _, _, s| {
+            crate::saving::same(s, &saver)?;
+            let mut save = !v.public_custom_data.is_empty();
+            v.public_custom_data.clear();
+            if fresh {
+                // MOD-13.11 (C1-A15): the part is no change the user confirmed,
+                // so a forced key change set before it stays.
+                let forced = v.meta.master_key_change_force_once;
+                let mut host = self.host.lock().unwrap_or_else(PoisonError::into_inner);
+                settings::apply(
+                    v,
+                    &changes,
+                    &mut host,
+                    &Limits::DEFAULT.kdf,
+                    crate::views::now(),
+                )
+                .map_err(|_| refused("The vault's key could not be changed. Nothing changed."))?;
+                drop(host);
+                v.meta.master_key_change_force_once = forced;
+                v.meta.master_key_changed = v.meta.master_key_changed.max(floor);
+                s.set_key(&mut sv, None, Some(Some((key, PART_NAME.to_owned()))));
+                save = true;
+            }
+            if save {
+                s.changes = s.changes.max(1);
+            }
+            Ok(save)
+        })?;
+        drop(sv);
+        if let Some(record) = retiring {
+            self.retire(root, record);
+        }
+        self.refresh_look(vault);
+        if save && self.save_to(vault, None)?.changes > 0 {
+            return Err(refused(
+                "The vault could not be saved. Nothing was uploaded.",
+            ));
+        }
+        Ok(())
+    }
+
+    /// The vault `id` was saved: a run 2 s later (SYN-03.4). A save after
+    /// Merge anyway's measures them as the vault holds them (C1-A7b).
     pub(crate) fn sync_saved(&self, id: u64) {
         let mut i = self.sync.inner();
         let now = i.clock.now_ms();
         if let Some(o) = i.vaults.get_mut(&id) {
             o.schedule.saved(now);
+            o.answered = None;
         }
     }
 
@@ -509,22 +1105,18 @@ impl Session {
 
     /// One run for vault `id` when it is linked.
     fn sync_run(&self, id: u64) {
-        let (link, pending) = self.sync_with(|i| {
-            let Some(open) = i.vaults.get(&id) else {
-                return (None, None);
-            };
-            let link = i.link_of(open).map(|n| i.state.links[n].clone());
-            let pending = link
-                .is_none()
-                .then(|| i.pending.iter().find(|p| p.path == open.path).cloned())
-                .flatten();
-            (link, pending)
+        self.sync_drop_stale();
+        // LD-267 (2): read before the sync lock, which is a leaf.
+        let records = self
+            .sync
+            .root(id)
+            .map(|root| self.retired_records(root))
+            .unwrap_or_default();
+        let link = self.sync_with(|i| {
+            let open = i.vaults.get(&id)?;
+            let n = i.link_of(open).or_else(|| i.adopt(id, &records))?;
+            Some(i.state.links[n].clone())
         });
-        let link = match (link, pending) {
-            (Some(link), _) => Some(link),
-            (None, Some(p)) => self.sync_link_download(id, &p),
-            (None, None) => None,
-        };
         let Some(mut link) = link else {
             self.sync_with(|i| {
                 if let Some(o) = i.vaults.get_mut(&id) {
@@ -534,6 +1126,8 @@ impl Session {
             });
             return;
         };
+        // C1R3B-01: vault-state names the part too, for a lost sync state.
+        self.keep_part_label(link.root, &part_label(&link.server, link.vault_id));
         let stopped = self.sync_with(|i| {
             #[cfg(test)]
             {
@@ -564,6 +1158,11 @@ impl Session {
                 },
             }
         };
+        // SYN-03.8: the password given is for this run only.
+        let _ = self.with_draft_state(id, |_, s| {
+            s.sync_given = None;
+            Ok(())
+        });
         self.sync_with(|i| {
             if report.messages.contains(&Message::CertChanged) {
                 i.stopped.insert(link.server.clone());
@@ -571,12 +1170,18 @@ impl Session {
             i.write_back(link);
             if let Some(o) = i.vaults.get_mut(&id) {
                 o.schedule.finished();
+                let asked = std::mem::take(&mut o.asked);
                 if std::mem::take(&mut o.left) {
                     return;
                 }
                 if let Some(Status::Synced(t)) = report.status {
                     o.synced_at = Some(t);
+                    o.answered = None;
                 }
+                // SYN-03.8: a 60-second tick does not show the sheet again.
+                let was = o.report.as_ref().and_then(|old| old.status);
+                o.ask_key = report.status == Some(Status::NeedsPassword)
+                    && (asked || was != Some(Status::NeedsPassword));
                 if report.status.is_some() || !report.messages.is_empty() {
                     let status = report
                         .status
@@ -589,52 +1194,6 @@ impl Session {
                 }
             }
         });
-    }
-
-    /// SYN-03.2: the downloaded vault `p` was unlocked as vault `id`: its
-    /// link is written when the file is still the downloaded one.
-    fn sync_link_download(&self, id: u64, p: &Pending) -> Option<Link> {
-        let (bytes, seen) = self.sync_read(id)?.ok()?;
-        if !larsal_crypto::secret::ct_eq(&larsal_sync::sync::hash(&bytes), &p.sha) {
-            return None;
-        }
-        let root = self.with_vault(id, |v| Ok(v.root.uuid)).ok()?;
-        let link = Link {
-            server: p.server.clone(),
-            vault_id: p.vault_id,
-            file: p.path.to_string_lossy().into_owned(),
-            root,
-            highest: p.version,
-            server_sha: p.sha,
-            local_sha: p.sha,
-            seen,
-        };
-        self.sync_with(|i| {
-            let at = i.pending.iter().position(|q| {
-                q.server == p.server
-                    && q.vault_id == p.vault_id
-                    && q.path == p.path
-                    && q.version == p.version
-                    && larsal_crypto::secret::ct_eq(&q.sha, &p.sha)
-            })?;
-            i.pending.remove(at);
-            if i.state.links.iter().any(|l| {
-                (l.server == p.server && l.vault_id == p.vault_id)
-                    || l.file == link.file
-                    || l.root == root
-            }) || i.transfers.iter().any(|c| {
-                c.path == p.path
-                    || c.root == Some(root)
-                    || c.remote
-                        .as_ref()
-                        .is_some_and(|(server, id)| server == &p.server && *id == p.vault_id)
-            }) {
-                return None;
-            }
-            i.state.links.push(link.clone());
-            i.save();
-            Some(link)
-        })
     }
 
     fn sync_view(&self, id: u64, open: &Open, address: Option<&str>) -> Option<SyncState> {
@@ -663,6 +1222,7 @@ impl Session {
                 .flat_map(|r| r.messages.iter())
                 .map(|m| message(m, &name, address))
                 .collect(),
+            ask_key: open.ask_key,
         })
     }
 }
@@ -753,14 +1313,18 @@ impl Session {
         Ok(())
     }
 
-    /// SYN-03.1 step 3: uploads the saved vault `vault` to the server at
-    /// `address` with `If-None-Match: *` under a new `vault_id`, and links
-    /// it. The key-file part of steps 1 and 2 comes with E16-S7b.
+    /// SYN-03.1: gives the saved vault `vault` its key-file part (P7) and takes
+    /// its field 12 away (LD-427), saving it when either changed it, then
+    /// uploads it to the server at `address` with `If-None-Match: *` under a new
+    /// `vault_id`, and links it. Runs the KDF: call it off the main thread. A
+    /// failed upload leaves the vault with its part, in the device store: it
+    /// opens as before, and the next try sends the same part.
     ///
     /// # Errors
     /// `Refused` when the vault has unsaved changes or is linked, its file
-    /// fails SYN-03.5 step 2 (`MSG-SYNC-LOCAL-FILE`, `MSG-SYNC-SAVE-FIRST`), or
-    /// the upload failed (nothing is linked then).
+    /// fails SYN-03.5 step 2 (`MSG-SYNC-LOCAL-FILE`, `MSG-SYNC-SAVE-FIRST`):
+    /// nothing changed then; when the device store or the state refuses the
+    /// part, or the upload failed: nothing is linked then.
     pub fn sync_put_vault(&self, vault: u64, address: String) -> Result<SyncState, LarsalError> {
         let (base, _) =
             client::parse_address(&address).ok_or_else(|| failure(Fail::Address, &address))?;
@@ -768,26 +1332,40 @@ impl Session {
         let file = path.to_string_lossy().into_owned();
         let identity = storage::file_id(&path)
             .map_err(|_| refused("The local vault file is unavailable. Try again."))?;
-        let (bytes, seen) = self
-            .sync_read(vault)
-            .ok_or_else(|| refused("Save the vault first, then try again."))?
-            .map_err(|Unproven(message)| refused(message.text("", "")))?;
+        let unproven = |read: Option<Result<(Vec<u8>, Measures), Unproven>>| {
+            read.ok_or_else(|| refused("Save the vault first, then try again."))?
+                .map_err(|Unproven(message)| refused(message.text("", "")))
+        };
+        // Before the vault's key changes: a file that may not go up changes nothing.
+        unproven(self.sync_read_file(vault, false))?;
         #[cfg(test)]
         tests::download_started();
         let transfer = self.sync_reserve(Claim {
             path: path.clone(),
             root: Some(root),
             remote: None,
+            replaces: Vec::new(),
         })?;
         if storage::file_id(&path) != Ok(identity) {
             return Err(refused("The local vault file changed. Try again."));
         }
         let client = self.sync_client(&base)?;
+        let mut id = [0u8; 16];
+        larsal_crypto::random::fill(&mut id)
+            .map_err(|_| refused("The random source failed. Try again."))?;
+        let vault_id = VaultId::from_bytes(id);
+        self.sync_key_part(vault, file.clone(), root, part_label(&base, vault_id))?;
+        #[cfg(test)]
+        tests::put_keyed();
+        let identity = storage::file_id(&path)
+            .map_err(|_| refused("The local vault file is unavailable. Try again."))?;
+        let (bytes, seen) = unproven(self.sync_read(vault))?;
         let mut c = client.lock().unwrap_or_else(PoisonError::into_inner);
-        let (vault_id, version) =
-            larsal_sync::sync::first_upload(&mut c, &bytes).map_err(|r| report_error(&r, &base))?;
+        let version = larsal_sync::sync::first_upload(&mut c, &vault_id, &bytes)
+            .map_err(|r| report_error(&r, &base))?;
         drop(c);
         let sha = larsal_sync::sync::hash(&bytes);
+        let records = self.retired_records(root);
         let link = Link {
             server: base,
             vault_id,
@@ -814,6 +1392,7 @@ impl Session {
                 ));
             }
             transfer.release(i);
+            i.state.keep_retired(root, &records);
             i.state.links.push(link);
             i.save();
             let now = i.clock.now_ms();
@@ -829,6 +1408,7 @@ impl Session {
                 status: SyncStatus::Synced,
                 synced_at: open.map(|()| now),
                 messages: Vec::new(),
+                ask_key: false,
             })
         })
     }
@@ -848,6 +1428,7 @@ impl Session {
             .unwrap_or_else(PoisonError::into_inner)
             .list()
             .map_err(|f| failure(f, &base))?;
+        self.sync_drop_stale();
         Ok(self.sync_with(|i| {
             let links: Vec<Link> = i
                 .state
@@ -878,8 +1459,12 @@ impl Session {
     }
 
     /// SYN-03.2: downloads the server vault `vault_id` to `path`, which the
-    /// save panel gave; never over an existing file (mode 0600). The vault
-    /// is linked when that file is unlocked in this session.
+    /// save panel gave; never over an existing file (mode 0600). Its link and
+    /// its key-file part's pointer are written to the state at once, so the file
+    /// opens after a restart too; the link takes the vault's root at the first
+    /// run after an unlock of the downloaded bytes (F-288). A download whose
+    /// bytes have more than the file's frame (SYN-03 T64) gets the pointer only:
+    /// it opens and is not linked.
     ///
     /// # Errors
     /// `Refused` when the download fails or the file exists.
@@ -905,10 +1490,26 @@ impl Session {
             .zip(chosen.file_name())
             .map(|(parent, name)| parent.join(name))
             .ok_or_else(|| refused("The destination folder is unavailable."))?;
+        // C1R3B-02: a link with no root yet of this server vault blocks no new
+        // download unless a vault unlocked now opened its bytes (F-284): the new
+        // download replaces it once it commits (C1R4-03); its pointer stays.
+        let waiting: Vec<(String, [u8; 32])> = self.sync_with(|i| {
+            i.state
+                .links
+                .iter()
+                .filter(|l| l.root == UNKNOWN_ROOT && l.server == base && l.vault_id == id)
+                .map(|l| (l.file.clone(), l.local_sha))
+                .collect()
+        });
+        let replaces: Vec<(String, [u8; 32])> = waiting
+            .into_iter()
+            .filter(|(file, sha)| !self.sync_download_open(Path::new(file), sha))
+            .collect();
         let transfer = self.sync_reserve(Claim {
             path: path.clone(),
             root: None,
             remote: Some((base.clone(), id)),
+            replaces,
         })?;
         #[cfg(test)]
         tests::download_started();
@@ -959,12 +1560,23 @@ impl Session {
                 "The downloaded vault was replaced. Nothing was linked.",
             ));
         }
-        let pending = Pending {
-            server: base,
+        let sha = larsal_sync::sync::hash(&r.body);
+        let file = real.to_string_lossy().into_owned();
+        let framed = larsal_format::integrity::exact_frame(&r.body, &Limits::DEFAULT);
+        let link = Link {
+            server: base.clone(),
             vault_id: id,
-            path: real,
-            version,
-            sha: larsal_sync::sync::hash(&r.body),
+            file: file.clone(),
+            root: UNKNOWN_ROOT,
+            highest: version,
+            server_sha: sha,
+            local_sha: sha,
+            // Nothing seen yet: the first run's unlock gives the measures.
+            seen: Measures {
+                newest: Time(0),
+                version: FileVersion { major: 4, minor: 0 },
+                kdf: Kdf::AesKdf { rounds: 0 },
+            },
         };
         // A failed or cancelled write leaves its file for the user; never unlink a replacement.
         let result = self.sync_with(|i| {
@@ -974,7 +1586,17 @@ impl Session {
                 ));
             }
             transfer.release(i);
-            i.pending.push(pending);
+            i.state.links.retain(|l| !transfer.claim.replaces(l));
+            i.state.parts.retain(|p| p.file != file);
+            i.state.parts.push(Part {
+                file,
+                root: UNKNOWN_ROOT,
+                label: part_label(&base, id),
+            });
+            if framed {
+                i.state.links.push(link);
+            }
+            i.save();
             Ok(())
         });
         #[cfg(test)]
@@ -993,15 +1615,137 @@ impl Session {
         self.sync_with(|i| {
             i.vaults
                 .get_mut(&vault)
-                .map(|o| o.schedule.sync_now())
+                .map(|o| {
+                    o.schedule.sync_now();
+                    o.asked = true;
+                })
                 .ok_or(LarsalError::UnknownVault)
         })
+    }
+
+    /// SYN-03.8, the sheet's Open: the next tick's run opens the server copy with
+    /// `password` and this vault's key-file part and hardware key. Its status
+    /// and messages say what came of it: `MSG-SYNC-OTHER-KEY` again,
+    /// `MSG-SYNC-OLD-KEY`, `MSG-SYNC-OTHER-VAULT`, or Synced. The password goes
+    /// into a secret type at once and lives until that run ends or the vault
+    /// locks. Cancel calls nothing.
+    ///
+    /// # Errors
+    /// `UnknownVault`, `Locked`, `TooLong`.
+    pub fn sync_open_copy(&self, vault: u64, password: String) -> Result<(), LarsalError> {
+        let password = SecretString::new(password);
+        if password.len() > crate::session::MAX_TEXT {
+            return Err(LarsalError::TooLong);
+        }
+        self.with_draft_state(vault, |_, s| {
+            s.sync_given = Some(password);
+            Ok(())
+        })?;
+        self.sync_now(vault)
+    }
+
+    /// SYN-03.9, the answer to `MSG-SYNC-OLD-KEY`. Skip (`merge_anyway` false)
+    /// takes nothing of the copy; Merge anyway runs the content merge and saves.
+    /// Either way the vault keeps this Mac's key, and the next tick's run uploads
+    /// the vault over that copy's version. Runs the KDF with Merge anyway: call
+    /// it off the main thread.
+    ///
+    /// # Errors
+    /// `UnknownVault`, `Locked`; `Refused` when no copy waits, the vault is not
+    /// linked, or the merge or its save failed: nothing goes up then.
+    pub fn sync_old_key(&self, vault: u64, merge_anyway: bool) -> Result<(), LarsalError> {
+        let before = self.with_vault(vault, |v| Ok(measures(v)))?;
+        let (version, sha) = self.answer_old_key(vault, merge_anyway)?;
+        self.sync_with(|i| {
+            let open = i.vaults.get(&vault).ok_or(LarsalError::UnknownVault)?;
+            let n = i
+                .link_of(open)
+                .ok_or_else(|| refused("This vault is not on a server."))?;
+            // The copy's own measures are not recorded: they may be planted.
+            let link = &mut i.state.links[n];
+            if version >= link.highest {
+                link.highest = version;
+                link.server_sha = sha;
+            }
+            // The server does not hold this Mac's content: the next run uploads.
+            link.local_sha = [0; 32];
+            i.save();
+            if let Some(o) = i.vaults.get_mut(&vault) {
+                o.schedule.sync_now();
+                o.report = Some(Report {
+                    status: Some(Status::Syncing),
+                    messages: Vec::new(),
+                });
+                // C1-A7b: the copy's times reach no link record.
+                o.answered = merge_anyway.then_some(before);
+            }
+            Ok(())
+        })
+    }
+
+    /// SYN-03.12: Save as key file. Writes the key-file part of a vault that is
+    /// linked or has a part kept for sync (a first upload that failed) at
+    /// `path` from the save panel, in the XML 2.0 layout of FMT-18.20, mode
+    /// 0400, never over a file (FMT-18.22), and reads it back (FMT-18.23).
+    ///
+    /// # Errors
+    /// `UnknownVault`, `Locked`, `TooLong`; `Refused` when the vault has no
+    /// part kept for sync.
+    pub fn sync_save_part(&self, vault: u64, path: String) -> Result<Outcome, LarsalError> {
+        if path.len() > 4096 {
+            return Err(LarsalError::TooLong);
+        }
+        let file = self.with_open(vault, |_, p, _| Ok(p.to_path_buf()))?;
+        if !self.sync_linked(vault) && !self.sync_has_part(&file) {
+            return Err(refused("This vault is not on a server."));
+        }
+        let saver = self
+            .with_edit_view(vault, |_, s| s.saver.clone())?
+            .ok_or(LarsalError::Locked)?;
+        let part = crate::saving::locked(&saver)
+            .key_file
+            .as_ref()
+            .map(KeyFileKey::duplicate)
+            .ok_or_else(|| refused("This vault is not on a server."))?;
+        let bytes: &[u8; 32] = part
+            .key()
+            .expose()
+            .try_into()
+            .map_err(|_| refused("The key part could not be read."))?;
+        Ok(
+            match wizard::write_key_file(Path::new(&path), Some(bytes)) {
+                Ok((written, _))
+                    if larsal_crypto::secret::ct_eq(
+                        written.key().expose(),
+                        part.key().expose(),
+                    ) =>
+                {
+                    Outcome::Done
+                }
+                Ok(_) => {
+                    let _ = std::fs::remove_file(&path);
+                    wizard::refused("M07-25", "The key file did not read back the same.")
+                }
+                Err(outcome) => outcome,
+            },
+        )
+    }
+
+    /// SYN-03.2: connects the device store for the unlocks of linked vaults. Call
+    /// it once at launch, before the first unlock; the first
+    /// [`Session::sync_tick`] does it too. Before it, a linked vault does not open.
+    pub fn sync_start(&self) {
+        #[cfg(not(test))]
+        let _ = PART_READ.set(larsal_platform::device_key::part_get);
+        #[cfg(not(test))]
+        let _ = PART_KEEP.set(larsal_platform::device_key::part_put);
     }
 
     /// Runs every run that is due now (SYN-03.4), one after another, and
     /// gives every linked open vault's state. Call it off the main thread,
     /// about once a second.
     pub fn sync_tick(&self) -> Vec<SyncState> {
+        self.sync_start();
         let ids: Vec<u64> = self.sync_with(|i| i.vaults.keys().copied().collect());
         // SYN-03.4: busy is read from the session before the sync lock.
         let busy: Vec<(u64, bool)> = ids
@@ -1042,7 +1786,10 @@ impl Session {
                     let open = i.vaults.get(&id)?;
                     let n = i.link_of(open)?;
                     let address = i.state.links[n].server.clone();
-                    self.sync_view(id, open, Some(&address))
+                    let view = self.sync_view(id, open, Some(&address))?;
+                    // SYN-03.8: the sheet is asked for once.
+                    i.vaults.get_mut(&id)?.ask_key = false;
+                    Some(view)
                 })
                 .collect()
         })

@@ -20,9 +20,10 @@
 
 use crate::Error;
 use crate::merge::{Kind, Merged, Options};
-use larsal_crypto::kdf::{Host, KdfParams};
+use larsal_crypto::kdf::{Argon2Type, Host, KdfParams};
 use larsal_format::keys::{Credentials, TransformedKey};
 use larsal_format::limits::Limits;
+use larsal_model::json::{Map, Value};
 
 /// One key this Mac retired.
 #[derive(Clone, PartialEq, Eq)]
@@ -162,4 +163,106 @@ pub fn is_retired(
 pub fn replaced_by_merge(o: &Options, merged: &Merged, other_key: bool) -> bool {
     let own_is_source = matches!(o.kind, Kind::ChangeOnDisk | Kind::ServerSync);
     other_key && !o.dry_run && !o.retired && merged.key_taken != own_is_source
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn unhex(text: &str) -> Option<Vec<u8>> {
+    if !text.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..text.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(text.get(i..i.checked_add(2)?)?, 16).ok())
+        .collect()
+}
+
+fn unhex32(v: &Value) -> Option<[u8; 32]> {
+    <[u8; 32]>::try_from(unhex(v.as_str()?)?).ok()
+}
+
+fn params_json(k: &KdfParams) -> Value {
+    let mut m = Map::new();
+    match k {
+        KdfParams::AesKdf { rounds, seed } => {
+            m.insert("aes".into(), (*rounds).into());
+            m.insert("seed".into(), hex(seed).into());
+        }
+        KdfParams::Argon2 {
+            kind,
+            version,
+            iterations,
+            memory_kib,
+            lanes,
+            salt,
+        } => {
+            let name = if *kind == Argon2Type::D { "d" } else { "id" };
+            m.insert("argon2".into(), name.into());
+            m.insert("v".into(), (*version).into());
+            m.insert("i".into(), (*iterations).into());
+            m.insert("m".into(), (*memory_kib).into());
+            m.insert("p".into(), (*lanes).into());
+            m.insert("salt".into(), hex(salt).into());
+        }
+    }
+    Value::Object(m)
+}
+
+fn params_of(v: &Value) -> Option<KdfParams> {
+    if let Some(rounds) = v["aes"].as_u64() {
+        return Some(KdfParams::AesKdf {
+            rounds,
+            seed: unhex(v["seed"].as_str()?)?,
+        });
+    }
+    Some(KdfParams::Argon2 {
+        kind: match v["argon2"].as_str()? {
+            "d" => Argon2Type::D,
+            "id" => Argon2Type::Id,
+            _ => return None,
+        },
+        version: v["v"].as_u64()?,
+        iterations: v["i"].as_u64()?,
+        memory_kib: v["m"].as_u64()?,
+        lanes: v["p"].as_u64()?,
+        salt: unhex(v["salt"].as_str()?)?,
+    })
+}
+
+/// `r` as the JSON record both local state files keep (MOD-11.31, SYN-03.3).
+#[must_use]
+pub fn record_json(r: &Record) -> Value {
+    let mut o = Map::new();
+    o.insert("salt".into(), hex(&r.salt).into());
+    o.insert("digest".into(), hex(&r.digest).into());
+    if let Some(a) = r.alone {
+        o.insert("alone".into(), hex(&a).into());
+    }
+    o.insert("kdf".into(), params_json(&r.kdf));
+    o.insert("v4".into(), r.v4.into());
+    Value::Object(o)
+}
+
+/// The record of [`record_json`]; `None` for a key or value it does not know.
+#[must_use]
+pub fn record_of_json(v: &Value) -> Option<Record> {
+    let known = ["salt", "digest", "alone", "kdf", "v4"];
+    if !v
+        .as_object()
+        .is_some_and(|m| m.keys().all(|k| known.contains(&k.as_str())))
+    {
+        return None;
+    }
+    Some(Record {
+        salt: unhex32(&v["salt"])?,
+        digest: unhex32(&v["digest"])?,
+        alone: match &v["alone"] {
+            Value::Null => None,
+            a => Some(unhex32(a)?),
+        },
+        kdf: params_of(&v["kdf"])?,
+        v4: v["v4"].as_bool()?,
+    })
 }

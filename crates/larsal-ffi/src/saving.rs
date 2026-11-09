@@ -191,7 +191,7 @@ enum Wrote {
 /// key file with its name.
 type NewKey = (Option<SecretString>, Option<(KeyFileKey, String)>);
 
-fn locked(m: &Mutex<Saver>) -> MutexGuard<'_, Saver> {
+pub(crate) fn locked(m: &Mutex<Saver>) -> MutexGuard<'_, Saver> {
     m.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
@@ -216,6 +216,16 @@ pub(crate) fn sync_busy(s: &EditState, share: &crate::share::State) -> bool {
         || s.disk.asked.is_some()
         || s.disk.ignore
         || s.held.is_some()
+        || s.sync_held.is_some()
+}
+
+/// SYN-03.9: a server copy under a key this Mac retired, with the version and
+/// the hash its answer records.
+#[cfg(feature = "sync")]
+pub(crate) struct SyncHeld {
+    copy: Box<Vault>,
+    version: u64,
+    sha: [u8; 32],
 }
 
 /// `MSG-SAVE-FAILED`'s reason in plain words, from the system's error kind
@@ -467,7 +477,7 @@ impl Session {
             .mode(0o700)
             .create(&dir)
             .is_ok()
-            && self.build(sv, copy).is_some_and(|file| {
+            && self.build(sv, copy, path).is_some_and(|file| {
                 let temp = std::env::temp_dir();
                 storage::save(&SaveRequest::plain(&target, &file.bytes, None, &temp)).is_ok()
             });
@@ -500,7 +510,26 @@ impl Session {
 
     /// The file of `copy` under the vault's current key, with the save lock
     /// `sv` held; `None` when it cannot be built.
-    fn build(&self, sv: &Saver, copy: &Vault) -> Option<Box<larsal_format::SavedFile>> {
+    ///
+    /// LD-427: the file of a linked vault (`file` is its link's) has no field 12.
+    fn build(
+        &self,
+        sv: &Saver,
+        copy: &Vault,
+        file: &Path,
+    ) -> Option<Box<larsal_format::SavedFile>> {
+        #[cfg(feature = "sync")]
+        let stripped = (!copy.public_custom_data.is_empty()
+            && self.sync_links_file(file, copy.root.uuid))
+        .then(|| {
+            let mut stripped = copy.duplicate();
+            stripped.public_custom_data.clear();
+            stripped
+        });
+        #[cfg(feature = "sync")]
+        let copy = stripped.as_ref().unwrap_or(copy);
+        #[cfg(not(feature = "sync"))]
+        let _ = file;
         // F-107: the kept key is asked again with the new seed (FMT-04.10).
         let part = sv.hardware.map(crate::hwkey::Choice::part);
         let credentials = Credentials {
@@ -542,7 +571,7 @@ impl Session {
         disk: Disk,
         (save_as, method): (bool, Method),
     ) -> Wrote {
-        let Some(file) = self.build(sv, copy) else {
+        let Some(file) = self.build(sv, copy, target) else {
             return Wrote::Failed("The vault file could not be built.".to_owned(), None);
         };
         let settings = &self.settings;
@@ -728,6 +757,32 @@ impl Session {
                 }
                 None => return unreadable(self, &mut sv),
             }
+            // SYN-03.12 (C2bR3-1): a vault with a part keeps a typed factor, so a
+            // version given the part alone gets the content merge only, the open
+            // vault the target, as Merge anyway (`resolve_old_key`), and the
+            // vault keeps its key.
+            #[cfg(feature = "sync")]
+            if matches!(&new_key, Some((None, Some(_))))
+                && sv.hardware.is_none()
+                && self.sync_part_alone(&path, root, credentials.key_file)
+            {
+                let merged = self.with_closed_editors(vault, |v, rated, s| {
+                    same(s, &saver)?;
+                    let o = Options {
+                        retired: true,
+                        ..Options::new(Kind::ChangeOnDisk)
+                    };
+                    merge(v, &disk_vault, &o, now()).map_err(|e| crate::edit::refused(&e))?;
+                    *rated = Rated::default();
+                    s.disk.ignore = true;
+                    s.changes = s.changes.max(1);
+                    Ok(())
+                })?;
+                if merged.is_none() {
+                    return busy(&mut sv);
+                }
+                return Err(LarsalError::Refused(crate::sync::TYPED_KEPT.1.to_owned()));
+            }
             // The record of this Mac's key, made now, off the session lock:
             // kept if the merge gives the vault the disk copy's key.
             retiring = Some(self.record_of(&sv)?);
@@ -875,6 +930,9 @@ impl Session {
     ///
     /// `approve` runs an ask-band cost with no question: only for the
     /// vault's own file, never for a conflict copy nobody chose (F-219).
+    ///
+    /// LD-264: the key time of what opened counts as seen for its root, so a
+    /// later key change on this Mac goes past it.
     #[allow(clippy::option_option)]
     pub(crate) fn open_bytes(
         &self,
@@ -886,30 +944,74 @@ impl Session {
         let mut run = |approval: Option<&larsal_crypto::kdf::CostReport>| {
             larsal_format::open(bytes, credentials, &mut host, &Limits::DEFAULT, approval)
         };
-        match match run(None) {
+        let result = match run(None) {
             Ok(Opened::Ask(report)) if approve => run(Some(&report)),
             other => other,
-        } {
-            Ok(Opened::Vault(opened)) => Some(Ok(opened)),
+        };
+        drop(host);
+        match result {
+            Ok(Opened::Vault(opened)) => {
+                self.key_seen(opened.vault.root.uuid, opened.vault.meta.master_key_changed);
+                Some(Ok(opened))
+            }
             Err(larsal_format::Error::WrongKey) => Some(Err(())),
             _ => None,
         }
     }
 
     /// MOD-11.31: whether `credentials`, given for a copy of the vault
-    /// `root`, match a key this Mac retired; `None` when the key work
-    /// failed (the caller merges nothing). Runs the KDF once per record.
+    /// `root`, match a key this Mac retired; `None` when the key work failed
+    /// (the caller merges nothing). Runs the KDF once per record. One check for
+    /// the server copy, the copy sheet and the disk sheet (C2R2-1). LD-267 (2)
+    /// (C2-4): this Mac's vault-state records and the sync state's, so a key
+    /// whose record reached only one of the two files still counts. C1-A28: a
+    /// given key file that is a part this Mac keeps for `root` (its bytes, so on
+    /// a Finder copy and with the sync state lost too: C1R3B-01) is tried
+    /// without it too, since a key retired before the part came has no part in
+    /// its record. Any other key file never is (C1R3B-05).
     pub(crate) fn is_retired_copy(
         &self,
         root: larsal_model::Uuid,
         credentials: &Credentials<'_>,
     ) -> Option<bool> {
         let records = self.retired_records(root);
+        #[cfg(feature = "sync")]
+        let records = {
+            let mut records = records;
+            for r in self.sync_retired(root) {
+                if !records.contains(&r) {
+                    records.push(r);
+                }
+            }
+            records
+        };
+        let with = self.matches_retired(&records, credentials)?;
+        #[cfg(feature = "sync")]
+        if !with
+            && let Some(key) = credentials.key_file
+            && self.sync_root_part(root, key)
+        {
+            let without = Credentials {
+                key_file: None,
+                ..*credentials
+            };
+            return self.matches_retired(&records, &without);
+        }
+        Some(with)
+    }
+
+    /// Whether `credentials` match one of `records`; `None` when the key work
+    /// failed. Runs the KDF once per record until a match.
+    fn matches_retired(
+        &self,
+        records: &[larsal_core::retired::Record],
+        credentials: &Credentials<'_>,
+    ) -> Option<bool> {
         if records.is_empty() {
             return Some(false);
         }
         let mut host = self.host.lock().unwrap_or_else(PoisonError::into_inner);
-        larsal_core::retired::is_retired(&records, credentials, &mut host, &Limits::DEFAULT).ok()
+        larsal_core::retired::is_retired(records, credentials, &mut host, &Limits::DEFAULT).ok()
     }
 
     /// MOD-11.31, LD-288 (2): the record of the key `sv` holds, with the
@@ -954,10 +1056,27 @@ impl Session {
     /// A refusal changes nothing the disk check reads, so its event still
     /// comes. `None` too for a run that began on a file the vault has left
     /// with Save As, or before an unlock (SYN-03 T51, T61).
+    ///
+    /// SYN-03.1 step 1, LD-427: `Some(Err)` with `MSG-SYNC-LOCAL-FILE` when this
+    /// unlock holds no key-file part, so the file is not the server vault's and
+    /// a server could test a password guess on it (F-321), or a key file that
+    /// is not the part the device store holds for the file (C1R4-01); with
+    /// `MSG-SYNC-SAVE-FIRST` when the file holds any field 12 entry (F-322).
     #[cfg(feature = "sync")]
     pub(crate) fn sync_read(
         &self,
         vault: u64,
+    ) -> Option<Result<(Vec<u8>, larsal_sync::state::Measures), larsal_sync::sync::Unproven>> {
+        self.sync_read_file(vault, true)
+    }
+
+    /// [`Session::sync_read`]; `to_go` false is the check before a vault is put
+    /// on a server, whose key-file part and field 12 that step still sets.
+    #[cfg(feature = "sync")]
+    pub(crate) fn sync_read_file(
+        &self,
+        vault: u64,
+        to_go: bool,
     ) -> Option<Result<(Vec<u8>, larsal_sync::state::Measures), larsal_sync::sync::Unproven>> {
         let unlocked = self.sync.root(vault);
         let saver = self.with_edit_view(vault, |_, s| s.saver.clone()).ok()??;
@@ -986,11 +1105,23 @@ impl Session {
             let hash = larsal_sync::sync::hash(bytes);
             larsal_crypto::secret::ct_eq(&hash, &sv.proven) && unlocked == Some(root)
         });
+        let key = sv
+            .key_file
+            .as_ref()
+            .filter(|_| to_go)
+            .map(larsal_format::keyfile::KeyFileKey::duplicate);
         drop(sv);
+        // C1R4-01: and only under the part the device store holds for the file.
+        let no_part = to_go && !key.is_some_and(|key| self.sync_is_part(&path, &key));
+        use larsal_format::integrity::{exact_frame, has_public_data};
         use larsal_sync::sync::{Message, Unproven};
         Some(match proven {
             None => Err(Unproven(Message::LocalFile)),
-            Some(bytes) if !larsal_format::integrity::exact_frame(&bytes, &Limits::DEFAULT) => {
+            Some(bytes) if !exact_frame(&bytes, &Limits::DEFAULT) => {
+                Err(Unproven(Message::SaveFirst))
+            }
+            Some(_) if no_part => Err(Unproven(Message::LocalFile)),
+            Some(bytes) if to_go && has_public_data(&bytes, &Limits::DEFAULT) => {
                 Err(Unproven(Message::SaveFirst))
             }
             Some(bytes) => Ok((bytes, measures)),
@@ -1003,14 +1134,27 @@ impl Session {
     /// (`Kind::ServerSync`), puts the result in place of the open vault and
     /// saves it, as one step under the save lock. The vault is never left
     /// half merged: a result whose save failed stays open as an unsaved
-    /// change. The copy's key is never taken here: a copy under other
-    /// credentials is `WrongKey` (SYN-03.8, E16-S7b).
+    /// change.
+    ///
+    /// SYN-03.8 (LD-264, MOD-11.29): a copy under other credentials is `WrongKey`
+    /// until the user gives a password it opens with, along with the kept
+    /// key-file part and hardware key. With another root group id it is
+    /// `OtherVault`, a test with no key derivation, before the records. When
+    /// they match a key this Mac retired (`state.rs`, LD-267 (2)) nothing is
+    /// merged and the copy waits for `MSG-SYNC-OLD-KEY`'s answer (SYN-03.9).
+    /// Else the result holds the newer of the two keys, and a key replaced that
+    /// way is retired. An unlock with no part merges nothing (F-321).
     #[cfg(feature = "sync")]
-    pub(crate) fn merge_server(&self, vault: u64, server: &[u8]) -> larsal_sync::sync::Merge {
+    pub(crate) fn merge_server(
+        &self,
+        vault: u64,
+        server: &[u8],
+        version: u64,
+    ) -> larsal_sync::sync::Merge {
         use larsal_sync::sync::Merge;
-        let Ok((Some(saver), root)) =
-            self.with_edit_view(vault, |v, s| (s.saver.clone(), v.root.uuid))
-        else {
+        let Ok((Some(saver), root, given)) = self.with_draft_state(vault, |v, s| {
+            Ok((s.saver.clone(), v.root.uuid, s.sync_given.take()))
+        }) else {
             return Merge::Busy;
         };
         let kept = {
@@ -1030,13 +1174,72 @@ impl Session {
             hardware_key: part.as_deref(),
         };
         // F-219: a copy nobody chose never runs an ask-band cost unasked.
-        let mut copy = match self.open_bytes(server, &credentials, false) {
+        let (opened, other) = match self.open_bytes(server, &credentials, false) {
             None => return Merge::Failed,
-            Some(Err(())) => return Merge::WrongKey,
-            Some(Ok(opened)) => opened.vault,
+            Some(Ok(opened)) => (opened, None),
+            Some(Err(())) => {
+                let Some(given) = given else {
+                    return Merge::WrongKey;
+                };
+                let credentials = Credentials {
+                    password: Some(&given),
+                    ..credentials
+                };
+                match self.open_bytes(server, &credentials, false) {
+                    None => return Merge::Failed,
+                    Some(Err(())) => return Merge::WrongKey,
+                    Some(Ok(opened)) => (opened, Some(given)),
+                }
+            }
         };
+        let larsal_format::OpenedVault {
+            vault: mut copy,
+            key,
+            ..
+        } = *opened;
         if copy.root.uuid != root {
             return Merge::OtherVault;
+        }
+        if let Some(given) = &other {
+            #[cfg(test)]
+            crate::sync::tests::copy_opened();
+            let credentials = Credentials {
+                password: Some(given),
+                key_file: kept.1.as_ref(),
+                hardware_key: part.as_deref(),
+            };
+            // C1R4-02: a linked vault's unlock holds its part (SYN-03.12), so a key
+            // retired before the put is tried without it, store or no store.
+            let retired = match self.is_retired_copy(root, &credentials) {
+                Some(false) if credentials.key_file.is_some() && self.sync_linked(vault) => self
+                    .is_retired_copy(
+                        root,
+                        &Credentials {
+                            key_file: None,
+                            ..credentials
+                        },
+                    ),
+                retired => retired,
+            };
+            match retired {
+                None => return Merge::Failed,
+                Some(false) => {}
+                Some(true) => {
+                    let sha = larsal_sync::sync::hash(server);
+                    return match self.with_draft_state(vault, |_, s| {
+                        same(s, &saver)?;
+                        s.sync_held = Some(SyncHeld {
+                            copy: Box::new(copy),
+                            version,
+                            sha,
+                        });
+                        Ok(())
+                    }) {
+                        Ok(()) => Merge::OldKey,
+                        Err(_) => Merge::Busy,
+                    };
+                }
+            }
         }
         #[cfg(test)]
         crate::sync::tests::server_opened();
@@ -1052,6 +1255,16 @@ impl Session {
         if !same_key || self.sync.left(vault) {
             return Merge::Busy;
         }
+        // The record of this Mac's key, made now, off the session lock: kept if
+        // the merge gives the vault the copy's key (as `take_disk_version`).
+        let retiring = if other.is_some() {
+            match self.record_of(&sv) {
+                Ok(record) => Some(record),
+                Err(_) => return Merge::Failed,
+            }
+        } else {
+            None
+        };
         let staged = self.with_share(vault, |slot| -> Result<_, LarsalError> {
             let (Some(v), s) = (slot.vault, &mut *slot.edit) else {
                 return Ok(None);
@@ -1063,24 +1276,38 @@ impl Session {
             {
                 return Ok(None);
             }
+            // F-321: with no part the result would go up password-only.
+            if sv.key_file.is_none() {
+                return Err(LarsalError::Locked);
+            }
             // A change of the vault, as `with_edit` counts one (F-165).
             *slot.version = slot.version.wrapping_add(1);
             let (path, rated) = (slot.path, slot.rated);
             let o = Options::new(Kind::ServerSync);
             let m = merge(&mut copy, v, &o, now()).map_err(|e| crate::edit::refused(&e))?;
+            let replaced = larsal_core::retired::replaced_by_merge(&o, &m, other.is_some());
             *v = copy;
             *rated = Rated::default();
             // Unsaved until the save below writes it.
             s.changes = 1;
             s.failure = None;
+            // LD-264: the vault keeps the key the merge picked; not a key
+            // change of Larsal's (APP-05.33 stays as it was).
+            if replaced && let Some(given) = other {
+                let pending = s.disk.new_key;
+                s.set_key(&mut sv, Some(Some(given)), None);
+                s.disk.new_key = pending;
+                sv.key = key;
+            }
             Ok(Some((
                 v.duplicate(),
                 path.to_path_buf(),
                 s.disk,
                 !m.changes.is_empty(),
+                replaced,
             )))
         });
-        let (result, path, disk, changed) = match staged {
+        let (result, path, disk, changed, replaced) = match staged {
             Ok(Ok(Some(staged))) => staged,
             // The merge refused the copy (a limit), or the vault left.
             Ok(Err(_)) => return Merge::Failed,
@@ -1088,6 +1315,10 @@ impl Session {
         };
         let method = self.method(false, disk);
         let wrote = self.write(&mut sv, &result, &path, disk, (false, method));
+        if replaced && let Some(record) = retiring {
+            // Their locks are leaves, as `seen` in `write`.
+            self.retire(root, record);
+        }
         let Wrote::Saved(_, version, saved) = wrote else {
             return Merge::Failed;
         };
@@ -1110,6 +1341,52 @@ impl Session {
             changed,
             saved,
         }
+    }
+
+    /// SYN-03.9: the answer to `MSG-SYNC-OLD-KEY`. Skip takes nothing of the held
+    /// copy; Merge anyway runs MOD-11.31's content merge, the open vault the
+    /// target, never the copy's key, deletions or metadata, and saves. The held
+    /// copy's version and hash, for the link: the next run then uploads over it.
+    ///
+    /// # Errors
+    /// `Refused` when no copy waits or the merge or its save fails; `Locked`.
+    #[cfg(feature = "sync")]
+    pub(crate) fn answer_old_key(
+        &self,
+        vault: u64,
+        merge_anyway: bool,
+    ) -> Result<(u64, [u8; 32]), LarsalError> {
+        let answered = self.with_edit(vault, |v, path, rated, s| {
+            let held = s.sync_held.take().ok_or_else(|| {
+                LarsalError::Refused("No copy of this vault waits for an answer.".to_owned())
+            })?;
+            // A vault that left its linked file (Save As) takes nothing of the
+            // copy, which goes; its file has no server.
+            if !self.sync_links_file(path, v.root.uuid) {
+                return Err(LarsalError::Refused(
+                    "This vault is not on a server.".to_owned(),
+                ));
+            }
+            if merge_anyway {
+                let o = Options {
+                    retired: true,
+                    ..Options::new(Kind::ServerSync)
+                };
+                merge(v, &held.copy, &o, now()).map_err(|e| crate::edit::refused(&e))?;
+                *rated = Rated::default();
+                s.changes = s.changes.max(1);
+            }
+            Ok((held.version, held.sha))
+        })?;
+        if merge_anyway {
+            let saved = self.save_to(vault, None)?;
+            if saved.changes > 0 {
+                return Err(LarsalError::Refused(
+                    "The merged vault could not be saved. Nothing was uploaded.".to_owned(),
+                ));
+            }
+        }
+        Ok(answered)
     }
 
     /// APP-05.26, APP-05.27: whether the rollback guard finds the disk
@@ -1291,6 +1568,24 @@ impl Session {
         if password.is_none() && key_file.is_none() {
             return Ok(DiskEvent::NewKey);
         }
+        // SYN-03.12: a sheet that gives only a password keeps the part, a key
+        // file typed for a linked vault must be that part (C1-A12), and a sheet
+        // for a linked vault whose part is unread takes nothing (C1R2-02).
+        #[cfg(feature = "sync")]
+        let key_file = {
+            let (path, root) =
+                self.with_edit(vault, |v, path, _, _| Ok((path.to_path_buf(), v.root.uuid)))?;
+            let key_file = self
+                .sync_sheet_key(&path, key_file)
+                .map_err(|(_, text)| LarsalError::Refused(text.to_owned()))?;
+            // C1R4-04: a copy of a vault whose part is unread (a Finder copy too)
+            // takes no key; the content merges only when the vault's key opens it.
+            if self.sync_root_unread(root) {
+                self.take_disk_version(vault, before, None, false, None)?;
+                return Err(LarsalError::Refused(crate::sync::PART_UNREAD.1.to_owned()));
+            }
+            key_file
+        };
         self.take_disk_version(vault, before, Some((password, key_file)), false, None)
     }
 

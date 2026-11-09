@@ -1314,12 +1314,24 @@ mod tests {
     fn qr_t18_a_server_copy_merged_in_ends_the_ticket() {
         let (dir, s, v, wise) = demo("sync");
         s.confirm_format_notice(v).unwrap();
+        // F-321 (E16-S7b): a server copy opens with a key-file part too; a
+        // vault's own key file is that part.
+        let key = dir.join("Demo.larsalkey").to_string_lossy().into_owned();
+        let vs = crate::vault_settings::VaultSettings::new(Arc::clone(&s), v);
+        assert!(matches!(
+            vs.new_key_file(key.clone(), vec![]).unwrap(),
+            crate::wizard::KeyFileOutcome::Then {
+                outcome: crate::wizard::Outcome::Done
+            }
+        ));
         s.save(v).unwrap();
         let copy = dir.join("Server copy.larsalvault");
         std::fs::copy(dir.join("Demo.larsalvault"), &copy).unwrap();
         let other = Session::new();
         let w = other.open(copy.to_string_lossy().into_owned()).unwrap();
-        other.unlock(w, Some("demo-pass-7".into()), None).unwrap();
+        other
+            .unlock(w, Some("demo-pass-7".into()), Some(key))
+            .unwrap();
         other.confirm_format_notice(w).unwrap();
         other.begin_edit(w, wise.clone()).unwrap();
         other.set_password(w, "server-demo".into()).unwrap();
@@ -1329,7 +1341,7 @@ mod tests {
         let live = s.qr_show_field(v, wise.clone(), "Password".into()).unwrap();
         assert!(s.qr_is_current(v, live.ticket));
         assert!(matches!(
-            s.merge_server(v, &bytes),
+            s.merge_server(v, &bytes, 1),
             larsal_sync::sync::Merge::Done { .. }
         ));
         assert_eq!(

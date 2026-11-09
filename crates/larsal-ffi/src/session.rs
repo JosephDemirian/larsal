@@ -784,7 +784,12 @@ impl Session {
                 slot.fresh = true;
                 // SYN-03.4: a run after the unlock.
                 #[cfg(feature = "sync")]
-                self.sync.unlocked(id, &slot.path, vault.root.uuid);
+                self.sync.unlocked(
+                    id,
+                    &slot.path,
+                    vault.root.uuid,
+                    Some((keep.proven(), crate::sync::measures(&vault))),
+                );
                 slot.vault = Some(vault);
                 slot.edit = EditState::opened(keep);
                 if slot.forced.is_none() {
@@ -838,6 +843,8 @@ impl Session {
         drop(host);
         match result {
             Ok(Opened::Vault(opened)) => {
+                // LD-264: its key time counts as seen, older file or not.
+                self.key_seen(opened.vault.root.uuid, opened.vault.meta.master_key_changed);
                 // APP-05.26: at unlock the rollback guard only warns; an
                 // older file is never taken as seen.
                 let verdict = self.guard(&opened.vault, &bytes);
@@ -858,6 +865,47 @@ impl Session {
             }),
             Err(e) => fail(&e),
         }
+    }
+
+    /// SYN-03.2: an unlock with no key file typed takes the file's key-file part
+    /// from the device store, and asks only for the rest of the key: with
+    /// nothing typed it opens nothing, so a vault keyed by the part alone still
+    /// asks for its key file. A file that does not open with the part (the
+    /// save that adds it failed, or another vault came to the path) gets the
+    /// open it has without one; two key derivations on a wrong password.
+    #[cfg(feature = "sync")]
+    fn open_without_key_file(
+        &self,
+        path: &Path,
+        password: Option<SecretString>,
+        hardware: Option<Choice>,
+    ) -> Attempt {
+        let part = (password.is_some() || hardware.is_some())
+            .then(|| self.sync_part(path))
+            .flatten();
+        let Some(part) = part else {
+            return self.run_open(path, password, (None, hardware), None);
+        };
+        let again = password
+            .as_ref()
+            .map(|p| SecretString::new(p.expose().to_owned()));
+        match self.run_open(path, password, (Some(part), hardware), None) {
+            Attempt::Failed(message) => match self.run_open(path, again, (None, hardware), None) {
+                Attempt::Failed(_) => Attempt::Failed(message),
+                opened => opened,
+            },
+            other => other,
+        }
+    }
+
+    #[cfg(not(feature = "sync"))]
+    fn open_without_key_file(
+        &self,
+        path: &Path,
+        password: Option<SecretString>,
+        hardware: Option<Choice>,
+    ) -> Attempt {
+        self.run_open(path, password, (None, hardware), None)
     }
 
     fn unlock_inner(
@@ -883,18 +931,65 @@ impl Session {
         // rule of `container::write_share` still refuses it.
         let held = key_file.as_deref().map(|typed| key_path(&path, typed));
         self.state().slot(id)?.trying_key = (!key_secret).then_some(held);
+        #[cfg(feature = "sync")]
+        let mut restore = None;
         let attempt = match key_file {
             Some(typed) => {
                 match read_key_as(&path, &typed, key_secret.then_some(larsal_core::refs::MASK)) {
+                    // SYN-03.12 (C1-A12, C1R2-02): a linked file opens with its
+                    // part only, and nothing is taken while the part is unread,
+                    // but an unlock with a typed factor (C1R3B-02, C1R4-01): bytes
+                    // that open the file as it was last synced are its part, kept
+                    // again; any other file fails closed.
+                    #[cfg(feature = "sync")]
+                    Ok(key) => {
+                        match self.sync_sheet_key(&path, Some((key.0.duplicate(), key.1.clone()))) {
+                            Ok(key) => self.run_open(&path, password, (key, hardware), None),
+                            Err(unread)
+                                if unread == crate::sync::PART_UNREAD
+                                    && (password.is_some() || hardware.is_some()) =>
+                            {
+                                restore = Some(key.0.duplicate());
+                                self.open_last_synced(&path, || {
+                                    self.run_open(&path, password, (Some(key), hardware), None)
+                                })
+                            }
+                            Err(message) => Attempt::Failed(key_message(message)),
+                        }
+                    }
+                    #[cfg(not(feature = "sync"))]
                     Ok(key) => self.run_open(&path, password, (Some(key), hardware), None),
                     Err(message) => Attempt::Failed(message),
                 }
             }
-            None => self.run_open(&path, password, (None, hardware), None),
+            None => self.open_without_key_file(&path, password, hardware),
         };
         let result = self.finish(id, epoch, attempt);
+        #[cfg(feature = "sync")]
+        if let (Some(key), Ok(UnlockResult::Unlocked)) = (restore, &result) {
+            self.sync_restore_part(id, &key);
+        }
         self.auto_open_after(id, result.as_ref());
         result
+    }
+
+    /// SYN-03.12 (C1R4-01): with the part unread, `open` runs only when the file
+    /// at `path` holds the bytes a link of it last synced (those went up keyed by
+    /// the part), and what it opened stands only when it opened those bytes too;
+    /// any other file fails closed, nothing of it kept.
+    #[cfg(feature = "sync")]
+    fn open_last_synced(&self, path: &Path, open: impl FnOnce() -> Attempt) -> Attempt {
+        let unread = || Attempt::Failed(key_message(crate::sync::PART_UNREAD));
+        let read = larsal_platform::macos::open_regular(path)
+            .map_err(|e| Error::Io(e.kind()))
+            .and_then(|f| larsal_format::detect::read_vault(f, &Limits::DEFAULT));
+        if read.is_ok_and(|bytes| !self.sync_last_synced(path, &larsal_sync::sync::hash(&bytes))) {
+            return unread();
+        }
+        match open() {
+            Attempt::Opened(_, keep) if !self.sync_last_synced(path, &keep.proven()) => unread(),
+            other => other,
+        }
     }
 
     /// APP-06.22 step 8 (F-079): auto-open after an unlock, unless the
@@ -973,7 +1068,12 @@ impl Session {
         );
         // SYN-03.4, SYN-03.5 step 2: as an unlock: its schedule and its root.
         #[cfg(feature = "sync")]
-        self.sync.unlocked(id, &slot.path, vault.root.uuid);
+        self.sync.unlocked(
+            id,
+            &slot.path,
+            vault.root.uuid,
+            Some((keep.proven(), crate::sync::measures(&vault))),
+        );
         slot.vault = Some(vault);
         slot.edit = EditState::opened(keep);
         slot.locked_at = None;
@@ -1290,9 +1390,30 @@ impl Session {
             hardware,
             report,
         } = pending;
+        // SYN-03.12 (C1R4-01): a key file typed while the part is unread, as at
+        // the unlock that asked.
+        #[cfg(feature = "sync")]
+        let restore = key
+            .as_ref()
+            .filter(|_| {
+                matches!(self.sync_sheet_key(&path, None), Err(e) if e == crate::sync::PART_UNREAD)
+            })
+            .map(|k| k.0.duplicate());
         // With the approval the open never asks again (CRY-02.14).
-        let attempt = self.run_open(&path, password, (key, hardware), Some(&report));
+        let open = || self.run_open(&path, password, (key, hardware), Some(&report));
+        #[cfg(feature = "sync")]
+        let attempt = if restore.is_some() {
+            self.open_last_synced(&path, open)
+        } else {
+            open()
+        };
+        #[cfg(not(feature = "sync"))]
+        let attempt = open();
         let result = self.finish(vault, epoch, attempt);
+        #[cfg(feature = "sync")]
+        if let (Some(key), Ok(UnlockResult::Unlocked)) = (restore, &result) {
+            self.sync_restore_part(vault, &key);
+        }
         self.auto_open_after(vault, result.as_ref());
         result
     }
@@ -1475,6 +1596,19 @@ pub(crate) fn key_path(vault: &Path, typed: &str) -> PathBuf {
         None => vault
             .parent()
             .map_or_else(|| PathBuf::from(typed), |dir| dir.join(typed)),
+    }
+}
+
+/// SYN-03.12: a sync message about the key file, for the unlock view.
+#[cfg(feature = "sync")]
+fn key_message((id, text): (&str, &str)) -> UnlockMessage {
+    UnlockMessage {
+        id: id.to_owned(),
+        text: text.to_owned(),
+        detail: None,
+        blank_password: false,
+        import: false,
+        about_key_file: true,
     }
 }
 

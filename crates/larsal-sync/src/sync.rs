@@ -19,6 +19,8 @@
 //!   [`first_upload`]).
 //! - A local file [`Local::read`] did not prove sends nothing: no PUT, the
 //!   status Error (`MSG-SYNC-LOCAL-FILE`; SYN-03.5 step 2, SYN-03.14).
+//! - A copy under a key this Mac retired is never merged by a run
+//!   ([`Merge::OldKey`]); the caller's answer records its version.
 //! - A hash compared for trust is compared in constant time (CRY-04.11).
 
 use crate::client::{Fail, Reply, Server, Signer};
@@ -164,8 +166,9 @@ pub trait Local {
     /// SYN-03.5 step 3: opens `server` with this Mac's key, merges the open
     /// vault (the source) into it (the target) with a same-vault merge,
     /// puts the result in place of the open vault and saves it on this Mac,
-    /// as one step under the vault's lock.
-    fn merge(&self, server: &[u8]) -> Merge;
+    /// as one step under the vault's lock. `version` is the copy's, for a
+    /// copy that waits for the user's answer ([`Merge::OldKey`]).
+    fn merge(&self, server: &[u8], version: u64) -> Merge;
 }
 
 /// What [`Local::merge`] did.
@@ -184,6 +187,9 @@ pub enum Merge {
     },
     /// The copy does not open with this Mac's key (SYN-03.8).
     WrongKey,
+    /// The copy opened with credentials the user gave, which match a key this
+    /// Mac retired: nothing changed, and it waits for the answer (SYN-03.9).
+    OldKey,
     /// The copy opens but has another root group id.
     OtherVault,
     /// The vault became busy (edited, saving, locked): nothing changed.
@@ -222,6 +228,8 @@ pub enum Message {
     NotServer,
     /// `MSG-SYNC-OTHER-KEY`.
     OtherKey,
+    /// `MSG-SYNC-OLD-KEY`.
+    OldKey,
     /// `MSG-SYNC-OTHER-VAULT`.
     OtherVault,
     /// `MSG-SYNC-ROLLBACK`.
@@ -256,6 +264,7 @@ impl Message {
             Self::CertChanged => "MSG-SYNC-CERT-CHANGED",
             Self::NotServer => "MSG-SYNC-NOT-SERVER",
             Self::OtherKey => "MSG-SYNC-OTHER-KEY",
+            Self::OldKey => "MSG-SYNC-OLD-KEY",
             Self::OtherVault => "MSG-SYNC-OTHER-VAULT",
             Self::Rollback => "MSG-SYNC-ROLLBACK",
             Self::WentBack => "MSG-SYNC-WENT-BACK",
@@ -281,6 +290,9 @@ impl Message {
             Self::NotServer => format!("\"{address}\" is not a Larsal sync server."),
             Self::OtherKey => format!(
                 "The server's copy of \"{name}\" opens with another password or key. Enter the password or key this copy opens with."
+            ),
+            Self::OldKey => format!(
+                "The server's copy of \"{name}\" uses a password or key that was replaced on this Mac."
             ),
             Self::OtherVault => {
                 "The server's copy is a different vault. Nothing was merged or uploaded.".into()
@@ -516,7 +528,7 @@ fn one_try<K: Signer>(
             {
                 return Try::Done(Report::error(Message::Rollback));
             }
-            match local.merge(&r.body) {
+            match local.merge(&r.body, version) {
                 Merge::Done {
                     copy,
                     result,
@@ -545,6 +557,9 @@ fn one_try<K: Signer>(
                 }
                 Merge::WrongKey => {
                     Try::Done(Report::of(Status::NeedsPassword, vec![Message::OtherKey]))
+                }
+                Merge::OldKey => {
+                    Try::Done(Report::of(Status::ReplacedPassword, vec![Message::OldKey]))
                 }
                 Merge::OtherVault => Try::Done(Report::error(Message::OtherVault)),
                 Merge::Busy => Try::Done(Report {
@@ -606,26 +621,24 @@ pub fn run<K: Signer>(
 }
 
 /// SYN-03.1 step 3: the first upload of a vault's saved `bytes` with
-/// `If-None-Match: *`, under a new `vault_id` from larsal-crypto's random
-/// source. On 201 the link's server values are the new version's.
+/// `If-None-Match: *`, under `vault_id`, which the caller drew. On 201 the
+/// link's server values are the new version's.
 ///
 /// # Errors
 /// The report of the failure: nothing was linked.
 pub fn first_upload<K: Signer>(
     server: &mut Server<K>,
+    vault_id: &VaultId,
     bytes: &[u8],
-) -> Result<(VaultId, u64), Report> {
-    let mut id = [0u8; 16];
-    larsal_crypto::random::fill(&mut id).map_err(|_| Report::error(Message::Error))?;
-    let vault_id = VaultId::from_bytes(id);
+) -> Result<u64, Report> {
     let r = server
-        .put(&vault_id, bytes, None)
+        .put(vault_id, bytes, None)
         .map_err(|f| match failed(f) {
             Try::Done(report) => report,
             _ => Report::of(Status::Offline, Vec::new()),
         })?;
     match (r.status, r.version) {
-        (201, Some(v)) => Ok((vault_id, v)),
+        (201, Some(v)) => Ok(v),
         (201, None) => Err(Report::error(Message::Error)),
         _ => Err(match other(&r) {
             Try::Done(report) => report,

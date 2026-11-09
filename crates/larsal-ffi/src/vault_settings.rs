@@ -168,6 +168,22 @@ fn history_use(v: &Vault) -> (u64, u32) {
     (bytes, n)
 }
 
+/// SYN-03.12: a linked vault keeps its key-file part.
+#[cfg(feature = "sync")]
+fn part_kept() -> Outcome {
+    wizard::refused(
+        "MSG-SYNC-PART-KEPT",
+        "This vault is on a server, so its key file stays until you stop syncing it.",
+    )
+}
+
+/// SYN-03.12: a vault with a key-file part kept for sync keeps a part the user
+/// types or holds, since the device store gives the part alone to nobody.
+#[cfg(feature = "sync")]
+fn typed_kept() -> Outcome {
+    wizard::refused(crate::sync::TYPED_KEPT.0, crate::sync::TYPED_KEPT.1)
+}
+
 impl VaultSettings {
     /// Runs `changes` through larsal-core and counts the change.
     fn run(
@@ -219,13 +235,18 @@ impl VaultSettings {
         hardware: Option<Option<Choice>>,
         answers: &[Answer],
     ) -> Result<Outcome, LarsalError> {
-        let (saver, (had_password, had_key_file), pending, root) =
-            self.session.with_edit(self.vault, |v, _, _, es| {
+        #[cfg(feature = "sync")]
+        if key_file.is_some() && self.session.sync_linked(self.vault) {
+            return Ok(part_kept());
+        }
+        let (saver, (had_password, had_key_file), pending, root, path) =
+            self.session.with_edit(self.vault, |v, path, _, es| {
                 Ok((
                     es.saver.clone(),
                     es.key_parts(),
                     es.disk.new_key,
                     v.root.uuid,
+                    path.to_path_buf(),
                 ))
             })?;
         // One lock order (LD-199 (4)): the save lock before the session
@@ -233,6 +254,30 @@ impl VaultSettings {
         // writes the one without the other.
         let saver = saver.ok_or(LarsalError::Locked)?;
         let mut sv = lock(&saver);
+        // SYN-03.12 (C1-A1): a vault whose file has a part kept for sync, linked
+        // or not (a first upload that failed), keeps a password or hardware key
+        // beside its key file: the unlock takes the part, never the whole key.
+        #[cfg(feature = "sync")]
+        if self.session.sync_has_part(&path)
+            && key_file
+                .as_ref()
+                .map_or(had_key_file.is_some(), Option::is_some)
+            && !match &password {
+                Some(PasswordPart::Removed) => false,
+                Some(PasswordPart::New { .. }) => true,
+                _ => had_password,
+            }
+            && !hardware
+                .as_ref()
+                .map_or(sv.hardware.is_some(), Option::is_some)
+        {
+            return Ok(typed_kept());
+        }
+        #[cfg(not(feature = "sync"))]
+        let _ = &path;
+        // LD-264: a real key change goes past every key time this Mac has seen
+        // for the vault, in its file or in a copy it opened.
+        let floor = self.session.key_floor(root);
         // MOD-11.31: the record of the key this change retires, made now,
         // while the user waits (the KDF); none while an earlier change is
         // unsaved, whose key never reached the file.
@@ -265,8 +310,9 @@ impl VaultSettings {
         let outcome = self.run(&changes, None)?;
         drop(changes);
         if outcome == Outcome::Done {
-            self.session.with_edit(self.vault, |_, _, _, es| {
+            self.session.with_edit(self.vault, |v, _, _, es| {
                 crate::saving::same(es, &saver)?;
+                v.meta.master_key_changed = v.meta.master_key_changed.max(floor);
                 es.set_key(&mut sv, new_password, key_file);
                 if let Some(hardware) = hardware {
                     es.set_hardware(&mut sv, hardware);
@@ -561,6 +607,13 @@ impl VaultSettings {
     ) -> Result<KeyFileOutcome, LarsalError> {
         if path.len() > 4096 {
             return Err(LarsalError::TooLong);
+        }
+        // No new file is left behind for a change that is refused.
+        #[cfg(feature = "sync")]
+        if self.session.sync_linked(self.vault) {
+            return Ok(KeyFileOutcome::Then {
+                outcome: part_kept(),
+            });
         }
         match wizard::make_key_file(Path::new(&path)) {
             Ok(key) => Ok(KeyFileOutcome::Then {

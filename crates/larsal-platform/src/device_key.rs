@@ -29,9 +29,16 @@
 //!   keychain holds (`kSecAttrIsPermanent` false, no keychain named), so no
 //!   test touches a real keychain (LD-317 (2)).
 //!
+//! - The key-file part of a server vault (SYN-03.1 step 2): [`part_put`],
+//!   [`part_get`] and [`part_remove`] keep its bytes as a generic password
+//!   under the keychain service `app.larsal.vault` in the login keychain, the
+//!   same store as the sign-in key until W-02, and not this-device-only until
+//!   then. The caller holds them in a wiped type.
+//!
 //! The Secure Enclave and keychain paths are built and reviewed here; they
 //! run first in Mac QA (W-08), and no cargo or Swift test calls them.
 
+use larsal_crypto::secret::SecretBytes;
 use security_framework::access_control::{ProtectionMode, SecAccessControl};
 use security_framework::item::{
     ItemSearchOptions, KeyClass, Limit, Location, Reference, SearchResult,
@@ -46,6 +53,9 @@ const PRIVATE_KEY_USAGE: usize = 1 << 30;
 
 /// `errSecItemNotFound` (`SecBase.h`).
 const NOT_FOUND: i32 = -25300;
+
+/// The keychain service of a key-file part (AGENTS.md, Naming).
+const PART_SERVICE: &str = "app.larsal.vault";
 
 /// The length of the public key: SEC1 uncompressed, `04 ‖ X ‖ Y`.
 pub const PUBLIC_KEY_LEN: usize = 65;
@@ -226,6 +236,46 @@ fn make(options: &GenerateKeyOptions) -> Result<DeviceKey, KeyError> {
         .map_err(|e| os(e.code() as i64))
 }
 
+/// SYN-03.1 step 2: keeps a key-file part under `label`, in place of any part
+/// there.
+///
+/// # Errors
+/// [`KeyError::Os`] when macOS refuses.
+pub fn part_put(label: &str, part: &SecretBytes) -> Result<(), KeyError> {
+    SecKeychain::default()
+        .and_then(|k| k.set_generic_password(PART_SERVICE, label, part.expose()))
+        .map_err(|e| os(e.code()))
+}
+
+/// SYN-03.2: the key-file part under `label`.
+///
+/// # Errors
+/// [`KeyError::Missing`] when there is none, [`KeyError::Os`] when macOS refuses.
+pub fn part_get(label: &str) -> Result<SecretBytes, KeyError> {
+    let keychain = SecKeychain::default().map_err(|e| os(e.code()))?;
+    match keychain.find_generic_password(PART_SERVICE, label) {
+        Ok((part, _)) => Ok(SecretBytes::new(part.as_ref().to_vec())),
+        Err(e) if e.code() == NOT_FOUND => Err(KeyError::Missing),
+        Err(e) => Err(os(e.code())),
+    }
+}
+
+/// Removes the key-file part under `label`; none there is no error.
+///
+/// # Errors
+/// [`KeyError::Os`] when macOS refuses.
+pub fn part_remove(label: &str) -> Result<(), KeyError> {
+    let keychain = SecKeychain::default().map_err(|e| os(e.code()))?;
+    match keychain.find_generic_password(PART_SERVICE, label) {
+        Ok((_, item)) => {
+            item.delete();
+            Ok(())
+        }
+        Err(e) if e.code() == NOT_FOUND => Ok(()),
+        Err(e) => Err(os(e.code())),
+    }
+}
+
 /// Every private key named `label` in `store`.
 fn find(store: Store, label: &str) -> Result<Vec<SecKey>, KeyError> {
     let mut search = ItemSearchOptions::new();
@@ -380,6 +430,9 @@ mod tests {
         }
         let tests = &src[src.find("#[cfg(test)]\nmod tests").unwrap()..];
         for call in [
+            "part_put(",
+            "part_get(",
+            "part_remove(",
             "DeviceKey::open(",
             "Store::SecureEnclave",
             "Store::LoginKeychain",

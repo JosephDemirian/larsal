@@ -13,8 +13,7 @@
 //! server is ever shown or kept (SYN-01.9); every reply is bounded before
 //! it is read (SYN-01.10); this crate writes no log line (SYN-01.13, Rust
 //! rule 9); only encrypted vault bytes, ids, versions and the device's
-//! signature leave the Mac (SYN-03.14). Key-file parts and key changes
-//! come with E16-S7b, upload signatures with E17-S1.
+//! signature leave the Mac (SYN-03.14). Upload signatures come with E17-S1.
 #![forbid(unsafe_code)]
 // Rust rule 4: replies come from the network. Test code is exempt via clippy.toml.
 #![deny(

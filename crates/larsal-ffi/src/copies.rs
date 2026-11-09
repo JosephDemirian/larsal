@@ -137,7 +137,11 @@ impl Session {
     /// `unlock` takes them) when the user gave them (Unlock…), and merges it
     /// into the open vault when it has the vault's root group id. With
     /// `anyway` (Merge anyway), the copy held under a key this Mac retired
-    /// gets the content merge only. A merge marks the vault changed; the
+    /// gets the content merge only. On a vault with a key-file part kept for
+    /// sync a sheet's password goes with the part, and then alone, so a copy
+    /// from before the part opens too: that one gets the content merge only
+    /// and never gives its key (SYN-03.12). A key file typed for a linked
+    /// vault must be its part (C1-A12). A merge marks the vault changed; the
     /// caller saves. Runs the KDF: call it off the main thread, inside a
     /// coordinated read of `path`.
     ///
@@ -199,6 +203,30 @@ impl Session {
             None => None,
         };
         let given = password.is_some() || key_file.is_some();
+        // SYN-03.12: a sheet that gives only a password keeps the part, a key
+        // file typed for a linked vault must be that part (C1-A12), and a sheet
+        // for a linked vault whose part is unread takes nothing (C1R2-02).
+        #[cfg(feature = "sync")]
+        let (key_file, from_part) = if given {
+            let typed = key_file.is_some();
+            let key_file = self
+                .sync_sheet_key(&vault_path, key_file)
+                .map_err(|(_, text)| LarsalError::Refused(text.to_owned()))?;
+            let from_part = !typed && key_file.is_some();
+            (key_file, from_part)
+        } else {
+            (key_file, false)
+        };
+        #[cfg(not(feature = "sync"))]
+        let from_part = false;
+        // SYN-03.12 (C1R4-04): a copy of a vault whose part is unread (a Finder
+        // copy too) takes no key; the content merges only when the vault's key
+        // opens it.
+        #[cfg(feature = "sync")]
+        if given && self.sync_root_unread(root) {
+            self.merge_copy(vault, path, None, None, false)?;
+            return Err(LarsalError::Refused(crate::sync::PART_UNREAD.1.to_owned()));
+        }
         // F-227 (LD-319 (4)): the copy is read and opened (the KDF) outside
         // the save lock, with a copy of the kept key parts, so a save never
         // waits for it; the lock is taken only for the merge.
@@ -231,7 +259,7 @@ impl Session {
             return Ok(CopyState::Skipped);
         }
         let part = kept.2.map(crate::hwkey::Choice::part);
-        let credentials = if given {
+        let mut credentials = if given {
             Credentials {
                 password: password.as_ref(),
                 key_file: key_file.as_ref().map(|k| &k.0),
@@ -244,7 +272,14 @@ impl Session {
                 hardware_key: part.as_deref(),
             }
         };
-        let opened = match self.open_bytes(&bytes, &credentials, false) {
+        let mut opened = self.open_bytes(&bytes, &credentials, false);
+        // C1-A11: the sheet's password alone, for a copy from before the part.
+        let alone = from_part && matches!(opened, Some(Err(())));
+        if alone {
+            credentials.key_file = None;
+            opened = self.open_bytes(&bytes, &credentials, false);
+        }
+        let opened = match opened {
             None => return Ok(CopyState::Skipped),
             Some(Err(())) => {
                 return self.with_draft_state(vault, |_, s| {
@@ -295,12 +330,28 @@ impl Session {
         if !given && !same_key {
             return Ok(CopyState::Skipped);
         }
-        if given {
+        // SYN-03.12 (C2bR3-1): a vault with a part keeps a typed factor, so a
+        // copy given the part alone gets the content merge only, and its key
+        // never.
+        #[cfg(feature = "sync")]
+        let bare = given
+            && password.is_none()
+            && sv.hardware.is_none()
+            && self.sync_part_alone(&vault_path, root, credentials.key_file);
+        #[cfg(not(feature = "sync"))]
+        let bare = false;
+        let alone = alone || bare;
+        if given && !alone {
             retiring = Some(self.record_of(&sv)?);
         }
         let takes_key = self.with_edit(vault, |v, _, rated, s| {
             same(s, &saver)?;
-            let o = Options::new(Kind::ConflictCopy);
+            // C1-A11: a copy that opened without the part keeps this vault's
+            // key: the content merge only (MOD-11.31).
+            let o = Options {
+                retired: alone,
+                ..Options::new(Kind::ConflictCopy)
+            };
             let m = merge(v, &copy_vault, &o, now()).map_err(|e| crate::edit::refused(&e))?;
             if !m.changes.is_empty() {
                 *rated = Rated::default();
@@ -324,6 +375,10 @@ impl Session {
             if let Some(record) = retiring {
                 self.retire(root, record);
             }
+        }
+        #[cfg(feature = "sync")]
+        if bare {
+            return Err(LarsalError::Refused(crate::sync::TYPED_KEPT.1.to_owned()));
         }
         Ok(CopyState::Merged)
     }

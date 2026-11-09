@@ -123,6 +123,12 @@ impl Keep {
         )
     }
 
+    /// SYN-03.2: the SHA-256 of the bytes this unlock opened.
+    #[cfg(feature = "sync")]
+    pub(crate) fn proven(&self) -> [u8; 32] {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner).proven
+    }
+
     /// APP-05.26: the rollback guard's notice of the unlock read.
     pub(crate) fn with_notice(mut self, notice: Option<String>) -> Self {
         self.4 = notice;
@@ -168,6 +174,14 @@ pub(crate) struct EditState {
     /// retired, waiting for the `MSG-DISK-OLD-KEY` answer; dropped (and
     /// wiped) on lock.
     pub(crate) held: Option<Box<Vault>>,
+    /// SYN-03.9: the server copy under a key this Mac retired, waiting for
+    /// `MSG-SYNC-OLD-KEY`'s answer; dropped (and wiped) on lock.
+    #[cfg(feature = "sync")]
+    pub(crate) sync_held: Option<crate::saving::SyncHeld>,
+    /// SYN-03.8: the password the user gave for the server copy, for the next
+    /// run; dropped (and wiped) by that run and on lock.
+    #[cfg(feature = "sync")]
+    pub(crate) sync_given: Option<SecretString>,
     /// APP-05.17 (copies.rs): each listed copy not merged, by path, with
     /// the checksum of the bytes its coordinated read gave, and, under a
     /// key this Mac retired, the copy waiting for Merge anyway; and each

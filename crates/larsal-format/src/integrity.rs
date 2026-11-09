@@ -75,7 +75,8 @@ fn next_block<'a>(
 /// Guarantees: no key and no key derivation; reads only inside `file`; no tag
 /// is checked, so it says nothing of who wrote the file or whether it opens.
 /// The values themselves are not judged: the seeds, the salt, the ciphertext
-/// and field 12, which is public by design and which a save keeps (FMT-03.22).
+/// and field 12; a vault on the server refuses any field 12 entry on its own
+/// ([`has_public_data`], LD-427).
 #[must_use]
 pub fn exact_frame(file: &[u8], limits: &Limits) -> bool {
     let Ok(h) = read_header(file, limits) else {
@@ -105,6 +106,15 @@ pub fn exact_frame(file: &[u8], limits: &Limits) -> bool {
         }
         rest = after;
     }
+}
+
+/// True when the outer header of `file` holds any field 12 entry (public custom
+/// data, FMT-03.22), which is in clear and can hold text a user typed: such a
+/// file never goes to a server (LD-427). No key and no key derivation; false
+/// for a header that does not read, which [`exact_frame`] refuses.
+#[must_use]
+pub fn has_public_data(file: &[u8], limits: &Limits) -> bool {
+    read_header(file, limits).is_ok_and(|h| !h.public_custom_data.is_empty())
 }
 
 /// Walks the block stream that starts at `stream` (file offset `H + 64`)
@@ -188,6 +198,19 @@ mod tests {
         memory_kib: 64,
         lanes: 1,
     };
+
+    /// LD-427: field 12 is read from the header alone, with no key; a file that
+    /// does not read is `exact_frame`'s to refuse.
+    #[test]
+    fn ld427_has_public_data_reads_field_12_alone() {
+        let limits = Limits::DEFAULT;
+        let none = saved(Cipher::Aes256, Compression::Gzip, AES, &[]);
+        let some = saved(Cipher::Aes256, Compression::Gzip, AES, &["P"]);
+        assert!(!has_public_data(&none, &limits));
+        assert!(has_public_data(&some, &limits));
+        assert!(!has_public_data(&some[..8], &limits));
+        assert!(!has_public_data(b"", &limits));
+    }
 
     fn saved(cipher: Cipher, compression: Compression, kdf: Kdf, public: &[&str]) -> Vec<u8> {
         let mut v = Vault::new(Group::new(Uuid([1; 16]), "R".into(), Time(0)), Time(0));

@@ -535,8 +535,11 @@ fn apply_to(v: &mut Vault, c: &Changes, now: Time) -> Result<Applied, Refusal> {
 /// MOD-12.10 step 8, MOD-13.11: a confirmed key change moves
 /// `MasterKeyChanged` to now (also for the same password typed again) and
 /// clears the force-once flag. Changing only the KDF is not a key change.
+/// The time never goes back: a key time ahead of `now` (another Mac's clock,
+/// a planted copy) gives one second past it, so a real change always wins
+/// LD-264's newer-time compare.
 pub fn key_changed(m: &mut Meta, now: Time) {
-    m.master_key_changed = now;
+    m.master_key_changed = now.max(Time(m.master_key_changed.0.saturating_add(1)));
     m.master_key_change_force_once = false;
 }
 

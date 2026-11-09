@@ -202,6 +202,16 @@ fn mod13_11_what_counts_as_a_key_change() {
     assert!(!save_open(&v).meta.master_key_change_force_once);
 }
 
+/// LD-264 with a key time ahead of the clock (another Mac's clock, a planted
+/// copy): a real key change goes one second past it, never back.
+#[test]
+fn mod13_11_a_key_change_never_goes_back_in_time() {
+    let mut v = demo(at(2099, 1, 1, 0, 0, 0), 0, 0);
+    v.meta.master_key_changed = at(2099, 1, 1, 0, 0, 0);
+    settings::key_changed(&mut v.meta, at(2026, 6, 1, 0, 0, 0));
+    assert_eq!(v.meta.master_key_changed, at(2099, 1, 1, 0, 0, 1));
+}
+
 #[test]
 fn mod13_12_settings_controls() {
     let t5 = at(2026, 6, 1, 0, 0, 0);
