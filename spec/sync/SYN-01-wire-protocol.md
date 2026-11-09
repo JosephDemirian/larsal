@@ -95,6 +95,8 @@ SYN-01.14 **Health route.** `GET /v1/health`, no session: 200 `{"service":"sync"
 
 SYN-01.15 **Fuzz targets.** Every parser of this card has a fuzz target: the request head and the headers `If-Match`, `If-None-Match`, `Authorization`, `Upload-Signature`, `Upload-Epoch` and `Upload-List-Head` (SHR-03.10); the `entries/{from}` segment (SHR-02.8) and the wrap DELETE path (SHR-01.12); each JSON record, the SHR records included; and on the client each reply record (architecture "Rules for this part" 4; P25).
 
+SYN-01.16 **Quantum-safe transport and sizes** (E25-S3, E25-S5; CRY-05.10, CRY-05.11, CRY-05.14). From E25-S5, the server offers TLS 1.3 groups in the order X25519MLKEM768, X25519, secp256r1 and logs the group of every classical handshake; Larsal's sync client offers only TLS 1.3 and only X25519MLKEM768 to a Larsal sync server, so SYN-01.1's TLS 1.2 remains for other clients only; the TLS provider is rustls's aws-lc-rs provider in place of ring (CRY-05.15). From E25-S3, SYN-01.10's wrap record limit is 16 KiB (was 4 KiB), the reply of `GET /v1/groups/{group_id}/wraps` (SHR-01.12) has its own limit of 4 MiB in place of 1 MiB (CRY-05.14: up to 200 hybrid wraps), every other JSON body and reply stays at 1 MiB, and SYN-01.7's `Upload-Signature` carries a 3,373-byte composite signature (4,498 base64url characters, under the 8 KiB per header field). The certificate and its pin (SYN-01.2) are unchanged. Security relevant.
+
 ## Edge cases and errors
 
 - `If-None-Match` on a GET that names an older version: 200 with the current bytes.
@@ -140,6 +142,7 @@ SYN-01.15 **Fuzz targets.** Every parser of this card has a fuzz target: the req
 | T20 SYN-01.13 headers and logs | A full sync run with sign-in | Read every reply and the server and client logs | `Cache-Control: no-store` on every reply; no log line holds the token, nonce, signature or any body bytes |
 | T21 SYN-01.14 health | Server; and a test server that answers `GET /v1/health` with 404 | Add each | The first is added; the second shows `MSG-SYNC-NOT-SERVER` and nothing is stored |
 | T22 SYN-01.15 fuzz | The fuzz targets for the request head, the six headers, the `entries/{from}` segment, the wrap DELETE path, every record (the SHR records included), every reply | 10 minutes each (gate G5) | No crash, no timeout, no allocation over the limits of SYN-01.10 |
+| T23 SYN-01.16 hybrid transport (E25-S5) | Larsal's server on loopback | Sync from Larsal; connect a test client offering X25519 only; send a 16 KiB wrap record and one of 16 KiB + 1 byte; a test server whose wraps reply is 4 MiB + 1 byte | Larsal's connection uses TLS 1.3 with X25519MLKEM768; the test client connects and its group is in the server log; the first record is read, the second refused before parsing; the wraps reply is a protocol error (CRY-05 T19, T20, T25, T34) |
 
 ## How this was learned
 

@@ -55,6 +55,8 @@ SYN-06.12 **A new Mac by Recovery Kit** (P6 (2)). On N the user types the kit (o
 
 SYN-06.13 **No email, no reset, no escrow** (P6, P13). No route takes or stores an email address in this build; email comes with billing (E17-S6), never as a sign-in factor (NIST SP 800-63B-4 section 3.1.3.1). Nothing on the server, and no admin, can restore an account without `S_acct` and the account password: a lost kit and lost Macs lose the account. Local vaults still open with their master password and key-file part (save the part as a key file, SYN-03.12); members of a shared vault invite the new account again (P13).
 
+SYN-06.14 **Quantum-safe account keys** (E25-S3, E17-S1; CRY-05.8, LD-510). Where SYN-06.1 to SYN-06.12 name the identity key, the X25519 key and their sizes, CRY-05.8 holds from E25-S3: the identity key is CRY-05.5's composite ML-DSA-65 + Ed25519 key (public 1,984 bytes, private 64) and signs only with the composite signature; the X25519 key is an X-Wing receiving key (public 1,216 bytes, a 32-byte seed); its binding is the composite signature over (`sync-kem-key-v1`, `account_id`, the receiving public key); the account keys record is `{"identity_public_key","kem_public_key","kem_signature","recovery_public_key","blob"}`; the blob's plaintext is the identity private key followed by the receiving seed (96 bytes, version 1, never written before); SYN-06.9's key-file part wrap and SYN-06.11's seal use CRY-05.4's record, and SYN-06.11's one-request key is an X-Wing key pair. The recovery sign-in key of SYN-06.5 and SYN-06.12 stays Ed25519 (CRY-05.13). Security relevant.
+
 ## Messages
 
 | ID | Words (Larsal's own) | Buttons |
@@ -107,6 +109,7 @@ D-SYN06-1 **Where this Mac keeps the account's private keys.** (a) In the device
 | T16 SYN-06.2 short password | Sign-up | Password of 7 characters; of 8 | Refused; accepted |
 | T17 SYN-06.5 recovery key | SYN-06 T03's `S_acct` and `account_id` | Derive the recovery seed and public key with Larsal and with an independent HKDF and Ed25519 (RFC 8032 section 5.1.5) | Equal; the server's stored recovery public key equals it after sign-up |
 | T18 SYN-06.8 kept on this Mac | N after T09 | Quit and start Larsal; sync | No account password asked; the device store holds `S_acct` and both private keys; the state file and logs hold none of them |
+| T19 SYN-06.14 hybrid account keys (E25-S3) | A new account | Sign up; then add a second Mac by approval (SYN-06.11) | The keys row and the blob have CRY-05.8's names and sizes (CRY-05 T14); the seal of `S_acct` is a `[25722, 1, 3]` record with a composite signature, and N opens it; a classical record or an Ed25519-only binding offered by a test server is refused |
 
 ## How this was learned
 

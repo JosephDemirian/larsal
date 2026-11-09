@@ -80,8 +80,11 @@ Parity rows: <SF-01, ...>
 | CRY-02 | Key derivation: algorithms, defaults, limits, benchmark | E2-S5 |
 | CRY-03 | Random values made on each save | E3-S7 |
 | CRY-04 | Signatures, HPKE and key wrap | E16-S2 |
+| CRY-05 | [Quantum-safe keys](crypto/CRY-05-quantum-safe-keys.md): every public-key use, the hybrid KEM and HPKE suite, the composite signature, TLS, the words | E25-S2 to E25-S6 |
 
 Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
+
+Status: CRY-05 written 2026-11-09 (draft, E25-S1; fix rounds 1 and 2): 20 rules, 33 test cases, 31 uses; new rules in the cards that use public keys: CRY-04.15, SYN-01.16, SYN-06.14, SHR-01.17, SHR-02.16, SHR-03.16, FIL-01.23, each with one test case. It waits for its second Spec review.
 
 ### Model (`spec/model/`)
 

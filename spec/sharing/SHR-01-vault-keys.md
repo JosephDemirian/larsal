@@ -100,6 +100,8 @@ SHR-01.15 **No user key change.** Vault Settings offers no credential change for
 
 SHR-01.16 **Local state** (P4; SYN-03.3: "for shared vaults (E18) the key epoch and the member list's sequence number and hash"). Per shared vault, SYN-03.3's state keeps the group id, and the epoch and the named head (`seq` and hash) of the last version this Mac accepted or uploaded; both only move up (SHR-03.12 step 6). Per server account, it keeps the copy of the account blob that SHR-01.8 checks against. No key, no key check result and no plaintext.
 
+SHR-01.17 **Quantum-safe vault-key wraps** (E25-S3, E18-S2; CRY-05.4, CRY-05.9). From E25-S3 a wrap of `F_e` (SHR-01.9) is CRY-05.4's hybrid record to the member's `kem_key` in the verified list (SHR-02.2 field 11, an X-Wing key), signed with the sender's composite signature; SHR-01.10 step 1 accepts only the suite `[25722, 1, 3]`, step 3 checks the composite signature (CRY-05.5), and step 4 opens with this Mac's X-Wing seed (SYN-06.14). The key check (SHR-01.5, step 5) is unchanged: it is a hash, and it still stops a key the server chose. The reply of `GET /v1/groups/{group_id}/wraps` (SHR-01.12) may be up to 4 MiB, on the server and in the client, in place of SYN-01.10's 1 MiB for this one reply: 100 vaults (SHR-03.4) with two epochs each give up to 200 hybrid wraps, about 1.2 MiB after one rotation of every vault (CRY-05.14 has the arithmetic). Security relevant.
+
 ## Edge cases and errors
 
 - A wrap for epoch 3 arrives while the server's newest version is still under epoch 2: Larsal keeps both keys and opens the version with the key of epoch 2.
@@ -120,10 +122,10 @@ D-SHR01-2 **Which copies of a shared vault count, and which key an upload takes*
 ## Security notes
 
 - **A real boundary per vault (SV-04).** Each vault has its own key, so a team member with no right on a vault holds no key to it (P8; the opposite of the accepted Issue 10 in sync-server.md section 5).
-- **The server cannot choose the key (AT-L14, AT-L15, AT-L16).** A wrap must be signed by a member whom the verified list lets manage the vault and must hold the key whose check the list names; a key the server made, encrypted to a member's public key, is refused ("anyone can encrypt a chosen symmetric key under the public key of any user", ETH paper on BW08, sync-server.md section 6). Recipients' X25519 keys come only from the verified list, so the server cannot add a recipient at a rotation (BW02, LP07).
+- **The server cannot choose the key (AT-L14, AT-L15, AT-L16).** A wrap must be signed by a member whom the verified list lets manage the vault and must hold the key whose check the list names; a key the server made, encrypted to a member's public key, is refused ("anyone can encrypt a chosen symmetric key under the public key of any user", ETH paper on BW08, sync-server.md section 6). Recipients' receiving keys (X25519; X-Wing from E25-S3, SHR-01.17) come only from the verified list, so the server cannot add a recipient at a rotation (BW02, LP07).
 - **New epoch, new key (AT-L21).** A removed member holds no key of a later epoch: the new key is drawn at random and wrapped only to the remaining readers (RFC 9420 section 3.2: the Commit gives "new entropy to all members of the group except the removed member"). What they already saw stays with them (SHR-04.9).
 - **No cost bomb.** SHR-01.3 refuses other KDF settings before any work.
-- **Not now: post-quantum.** The suite id in each wrap record lets a later suite (X-Wing) come with a new version (P8).
+- **Post-quantum (E25-S3).** The suite id in each wrap record let the hybrid suite come in: SHR-01.17 and CRY-05.4 (before E25 this note said "not now", P8).
 
 ## Test cases
 
@@ -153,6 +155,8 @@ Clients A (an Organizer) and B (a Member) of one family group G with shared vaul
 | T20 SHR-01.16 local state | After T05's list on B | Read B's state file | It holds the group id, the highest epoch accepted (3) and the account blob copy; no key, no plaintext; the epoch never goes down after a restart |
 | T21 SHR-01.10, SHR-01.11 a bad wrap heals | A test server stores, as C's wrap of `F_1`, one signed by B (a Member); a second case stores T08's wrap for C | C syncs; then A syncs with V unlocked; then C syncs | Both refused at step 3 or step 5 with `MSG-GROUP-BAD-KEY`; C sends `DELETE …/wraps/1/<C's id>` (204); A's `wraps/missing` lists C; A wraps `F_1` to C; C opens V |
 | T22 SHR-01.11, SHR-03.8 locked vault | V is locked on A and C has no wrap; separately, V is locked on A while A invites D and both pick Codes match | A's other vaults sync; then A unlocks V | No wrap for C while V is locked and no key of V taken from the device store (the vault-key counter is 0); in V's first run after the unlock A wraps `F_1` to C. For D: A signs the `add` and sends no wrap; D shows `MSG-GROUP-WAITING-KEY` for V in its wording for a vault never opened ("It opens on this Mac when the key arrives", never "Your changes are kept"), with "Vault <the first 8 lowercase hex digits of V's id>" as the name, and a bad list a test server then sends D gives `MSG-GROUP-BAD-LIST` with "Group <the first 8 lowercase hex digits of G's id>"; V holds no name item for D; at the unlock A wraps `F_1` to D and writes D's name, and D opens V |
+| T23 SHR-01.17 hybrid wraps (E25-S3) | A family group with A and B; vault V epoch 1 | A wraps `F_1` to B; a test server then also offers B a classical wrap of another key with a valid Ed25519 signature by A's Ed25519 half alone | B opens the hybrid wrap and its key check matches; the classical wrap is refused at step 1 and deleted (SHR-01.10) |
+| T24 SHR-01.17 wraps reply after a rotation (E25-S3) | A team T1 with 100 vaults, Owner O1 and Members B and C who read every vault | O1 removes C (SHR-04), which rotates all 100 vaults; B syncs | B's wraps reply holds 200 wraps (epochs 1 and 2 of each vault), is over 1 MiB and under 4 MiB, and is read in full; B opens every vault at epoch 2 (CRY-05 T34) |
 
 ## How this was learned
 

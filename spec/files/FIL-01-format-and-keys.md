@@ -42,7 +42,7 @@ FIL-01.12 The complete payload including the required final marker and EOF is va
 
 FIL-01.13 Strict armor read accepts the public armor label, canonical padded body and S01 permitted outer whitespace/LF/CRLF; reject junk, extra blocks, blank interior lines and noncanonical body. It is transport syntax, not encrypted authentication: tolerated line-ending/whitespace changes are not claimed detected. Write remains binary. (Basis: S01/S03, R1.)
 
-FIL-01.14 Unknown stanza types in a public header are bounded and ignored for matching; malformed syntax fails. Unknown-only, SSH, plugin, tagged or native PQ-only headers do not start a process or use an ambient key. They return generic decrypt failure with separate non-diagnostic help listing supported modes. Never guess a wrong-password diagnosis. (Basis: S01/S11/S12, R1/R3.)
+FIL-01.14 Unknown stanza types in a public header are bounded and ignored for matching; malformed syntax fails. Unknown-only, SSH, plugin, tagged or native PQ-only headers do not start a process or use an ambient key. They return generic decrypt failure with separate non-diagnostic help listing supported modes. Never guess a wrong-password diagnosis. From E25-S4 the native `mlkem768x25519` stanza is a supported recipient type and leaves this rule (FIL-01.23); other post-quantum stanza types stay under it. (Basis: S01/S11/S12, R1/R3.)
 
 FIL-01.15 Private identities come from explicitly selected protected vault fields or an explicitly chosen bounded key file. Plain native identity lists allow blank/comment lines and up to64 identities; each noncomment line must be a valid native key. No .ssh, agent, Keychain, plugin, pinentry, home-folder search or network request. (Basis: S11/S12, existing secret boundary, R1/R3.)
 
@@ -54,11 +54,13 @@ FIL-01.18 Secret types/wiping allocator hold passphrases, private identity text,
 
 FIL-01.19 Only larsal-crypto imports cryptographic/Bech32 packages; larsal-files arranges bounded format/state through typed crypto interfaces and performs no primitive or random algorithm. Use exact standard labels and parameter checks. Swift receives opaque handle/progress/errors, never file content, private keys or retained passphrases. (Basis: architecture, R1.)
 
-FIL-01.20 Published native hybrid MLKEM768-X25519 exists; FIPS203 is the ML-KEM component standard while HPKE-PQ is a draft. This classical profile exposes no PQ selector and gives its quantum limitation plainly. Native PQ support remains OPEN for a separate exact library/review route if required by Lead; never emulate it with tagged recipients or silent classical fallback. (Basis: S01/S03/S07/S08/S11, R1.)
+FIL-01.20 Published native hybrid MLKEM768-X25519 exists; FIPS203 is the ML-KEM component standard while HPKE-PQ is a draft. This classical profile exposes no PQ selector and gives its quantum limitation plainly. Native PQ support remains OPEN for a separate exact library/review route if required by Lead; never emulate it with tagged recipients or silent classical fallback. Superseded from E25-S4 by FIL-01.23 (LD-510); the ban on tagged emulation and silent classical fallback stays. (Basis: S01/S03/S07/S08/S11, R1.)
 
 FIL-01.21 Content integrity is not sender identity or freshness. A new valid encryption to the same recipient can replace the entire file, and anyone who knows a passphrase can replace a password file. No signed/safe-to-open badge, replay protection or automatic launch follows from successful decryption. (Basis: S09, R2/R4.)
 
 FIL-01.22 No upload or online recovery is part of E22. Anyone obtaining portable password ciphertext can test guesses; filenames/size/times remain observable. State this with R6's local-export/service boundary, never claim a third-party cloud cannot test a weak password. A lost credential has no reset/decrypt service. (Basis: S09/S17, LD-340, R6.)
+
+FIL-01.23 **Hybrid recipients** (E25-S4; CRY-05.12; supersedes FIL-01.20's OPEN item and its "no PQ selector", FIL-01.14's native PQ-only case, FIL-01-T20 and FIL-03-T17's unsupported-PQ mapping, and widens FIL-01.1's profile by this one recipient type). Larsal reads and writes age's `mlkem768x25519` recipient type exactly as CRY-05.12 says: `age1pq` recipients and `AGE-SECRET-KEY-PQ-` identities in original Bech32, enc 1,120 bytes and body 32 bytes checked before any work, HPKE suite `[25722, 1, 3]` with info `age-encryption.org/mlkem768x25519`. A file key Larsal creates (FIL-01.17) is a hybrid one and is labelled W-QS-05; a classical X25519 recipient keeps working and shows MSG-FILE-QUANTUM; a recipient list that mixes the two is refused with W-QS-07 and nothing is written. (Basis: C2SP age spec; CRY-05 sources.)
 
 ## Test cases
 
@@ -83,9 +85,10 @@ FIL-01.22 No upload or online recovery is part of E22. Anyone obtaining portable
 | FIL-01-T17 | FIL-01.17 | unlocked writable demo vault and save failure | create file key | success saves protected key before use; failure no usable unsaved selection and no private UI return |
 | FIL-01-T18 | FIL-01.18 | every failure stage plus success and lock during KDF | end operation | all owned secret buffers released/wiped; independent memory proof remains OPEN for both Mac targets |
 | FIL-01-T19 | FIL-01.19 | source/dependency graph and hostile FFI calls | review/operate | imports/RNG boundary holds, no secret-bearing view/error/Debug and no new unsafe outside platform |
-| FIL-01-T20 | FIL-01.20 | native PQ public recipient or identity supplied | select/open | explicit unsupported-selection help or generic decrypt error; no fallback or claim that PQ is unpublished |
+| FIL-01-T20 | FIL-01.20 | native PQ public recipient or identity supplied | select/open | explicit unsupported-selection help or generic decrypt error; no fallback or claim that PQ is unpublished. Before E25-S4 only; from E25-S4 FIL-01-T23 replaces it |
 | FIL-01-T21 | FIL-01.21 | independently re-encrypted replacement/replay with valid recipient | decrypt | valid plaintext may be accepted; UI never claims original sender or latest version |
 | FIL-01-T22 | FIL-01.22 | weak passphrase file copied to a demo offline attacker | assess promise | offline guesses are possible and disclosed; E22 makes no service request, and all Larsal service no-verifier obligations remain unchanged |
+| FIL-01-T23 | FIL-01.23 | an `age1pq` recipient; one `age1pq` plus one X25519 recipient; a file from an approved peer tool to an `age1pq` recipient | encrypt; encrypt; open | file opens in Larsal and the peer, stanza `mlkem768x25519`, the hybrid key shows W-QS-05 and not MSG-FILE-QUANTUM; refused with W-QS-07, no output; opens; a classical X25519 recipient alone shows MSG-FILE-QUANTUM and not W-QS-05, and a new file key starts with `age1pq` (CRY-05 T21 to T23, T32) |
 
 ## Edge cases and errors
 

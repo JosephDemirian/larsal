@@ -99,6 +99,8 @@ CRY-04.13 **Known answers** (gate G3, AT-B01; E16-S2). Kept as test data in the 
 
 CRY-04.14 **One changed byte fails.** One changed byte of enc, ct, info, the signer id or the signature of a wrap record gives `WrapInvalid`; one changed byte of a P-256 or Ed25519 message, public key or signature gives `SignatureInvalid`; one changed byte of an AES-256-GCM wrap or its associated data gives `WrapInvalid`.
 
+CRY-04.15 **Quantum-safe keys for sync and sharing** (E25-S3; CRY-05, LD-509, LD-510). From E25-S3 the sync and sharing uses of this card take CRY-05's hybrid parts in place of the classical ones: every wrap record (CRY-04.6) carries CRY-05.3's suite `[25722, 1, 3]` (MLKEM768-X25519, HKDF-SHA256, ChaCha20-Poly1305) and CRY-05.4's sizes, and is at most 16 KiB; every signature by the account's identity key (the labels `sync-wrap-v1`, `sync-upload-v1`, `sync-share-upload-v1`, `sync-device-v1`, `sync-member-entry-v1`, `sync-member-consent-v1`) is CRY-05.5's composite ML-DSA-65 + Ed25519 signature; the label `sync-x25519-v1` is replaced by `sync-kem-key-v1` (CRY-05.8). CRY-04.5's suite 0x0020/0x0001/0x0002 stays only as E16-S2's known-answer test (T07) and is refused in every wrap record at step 1 (CRY-05.4, CRY-05.7). Unchanged: CRY-04.2's field lists, CRY-04.3's strict Ed25519 (inside the composite, and for the recovery sign-in key), CRY-04.4 (the device key stays P-256), CRY-04.7 to CRY-04.12. Crates: CRY-05.15. Security relevant.
+
 ## Edge cases and errors
 
 - An Ed25519 signature with S = L + (the right S): refused (CRY-04.3).
@@ -113,7 +115,7 @@ CRY-04.14 **One changed byte fails.** One changed byte of enc, ct, info, the sig
 
 - **Why sign the wrap.** In base mode anyone can encrypt a chosen key to anyone's public key ("anyone can encrypt a chosen symmetric key under the public key of any user", ETH paper on BW08); signing (suite, enc, ct, info) with the sender's identity key is the fix both RFC 9180 section 9.1.1 and the paper give (sync-server.md sections 6 and 7).
 - **Why info.** `info` binds a wrap to its purpose, account, vault, epoch and recipient, so a wrap moved to another place does not open (RFC 9180 section 5.1.3).
-- **One suite.** No suite choice is offered to the other side; a record with another suite is refused, so no downgrade is possible. The suite id stays in the record so a later suite (X-Wing, P8) can be added with a new version.
+- **One suite.** No suite choice is offered to the other side; a record with another suite is refused, so no downgrade is possible. The suite id stays in the record so a later suite can come in; CRY-04.15 brings the hybrid one (X-Wing, CRY-05.3) from E25-S3, and the classical suite is then refused.
 - **The two-secret key** needs both the 256-bit account secret and the password: a stolen blob alone cannot be attacked with password guesses (P6, SV-03).
 - **Two Checkers** review every change to this card's code (team.md: crypto).
 
@@ -140,6 +142,7 @@ CRY-04.14 **One changed byte fails.** One changed byte of enc, ct, info, the sig
 | T17 CRY-04.12 random failure | A test seam that makes the random source fail | Make a key pair, seal, wrap | Each fails with the random error; nothing returned |
 | T18 CRY-04.1 crates | The tree after E16-S2 | `cargo tree -i hpke`, `-i x25519-dalek`, `-i aes-gcm`, `-i ed25519-dalek`, `-i p256`; search every Larsal crate's `use` lines | Each is reached from Larsal crates only through larsal-crypto; no other Larsal crate imports them; gate G1 passes offline with the vendored copies |
 | T19 CRY-04.11 constant time | The code of SYN-05.3 and of every pinned-key compare | Checker reads each compare (gate G6) | Each uses `subtle`'s constant-time equality; none uses `==` on the bytes |
+| T20 CRY-04.15 classical suite refused | A wrap record with suite (0x0020, 0x0001, 0x0002) and a valid Ed25519 signature by a key the test trusts, after E25-S3 | Open it as a sync or sharing wrap | `WrapInvalid` at step 1; no signature check runs (CRY-05 T12); T07 still passes as a known-answer test |
 
 ## How this was learned
 
