@@ -1,6 +1,6 @@
 # CRY-05 Quantum-safe keys
 
-Status: draft (E25-S1, 2026-11-09; waits for its second Spec review)
+Status: Done (E25-S1, 2026-11-09; second Spec review approved in round 3; Verify signed with limits, LD-521)
 Epics: E25-S2 (larsal-crypto: the hybrid KEM, its HPKE suite, ML-DSA-65 and the composite signature), E25-S3 (sync and sharing keys), E25-S4 (file recipients), E25-S5 (the link to Larsal's server), E25-S6 (Red team); used by E17-S1, E17-S2, E17-S7, E18-S2 to E18-S8, E19-S4, E20 (the web vault runs larsal-crypto in WebAssembly; E20-S4, E20-S7 and E20-S12 by CRY-05.8 and CRY-05.20), E24-S3 (CRY-05.13), E14-S3 (U32, CRY-05.13)
 Parity rows: none in the reference app (it has no server, accounts, sharing or public-key files). Larsal's own rows: QS-P1 to QS-P7 (proposed for plan/security.md, see proposed rows); SV-01, SV-03 to SV-06 (plan/security.md, words change only); AT-QS-01 to AT-QS-07 (proposed for plan/attacks-and-checks.md)
 

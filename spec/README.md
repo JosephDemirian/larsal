@@ -84,7 +84,7 @@ Parity rows: <SF-01, ...>
 
 Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
 
-Status: CRY-05 written 2026-11-09 (draft, E25-S1; fix rounds 1 and 2): 20 rules, 33 test cases, 31 uses; new rules in the cards that use public keys: CRY-04.15, SYN-01.16, SYN-06.14, SHR-01.17, SHR-02.16, SHR-03.16, FIL-01.23, each with one test case. It waits for its second Spec review.
+Status: CRY-05 Done 2026-11-09 (E25-S1, LD-521): 20 rules, 34 test cases, 32 uses; new rules in the cards that use public keys: CRY-04.15, SYN-01.16, SYN-06.14, SHR-01.17, SHR-02.16, SHR-03.16, FIL-01.23, each with one test case.
 
 ### Model (`spec/model/`)
 
