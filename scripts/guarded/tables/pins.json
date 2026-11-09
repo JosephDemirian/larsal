@@ -1,5 +1,5 @@
 {
- "reviewed_commit": "b428a89262c8a9144af2671a270def28671ac745",
+ "reviewed_commit": "fb491828e392d5f7db53f5d63b6fa472c9271eb3",
  "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit, apart from the rows labelled F-334, whose hash is the one at that round's merge commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "reviews": {
   "R2b": {
@@ -60,6 +60,11 @@
   "E22-S4": {
    "what": "Pins moved by this story's diff (larsal-ffi's files bridge, macos/ file screens and tests). Its C1 and Sensitive C2 read the whole diff over six rounds; its proof: LD row of the merge.",
    "source": "commit b428a89262c8a9144af2671a270def28671ac745",
+   "limits": "Content equality to the reviewed diff, carried onto Main by a three-way pick; not a new review of any grant."
+  },
+  "E22-S5": {
+   "what": "Pins moved by this story's diff (crates/larsal-cli and Cargo.lock; the new fil02 test program). Its C1 and Sensitive C2 read the whole diff over three rounds; its proof: LD row of the merge.",
+   "source": "commit fb491828e392d5f7db53f5d63b6fa472c9271eb3",
    "limits": "Content equality to the reviewed diff, carried onto Main by a three-way pick; not a new review of any grant."
   }
  },
@@ -598,10 +603,10 @@
    ]
   },
   "workspace:larsal-cli/int10": {
-   "review": "E21-S3",
+   "review": "E22-S5",
    "why": "The owner crate holds int10.rs, which picks a private board case by case, and commands.rs, whose clipboard() falls to the general board when none is named. The two platform files are where the boards are chosen. The cli test starts larsal under pty and sh, which the guard does not reach, so this pin is what holds there.",
    "pins": {
-    "crates/larsal-cli": "3b336bd0d0b6e9ce7ecaf06cc82a6712c7537aa2",
+    "crates/larsal-cli": "8b272f58b0291a165408985aea9617287ba7baeb",
     "crates/larsal-platform/src/clipboard.rs": "3d13a5a1517d3b93dbe702603fa07fb6ca190930",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -829,7 +834,7 @@
    ]
   },
   "workspace:larsal-sshagent/own_agent": {
-   "review": "E22-S4",
+   "review": "E22-S5",
    "why": "This row holds the sshd no-sandbox line. The test starts /usr/sbin/sshd itself with its private config, own_agent.rs line 1889; the crate tree is what it links. The blob pin names the file so a reader sees it; the tree pin moves with any file in the crate. Every workspace crate it links is pinned too: the five named in the manifests' normal dependencies, walked from larsal-sshagent, and crates/log, which the workspace lane links through larsal-platform's net feature, ureq and ureq-proto. Read from the Cargo.toml files and the proof run's build fingerprints. larsal-server and larsal-proto are in the lock's closure only through larsal-platform's dev-dependencies, so they are not linked. The root Cargo.toml, .cargo/config.toml, Cargo.lock, rust-toolchain.toml and vendor/ choose what those crates are and what third-party code they link: a dependency renamed with package =, a [patch] or a vendored crate's change takes this row to base too. The workspace lane also builds larsal-files, larsal-folders, larsal-hwkey, larsal-proto, larsal-qr, larsal-server, larsal-share and uniffi-bindgen, which no other row pins, and a build script in one can rewrite this program's bytes, so they are pinned here too.",
    "pins": {
     "crates/larsal-sshagent": "03f5ccca25bdd1897f8839b9336f9f1d20346742",
@@ -842,7 +847,7 @@
     "crates/log": "efbf07781cc71f04015826a647fafc4e9dd11171",
     "Cargo.toml": "8f570070b7e073777ae8a263f190554a6588b7db",
     ".cargo/config.toml": "785b10eab773acbb46881e08aa60489dc2ebe860",
-    "Cargo.lock": "c048eca6faeebe6f253f0be796738222199cfc0e",
+    "Cargo.lock": "eee89e280dfacc948a9f8ae4d946fef744fbd0b2",
     "rust-toolchain.toml": "9ec55b3b621dbc75fc68817cd51b96e407d3c94c",
     "vendor": "5208e0b235db01f0321deea3b67d8adb1ff85ed5",
     "crates/larsal-hwkey": "93fee36734cf50df7ad25678f7b214625aef7b6e",
@@ -869,6 +874,20 @@
    },
    "checks": [
     "key-route"
+   ]
+  },
+  "workspace:larsal-cli/fil02": {
+   "review": "E22-S5",
+   "why": "The owner crate holds fil02.rs, which runs larsal encrypt and decrypt under pty with demo files and its own TMPDIR scratch folders; larsal-files is the code it drives; larsal-ffi is its dev-dependency for the app-path round trip. The cli test starts larsal under pty and sh, which the guard does not reach, so this pin is what holds there.",
+   "pins": {
+    "crates/larsal-cli": "8b272f58b0291a165408985aea9617287ba7baeb",
+    "crates/larsal-files": "91bec9d37378894c3e52560956af0adfc22c1f75",
+    "crates/larsal-ffi": "40622cbfaafb86b2f459a112da67262564566353"
+   },
+   "checks": [
+    "no-nsapplication",
+    "no-owner-tty",
+    "no-pbcopy"
    ]
   }
  }

@@ -40,6 +40,7 @@
 "workspace:larsal-browser/larsal_browser": {"classes": ["browser_unit"], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-cli/bench_system": {"classes": [], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-cli/bench_zeroing": {"classes": [], "profile": "harness-runtime-base.sb"},
+"workspace:larsal-cli/fil02": {"classes": [], "profile": "cli-runtime.sb"},
 "workspace:larsal-cli/int10": {"classes": [], "profile": "cli-runtime.sb"},
 "workspace:larsal-cli/larsal": {"classes": [], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-cli/license": {"classes": [], "profile": "harness-runtime-base.sb"},
