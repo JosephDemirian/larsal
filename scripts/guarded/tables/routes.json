@@ -153,7 +153,8 @@
   "vault_open": "b6f60adc394cff67fb587aadd0ab710a5dc89f8e072056743fb5cf6541fb2273",
   "word_list": "198fecda65b9c30b6c03f2eac28f24460f36f04b9cfbc0442b550ced8f8de62a",
   "file_decrypt": "cc9a5a6ad53a92c7896f8d69c273989ac981c2bd17d7d3c4341d5e16e16fc288",
-  "folder_readers": "a6370f1c9b7a38f3b179fb89d69252ce6bf02bd6fb7ffb9d679011c67826e9af"
+  "folder_readers": "a6370f1c9b7a38f3b179fb89d69252ce6bf02bd6fb7ffb9d679011c67826e9af",
+  "share_merge": "9735c7f9fafa6f5fd0599eb6c538d42e9f7529d0b9fbd5915a75251ae3d129b1"
  },
  "fuzz_bins": {
   "autotype_match": [
@@ -369,6 +370,13 @@
   "folder_readers": [
    "name = \"folder_readers\"",
    "path = \"fuzz_targets/folder_readers.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "share_merge": [
+   "name = \"share_merge\"",
+   "path = \"fuzz_targets/share_merge.rs\"",
    "test = false",
    "doc = false",
    "bench = false"
