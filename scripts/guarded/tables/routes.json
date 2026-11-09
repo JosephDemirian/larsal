@@ -120,7 +120,7 @@
   "scripts/check-server-blind.sh": "9bb6ac2ed80d291a041b49290be608784a2a1a20cbb0b3557a1e6bb1e3bebe8c",
   "scripts/build-core.sh": "22dc9fe2971b2e97a2c000e86e4f1c4aed2da8d9dc96bae9fd94180898c79837",
   "scripts/install-swiftlint.sh": "9a924771f7e4e1cd8c2e01b6e46386c37e00724946e4bdb628c420a977b83d8e",
-  "scripts/check-sync-link.sh": "9538ddec1a5184b92a86060acee9fd8b3160d73522527fc649e9c5da7a548233"
+  "scripts/check-sync-link.sh": "36daa6877d1faa623b57ca2cb5efc07bdb6f4f7f743e9658885e941b2ffaa4f1"
  },
  "fuzz_routes": {
   "autotype_match": "249e8860baf170dd17e847ad19685065d8db41c05530d99c2bc8d387d85a627e",
