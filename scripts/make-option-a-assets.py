@@ -63,6 +63,7 @@ image-square upload-simple credit-card game-controller film-strip airplane car s
 chat-circle database cloud minus-circle suitcase map-pin train boat
 command share-network power
 pause pause-circle
+file-arrow-up file-image files lock users
 """.split()
 
 

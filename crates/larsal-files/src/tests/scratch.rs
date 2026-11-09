@@ -276,3 +276,12 @@ fn check4_only_the_file_system_module_can_reach_the_disk() {
         ]
     );
 }
+
+/// C1-R3-02, C2R3-02: the fuzz door is off in every build of this workspace. A
+/// product crate that turned the feature on would unify it into this test build
+/// too, and this goes red: it stops the build of this test. The fuzz target is
+/// its own workspace.
+#[test]
+fn fil01_t19_the_fuzz_door_is_shut_in_the_workspace() {
+    const { assert!(!cfg!(feature = "fuzz-door"), "the fuzz door is open") };
+}

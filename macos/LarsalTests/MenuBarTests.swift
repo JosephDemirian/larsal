@@ -23,6 +23,8 @@ enum MenuCard {
                 ("New Vault…", "⇧⌘N"), ("Open Vault…", "⌘O"), ("Open Recent", ""), ("-", ""), ("Close Vault", "⌘W"),
                 ("Close Window", "⇧⌘W"), ("Save", "⌘S"), ("Save As…", "⇧⌘S"), ("Save a Copy…", ""), ("-", ""),
                 ("Import…", ""), ("Export", ""),
+                // FIL-02.1 (E22-S4): no vault needs to be open.
+                ("-", ""), ("Encrypt File…", ""), ("Decrypt File…", ""),
             ]
         ),
         (

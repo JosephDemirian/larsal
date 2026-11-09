@@ -292,9 +292,13 @@ struct ParityEditorFilesTests {
         let screen = Screen(model)
         await screen.settle()
         try await screen.press("Edit entry (⌘E)")
+        // "Now" is the press's own moment: between the clock just before it and just
+        // after it, whatever load other suites put on the main actor meanwhile.
+        let before = Int64(Date().timeIntervalSince1970)
         try await screen.press("Expires")
+        let after = Int64(Date().timeIntervalSince1970)
         let view = try #require(main.editor?.view)
-        #expect(view.expires && abs(view.expiry - Int64(Date().timeIntervalSince1970)) < 5)
+        #expect(view.expires && (before...after).contains(view.expiry), "\(view.expiry) in \(before)...\(after)")
         main.editor?.run { try main.session.setExpiry(vault: main.vault.id, on: true, at: 1_800_000_000) }
         #expect(main.editor?.view.expiry == 1_800_000_000)
     }

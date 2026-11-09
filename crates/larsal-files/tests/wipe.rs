@@ -152,6 +152,14 @@ fn every_ending(
     let mut bad_chunk = x_file.to_vec();
     *bad_chunk.last_mut().unwrap() ^= 1;
     let _ = black_box(open_all(&bad_chunk, &by_key));
+    // F-342 (C2R3-01): a full chunk that opens only under the other flag. The
+    // discard pass decrypts it for its count and still refuses the file.
+    let at = x_file.windows(4).position(|w| w == b"--- ").unwrap();
+    let end = at + x_file[at..].iter().position(|b| *b == b'\n').unwrap() + 1;
+    let cut = &x_file[..end + 16 + 3 * 65_552];
+    let other_flag = black_box(open_all(cut, &by_key));
+    assert!(matches!(other_flag, Err(larsal_files::Error::Decrypt)));
+    drop(other_flag);
     // Cancel in the check and in the write.
     let snapshot = root.capture_stream(&mut &x_file[..], keep).unwrap();
     let _ = black_box(

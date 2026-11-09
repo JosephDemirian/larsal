@@ -22,6 +22,9 @@ larsal-platform = { workspace = true, features = ["test-memory"] }
 # The fuzz target's way to ciphertext in memory. Never on in a product build: a
 # user's file goes through capture (FIL-03.5, FIL-03.6).
 fuzz-door = []
+# larsal-ffi's tests: new outputs read back as on a volume that cannot keep a file
+# private (MSG-FILE-UNPROTECTED, E22-S4). Never on in a product build.
+test-volume = []
 
 [lints]
 workspace = true

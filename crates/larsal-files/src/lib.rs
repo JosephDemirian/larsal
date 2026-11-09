@@ -93,6 +93,8 @@ mod tests;
 pub use decrypt::{Snapshot, Unlock, Unwrapped, Validated, Validation, WeakFile};
 pub use encrypt::{Lock, encrypt_file, encrypt_stream};
 pub use error::Error;
+#[cfg(feature = "test-volume")]
+pub use fsio::test_volume;
 pub use fsio::{OutputFolder, ScratchRoot, SourceFile};
 pub use keys::{Identities, Recipient, generate_identity};
 pub use label::clean_label;

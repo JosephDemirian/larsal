@@ -11,6 +11,8 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt, symlink};
 use std::process::Command;
 
 const LARGE: usize = 300_000;
+/// Bytes that start as the format, so a capture takes them (V-2).
+const SHAPED: &[u8] = b"age-encryption.org/v1\ndemo";
 
 fn name(text: &str) -> &OsStr {
     text.as_ref()
@@ -178,13 +180,43 @@ fn fil03_t05_links_and_other_kinds_are_not_inputs() {
     assert_eq!(fs::read(&real).unwrap(), b"demo");
 }
 
+/// V-2 (FIL-03.5): a plain file chosen for Decrypt is refused before any scratch
+/// exists, so not one byte of it is copied. Bytes that start as the format, binary
+/// or armor after its widest white space, go on.
+#[test]
+fn fil03_t05_v2_a_plain_file_is_refused_before_any_capture() {
+    let t = Temp::new();
+    let scratch = t.sub("scratch");
+    let root = ScratchRoot::open(&scratch).unwrap();
+    let plain = t.file("plain.txt", &vec![b'p'; 200_004]);
+    watch::take();
+    let result = root.capture_file(SourceFile::open(&plain).unwrap(), &mut keep);
+    assert_eq!(result.map(|_| ()), Err(Error::Decrypt));
+    assert!(watch::take().is_empty(), "no scratch folder, file or byte");
+    assert!(names_in(&scratch).is_empty());
+    let mut armor = vec![b' '; crate::limits::MAX_ARMOR_SPACE];
+    armor.extend_from_slice(b"-----BEGIN AGE ENCRYPTED FILE-----\n");
+    for good in [SHAPED, &armor[..]] {
+        let taken = root.capture_stream(&mut &good[..], &mut keep);
+        assert!(taken.is_ok(), "{:?}", &good[..8]);
+    }
+    assert!(
+        watch::take()
+            .iter()
+            .any(|e| matches!(e, Event::ScratchWrite(_))),
+        "the control was copied"
+    );
+}
+
 #[test]
 fn fil03_t05_the_descriptor_defines_the_captured_source() {
     let case = Case::new();
     let good = fs::read(&case.input).unwrap();
     let mut held = fs::File::open(&case.input).unwrap();
     // Replace the name, then capture from the handle chosen before.
-    let other = case.t.file("other", b"other demo bytes");
+    let other = case
+        .t
+        .file("other", b"age-encryption.org/v1\nother demo bytes");
     fs::rename(other, &case.input).unwrap();
     let mut snapshot = case.root().capture_stream(&mut held, &mut keep).unwrap();
     let mut bytes = Vec::new();
@@ -192,7 +224,7 @@ fn fil03_t05_the_descriptor_defines_the_captured_source() {
     assert_eq!(bytes, good);
     // Through a chosen file, a replaced name is a changed source, never its bytes.
     let source = SourceFile::open(&case.input).unwrap();
-    let again = case.t.file("again", b"a third demo");
+    let again = case.t.file("again", b"age-encryption.org/v1\na third demo");
     fs::rename(again, &case.input).unwrap();
     assert_eq!(
         case.root().capture_file(source, &mut keep).map(|_| ()),
@@ -377,6 +409,44 @@ fn fil03_t07_cancel_in_each_phase_leaves_nothing_owned() {
     assert_eq!(fs::read(plain_input).unwrap(), case.plain);
 }
 
+/// FIL-02.13 (FIL-02-T13): a cancel that comes during the key derivation, or
+/// between the check and the write, is seen before an output exists.
+#[test]
+fn fil02_t13_a_cancel_before_the_first_write_makes_no_output() {
+    let case = Case::new();
+    let validated = case.validated();
+    watch::take();
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut |_, _| false);
+    assert_eq!(result, Err(Error::Cancelled));
+    let events = watch::take();
+    assert!(
+        !events.iter().any(|e| matches!(e, Event::OutputCreate)),
+        "no output was made"
+    );
+    let input = case.t.file("plain.bin", &case.plain);
+    let recipients = [rec(ID_A)];
+    let mut calls = Vec::new();
+    let result = encrypt_file(
+        SourceFile::open(&input).unwrap(),
+        &case.folder(),
+        name("demo.age"),
+        &Lock::Recipients(&recipients),
+        &mut |phase, n| {
+            calls.push((phase, n));
+            false
+        },
+    );
+    assert_eq!(result, Err(Error::Cancelled));
+    assert_eq!(calls, [(Phase::Encrypt, 0)], "asked once, before any byte");
+    assert!(
+        !watch::take()
+            .iter()
+            .any(|e| matches!(e, Event::OutputCreate)),
+        "no output was made"
+    );
+    assert!(names_in(&case.out).is_empty());
+}
+
 #[test]
 fn fil03_t07_a_later_read_fault_is_reported_as_itself_not_as_corruption() {
     let keys = ids(ID_A);
@@ -489,54 +559,60 @@ fn fil03_t08_only_a_folder_can_be_an_output_folder() {
     assert!(!first.join("demo.out").exists());
 }
 
-#[test]
-fn fil03_t09_a_renamed_output_is_emptied_and_a_planted_sentinel_stays() {
-    let case = Case::new();
-    let moved = case.t.0.join("moved-away");
-    let target = case.out.join("demo.out");
-    let mut planted = false;
-    let result = case
-        .validated()
-        .save_new(&case.folder(), name("demo.out"), &mut |_, _| {
-            if !planted {
-                planted = true;
-                fs::rename(&target, &moved).unwrap();
-                fs::write(&target, b"sentinel demo").unwrap();
-            }
-            false
-        });
-    assert_eq!(
-        result,
-        Err(Error::CleanupEmpty),
-        "the cleanup failure is said plainly"
-    );
-    assert_eq!(fs::read(&target).unwrap(), b"sentinel demo");
-    assert_eq!(
-        fs::read(&moved).unwrap().len(),
-        0,
-        "our inode holds no plaintext"
-    );
+/// Says stop at the second question. The first is the safe point before the output
+/// exists (FIL-02.13), where a stop leaves nothing to clean.
+fn stop_once_made() -> impl FnMut(Phase, u64) -> bool {
+    let mut asked = 0;
+    move |_, _| {
+        asked += 1;
+        asked < 2
+    }
 }
 
+/// F-340 (FIL-03.9): a file put at the chosen name at the last moment before the
+/// cleanup removes a name is never what the cleanup removes. The hook runs right
+/// before that removal, the race point of a look at a name and an unlink of it.
 #[test]
-fn fil03_t09_a_replaced_output_on_success_is_not_called_saved() {
+fn fil03_t09_f340_a_name_swapped_in_before_the_cleanup_unlink_stays() {
     let case = Case::new();
-    let moved = case.t.0.join("moved-away");
     let target = case.out.join("demo.out");
-    let mut planted = false;
+    let moved = case.t.0.join("moved-away");
+    let (at, away) = (target.clone(), moved.clone());
+    watch::at_cleanup_unlink(Box::new(move || {
+        // Whatever has the chosen name moves away, and a sentinel takes the name.
+        let _ = fs::rename(&at, &away);
+        fs::write(&at, b"sentinel demo").unwrap();
+    }));
     let result = case
         .validated()
-        .save_new(&case.folder(), name("demo.out"), &mut |_, n| {
-            if n >= LARGE as u64 && !planted {
-                planted = true;
-                fs::rename(&target, &moved).unwrap();
-                fs::write(&target, b"sentinel demo").unwrap();
-            }
-            true
-        });
-    assert_eq!(result, Err(Error::Uncertain));
+        .save_new(&case.folder(), name("demo.out"), &mut stop_once_made());
+    assert_eq!(result, Err(Error::Cancelled), "a clean cancel");
+    assert_eq!(
+        fs::read(&target).unwrap(),
+        b"sentinel demo",
+        "the planted file stays"
+    );
+    assert!(
+        !moved.exists(),
+        "the chosen name never held an incomplete output"
+    );
+    assert_eq!(names_in(&case.out), ["demo.out"], "nothing of ours stays");
+}
+
+/// FIL-03.8, F-340: a name taken while the output was written is never replaced.
+/// The rename that gives the output its name refuses, and the incomplete file goes.
+#[test]
+fn fil03_t08_a_name_taken_during_the_write_is_never_replaced() {
+    let case = Case::new();
+    let target = case.out.join("demo.out");
+    let at = target.clone();
+    watch::at_commit(Box::new(move || fs::write(&at, b"sentinel demo").unwrap()));
+    let result = case
+        .validated()
+        .save_new(&case.folder(), name("demo.out"), &mut keep);
+    assert_eq!(result, Err(Error::Exists));
     assert_eq!(fs::read(&target).unwrap(), b"sentinel demo");
-    assert_eq!(fs::read(&moved).unwrap(), case.plain, "complete, and kept");
+    assert_eq!(names_in(&case.out), ["demo.out"], "nothing of ours stays");
 }
 
 #[test]
@@ -578,21 +654,26 @@ fn fil03_t10_permission_loss_is_a_cleanup_error_and_never_silent() {
     let case = Case::new();
     let validated = case.validated();
     let out = case.out.clone();
-    let mut denied = false;
+    let mut asked = 0;
     let result = validated.save_new(&case.folder(), name("demo.out"), &mut |_, _| {
-        if !denied {
-            denied = true;
+        asked += 1;
+        if asked == 2 {
             fs::set_permissions(&out, fs::Permissions::from_mode(0o500)).unwrap();
         }
-        false
+        asked < 2
     });
     fs::set_permissions(&out, fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(result, Err(Error::CleanupEmpty));
-    assert_eq!(
-        fs::read(out.join("demo.out")).unwrap().len(),
-        0,
-        "emptied through its handle"
-    );
+    assert_only_an_empty_staging_folder(&out);
+}
+
+/// What a cleanup that could not remove the output's own folder leaves: that
+/// folder, empty, and nothing at any chosen name.
+fn assert_only_an_empty_staging_folder(out: &Path) {
+    let left = names_in(out);
+    assert_eq!(left.len(), 1, "{left:?}");
+    assert!(left[0].starts_with(".larsal-staging-"), "{left:?}");
+    assert!(names_in(&out.join(&left[0])).is_empty(), "it holds nothing");
 }
 
 fn op_name(n: u8) -> String {
@@ -730,7 +811,7 @@ fn fil03_t11_only_a_private_folder_can_be_a_scratch_root() {
     let root = ScratchRoot::open(&chosen).unwrap();
     fs::rename(&chosen, t.0.join("moved")).unwrap();
     fs::create_dir(&chosen).unwrap();
-    let result = root.capture_stream(&mut &b"demo"[..], &mut keep);
+    let result = root.capture_stream(&mut &SHAPED[..], &mut keep);
     assert_eq!(result.map(|_| ()), Err(Error::Destination));
     assert!(names_in(&chosen).is_empty());
 }
@@ -824,7 +905,7 @@ fn fil03_t13_the_exact_message_of_every_error() {
         ),
         (
             Error::CleanupEmpty,
-            "Larsal could not remove a file it made. The file is empty. Check the destination before you leave.",
+            "Larsal could not remove a file or folder it made. It is empty. Check the destination before you leave.",
         ),
         (
             Error::Unprotected,
@@ -879,6 +960,13 @@ fn fil03_t20_payload_round_trips_as_bytes_and_no_metadata_travels() {
     payload.extend(demo_bytes(1000));
     let input = t.file("secret-name-of-person.jpg", &payload);
     fs::set_permissions(&input, fs::Permissions::from_mode(0o755)).unwrap();
+    // C1-R3-04: a source's BSD flags stay with it too.
+    let flagged = Command::new("/usr/bin/chflags")
+        .arg("nodump,hidden")
+        .arg(&input)
+        .status()
+        .unwrap();
+    assert!(flagged.success());
     let out = t.sub("out");
     let folder = OutputFolder::open(&out).unwrap();
     let recipients = [rec(ID_A)];
@@ -897,6 +985,7 @@ fn fil03_t20_payload_round_trips_as_bytes_and_no_metadata_travels() {
         0o600,
         "the source's mode is not copied"
     );
+    assert_eq!(st_flags(&meta), 0, "nor its BSD flags");
     assert!(
         !sealed.windows(6).any(|w| w == b"secret"),
         "its name is not carried"
@@ -917,6 +1006,11 @@ fn fil03_t20_payload_round_trips_as_bytes_and_no_metadata_travels() {
     assert_eq!(fs::read(out.join("demo.jpg")).unwrap(), payload);
     let meta = fs::metadata(out.join("demo.jpg")).unwrap();
     assert_eq!(meta.mode() & 0o7777, 0o600, "never executable");
+    assert_eq!(st_flags(&meta), 0, "no BSD flag");
+}
+
+fn st_flags(meta: &fs::Metadata) -> u32 {
+    std::os::macos::fs::MetadataExt::st_flags(meta)
 }
 
 /// The names `xattr` shows, less the one the system puts on what a guarded program
@@ -1123,8 +1217,12 @@ fn no_write(events: &[Event]) -> bool {
 
 const PASSES_ON: &str = "everyone allow read,file_inherit";
 
+/// FIL-03.8, FIL-03.20, F-340: an output is made in its own folder and only then
+/// takes its name, so a list the chosen folder passes on to new files never
+/// reaches it: no list, mode 0600. A list the folder passes on to folders would
+/// reach the output's own folder: that gets not one byte, on any output.
 #[test]
-fn fil03_t08_fil03_t20_a_folder_that_passes_on_an_access_list_gets_not_one_byte() {
+fn fil03_t08_fil03_t20_no_output_ever_takes_a_folder_list() {
     let case = Case::new();
     chmod_acl(PASSES_ON, &case.out);
 
@@ -1147,7 +1245,38 @@ fn fil03_t08_fil03_t20_a_folder_that_passes_on_an_access_list_gets_not_one_byte(
     );
     fs::remove_file(&control).unwrap();
 
-    // A decrypted output.
+    // A decrypted output and an encrypted one: private, with no list.
+    let input = case.t.file("plain.bin", &case.plain);
+    let recipients = [rec(ID_A)];
+    let decrypted = case
+        .validated()
+        .save_new(&case.folder(), name("demo.out"), &mut keep);
+    let encrypted = encrypt_file(
+        SourceFile::open(&input).unwrap(),
+        &case.folder(),
+        name("demo.age"),
+        &Lock::Recipients(&recipients),
+        &mut keep,
+    );
+    assert_eq!(decrypted, Ok(LARGE as u64));
+    assert_eq!(encrypted, Ok(LARGE as u64));
+    for made in ["demo.out", "demo.age"] {
+        let path = case.out.join(made);
+        assert!(!shown_acl(&path).contains("everyone"), "{made}");
+        assert_eq!(
+            fs::metadata(&path).unwrap().mode() & 0o7777,
+            0o600,
+            "{made}"
+        );
+    }
+    assert_eq!(fs::read(case.out.join("demo.out")).unwrap(), case.plain);
+    chmod_no_acl(&case.out);
+    for made in ["demo.out", "demo.age"] {
+        fs::remove_file(case.out.join(made)).unwrap();
+    }
+
+    // A list passed on to folders: not one byte, and nothing stays.
+    chmod_acl(DIRECTORIES_TOO, &case.out);
     let validated = case.validated();
     watch::take();
     assert_eq!(
@@ -1155,17 +1284,8 @@ fn fil03_t08_fil03_t20_a_folder_that_passes_on_an_access_list_gets_not_one_byte(
         Err(Error::Destination)
     );
     let events = watch::take();
-    assert!(
-        events.iter().any(|e| matches!(e, Event::OutputCreate)),
-        "the file was made"
-    );
-    assert!(no_write(&events), "and not one byte went into it");
-    assert!(names_in(&case.out).is_empty(), "and it does not stay");
-
-    // An encrypted output takes the same road.
-    let input = case.t.file("plain.bin", &case.plain);
-    let recipients = [rec(ID_A)];
-    watch::take();
+    assert!(events.iter().any(|e| matches!(e, Event::OutputCreate)));
+    assert!(no_write(&events), "not one byte");
     let result = encrypt_file(
         SourceFile::open(&input).unwrap(),
         &case.folder(),
@@ -1175,7 +1295,9 @@ fn fil03_t08_fil03_t20_a_folder_that_passes_on_an_access_list_gets_not_one_byte(
     );
     assert_eq!(result, Err(Error::Destination));
     assert!(no_write(&watch::take()));
-    assert!(names_in(&case.out).is_empty());
+    let left = names_in(&case.out);
+    chmod_no_acl(&case.out);
+    assert!(left.is_empty(), "{left:?}");
 }
 
 #[test]
@@ -1198,7 +1320,10 @@ fn fil03_t08_a_list_the_folder_keeps_to_itself_changes_nothing() {
 #[test]
 fn fil03_t08_a_list_naming_one_user_counts_the_same() {
     let case = Case::new();
-    chmod_acl("user:nobody allow read,file_inherit", &case.out);
+    chmod_acl(
+        "user:nobody allow list,search,read,file_inherit,directory_inherit",
+        &case.out,
+    );
     let validated = case.validated();
     watch::take();
     assert_eq!(
@@ -1206,7 +1331,9 @@ fn fil03_t08_a_list_naming_one_user_counts_the_same() {
         Err(Error::Destination)
     );
     assert!(no_write(&watch::take()));
-    assert!(names_in(&case.out).is_empty());
+    let left = names_in(&case.out);
+    chmod_no_acl(&case.out);
+    assert!(left.is_empty(), "{left:?}");
 }
 
 /// Each name in `dir`, and `dir`, without their lists: so a test can read or end.
@@ -1222,7 +1349,7 @@ fn clear_lists(dir: &Path) {
 fn fil03_t08_a_list_that_cannot_be_read_counts_as_one() {
     let case = Case::new();
     chmod_acl(
-        "everyone deny readsecurity,file_inherit,only_inherit",
+        "everyone deny readsecurity,directory_inherit,only_inherit",
         &case.out,
     );
     let validated = case.validated();
@@ -1230,8 +1357,8 @@ fn fil03_t08_a_list_that_cannot_be_read_counts_as_one() {
     let result = validated.save_new(&case.folder(), name("demo.out"), &mut keep);
     assert!(no_write(&watch::take()), "not one byte");
     clear_lists(&case.out);
-    assert_eq!(result, Err(Error::CleanupEmpty));
-    assert_eq!(fs::read(case.out.join("demo.out")).unwrap().len(), 0);
+    assert_eq!(result, Err(Error::Destination));
+    assert!(names_in(&case.out).is_empty(), "nothing stays");
 
     let t = Temp::new();
     let shut = t.sub("shut");
@@ -1242,12 +1369,13 @@ fn fil03_t08_a_list_that_cannot_be_read_counts_as_one() {
     assert_eq!(result, Err(Error::Destination));
 }
 
-/// C1-R2-05, C2R2-08: a refusal whose cleanup also failed says the second thing, and
-/// the empty file is named as empty.
+/// C1-R2-05, C2R2-08: a refusal whose cleanup also failed says the second thing.
+/// The output's own folder takes the chosen folder's list, so it is refused before
+/// a file is made in it, and the list also keeps it from going: it stays, empty.
 #[test]
-fn fil03_t08_a_folder_that_blocks_deletion_gets_the_empty_file_named() {
+fn fil03_t08_a_folder_that_blocks_deletion_gets_the_empty_folder_named() {
     let case = Case::new();
-    chmod_acl("everyone deny delete,file_inherit", &case.out);
+    chmod_acl("everyone deny delete,directory_inherit", &case.out);
     let validated = case.validated();
     watch::take();
     let decrypted = validated.save_new(&case.folder(), name("demo.out"), &mut keep);
@@ -1265,8 +1393,14 @@ fn fil03_t08_a_folder_that_blocks_deletion_gets_the_empty_file_named() {
     clear_lists(&case.out);
     assert_eq!(decrypted, Err(Error::CleanupEmpty));
     assert_eq!(encrypted, Err(Error::CleanupEmpty));
-    for left in ["demo.out", "demo.age"] {
-        assert_eq!(fs::read(case.out.join(left)).unwrap().len(), 0, "{left}");
+    let left = names_in(&case.out);
+    assert_eq!(left.len(), 2, "{left:?}");
+    for folder in left {
+        assert!(folder.starts_with(".larsal-staging-"), "{folder}");
+        assert!(
+            names_in(&case.out.join(&folder)).is_empty(),
+            "it holds nothing"
+        );
     }
 }
 
@@ -1277,7 +1411,7 @@ fn fil03_t11_a_capture_that_cannot_remove_its_new_folder_says_so() {
     let scratch = t.sub("scratch");
     let root = ScratchRoot::open(&scratch).unwrap();
     chmod_acl("everyone deny delete,directory_inherit", &scratch);
-    let result = root.capture_stream(&mut &b"demo"[..], &mut keep);
+    let result = root.capture_stream(&mut &SHAPED[..], &mut keep);
     assert_eq!(result.map(|_| ()), Err(Error::Io));
     let left = names_in(&scratch);
     assert_eq!(left.len(), 1, "the empty folder stays");
@@ -1332,7 +1466,7 @@ fn fil03_t08_a_disk_that_cannot_keep_a_file_private_takes_only_ciphertext() {
         fs::remove_file(case.out.join("demo.age")).unwrap();
 
         // A list is refused on any volume, whatever the output holds.
-        chmod_acl(PASSES_ON, &case.out);
+        chmod_acl(DIRECTORIES_TOO, &case.out);
         let validated = case.validated();
         watch::inject(fault);
         let decrypted = validated.save_new(&case.folder(), name("demo.out"), &mut keep);
@@ -1364,46 +1498,61 @@ fn fil03_t08_a_disk_that_cannot_keep_a_file_private_takes_only_ciphertext() {
 #[test]
 fn fil03_t09_cleanup_goes_by_what_is_left_and_not_by_the_link_count() {
     let case = Case::new();
-    let target = case.out.join("demo.out");
+    let out = case.out.clone();
     let link = case.t.0.join("held-by-a-link");
-    let mut once = true;
+    let mut asked = 0;
     let result = case
         .validated()
         .save_new(&case.folder(), name("demo.out"), &mut |_, _| {
-            if once {
-                once = false;
-                fs::hard_link(&target, &link).unwrap();
+            asked += 1;
+            if asked == 2 {
+                let staging = out.join(&names_in(&out)[0]);
+                fs::hard_link(staging.join("incomplete"), &link).unwrap();
             }
-            false
+            asked < 2
         });
     assert_eq!(result, Err(Error::Cancelled));
     assert!(names_in(&case.out).is_empty());
     assert_eq!(fs::read(&link).unwrap().len(), 0, "no readable data stays");
 }
 
-/// `Error::Cleanup` is kept for what it says: there may be readable data.
+/// F-341 (C1-R3-01): a full disk can refuse even the emptying. The file's one name
+/// still goes, inside the output's own folder, and its room with it: the cause is
+/// said, `Space`, never a cleanup alarm about data that is not there.
+#[test]
+fn fil03_t09_f341_a_full_disk_says_space_when_nothing_is_left() {
+    let case = Case::new();
+    let validated = case.validated();
+    watch::inject(Fault::OutputFull);
+    watch::inject_also(Fault::OutputStuck);
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut keep);
+    watch::clear_faults();
+    assert_eq!(result, Err(Error::Space));
+    assert!(names_in(&case.out).is_empty(), "nothing stays");
+}
+
+/// `Error::Cleanup` is kept for what it says: there may be readable data. It stays
+/// in the output's own folder, never under the chosen name.
 #[test]
 fn fil03_t09_an_output_that_cannot_be_emptied_says_it_may_hold_data() {
     let case = Case::new();
     let validated = case.validated();
     watch::inject(Fault::OutputStuck);
-    let result = validated.save_new(&case.folder(), name("demo.out"), &mut |_, _| false);
+    watch::inject_also(Fault::OutputPinned);
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut stop_once_made());
     watch::clear_faults();
     assert_eq!(result, Err(Error::Cleanup));
-    assert!(names_in(&case.out).is_empty(), "the name still goes");
+    let left = names_in(&case.out);
+    assert_eq!(left.len(), 1, "{left:?}");
+    assert!(left[0].starts_with(".larsal-staging-"), "{left:?}");
+    assert_eq!(names_in(&case.out.join(&left[0])), ["incomplete"]);
 
-    // And with the name that cannot go.
+    // Emptied and not removed: the empty file is named as empty.
     let validated = case.validated();
-    let out = case.out.clone();
-    watch::inject(Fault::OutputStuck);
-    let result = validated.save_new(&case.folder(), name("demo.out"), &mut |_, _| {
-        fs::set_permissions(&out, fs::Permissions::from_mode(0o500)).unwrap();
-        false
-    });
+    watch::inject(Fault::OutputPinned);
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut stop_once_made());
     watch::clear_faults();
-    fs::set_permissions(&out, fs::Permissions::from_mode(0o700)).unwrap();
-    assert_eq!(result, Err(Error::Cleanup));
-    assert_eq!(names_in(&case.out), ["demo.out"]);
+    assert_eq!(result, Err(Error::CleanupEmpty));
 }
 
 const DIRECTORIES_TOO: &str = "everyone allow list,search,read,file_inherit,directory_inherit";
@@ -1423,7 +1572,7 @@ fn fil03_t05_fil03_t11_a_scratch_root_with_an_access_list_is_not_private() {
     let root = ScratchRoot::open(&late).unwrap();
     chmod_acl(DIRECTORIES_TOO, &late);
     watch::take();
-    let result = root.capture_stream(&mut &b"demo"[..], &mut keep);
+    let result = root.capture_stream(&mut &SHAPED[..], &mut keep);
     assert_eq!(result.map(|_| ()), Err(Error::Destination));
     assert!(
         !watch::take()
@@ -1527,23 +1676,25 @@ fn fil03_t10_encrypting_says_a_failed_cleanup_and_a_failed_sync() {
     let input = case.t.file("plain.bin", &case.plain);
     let recipients = [rec(ID_A)];
     let out = case.out.clone();
-    let mut denied = false;
+    let mut asked = 0;
     let result = encrypt_file(
         SourceFile::open(&input).unwrap(),
         &case.folder(),
         name("denied.age"),
         &Lock::Recipients(&recipients),
         &mut |_, _| {
-            if !denied {
-                denied = true;
+            asked += 1;
+            if asked == 2 {
                 fs::set_permissions(&out, fs::Permissions::from_mode(0o500)).unwrap();
             }
-            false
+            asked < 2
         },
     );
     fs::set_permissions(&out, fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(result, Err(Error::CleanupEmpty));
-    assert_eq!(fs::read(out.join("denied.age")).unwrap().len(), 0);
+    assert_only_an_empty_staging_folder(&out);
+    let left = names_in(&out);
+    fs::remove_dir(out.join(&left[0])).unwrap();
 
     watch::inject(Fault::OutputSync);
     let result = encrypt_file(
@@ -1671,4 +1822,204 @@ fn fil03_t14_every_line_break_and_direction_control_is_handled_alone() {
     ] {
         assert_eq!(clean_label(name(&format!("a{c}b"))), "ab", "{:x}", c as u32);
     }
+}
+
+// ---- E22-S4 round 3: Checker 1's attacks (C1-02 to C1-04), kept as tests ----
+
+/// The output's staging folder in `out`.
+fn staging_of(out: &Path) -> String {
+    names_in(out)
+        .into_iter()
+        .find(|n| n.starts_with(".larsal-staging-"))
+        .unwrap()
+}
+
+/// C1-02, FIL-03-T09 under the staging design (F-340): the output's folder is renamed
+/// away and another folder, holding a sentinel at the staged name, takes its place
+/// right before the cleanup removes a name. Ours goes through its handle; the
+/// planted file stays.
+#[test]
+fn fil03_t09_c1_02_a_staging_folder_swapped_for_one_with_a_sentinel_keeps_it() {
+    let case = Case::new();
+    let out = case.out.clone();
+    let away = case.t.0.join("moved-staging");
+    let away2 = away.clone();
+    watch::at_cleanup_unlink(Box::new(move || {
+        let staged = staging_of(&out);
+        fs::rename(out.join(&staged), &away2).unwrap();
+        fs::create_dir(out.join(&staged)).unwrap();
+        fs::write(out.join(&staged).join("incomplete"), b"sentinel demo").unwrap();
+    }));
+    let result = case
+        .validated()
+        .save_new(&case.folder(), name("demo.out"), &mut stop_once_made());
+    assert_eq!(result, Err(Error::CleanupEmpty));
+    let staged = staging_of(&case.out);
+    assert_eq!(
+        fs::read(case.out.join(&staged).join("incomplete")).unwrap(),
+        b"sentinel demo",
+        "the planted file stays"
+    );
+    assert!(names_in(&away).is_empty(), "ours went through its handle");
+}
+
+/// C1-02: as above with an empty planted folder: it is not ours, so it stays.
+#[test]
+fn fil03_t09_c1_02_a_staging_folder_swapped_for_an_empty_one_keeps_it() {
+    let case = Case::new();
+    let out = case.out.clone();
+    let away = case.t.0.join("moved-staging");
+    let away2 = away.clone();
+    watch::at_cleanup_unlink(Box::new(move || {
+        let staged = staging_of(&out);
+        fs::rename(out.join(&staged), &away2).unwrap();
+        fs::create_dir(out.join(&staged)).unwrap();
+    }));
+    let result = case
+        .validated()
+        .save_new(&case.folder(), name("demo.out"), &mut stop_once_made());
+    assert_eq!(result, Err(Error::CleanupEmpty));
+    assert_eq!(names_in(&case.out).len(), 1, "the planted folder stays");
+    assert!(names_in(&away).is_empty());
+}
+
+/// C1-04, FIL-03.8: a name taken before the confirmation fails before any byte.
+#[test]
+fn fil03_t08_c1_04_a_taken_name_is_refused_before_any_byte() {
+    let case = Case::new();
+    fs::write(case.out.join("demo.out"), b"sentinel demo").unwrap();
+    let validated = case.validated();
+    watch::take();
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut keep);
+    assert_eq!(result, Err(Error::Exists));
+    let events = watch::take();
+    assert!(no_write(&events));
+    assert_eq!(names_in(&case.out), ["demo.out"]);
+    assert_eq!(
+        fs::read(case.out.join("demo.out")).unwrap(),
+        b"sentinel demo"
+    );
+}
+
+/// C1-04, FIL-03.8 / F-340: the output's folder is private to this user while it exists.
+#[test]
+fn fil03_t08_c1_04_the_staging_folder_is_0700_while_the_file_is_written() {
+    let case = Case::new();
+    let out = case.out.clone();
+    let seen = std::rc::Rc::new(std::cell::Cell::new(0u32));
+    let seen2 = seen.clone();
+    let mut asked = 0;
+    let result = case
+        .validated()
+        .save_new(&case.folder(), name("demo.out"), &mut |_, _| {
+            asked += 1;
+            if asked == 2 {
+                let staged = staging_of(&out);
+                seen2.set(fs::metadata(out.join(staged)).unwrap().mode() & 0o7777);
+            }
+            true
+        });
+    assert_eq!(result, Ok(LARGE as u64));
+    assert_eq!(seen.get(), 0o700);
+    assert_eq!(names_in(&case.out), ["demo.out"]);
+}
+
+/// F-341 alone: a full disk whose emptying works says Space, nothing stays.
+#[test]
+fn fil03_t09_f341_a_full_disk_alone_says_space() {
+    let case = Case::new();
+    let validated = case.validated();
+    watch::inject(Fault::OutputFull);
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut keep);
+    watch::clear_faults();
+    assert_eq!(result, Err(Error::Space));
+    assert!(names_in(&case.out).is_empty());
+}
+
+/// C1-03 (F-341's mapping): the file could not be emptied but its one name went,
+/// and the output's folder stays (something else is in it). What stays holds no
+/// readable data, so it says CleanupEmpty, not Cleanup.
+#[test]
+fn fil03_t09_c1_03_a_name_removed_but_not_emptied_with_its_folder_kept_says_empty() {
+    let case = Case::new();
+    let out = case.out.clone();
+    watch::at_cleanup_unlink(Box::new(move || {
+        let staged = staging_of(&out);
+        fs::write(out.join(&staged).join("planted"), b"sentinel demo").unwrap();
+    }));
+    let validated = case.validated();
+    watch::inject(Fault::OutputStuck);
+    let result = validated.save_new(&case.folder(), name("demo.out"), &mut stop_once_made());
+    watch::clear_faults();
+    assert_eq!(result, Err(Error::CleanupEmpty));
+    let staged = staging_of(&case.out);
+    assert_eq!(
+        names_in(&case.out.join(&staged)),
+        ["planted"],
+        "our name went"
+    );
+}
+
+/// C1-06 (MSG-FILE-UNPROTECTED's warned consent, E22-S4): a disk that cannot keep
+/// the file private asks before any byte; a no leaves nothing, only a yes writes,
+/// and a disk that keeps it private never asks.
+#[test]
+fn fil03_t08_c1_06_an_unprotected_disk_asks_first_and_only_a_yes_writes() {
+    let case = Case::new();
+    let mut asked = 0;
+    let result =
+        case.validated()
+            .save_new_warned(&case.folder(), name("kept.out"), &mut keep, &mut || {
+                asked += 1;
+                true
+            });
+    assert_eq!(
+        (result, asked),
+        (Ok(LARGE as u64), 0),
+        "a private disk never asks"
+    );
+    let validated = case.validated();
+    watch::take();
+    watch::inject(Fault::VolumeOtherMode);
+    let result = validated.save_new_warned(&case.folder(), name("no.out"), &mut keep, &mut || {
+        asked += 1;
+        false
+    });
+    watch::clear_faults();
+    assert_eq!((result, asked), (Err(Error::Unprotected), 1));
+    assert!(no_write(&watch::take()), "asked before any byte");
+    assert_eq!(names_in(&case.out), ["kept.out"]);
+    let validated = case.validated();
+    watch::inject(Fault::VolumeOtherMode);
+    let result = validated.save_new_warned(&case.folder(), name("yes.out"), &mut keep, &mut || {
+        asked += 1;
+        true
+    });
+    watch::clear_faults();
+    assert_eq!((result, asked), (Ok(LARGE as u64), 2));
+    assert_eq!(fs::read(case.out.join("yes.out")).unwrap(), case.plain);
+    assert_eq!(names_in(&case.out), ["kept.out", "yes.out"]);
+}
+
+/// C1R3-06 (U2), FIL-03.8: the unprotected-disk consent answers that one refusal
+/// only. A new file the check refuses for another reason (here a second name, on a
+/// disk that also cannot keep it private) is refused, never asked about, and
+/// nothing is left.
+#[test]
+fn fil03_t08_c1r3_06_the_consent_never_overrides_another_refusal() {
+    let case = Case::new();
+    let validated = case.validated();
+    let mut asked = 0;
+    watch::take();
+    watch::inject(Fault::OutputLinked);
+    watch::inject_also(Fault::VolumeOtherMode);
+    let result =
+        validated.save_new_warned(&case.folder(), name("linked.out"), &mut keep, &mut || {
+            asked += 1;
+            true
+        });
+    watch::clear_faults();
+    assert_eq!((result, asked), (Err(Error::Destination), 0));
+    assert!(no_write(&watch::take()), "no byte");
+    assert!(names_in(&case.out).is_empty(), "{:?}", names_in(&case.out));
 }

@@ -1096,6 +1096,8 @@ impl Session {
     pub fn lock(&self, vault: u64) -> Result<(), LarsalError> {
         // D-02-5: the generator's value goes with any lock.
         self.drop_generated();
+        // FIL-02.14: a running file operation stops at its next safe point.
+        crate::files::revoke_all(self);
         let mut state = self.state();
         let slot = state.slot(vault)?;
         self.clipboard.clear();
@@ -1113,6 +1115,8 @@ impl Session {
     /// (APP-02, APP-09.12 `lock`).
     pub fn lock_all(&self) {
         self.drop_generated();
+        // FIL-02.14: a running file operation stops at its next safe point.
+        crate::files::revoke_all(self);
         let mut state = self.state();
         self.clipboard.clear();
         for slot in &mut state.slots {
@@ -1161,6 +1165,8 @@ impl Session {
     /// `UnknownVault`.
     pub fn close(&self, vault: u64) -> Result<(), LarsalError> {
         self.drop_generated();
+        // FIL-02.14: a running file operation stops at its next safe point.
+        crate::files::revoke_all(self);
         let mut state = self.state();
         let at = state
             .slots

@@ -196,17 +196,21 @@ fn cannot_keep_a_file_private(local: &Local, base: &Path, volume: &str) {
     fs::remove_dir_all(&dir).unwrap();
 }
 
-/// A mount with no owners still holds access lists: one on a new file is refused on
-/// any volume, and a folder that blocks deletion gets the empty file named.
+/// A mount with no owners still holds access lists. A list passed on to folders
+/// reaches an output's own folder and is refused on any volume; one that also
+/// blocks deletion gets the empty folders named (F-340).
 fn lists_still_count(local: &Local, base: &Path, volume: &str) {
     let dir = work_folder(base, volume);
-    chmod_acl("everyone allow read,file_inherit", &dir);
+    chmod_acl(
+        "everyone allow list,search,read,file_inherit,directory_inherit",
+        &dir,
+    );
     assert_eq!(local.encrypt_to(&dir, "demo.age"), Err(Error::Destination));
     assert_eq!(local.save_to(&dir, "demo.out"), Err(Error::Destination));
     assert!(names_in(&dir).is_empty());
     chmod_no_acl(&dir);
 
-    chmod_acl("everyone deny delete,file_inherit", &dir);
+    chmod_acl("everyone deny delete,directory_inherit", &dir);
     let encrypted = local.encrypt_to(&dir, "demo.age");
     let decrypted = local.save_to(&dir, "demo.out");
     for left in names_in(&dir) {
@@ -215,8 +219,11 @@ fn lists_still_count(local: &Local, base: &Path, volume: &str) {
     chmod_no_acl(&dir);
     assert_eq!(encrypted, Err(Error::CleanupEmpty));
     assert_eq!(decrypted, Err(Error::CleanupEmpty));
-    for left in ["demo.age", "demo.out"] {
-        assert_eq!(fs::read(dir.join(left)).unwrap().len(), 0, "{left}");
+    let left = names_in(&dir);
+    assert_eq!(left.len(), 2, "{left:?}");
+    for folder in left {
+        assert!(folder.starts_with(".larsal-staging-"), "{folder}");
+        assert!(names_in(&dir.join(&folder)).is_empty(), "{folder}");
     }
     fs::remove_dir_all(&dir).unwrap();
 }

@@ -52,6 +52,8 @@ larsal-sync = { path = "crates/larsal-sync" }
 # E21-S3: Show as QR Code's matrix and Wi-Fi join text, the one importer of
 # qrcode; larsal-ffi and larsal-cli only.
 larsal-qr = { path = "crates/larsal-qr" }
+# E22-S3: file encryption; larsal-ffi from E22-S4 (files.rs).
+larsal-files = { path = "crates/larsal-files" }
 aes = "=0.9.3"
 cbc = { version = "=0.2.1", default-features = false }
 chacha20 = "=0.10.2"

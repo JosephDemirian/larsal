@@ -9,7 +9,7 @@ use crate::fsio::{Holds, NewOutput, OutputFolder, SourceFile};
 use crate::header::{self, BODY, FILE_KEY, SALT, SCRYPT, X25519};
 use crate::keys::Recipient;
 use crate::limits::{MAX_RECIPIENTS, WRITE_LOG_N};
-use crate::{Control, payload};
+use crate::{Control, Phase, payload};
 use larsal_crypto::base64::{self, Form};
 use larsal_crypto::bridge::Secret;
 use larsal_crypto::secret::{SecretBytes, SecretString};
@@ -179,7 +179,11 @@ pub(crate) fn encrypt_file_with(
     control: Control<'_>,
 ) -> Result<u64, Error> {
     let prepared = prepare(draw, lock, log_n)?;
-    let mut out = NewOutput::create(folder, name, Holds::Ciphertext)?;
+    // FIL-02.13: a safe point after the key derivation, before the output exists.
+    if !control(Phase::Encrypt, 0) {
+        return Err(Error::Cancelled);
+    }
+    let mut out = NewOutput::create(folder, name, Holds::Ciphertext, &mut || false)?;
     let result = (|| {
         out.write(&prepared.head).map_err(Failure::Other)?;
         let mut sink = |bytes: &[u8]| out.write(bytes).map_err(Failure::Other);

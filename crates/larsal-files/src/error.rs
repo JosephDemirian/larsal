@@ -33,8 +33,9 @@ pub enum Error {
     /// MSG-FILE-CLEANUP: an incomplete output could not be emptied, so it may hold
     /// readable data.
     Cleanup,
-    /// Proposed, E22-S3: an incomplete output was emptied through its own handle,
-    /// but its name was not as expected or could not be removed.
+    /// Proposed, E22-S3, worded for a screen in E22-S4 (C2R3-07): an incomplete
+    /// output was emptied or had its name removed, but the file or its own
+    /// folder (F-340) could not go. What stays is empty.
     CleanupEmpty,
     /// MSG-FILE-UNCERTAIN: every byte was written, but its save is unconfirmed.
     Uncertain,
@@ -65,7 +66,7 @@ impl std::fmt::Display for Error {
                 "Larsal could not remove an incomplete file. It may contain readable data. Check the destination before you leave."
             }
             Self::CleanupEmpty => {
-                "Larsal could not remove a file it made. The file is empty. Check the destination before you leave."
+                "Larsal could not remove a file or folder it made. It is empty. Check the destination before you leave."
             }
             Self::Uncertain => {
                 "A file was written, but Larsal could not confirm it was saved safely. Keep the source and check the destination."

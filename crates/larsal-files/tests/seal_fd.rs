@@ -17,7 +17,10 @@ fn fil03_t06_no_writer_survives_the_seal() {
     fs::set_permissions(&base, fs::Permissions::from_mode(0o700)).unwrap();
     fs::set_permissions(&scratch, fs::Permissions::from_mode(0o700)).unwrap();
     let input = base.join("demo.bin");
-    fs::write(&input, vec![5u8; 70_000]).unwrap();
+    // V-2: only a file shaped as an encrypted one is captured.
+    let mut shaped = b"age-encryption.org/v1\n".to_vec();
+    shaped.extend(vec![5u8; 70_000]);
+    fs::write(&input, shaped).unwrap();
     let root = ScratchRoot::open(&scratch).unwrap();
     let source = SourceFile::open(&input).unwrap();
     let before = open_descriptors();

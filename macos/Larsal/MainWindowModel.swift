@@ -37,6 +37,7 @@ final class MainWindowModel {
     /// SshKeyUse.swift).
     var sshAsk: SshAsk?
     var browserAsk: BrowserQuestion?  // the bridge's dialog (INT-02.15, BrowserAsk.swift)
+    var files: FileFlow?  // Encrypt File and Decrypt File (FIL-02, FileFlow.swift)
     /// The View menu's settings (APP-08.8, ViewOptions.swift).
     let view = ViewOptions()
     /// Brings the window forward when a lock or a quit asks (F-122); tests
@@ -165,12 +166,14 @@ final class MainWindowModel {
         vaultMenu = false
         // LD-199 (2): an open editor with changes asks first.
         if let main, main.vault.id != id, main.askLeave(then: { [weak self] in self?.switchTo(id) }) { return }
+        if main?.vault.id != id { files?.revoke() }  // FIL-02.14
         try? session.switchTo(vault: id)
         refresh()
     }
 
     func lock(_ id: UInt64) {
         opened[id]?.qrPopup?.revoke()  // FEA-10.15: before any wait or question
+        files?.revoke()  // FIL-02.14
         vaultMenu = false
         // APP-02.15 step 7 (F-122): editor edits or a changed open copy ask
         // MSG-LOCK-DISCARD-EDIT first.
@@ -189,6 +192,7 @@ final class MainWindowModel {
     /// here first (F-122), also after Discard of the unsaved-changes question.
     func lockNow(_ id: UInt64, then: @escaping () -> Void = {}) {
         opened[id]?.qrPopup?.revoke()
+        files?.revoke()
         if askEditor(id, then: { [weak self] in self?.lockNow(id, then: then) }) { return }
         try? session.lock(vault: id)
         refresh()
@@ -205,6 +209,7 @@ final class MainWindowModel {
     /// it checks again: an edit made meanwhile asks too.
     func lockAll(asks: Bool = false) {
         for model in opened.values { model.qrPopup?.revoke() }
+        files?.revoke()
         vaultMenu = false
         guard asks else {
             saveBeforeLock(within: .seconds(1))
@@ -232,6 +237,7 @@ final class MainWindowModel {
 
     func close(_ id: UInt64) {
         opened[id]?.qrPopup?.revoke()
+        files?.revoke()
         if let main, main.vault.id == id, main.askLeave(then: { [weak self] in self?.close(id) }) { return }
         // APP-02.15 step 8 (E5-S10): unsaved changes save or ask first.
         if let main, main.vault.id == id, main.askUnsaved(then: { [weak self] in self?.closeNow(id) }) { return }
@@ -240,6 +246,7 @@ final class MainWindowModel {
 
     func closeNow(_ id: UInt64) {
         opened[id]?.qrPopup?.revoke()
+        files?.revoke()
         // As lockNow (F-122, LD-199 (2)): an editor opened during the save
         // asks; after its Save or Discard the close starts again.
         if let main, main.vault.id == id, main.askLeave(then: { [weak self] in self?.close(id) }) { return }
@@ -325,6 +332,8 @@ extension MainWindowModel {
     /// live window meanwhile asks too.
     func quitReply(asks: Bool, reply: @escaping (Bool) -> Void) -> NSApplication.TerminateReply {
         for model in opened.values { model.qrPopup?.revoke() }
+        if quitAfterFiles(asks: asks, reply: reply) { return .terminateLater }
+        files?.revoke()
         if asks, askEditors(then: { NSApp?.terminate(nil) }) { return .terminateCancel }
         guard unsaved else { return .terminateNow }
         Task { [weak self] in

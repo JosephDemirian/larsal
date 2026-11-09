@@ -349,12 +349,33 @@ impl<R: Read + Seek> Validated<R> {
     /// [`Error::Uncertain`] if every byte was written but its sync failed: the
     /// file is kept. Otherwise as [`Self::write_to`].
     pub fn save_new(
-        mut self,
+        self,
         folder: &OutputFolder,
         name: &OsStr,
         control: Control<'_>,
     ) -> Result<u64, Error> {
-        let mut out = NewOutput::create(folder, name, Holds::Plaintext)?;
+        self.save_new_warned(folder, name, control, &mut || false)
+    }
+
+    /// As [`Self::save_new`], but on a disk that cannot keep the new file private
+    /// `warned` is asked first, before any byte (MSG-FILE-UNPROTECTED's warned
+    /// consent, E22-S4): true writes there anyway, false is
+    /// [`Error::Unprotected`] with nothing left.
+    ///
+    /// # Errors
+    /// As [`Self::save_new`].
+    pub fn save_new_warned(
+        mut self,
+        folder: &OutputFolder,
+        name: &OsStr,
+        control: Control<'_>,
+        warned: &mut dyn FnMut() -> bool,
+    ) -> Result<u64, Error> {
+        // FIL-02.13: a safe point before the output exists.
+        if !control(Phase::Write, 0) {
+            return Err(Error::Cancelled);
+        }
+        let mut out = NewOutput::create(folder, name, Holds::Plaintext, warned)?;
         let mut sink = |bytes: &[u8]| out.write(bytes).map_err(Failure::Other);
         let written = self.second_pass(&mut sink, control);
         match written {

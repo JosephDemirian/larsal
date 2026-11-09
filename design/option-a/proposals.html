@@ -815,6 +815,8 @@ function e22Dialog(state) {
   if (state === 'error') return dlg('--orange','warning-circle','This file could not be decrypted','Check the passphrase or file key and try again.',e22Note('No readable file was saved. Supported modes: native password and X25519; binary or armored.'),e22Button('Cancel',false,true)+e22Button('Try Again',true),'wide');
   if (state === 'collision') return dlg('--orange','files','Choose a different name','A file already exists with this name. Choose a different name.',e22Field('e22-collision-path','Existing name','Mountain photo.jpg')+e22Note('The existing file has not been changed. Your source is unchanged.'),e22Button('Cancel',false,true)+e22Button('Choose Another Name…',true),'wide');
   if (state === 'cleanup') return dlg('--orange','warning','Check the destination','Larsal could not remove an incomplete file. It may contain readable data. Check the destination before you leave.',e22Field('e22-cleanup-path','Chosen destination','Documents / Mountain photo.jpg')+e22Note('The source is unchanged. Saved copies and disk backups cannot be recalled or securely erased by Larsal.'),done,'wide');
+  if (state === 'weak') return dlg('--orange','warning','This file uses a low passphrase work factor','Only save its contents if you trust the file.',e22Note('The saved file is not encrypted. Keep it somewhere private.'),e22Button('Cancel',false,true)+e22Button('Save Readable File'),'wide');
+  if (state === 'unprotected') return dlg('--orange','warning','This disk cannot keep a decrypted file private','Anyone who can use this disk may be able to read the saved file.',e22Note('The saved file is not encrypted. Choose another folder unless you trust this disk.'),e22Button('Cancel',false,true)+e22Button('Save Readable File'),'wide');
   return dlg('--teal','lock','Unlock to save a passphrase','The default encrypts with a new passphrase and saves it as a protected entry first.',e22Note('Unlock a writable vault, or explicitly choose your own passphrase or public recipients. No file has been written.'),e22Button('Cancel',false,true)+e22Button('Unlock Vault…',true),'wide');
 }
 P.push({ id:'e22-s1', title:'E22-S1 · Encrypt any file', line:'DRAFT · FIL-01 to FIL-03 · Six accepted second Spec corrections applied. Layout illustrations only: no encryption runs here. R1–R6 remain unadopted pending fresh independent Verify and selective Lead adoption. Owner frame review and W-18 wording are separate and nonblocking.', frames:[
@@ -830,6 +832,8 @@ P.push({ id:'e22-s1', title:'E22-S1 · Encrypt any file', line:'DRAFT · FIL-01 
   ['collision','Existing output protected','FIL-03.8: choose a new name; no replace fallback.'],
   ['cleanup','Cleanup could not finish','FIL-03.7/.9: never say nothing saved after an unproved deletion; a residual incomplete file fails handled cancellation.'],
   ['locked','Default mode needs a writable vault','FIL-02.1/.5: ordinary unlock, no unsaved-key encryption.'],
+  ['weak','Low work factor question (E22-S4)','MSG-FILE-WEAK: asked after the whole-file check and before any readable output; Cancel is the default.'],
+  ['unprotected','Unprotected disk question (E22-S4)','DRAFT · MSG-FILE-UNPROTECTED warned consent: asked before any readable byte when the chosen disk cannot keep 0600; Cancel is the default; nothing is written without Save Readable File.'],
 ].map(([state,title,note])=>({id:`e22-s1-${state}`,t:`E22-S1 ${title}`,n:note,card:true,html:()=>e22Dialog(state)})) });
 // ---------- end E22-S1 proposal additions ----------
 

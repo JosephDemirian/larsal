@@ -9,8 +9,8 @@ use crate::error::{Error, io_error};
 use crate::{Control, Phase, payload};
 use larsal_crypto::random;
 use larsal_platform::macos::{
-    create_in, effective_uid, has_acl, ignores_ownership, is_file_in, open_regular_nofollow,
-    remove_in,
+    create_in, effective_uid, has_acl, ignores_ownership, is_file_in, make_dir_in, open_dir_in,
+    open_regular_nofollow, remove_dir_in, remove_in, rename_new_in,
 };
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, DirBuilder, File, Metadata};
@@ -28,6 +28,13 @@ const OP_NAME: usize = 35;
 const SNAPSHOT: &str = "ciphertext";
 const COPY_BUFFER: usize = 65_536;
 const MAX_NAME: usize = 255;
+/// An output's own folder in the chosen one, until its last byte (F-340).
+const STAGING_PREFIX: &str = ".larsal-staging-";
+/// The incomplete output's name inside it.
+const STAGED: &str = "incomplete";
+/// The look before a capture (V-2): the version line, or the armor's first line
+/// after its widest legal white space.
+const LOOK: usize = crate::limits::MAX_ARMOR_SPACE + 64;
 
 /// What makes a file the same file: compared before and after it is read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -223,9 +230,15 @@ impl ScratchRoot {
         control: Control<'_>,
         check: &dyn Fn(u64) -> Result<(), Error>,
     ) -> Result<Snapshot, Error> {
+        // V-2: a file that does not start as this format is refused before any
+        // scratch exists, so a plain file chosen by mistake is never copied.
+        let start = look(input)?;
+        if !crate::keys::looks_encrypted(&start) {
+            return Err(Error::Decrypt);
+        }
         let mut op = Operation::begin(self)?;
         let captured = op
-            .copy(input, control)
+            .copy(&mut start.as_slice().chain(input), control)
             .and_then(|n| check(n).map(|()| n))
             .and_then(|n| op.seal(n));
         match captured {
@@ -271,6 +284,22 @@ impl ScratchRoot {
         }
         if failed { Err(Error::Io) } else { Ok(removed) }
     }
+}
+
+/// The first bytes of an input, at most [`LOOK`]: they go on to the copy.
+fn look(input: &mut dyn Read) -> Result<Vec<u8>, Error> {
+    let mut start = vec![0u8; LOOK];
+    let mut got = 0usize;
+    while let Some(rest) = start.get_mut(got..).filter(|r| !r.is_empty()) {
+        match input.read(rest) {
+            Ok(0) => break,
+            Ok(n) => got = got.saturating_add(n),
+            Err(e) if e.kind() == ErrorKind::Interrupted => {}
+            Err(e) => return Err(io_error(&e)),
+        }
+    }
+    start.truncate(got);
+    Ok(start)
 }
 
 fn is_op_name(name: &OsStr) -> bool {
@@ -479,37 +508,92 @@ fn check_name(name: &OsStr) -> Result<(), Error> {
 
 /// A new output, from its exclusive creation to its end. Plaintext reaches the
 /// disk only through this, and this exists only after a whole check.
+///
+/// F-340 (FIL-03.9): the output is made and written in a fresh folder of its own
+/// inside the chosen one, by descriptor, 0700 with no access list, so no other user
+/// can put a name in it. Only the last step gives it the chosen name, by a rename
+/// that never replaces. A cleanup therefore removes only a name inside that folder,
+/// which can only be the file it made: no look at a name and then an unlink of it.
 pub(crate) struct NewOutput<'a> {
     dir: &'a File,
     name: &'a OsStr,
+    staging: File,
+    staging_name: OsString,
     file: File,
 }
 
+/// What a failed create of the output's folder or file says.
+fn create_error(e: &io::Error) -> Error {
+    match e.kind() {
+        ErrorKind::StorageFull | ErrorKind::QuotaExceeded => Error::Space,
+        _ => Error::Destination,
+    }
+}
+
 impl<'a> NewOutput<'a> {
+    /// A name already taken in the folder, by anything, fails here, before any
+    /// write; one taken later fails at the rename, which never replaces.
     /// Refused before the first byte, and not repaired, when the folder passed
-    /// an access list on to the new file: whoever it lets in can open the empty
-    /// file before any clear runs and keep that handle, and a handle cannot be
-    /// taken back. Only a file that never had a list gets the bytes, on any volume.
+    /// an access list on: whoever it lets in can open the empty file before any
+    /// clear runs and keep that handle, and a handle cannot be taken back. Only a
+    /// file that never had a list gets the bytes, on any volume. A disk that cannot
+    /// keep plaintext private asks `warned` first, before any byte (E22-S4,
+    /// MSG-FILE-UNPROTECTED's warned consent): only a yes keeps the new file.
     pub(crate) fn create(
         folder: &'a OutputFolder,
         name: &'a OsStr,
         holds: Holds,
+        warned: &mut dyn FnMut() -> bool,
     ) -> Result<Self, Error> {
         check_name(name)?;
         #[cfg(test)]
         watch::record(watch::Event::OutputCreate);
-        let file = create_in(&folder.0, name, OWNER_FILE).map_err(|e| match e.kind() {
-            ErrorKind::AlreadyExists => Error::Exists,
-            ErrorKind::StorageFull | ErrorKind::QuotaExceeded => Error::Space,
-            _ => Error::Destination,
-        })?;
+        match is_file_in(&folder.0, name, &folder.0) {
+            Err(e) if e.kind() == ErrorKind::NotFound => {}
+            Ok(_) => return Err(Error::Exists),
+            Err(_) => return Err(Error::Destination),
+        }
+        let random_name = random::bytes(16).map_err(|_| Error::Io)?;
+        let mut staging_name = OsString::from(STAGING_PREFIX);
+        for b in random_name.expose() {
+            staging_name.push(format!("{b:02x}"));
+        }
+        make_dir_in(&folder.0, &staging_name, 0o700).map_err(|e| create_error(&e))?;
+        // A folder made a moment ago that will not go is said, though empty.
+        let undo = |refused: Error| match remove_dir_in(&folder.0, &staging_name) {
+            Ok(()) => refused,
+            Err(_) => Error::CleanupEmpty,
+        };
+        let Ok(staging) = open_dir_in(&folder.0, &staging_name) else {
+            return Err(undo(Error::Destination));
+        };
+        // Ours, with no list. Its mode is not judged here: a volume that reads
+        // 0700 back as something else cannot keep a file private either, and the
+        // check on the file says so for plaintext.
+        let ours = staging.metadata().is_ok_and(|m| {
+            m.is_dir()
+                && matches!(has_acl(&staging), Ok(false))
+                && (m.uid() == effective_uid() || no_owners(&staging))
+        });
+        let file = if ours {
+            create_in(&staging, OsStr::new(STAGED), OWNER_FILE).map_err(|e| create_error(&e))
+        } else {
+            Err(Error::Destination)
+        };
+        let file = match file {
+            Ok(file) => file,
+            Err(e) => return Err(undo(e)),
+        };
         let out = Self {
             dir: &folder.0,
             name,
+            staging,
+            staging_name,
             file,
         };
         match out.check_new(holds) {
             Ok(()) => Ok(out),
+            Err(Error::Unprotected) if warned() => Ok(out),
             Err(refused) => {
                 out.abort()?;
                 Err(refused)
@@ -522,7 +606,7 @@ impl<'a> NewOutput<'a> {
     /// ciphertext may go there, plaintext may not. The rest holds everywhere.
     fn check_new(&self, holds: Holds) -> Result<(), Error> {
         let made = self.file.metadata().map_err(|_| Error::Destination)?;
-        if !made.is_file() || made.nlink() != 1 || !matches!(has_acl(&self.file), Ok(false)) {
+        if !made.is_file() || links(&made) != 1 || !matches!(has_acl(&self.file), Ok(false)) {
             return Err(Error::Destination);
         }
         if new_mode(&made) == OWNER_FILE && !no_owners(&self.file) {
@@ -554,16 +638,32 @@ impl<'a> NewOutput<'a> {
         self.file.write_all(bytes).map_err(|e| io_error(&e))
     }
 
-    /// Completion: the bytes on the device and the name still this file. If that
-    /// cannot be confirmed, the complete file is kept and said to be uncertain
-    /// (FIL-03.10). Rust's `File` has no checked close; the sync sees the
-    /// errors a close could report on the file systems the app supports.
+    /// Completion: the bytes on the device, then the chosen name by a rename that
+    /// never replaces, then the name still this file. A name taken meanwhile is
+    /// [`Error::Exists`], and the incomplete file goes as in [`Self::abort`]. If the
+    /// rest cannot be confirmed, the complete file is kept and said to be
+    /// uncertain (FIL-03.10). Rust's `File` has no checked close; the sync sees
+    /// the errors a close could report on the file systems the app supports.
     pub(crate) fn finish(self) -> Result<(), Error> {
         let synced = sync_output(&self.file);
+        #[cfg(test)]
+        watch::before_commit();
+        if let Err(e) = rename_new_in(&self.staging, OsStr::new(STAGED), self.dir, self.name) {
+            let refused = if e.kind() == ErrorKind::AlreadyExists {
+                Error::Exists
+            } else {
+                Error::Destination
+            };
+            self.abort()?;
+            return Err(refused);
+        }
         let named = is_file_in(self.dir, self.name, &self.file).unwrap_or(false);
         // The folder entry too. Not every file system takes this, so its result
         // is not judged: the same policy as the safe save (APP-05).
         let _ = self.dir.sync_all();
+        // ponytail: an empty output folder that cannot go after a good rename is
+        // not said; it holds nothing. Say it if a volume is ever seen to keep one.
+        let _ = self.remove_staging();
         if synced.is_ok() && named {
             Ok(())
         } else {
@@ -571,29 +671,63 @@ impl<'a> NewOutput<'a> {
         }
     }
 
-    /// Handled failure or cancel. The inode is emptied through this descriptor,
-    /// which no name can change. Then a look at the name and an unlink of the
-    /// name: two calls, so this promises nothing about what the second one
-    /// removed. Emptied with the name gone is a clean end, whatever link count the
-    /// volume goes on showing (FAT32 and exFAT say 1 for an unlinked file). Emptied
-    /// with the name still there is [`Error::CleanupEmpty`]: a folder that blocks
-    /// deletion, a name someone swapped. Not emptied is [`Error::Cleanup`].
-    ///
-    /// ponytail: is_file_in then remove_in is not atomic: someone who can write
-    /// to the parent folder can swap the name between the two and lose their
-    /// file. macOS has no unlink bound to an inode, and FIL-03.9 says a stat check
-    /// is not enough. A custody mechanism, or declining to unlink and reporting
-    /// the cleanup message, goes here: FIL-03.9 stays a blocker of E22-S4's close.
+    /// Handled failure or cancel. The file is emptied through its descriptor, then
+    /// its one name is removed inside the output's own folder, which only this
+    /// operation can write: no name in the chosen folder is ever unlinked (F-340).
+    /// Removed, the file has no name left and its room comes back with the
+    /// descriptor, so what stopped the work is said even when the emptying failed,
+    /// as on a full disk (F-341). Then the empty folder goes, if its name is still
+    /// that folder. A name or folder that stays is [`Error::CleanupEmpty`] when the
+    /// file was emptied or removed, and [`Error::Cleanup`] when it was neither.
     pub(crate) fn abort(self) -> Result<(), Error> {
         let emptied = empty_output(&self.file);
-        let ours = is_file_in(self.dir, self.name, &self.file).unwrap_or(false);
-        let removed = ours && remove_in(self.dir, self.name).is_ok();
-        match (emptied, removed) {
-            (true, true) => Ok(()),
-            (true, false) => Err(Error::CleanupEmpty),
-            (false, _) => Err(Error::Cleanup),
+        #[cfg(test)]
+        watch::before_cleanup_unlink();
+        let removed = remove_staged(&self.staging);
+        match (removed && self.remove_staging(), removed || emptied) {
+            (true, _) => Ok(()),
+            (false, true) => Err(Error::CleanupEmpty),
+            (false, false) => Err(Error::Cleanup),
         }
     }
+
+    /// The output's folder goes only while its name is still that folder; one
+    /// holding anything stays, with all it holds.
+    ///
+    /// ponytail: the look and the remove are two calls on a name, as no call
+    /// removes a folder by its handle. What a swap in between can lose is only
+    /// an empty folder at a random 32-hex name, put there by someone who can
+    /// already rename entries of that folder and so remove that empty folder
+    /// anyway; a folder holding anything, and every file, is never removed. In a
+    /// folder with the sticky bit no one else can rename this one at all.
+    fn remove_staging(&self) -> bool {
+        let still = open_dir_in(self.dir, &self.staging_name)
+            .and_then(|d| Ok((d.metadata()?, self.staging.metadata()?)))
+            .is_ok_and(|(named, held)| same_inode(&named, &held));
+        still && remove_dir_in(self.dir, &self.staging_name).is_ok()
+    }
+}
+
+/// The incomplete output's one name, removed inside its own folder.
+fn remove_staged(staging: &File) -> bool {
+    #[cfg(test)]
+    {
+        if watch::hits(watch::Fault::OutputPinned) {
+            return false;
+        }
+    }
+    remove_in(staging, OsStr::new(STAGED)).is_ok()
+}
+
+/// The names a new output has.
+fn links(made: &Metadata) -> u64 {
+    #[cfg(test)]
+    {
+        if watch::hits(watch::Fault::OutputLinked) {
+            return 2;
+        }
+    }
+    made.nlink()
 }
 
 /// The mode a new output reads back with.
@@ -604,7 +738,33 @@ fn new_mode(made: &Metadata) -> u32 {
             return 0o700;
         }
     }
+    #[cfg(feature = "test-volume")]
+    {
+        if test_volume::on() {
+            return 0o700;
+        }
+    }
     made.mode() & MODE_BITS
+}
+
+/// Other crates' tests only (feature `test-volume`, never in a product build):
+/// while on, every new output reads back as on a volume that cannot keep a file
+/// private, as the `VolumeOtherMode` fault does here, so larsal-ffi's tests reach
+/// MSG-FILE-UNPROTECTED's warned consent through the app's own job (C1R3-02).
+#[cfg(feature = "test-volume")]
+pub mod test_volume {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    static ON: AtomicBool = AtomicBool::new(false);
+
+    /// Every new output in this process reads back unprotected while `on`.
+    pub fn set(on: bool) {
+        ON.store(on, Ordering::SeqCst);
+    }
+
+    pub(super) fn on() -> bool {
+        ON.load(Ordering::SeqCst)
+    }
 }
 
 fn empty_output(file: &File) -> bool {
@@ -657,14 +817,51 @@ pub(crate) mod watch {
         VolumeOtherMode,
         /// The volume is mounted ignoring ownership.
         VolumeNoOwners,
+        /// The incomplete output's name cannot be removed.
+        OutputPinned,
+        /// The new output has a second name.
+        OutputLinked,
     }
 
     type Change = Box<dyn FnOnce(&Path)>;
 
+    type Hook = Box<dyn FnOnce()>;
+
     thread_local! {
         static LOG: RefCell<Vec<Event>> = const { RefCell::new(Vec::new()) };
         static FAULT: Cell<Option<Fault>> = const { Cell::new(None) };
+        static ALSO: Cell<Option<Fault>> = const { Cell::new(None) };
         static AT_OPEN: RefCell<Option<Change>> = const { RefCell::new(None) };
+        static AT_UNLINK: RefCell<Option<Hook>> = const { RefCell::new(None) };
+        static AT_COMMIT: RefCell<Option<Hook>> = const { RefCell::new(None) };
+    }
+
+    /// `change` runs once, right before the next cleanup removes a name: the
+    /// moment F-340's race lives in.
+    pub(crate) fn at_cleanup_unlink(change: Hook) {
+        AT_UNLINK.with(|c| *c.borrow_mut() = Some(change));
+    }
+
+    pub(crate) fn before_cleanup_unlink() {
+        if let Some(change) = AT_UNLINK.with(RefCell::take) {
+            change();
+        }
+    }
+
+    /// `change` runs once, right before the next output takes its chosen name.
+    pub(crate) fn at_commit(change: Hook) {
+        AT_COMMIT.with(|c| *c.borrow_mut() = Some(change));
+    }
+
+    pub(crate) fn before_commit() {
+        if let Some(change) = AT_COMMIT.with(RefCell::take) {
+            change();
+        }
+    }
+
+    /// A second fault at the same time as the one [`inject`] set.
+    pub(crate) fn inject_also(fault: Fault) {
+        ALSO.with(|f| f.set(Some(fault)));
     }
 
     /// `change` runs once, between the next source's look at its path and its open.
@@ -692,10 +889,11 @@ pub(crate) mod watch {
 
     pub(crate) fn clear_faults() {
         FAULT.with(|f| f.set(None));
+        ALSO.with(|f| f.set(None));
     }
 
     pub(crate) fn hits(fault: Fault) -> bool {
-        FAULT.with(Cell::get) == Some(fault)
+        FAULT.with(Cell::get) == Some(fault) || ALSO.with(Cell::get) == Some(fault)
     }
 
     pub(crate) fn full() -> io::Error {

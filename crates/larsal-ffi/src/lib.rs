@@ -13,6 +13,7 @@ pub mod cli;
 pub mod copies;
 pub mod edit;
 pub mod export;
+pub mod files;
 pub mod generator;
 pub mod hwkey;
 pub mod icon_fetch;

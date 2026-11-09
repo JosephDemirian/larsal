@@ -109,6 +109,10 @@ struct FileMenuItems: View {
             Button("XML…") { state.vault?.askExport(.xml) }
         }
         .disabled(state.vault == nil)
+        Divider()
+        // FIL-02.1: no vault needs to be open.
+        Button("Encrypt File…") { window.openFiles(encrypt: true) }
+        Button("Decrypt File…") { window.openFiles(encrypt: false) }
     }
 
     /// ⌘S: the entry while the editor is open (the mockup's Save), else

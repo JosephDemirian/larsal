@@ -30,6 +30,8 @@ struct MainWindow: View {
                 SshKeyUseSheet(window: model, ask: ask)
             } else if let ask = model.browserAsk {
                 BrowserAskSheet(window: model, ask: ask)
+            } else if let flow = model.files {
+                FileSheet(flow: flow)
             }
         }
         .font(.sans(14))

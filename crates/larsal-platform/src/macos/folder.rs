@@ -753,8 +753,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// FIL-03.5: the open itself refuses a link, even to a regular file; a FIFO is
-    /// refused at once, with no wait for a writer.
     /// C2R2-04: what the system cannot say is an error, never "no list" or "owners
     /// kept". No descriptor 10000 is open in this test program, and `ManuallyDrop`
     /// keeps the `File` from closing it.
@@ -776,6 +774,8 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// FIL-03.5: the open itself refuses a link, even to a regular file; a FIFO is
+    /// refused at once, with no wait for a writer.
     #[test]
     fn fil03_t05_open_regular_nofollow_refuses_all_but_a_regular_file() {
         let dir = private_dir("nofollow");

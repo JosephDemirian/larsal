@@ -166,7 +166,7 @@ impl Identities {
 /// only those go on to the readers, whose buffers do not wipe: they hold
 /// ciphertext. Anything else stays in wiping memory, as a plain list, a private
 /// key in another format included, and is refused there.
-fn looks_encrypted(data: &[u8]) -> bool {
+pub(crate) fn looks_encrypted(data: &[u8]) -> bool {
     data.starts_with(b"age-encryption.org/") || crate::armor::starts_as_armor(data)
 }
 
