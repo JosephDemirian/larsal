@@ -80,20 +80,30 @@ impl Vaults for SessionVaults {
         }
         let mut data = false;
         let done = s
-            .with_edit(id, |vault, path, _, edit| {
-                let dir = path
+            .with_share(id, |slot| {
+                let Some(vault) = slot.vault else {
+                    return false;
+                };
+                let dir = slot
+                    .path
                     .parent()
                     .map(|p| p.to_string_lossy().into_owned())
                     .unwrap_or_default();
                 // INT-02.9: a view-state change is kept for the next save
                 // and marks nothing; a data change marks the vault changed.
-                if f(vault, &dir) == Changed::Data {
-                    edit.count_change();
+                // F-278: a look changes nothing, so a share import tried
+                // meanwhile still lands.
+                let what = f(vault, &dir);
+                if what != Changed::Nothing {
+                    *slot.version = slot.version.wrapping_add(1);
+                }
+                if what == Changed::Data {
+                    slot.edit.count_change();
                     data = true;
                 }
-                Ok(())
+                true
             })
-            .is_ok();
+            .unwrap_or(false);
         if data {
             session::changed();
         }
@@ -248,6 +258,16 @@ impl Session {
             .unwrap_or(false);
         taken.then(|| NAME_TAKEN.to_owned())
     }
+}
+
+/// Tests (F-278): the bridge's door to a vault, as the bridge uses it.
+#[cfg(test)]
+pub(crate) fn bridge_door(
+    s: &Arc<Session>,
+    id: u64,
+    f: &mut dyn FnMut(&mut Vault, &str) -> Changed,
+) -> bool {
+    SessionVaults(Arc::downgrade(s)).with(id, f)
 }
 
 #[cfg(test)]

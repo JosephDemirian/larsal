@@ -9,9 +9,9 @@
 //! keeps its invariants and saves and reads back the same (MOD-02.28).
 
 use crate::edit::{Position, find_ascii_ci, holds_reference};
-use crate::{Error, edit, tree};
+use crate::{Error, edit, origin, tree};
 use larsal_model::entry::STANDARD_FIELDS;
-use larsal_model::{DeletedObject, Field, Group, Icon, Switch, Time, Uuid, Vault};
+use larsal_model::{DeletedObject, Entry, Field, Group, Icon, Switch, Time, Uuid, Vault};
 use std::collections::HashSet;
 
 /// The name of a new recycle bin (MOD-04.2, the Larsal interface string).
@@ -161,6 +161,7 @@ pub fn delete_entries(
     let mut seen = HashSet::with_capacity(ids.len());
     let ids: Vec<Uuid> = ids.iter().copied().filter(|&id| seen.insert(id)).collect();
     let mut out = Deleted::default();
+    let mut records = Records::new(vault);
     for &id in &ids {
         if !vault.meta.recycle_bin_enabled || entry_in_bin(vault, id) {
             let refs = referencing(vault, id, &ids);
@@ -174,7 +175,7 @@ pub fn delete_entries(
                     References::Delete => {}
                 }
             }
-            take_entry(vault, id, now)?;
+            take_entry(vault, id, now, &mut records)?;
             out.for_good = out.for_good.saturating_add(1);
         } else {
             let bin = ensure_bin(vault, now)?;
@@ -183,6 +184,7 @@ pub fn delete_entries(
         }
     }
     if out.for_good > 0 {
+        records.flush(vault);
         clean_references(vault, now);
     }
     Ok(out)
@@ -236,48 +238,133 @@ fn overwrite_references(vault: &mut Vault, id: Uuid, refs: &[Uuid], now: Time) {
 /// Removes live entry `id` for good with its history, adding one record
 /// (MOD-04.7, FMT-15.7), and clears last top visible entries naming it.
 pub(crate) fn remove_entry_for_good(vault: &mut Vault, id: Uuid, now: Time) -> Result<(), Error> {
-    take_entry(vault, id, now)?;
+    let mut records = Records::new(vault);
+    take_entry(vault, id, now, &mut records)?;
+    records.flush(vault);
     clean_references(vault, now);
     Ok(())
 }
 
 /// [`remove_entry_for_good`] without the reference cleanup, for loops that
 /// clean once at the end.
-fn take_entry(vault: &mut Vault, id: Uuid, now: Time) -> Result<(), Error> {
+fn take_entry(vault: &mut Vault, id: Uuid, now: Time, records: &mut Records) -> Result<(), Error> {
     let (path, i) = tree::entry_place(&vault.root, id).ok_or(Error::NoSuchEntry)?;
     let g = tree::group_at_mut(&mut vault.root, &path).ok_or(Error::NoSuchGroup)?;
     if i >= g.entries.len() {
         return Err(Error::NoSuchEntry);
     }
-    g.entries.remove(i);
-    record(vault, id, now);
+    let parent = g.uuid;
+    let e = g.entries.remove(i);
+    records.note(vault, Victim::entry(&e, parent), now);
     Ok(())
 }
 
-fn record(vault: &mut Vault, id: Uuid, now: Time) {
-    vault.deleted_objects.push(DeletedObject {
-        uuid: id,
-        deleted_at: now,
-        unknown: Vec::new(),
-    });
+/// What the record of one object deleted for good reads, taken before it goes.
+struct Victim {
+    id: Uuid,
+    parent: Uuid,
+    prev: Option<Uuid>,
+    stamped: bool,
+    /// The id again when the object is a group.
+    me: Option<Uuid>,
+}
+
+impl Victim {
+    fn entry(e: &Entry, parent: Uuid) -> Self {
+        Self {
+            id: e.uuid,
+            parent,
+            prev: e.previous_parent,
+            stamped: origin::stamp_of(&e.custom_data).is_some(),
+            me: None,
+        }
+    }
+
+    fn group(g: &Group, parent: Uuid) -> Self {
+        Self {
+            id: g.uuid,
+            parent,
+            prev: g.previous_parent,
+            stamped: origin::stamp_of(&g.custom_data).is_some(),
+            me: Some(g.uuid),
+        }
+    }
+}
+
+/// Where a delete for good writes (FMT-15.7, INT-08.32): a plain record for a
+/// user's object; with a share known, a copy that counts in a share with no user's
+/// move in leaves a row per share that holds it instead, so it reaches only copies
+/// in those shares and each share's own export sends it. The rows are written once,
+/// since the text holds them all.
+struct Records {
+    /// The tree before the delete, when a share is known.
+    places: Option<origin::Places>,
+    rows: Vec<(Uuid, Uuid, Time)>,
+}
+
+impl Records {
+    fn new(vault: &Vault) -> Self {
+        let known = origin::known(vault);
+        Self {
+            places: (!known.is_empty()).then(|| origin::Places::new(vault, known)),
+            rows: Vec::new(),
+        }
+    }
+
+    fn note(&mut self, vault: &mut Vault, v: Victim, now: Time) {
+        if let Some(places) = self.places.as_mut().filter(|_| !v.stamped) {
+            let set = places.set_at(v.parent, v.prev, v.me);
+            if !set.is_empty() {
+                self.rows.extend(set.into_iter().map(|g| (v.id, g, now)));
+                return;
+            }
+        }
+        vault.deleted_objects.push(DeletedObject {
+            uuid: v.id,
+            deleted_at: now,
+            unknown: Vec::new(),
+        });
+    }
+
+    fn flush(self, vault: &mut Vault) {
+        origin::add_rows(vault, &self.rows);
+    }
+
+    /// A group goes (R6 B): with a share known, a bin item naming it now names its
+    /// parent, or its previous parent if it was in the bin. `v` in FMT-15.7 order,
+    /// so a child goes before its parent.
+    fn gone_groups(&self, vault: &mut Vault, victims: &[Victim]) {
+        let Some(places) = &self.places else {
+            return;
+        };
+        let gone = victims.iter().filter(|v| v.me.is_some()).map(|v| {
+            let to = if Some(v.parent) == places.bin {
+                v.prev
+            } else {
+                Some(v.parent)
+            };
+            (v.id, to)
+        });
+        origin::gone_groups(&mut vault.root, places.bin, &gone.collect());
+    }
 }
 
 /// The FMT-15.7 group rule: the group's entries in stored order, then each
-/// child group by the same rule, then the group itself.
-fn group_records(g: &Group) -> Vec<Uuid> {
+/// child group by the same rule, then the group itself. `parent`: `g`'s.
+fn group_records(g: &Group, parent: Uuid) -> Vec<Victim> {
     enum Step<'a> {
-        Open(&'a Group),
-        Close(Uuid),
+        Open(&'a Group, Uuid),
+        Close(Victim),
     }
     let mut out = Vec::new();
-    let mut stack = vec![Step::Open(g)];
+    let mut stack = vec![Step::Open(g, parent)];
     while let Some(step) = stack.pop() {
         match step {
-            Step::Close(id) => out.push(id),
-            Step::Open(g) => {
-                out.extend(g.entries.iter().map(|e| e.uuid));
-                stack.push(Step::Close(g.uuid));
-                stack.extend(g.groups.iter().rev().map(Step::Open));
+            Step::Close(v) => out.push(v),
+            Step::Open(g, parent) => {
+                out.extend(g.entries.iter().map(|e| Victim::entry(e, g.uuid)));
+                stack.push(Step::Close(Victim::group(g, parent)));
+                stack.extend(g.groups.iter().rev().map(|c| Step::Open(c, g.uuid)));
             }
         }
     }
@@ -293,14 +380,20 @@ pub(crate) fn remove_group_for_good(vault: &mut Vault, id: Uuid, now: Time) -> R
     let Some((&index, parent_path)) = path.split_last() else {
         return Err(Error::RootGroup);
     };
+    let mut records = Records::new(vault);
     let parent = tree::group_at_mut(&mut vault.root, parent_path).ok_or(Error::NoSuchGroup)?;
     if index >= parent.groups.len() {
         return Err(Error::NoSuchGroup);
     }
+    let parent_id = parent.uuid;
     let g = parent.groups.remove(index);
-    for r in group_records(&g) {
-        record(vault, r, now);
+    let victims = group_records(&g, parent_id);
+    drop(g);
+    records.gone_groups(vault, &victims);
+    for v in victims {
+        records.note(vault, v, now);
     }
+    records.flush(vault);
     clean_references(vault, now);
     Ok(())
 }
@@ -382,6 +475,7 @@ pub fn empty_bin(vault: &mut Vault, now: Time) -> Result<bool, Error> {
     let Some(bin) = bin_id(vault) else {
         return Ok(false);
     };
+    let mut records = Records::new(vault);
     let g = tree::group_mut(vault, bin).ok_or(Error::NoSuchGroup)?;
     if g.entries.is_empty() && g.groups.is_empty() {
         return Ok(false);
@@ -389,13 +483,14 @@ pub fn empty_bin(vault: &mut Vault, now: Time) -> Result<bool, Error> {
     let entries = std::mem::take(&mut g.entries);
     let groups = std::mem::take(&mut g.groups);
     for e in &entries {
-        record(vault, e.uuid, now);
+        records.note(vault, Victim::entry(e, bin), now);
     }
     for g in &groups {
-        for r in group_records(g) {
-            record(vault, r, now);
+        for v in group_records(g, bin) {
+            records.note(vault, v, now);
         }
     }
+    records.flush(vault);
     clean_references(vault, now);
     Ok(true)
 }
@@ -429,15 +524,36 @@ pub fn restore_entries(vault: &mut Vault, ids: &[Uuid], now: Time) -> Result<Res
         let back = tree::entry(vault, id).and_then(|e| e.previous_parent);
         let target = match back {
             Some(g) if tree::group(vault, g).is_some() && !group_in_bin(vault, g) => g,
-            _ => {
-                out.to_root = out.to_root.saturating_add(1);
-                vault.root.uuid
-            }
+            _ => match back_to_share(vault, back, None) {
+                Some(share) => share,
+                None => {
+                    out.to_root = out.to_root.saturating_add(1);
+                    vault.root.uuid
+                }
+            },
         };
         edit::move_one_entry(vault, id, target, now)?;
         out.restored = out.restored.saturating_add(1);
     }
     Ok(out)
+}
+
+/// R6 B: a bin item whose previous parent is gone or in the bin still counts in
+/// the shares on its way up: it comes back to the innermost of them, if any. Never
+/// inside itself (`me`: the item when it is a group).
+fn back_to_share(vault: &Vault, back: Option<Uuid>, me: Option<Uuid>) -> Option<Uuid> {
+    let known = origin::known(vault);
+    let bin = bin_id(vault)?;
+    if known.is_empty() {
+        return None;
+    }
+    let mut places = origin::Places::new(vault, known);
+    let set = places.set_at(bin, back, me);
+    let set = set
+        .into_iter()
+        .filter(|g| me.is_none_or(|m| !tree::within(vault, *g, m)) && !group_in_bin(vault, *g))
+        .collect();
+    places.innermost(&set)
 }
 
 /// Restores a group from the bin (MOD-04.11, L04-3) by the rule of
@@ -456,12 +572,16 @@ pub fn restore_group(vault: &mut Vault, id: Uuid, now: Time) -> Result<Restored,
         restored: 1,
         ..Restored::default()
     };
-    let target = match g.previous_parent {
+    let back = g.previous_parent;
+    let target = match back {
         Some(p) if tree::group(vault, p).is_some() && !group_in_bin(vault, p) => p,
-        _ => {
-            out.to_root = 1;
-            vault.root.uuid
-        }
+        _ => match back_to_share(vault, back, Some(id)) {
+            Some(share) => share,
+            None => {
+                out.to_root = 1;
+                vault.root.uuid
+            }
+        },
     };
     edit::move_group(vault, id, target, Position::End, now)?;
     Ok(out)

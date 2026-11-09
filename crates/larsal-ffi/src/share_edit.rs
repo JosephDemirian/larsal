@@ -19,7 +19,7 @@
 //!   (LD-270 (3)); the path guard reads the disk without the session lock.
 
 use crate::session::{LarsalError, MAX_TEXT, Session};
-use crate::share::guarded;
+use crate::share::{guarded, is_key_file};
 use crate::views::{custom_icon_name, hex, icon_number, now, parse_id};
 use larsal_core::expiry::is_expired;
 use larsal_core::health::{Level, score};
@@ -80,6 +80,8 @@ impl From<Mode> for ShareMode {
 pub enum ShareWarning {
     /// MI08-17 (INT-08.34): the file of a vault open in Larsal.
     OpenVault,
+    /// MI08-27 (INT-08.34): a key file this Mac knows.
+    KeyFile,
     /// MI08-10: a name Larsal cannot share.
     Extension,
     /// MI08-11: another group exports to this file.
@@ -211,8 +213,16 @@ pub(crate) struct Draft {
     settings: Settings,
     /// The group has a share item (none after Clear).
     item: bool,
+    /// Clear ran on this page: Save forgets the group's records, also when
+    /// a new path followed it (INT-08.31).
+    cleared: bool,
     /// A field changed: Save writes the item.
     changed: bool,
+    /// The path as the page opened with it.
+    opened_path: String,
+    /// The share as the page opened was approved on this Mac: a change of
+    /// its Type may be approved on Save (INT-08.31).
+    opened_approved: bool,
 }
 
 /// INT-08.23 case 1: the name ends in a name Larsal can share.
@@ -373,7 +383,7 @@ impl Session {
         f: impl FnOnce(&mut Draft),
     ) -> Result<ShareEditView, LarsalError> {
         let flags = self.share_allowed();
-        let (mut page, full, open) = self.with_share(vault, |slot| {
+        let (mut page, full, open, keys) = self.with_share(vault, |slot| {
             let v = slot.vault.ok_or(LarsalError::Locked)?;
             let d =
                 slot.share.draft.as_mut().ok_or_else(|| {
@@ -381,10 +391,14 @@ impl Session {
                 })?;
             f(d);
             let (page, full) = view(v, slot.path, d, flags);
-            Ok((page, full, slot.open))
+            Ok((page, full, slot.open, slot.keys))
         })??;
-        if full.is_some_and(|p| guarded(&p, &open, &self.backup_pattern())) {
-            page.warning = Some(ShareWarning::OpenVault);
+        if let Some(p) = full {
+            if guarded(&p, &open, &self.backup_pattern()) {
+                page.warning = Some(ShareWarning::OpenVault);
+            } else if is_key_file(&p, &self.key_files(keys)) {
+                page.warning = Some(ShareWarning::KeyFile);
+            }
         }
         Ok(page)
     }
@@ -401,6 +415,7 @@ impl Session {
     /// `UnknownVault`, `Locked`, `UnknownGroup`.
     pub fn share_edit(&self, vault: u64, group: String) -> Result<ShareEditView, LarsalError> {
         let id = parse_id(&group, LarsalError::UnknownGroup)?;
+        let approved = self.settings.share_approvals();
         self.with_share(vault, |slot| {
             let v = slot.vault.ok_or(LarsalError::Locked)?;
             let g = v.root.find_group(id).ok_or(LarsalError::UnknownGroup)?;
@@ -409,10 +424,16 @@ impl Session {
                 Some(Item::Invalid) => (Settings::new(), true),
                 None => (Settings::new(), false),
             };
+            let opened_approved = run::shares(v, Some(slot.path))
+                .iter()
+                .any(|s| s.group == id && approved.contains(&s.approval(v)));
             slot.share.draft = Some(Draft {
                 group: id,
+                opened_path: settings.path.clone(),
+                opened_approved,
                 settings,
                 item,
+                cleared: false,
                 changed: false,
             });
             Ok(())
@@ -463,6 +484,7 @@ impl Session {
                     *s = Settings::new();
                     d.changed |= d.item;
                     d.item = false;
+                    d.cleared = true;
                     return;
                 }
             };
@@ -537,7 +559,7 @@ impl Session {
     /// `Refused` when the random source fails.
     pub fn share_edit_save(&self, vault: u64) -> Result<(), LarsalError> {
         // A reload must not see a closed editor before its draft is committed.
-        let group = self.with_share(vault, |slot| -> Result<Option<Uuid>, LarsalError> {
+        let saved = self.with_share(vault, |slot| -> Result<_, LarsalError> {
             let Some(d) = slot.share.draft.as_mut().filter(|d| d.changed) else {
                 slot.share.draft = None;
                 return Ok(None);
@@ -566,13 +588,23 @@ impl Session {
             if changed {
                 slot.edit.changes = slot.edit.changes.saturating_add(1);
             }
+            // INT-08.31: Save approves what the user set up on this page;
+            // a planted path that one other box changed still needs the sheet.
+            let accepted = d.opened_approved || d.settings.path != d.opened_path;
+            let cleared = (!d.item || d.cleared).then(|| run::records_of(v, d.group));
             let group = d.group;
             slot.share.draft = None;
-            Ok(Some(group))
-        })??;
-        let Some(group) = group else {
+            Ok(Some((group, accepted, cleared)))
+        })?;
+        let Some((group, accepted, cleared)) = saved? else {
             return Ok(());
         };
+        if let Some(records) = cleared {
+            self.settings.forget_share(&records);
+        }
+        if !accepted {
+            return Ok(());
+        }
         let approval = self.with_open(vault, |v, file, _| {
             Ok(run::shares(v, Some(file))
                 .into_iter()

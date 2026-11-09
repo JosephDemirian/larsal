@@ -70,12 +70,17 @@ impl Share {
         };
         let path = self.path.to_string_lossy();
         let hash = larsal_crypto::hash::sha256(&[mode.as_bytes(), b"\n", path.as_bytes()]);
-        format!(
-            "{}:{}:{}",
-            hex(&vault.root.uuid.0),
-            hex(&self.group.0),
-            hex(hash.expose())
-        )
+        format!("{}{}", records_of(vault, self.group), hex(hash.expose()))
+    }
+
+    /// INT-08.34: the name of this share's record of the last container it
+    /// wrote: the vault id, the group id and the SHA-256 of the resolved
+    /// path, in hex. No mode: a change of mode writes the same file.
+    #[must_use]
+    pub fn written(&self, vault: &Vault) -> String {
+        let path = self.path.to_string_lossy();
+        let hash = larsal_crypto::hash::sha256(&[path.as_bytes()]);
+        format!("{}{}", records_of(vault, self.group), hex(hash.expose()))
     }
 
     /// INT-08.15 step 2: what a change of the settings is told by (mode,
@@ -98,8 +103,17 @@ impl Share {
     }
 }
 
-fn hex(bytes: &[u8]) -> String {
+/// `bytes` in lower case hex digits.
+#[must_use]
+pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// INT-08.31: what every record of share group `group` of `vault` starts with
+/// on this Mac (`share.approved`, `share.written`).
+#[must_use]
+pub fn records_of(vault: &Vault, group: Uuid) -> String {
+    format!("{}:{}:", hex(&vault.root.uuid.0), hex(&group.0))
 }
 
 /// Every set-up share of `vault`, whose file is `file`, in group tree order
@@ -391,6 +405,16 @@ pub fn several_export(path: &str, groups: &[String]) -> Line {
     )
 }
 
+/// MI08-27: a share that names the key file of a vault this Mac knows.
+#[must_use]
+pub fn key_file(path: &str) -> Line {
+    line(
+        Level::Error,
+        path,
+        format!("{path}: export failed. It is a vault's key file, so it was left alone."),
+    )
+}
+
 /// MI08-19.
 #[must_use]
 pub fn outside(path: &str, count: usize) -> Line {
@@ -402,6 +426,9 @@ pub fn outside(path: &str, count: usize) -> Line {
         ),
     )
 }
+
+/// MI08-26.
+const NOT_THIS_SHARE: &str = "Another file is already there, and Larsal did not write it for this share, so it was left alone. Choose another file or move that one.";
 
 /// The reason of MI08-02 and MI08-03 in plain words: no path, no value.
 fn reason(e: &Error) -> String {
@@ -422,6 +449,7 @@ fn reason(e: &Error) -> String {
         Error::NoGroup => "The shared group is no longer in the vault.".into(),
         Error::Recycled => "The shared group is in the recycle bin.".into(),
         Error::RandomSource => "The random source failed.".into(),
+        Error::NotThisShare => NOT_THIS_SHARE.into(),
     }
 }
 
@@ -434,6 +462,7 @@ fn system(kind: std::io::ErrorKind) -> String {
         K::StorageFull => "There is no space left on the disk.".into(),
         K::ReadOnlyFilesystem => "The disk is read-only.".into(),
         K::InvalidInput => "The path is not a file Larsal can use.".into(),
+        K::AlreadyExists => NOT_THIS_SHARE.into(),
         K::FileTooLarge => "It is larger than Larsal reads.".into(),
         other => {
             let text = other.to_string();

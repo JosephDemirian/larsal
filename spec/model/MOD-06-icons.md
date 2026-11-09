@@ -110,7 +110,7 @@ MOD-06.14 **Removing selected custom icons** (vault settings, maintenance page).
 - Delete, or no uses: every live entry using it gets icon 0 and every group using it gets icon 48 (each such item's modification time moves, no history item); every history item using it gets icon 0 without any change to its times; the icon is removed from the list; the icon's id is recorded as a deleted object with the current time (FMT-14.9, FMT-15).
 - All of it is one change batch.
 
-MOD-06.15 **Purging unused custom icons** (same page). Every custom icon that no live entry and no group uses is removed, including icons used only by history items; those history items get icon 0 without any change to their times. Each removed icon gets a deleted-object record. When nothing was removed the page says all custom icons are in use (`msg.icons_all_in_use`); otherwise it reports the count (`msg.icons_purged`, "purged N icons"). One change batch.
+MOD-06.15 **Purging unused custom icons** (same page). Every custom icon that no live entry and no group uses is removed, including icons used only by history items; those history items get icon 0 without any change to their times. Each removed icon gets a deleted-object record, unless the vault knows a share: a share can bring an icon with an outside object's id, and a plain record reaches outside, so with a share known there is no record and a stale copy can bring the icon back (INT-08.32). When nothing was removed the page says all custom icons are in use (`msg.icons_all_in_use`); otherwise it reports the count (`msg.icons_purged`, "purged N icons"). One change batch.
 
 MOD-06.16 **Which item shows which icon.**
 - Entry: its custom icon when it has one, else its standard number. Shown in the entry list's title column, in the detail view and on the edit screen. The entry list's group column shows the group's icon.
@@ -151,7 +151,7 @@ MOD-06.19 **Image data is untrusted.** Custom icon bytes come from files, vaults
 - **Hostile images.** Custom icon bytes are attacker-controlled when a vault, shared group or import comes from someone else, and downloaded icons come from the network. Decoders are a classic attack surface. Larsal decodes only in Rust, only PNG, JPEG and ICO (LD-65), enforces input limits before taking pixel memory (D-06-3), never decodes in larsal-format, re-encodes as PNG before the screen layer sees anything, and treats a decode failure as "show the default icon" (MOD-06.19). No untrusted image bytes reach the web view. Fuzz the add path and the vault-icon path with malformed images (AT-A10 style). The parity matrix in plan/security.md notes it (LD-65).
 - **Network (SN-01, SN-02).** No icon is fetched unless the user turned website icons on (APP-01). This card never starts a download.
 - **Screen layer (AT-E01, AT-E04).** The screen shows custom icons only from PNG bytes Larsal hands it (for example as an inline image), never from a remote URL; the content security policy blocks remote images.
-- **Deletion records.** Removing an icon records a deleted object (MOD-06.14) so a merge does not bring it back (MOD-11).
+- **Deletion records.** Removing an icon records a deleted object (MOD-06.14) so a merge does not bring it back (MOD-11). With a share known it does not (MOD-06.15, INT-08.32).
 - **Keep data (SD-06).** Unknown icon numbers, dangling icon ids and undecodable bytes are kept, not dropped (MOD-06.4, MOD-06.16).
 
 ## Test cases

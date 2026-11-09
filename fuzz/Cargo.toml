@@ -241,6 +241,14 @@ test = false
 doc = false
 bench = false
 
+# The merge of a hostile container into a share group, past the reader (INT-08.32, SI-09; E11-S6).
+[[bin]]
+name = "share_merge"
+path = "fuzz_targets/share_merge.rs"
+test = false
+doc = false
+bench = false
+
 # larsal-proto's record reader, the health record and the route match on arbitrary bytes (SYN-01.15; E16-S3).
 [[bin]]
 name = "proto_messages"

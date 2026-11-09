@@ -1,0 +1,813 @@
+TRACE r1.t60.nest 3 0 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP him 1 S 2
+D E 0
+GO2
+OP bin 1 E 3
+OP merge 2 1 4
+OP merge 0 2 4
+OP merge 0 1 4
+OP del 1 E 4
+OP merge 1 2 5
+OP empty 0 5
+OP merge 2 0 6
+OP merge 2 1 6
+OP him 1 T 6
+C E S T 1000000 6 1
+GO2
+OP him 1 T 7
+C E S T 7 0 2
+GO2
+OP him 1 T 8
+C E T T 0 1000000 3
+GO2
+OP merge 1 2 9
+OP merge 1 0 9
+OP merge 2 1 9
+OP bin 1 E 9
+OP merge 1 2 10
+TRACE r1.t78.nest 3 0 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP bin 0 E 2
+OP fex 0 S 3
+OP fim 0 S 3
+OP merge 0 2 4
+OP him 2 S 4
+D E 0
+GO2
+OP fex 1 T 5
+OP him 2 T 5
+C E T T 5 1000000 1
+GO2
+OP del 0 E 6
+OP merge 2 1 7
+OP merge 2 0 7
+OP fim 1 S 7
+OP bin 1 E 8
+OP merge 2 1 9
+OP merge 2 1 9
+OP him 2 S 9
+C E S S 9 9 2
+GO2
+OP merge 0 1 10
+OP him 0 T 10
+C E S T 10 1000000 3
+GO2
+OP fex 0 T 11
+TRACE r2.t0.sib 3 0 T,U
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP move 2 E P 2
+OP merge 1 2 3
+OP merge 0 2 3
+OP merge 1 2 3
+OP him 1 U 3
+C E U U 3 1000000 1
+GO2
+OP merge 1 2 4
+OP move 0 E T 4
+OP merge 2 1 5
+OP him 1 U 5
+C E U U 0 5 2
+GO2
+OP del 2 E 6
+OP merge 1 2 7
+OP merge 0 1 7
+OP him 0 T 7
+C E T T 7 7 3
+GO2
+OP del 0 E 8
+OP merge 0 2 9
+OP him 2 U 9
+C E U U 9 1000000 4
+GO2
+OP him 2 U 10
+C E U U 0 0 5
+GO2
+OP merge 0 2 11
+TRACE r2.t1.e2 2 1 T
+OBJ 0 E P 1 1 0
+OBJ 1 E P 1 1 0
+GO
+OP bin 1 E 2
+OP him 0 T 3
+C E T T 3 1000000 1
+GO2
+OP empty 1 4
+OP him 1 T 5
+C E T T 5 5 2
+GO2
+OP him 0 T 6
+C E T T 1000000 1000000 3
+GO2
+OP him 1 T 7
+C E S T 7 0 4
+GO2
+OP bin 0 E 8
+OP merge 0 1 9
+OP merge 0 1 9
+OP merge 1 0 9
+OP rver 0 E 0 4 9
+OP merge 1 0 10
+OP del 1 E 10
+OP merge 1 0 11
+OP merge 1 0 11
+OP merge 0 1 11
+OP him 1 T 11
+C E T T 1000000 1000000 5
+GO2
+OP merge 0 1 12
+TRACE flows.f2.0.H2 2 0 T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+GO
+OP move 0 E P 2
+OP merge 0 1 3
+OP merge 1 0 3
+TRACE r1.t22.g2 2 4 T
+OBJ 1 O P 1 1 0
+OBJ 1 F O 1 1 1
+GO
+OP merge 0 1 2
+OP him 1 T 2
+C O T T 0 1000000 2
+GO2
+OP bin 1 F 3
+OP him 1 T 4
+C O T T 1000000 0 3
+C F O T 1000000 0 4
+GO2
+OP move 0 O T 5
+OP him 0 T 6
+D O 6
+GO2
+OP him 0 T 7
+D F 1000000
+GO2
+OP him 1 T 8
+C F T T 8 8 5
+GO2
+OP del 0 O 9
+OP merge 0 1 10
+OP move 0 F T 10
+OP merge 1 0 11
+OP merge 0 1 11
+OP him 0 T 11
+C O T T 1000000 1000000 6
+GO2
+OP him 0 T 12
+C O T T 0 12 7
+C F O T 0 12 8
+GO2
+OP merge 1 0 13
+OP him 0 T 13
+C F T T 13 0 9
+GO2
+OP merge 1 0 14
+TRACE r1.t32.gsib 2 2 T,U
+OBJ 0 O P 1 1 0
+OBJ 0 F O 1 1 1
+OBJ 1 O P 1 1 0
+OBJ 1 F O 1 1 1
+GO
+OP move 0 F T 2
+OP bin 1 O 3
+OP merge 1 0 4
+OP merge 0 1 4
+OP move 1 F U 4
+OP move 0 O U 5
+OP merge 0 1 6
+OP merge 1 0 6
+OP him 0 T 6
+C O T T 6 6 2
+C F O T 6 6 3
+GO2
+OP move 0 F P 7
+OP merge 0 1 8
+OP merge 0 1 8
+OP edit 0 F 8 4
+OP move 0 F T 9
+OP him 1 T 10
+C F T T 0 1000000 5
+GO2
+OP merge 1 0 11
+OP del 1 F 11
+OP merge 1 0 12
+TRACE r1.t33.sibf 2 3 T,U
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+GO
+OP del 1 E 2
+OP merge 0 1 3
+OP him 1 T 3
+C E T T 3 3 1
+GO2
+OP merge 0 1 4
+OP him 1 T 4
+C E T T 1000000 0 2
+GO2
+OP del 1 E 5
+OP him 1 U 6
+C E U U 0 6 3
+GO2
+OP him 0 U 7
+C E U U 7 0 4
+GO2
+OP merge 0 1 8
+OP him 0 U 8
+C E U U 0 8 5
+GO2
+OP him 0 U 9
+C E U U 0 1000000 6
+GO2
+OP him 1 T 10
+C E T T 1000000 1000000 7
+GO2
+OP fex 1 T 11
+OP merge 0 1 11
+OP del 1 E 11
+OP fex 1 U 12
+OP merge 0 1 12
+OP him 0 U 12
+C E U U 1000000 12 8
+GO2
+TRACE r1.t25.e2h 2 1 T
+OBJ 1 E T 1 1 0
+GO
+OP merge 0 1 2
+OP edit 0 E 2 1
+OP merge 0 1 3
+OP merge 1 0 3
+OP fex 1 T 3
+OP edit 0 E 3 2
+OP rver 1 E 1 0 4
+OP merge 0 1 5
+OP merge 0 1 5
+OP merge 1 0 5
+OP fex 1 T 5
+OP bin 1 E 5
+OP merge 0 1 6
+OP move 0 E S 6
+OP merge 0 1 7
+OP merge 0 1 7
+OP med T E 7 3
+OP rver 0 E 2 1 8
+TRACE r1.t4.e3 3 4 T
+OBJ 0 E P 1 1 0
+OBJ 1 E P 1 1 0
+OBJ 2 E P 1 1 0
+GO
+OP him 0 T 2
+C E T T 0 0 1
+GO2
+OP del 1 E 3
+OP merge 2 1 4
+OP merge 1 0 4
+OP merge 1 0 4
+OP merge 0 2 4
+OP him 2 T 4
+C E T T 1000000 0 2
+GO2
+OP him 0 T 5
+D E 5
+GO2
+OP him 2 T 6
+D E 6
+GO2
+OP him 2 T 7
+C E T T 1000000 1000000 3
+GO2
+OP merge 2 1 8
+OP him 0 T 8
+C E T T 1000000 1000000 4
+GO2
+OP merge 1 0 9
+OP move 2 E P 9
+OP merge 2 0 10
+OP bin 1 E 10
+OP merge 2 0 11
+OP merge 2 1 11
+TRACE r3.t5.e2k 2 5 -
+KNOWN 0 T
+OBJ 0 E P 1 1 0
+OBJ 1 E P 1 1 0
+GO
+OP merge 1 0 2
+OP edit 1 E 2 1
+OP merge 0 1 3
+OP del 0 E 3
+OP merge 0 1 4
+OP merge 1 0 4
+OP him 1 T 4
+C E T T 4 0 2
+GO2
+OP him 1 T 5
+C E T T 5 5 3
+GO2
+OP merge 1 0 6
+OP del 1 E 6
+OP merge 1 0 7
+OP merge 0 1 7
+OP him 1 T 7
+C E T T 0 0 4
+GO2
+OP him 1 T 8
+C E T T 0 1000000 5
+GO2
+OP merge 0 1 9
+OP bin 0 E 9
+TRACE r1.t288.sib 3 0 T,U
+OBJ 1 E P 1 1 0
+GO
+OP merge 2 1 2
+OP him 0 U 2
+D E 2
+GO2
+OP del 2 E 3
+OP him 0 T 4
+C E T T 4 4 1
+GO2
+OP merge 1 2 5
+OP merge 0 1 5
+OP him 2 T 5
+C E T T 0 1000000 2
+GO2
+OP move 0 E P 6
+OP fex 2 U 7
+OP fex 2 T 7
+OP merge 0 2 7
+OP fex 0 T 7
+OP merge 1 0 7
+OP move 2 E U 7
+OP him 2 T 8
+C E T T 0 8 3
+GO2
+OP merge 0 2 9
+OP fim 2 T 9
+OP merge 0 1 10
+TRACE r2.t2395.gsib 2 1 T,U
+OBJ 0 O P 1 1 0
+OBJ 0 F O 1 1 1
+OBJ 1 O P 1 1 0
+OBJ 1 F O 1 1 1
+GO
+OP him 1 T 2
+D F 2
+D O 2
+GO2
+OP merge 0 1 3
+OP him 0 T 3
+C O T T 0 0 2
+C F O T 0 0 3
+GO2
+OP move 0 F T 4
+OP him 0 U 5
+C O U U 1000000 0 4
+C F O U 1000000 0 5
+GO2
+OP move 1 O U 6
+OP merge 1 0 7
+OP him 0 U 7
+C O U U 7 1000000 6
+GO2
+OP merge 1 0 8
+OP merge 1 0 8
+OP del 0 O 8
+OP him 0 U 9
+D F 1000000
+GO2
+OP him 0 T 10
+C O T T 1000000 0 7
+GO2
+OP move 1 O P 11
+OP merge 0 1 12
+OP merge 1 0 12
+OP him 0 T 12
+C O T T 12 0 8
+C F O T 12 0 9
+GO2
+OP him 1 U 13
+C O U U 0 13 10
+C F O U 0 13 11
+GO2
+TRACE r1.t46.gsib 2 4 T,U
+OBJ 0 O T 1 1 0
+OBJ 0 F O 1 1 1
+OBJ 1 O T 1 1 0
+OBJ 1 F O 1 1 1
+GO
+OP move 0 O U 2
+OP merge 1 0 3
+OP move 1 F T 3
+OP merge 1 0 4
+OP merge 0 1 4
+OP move 0 F U 4
+OP del 1 O 5
+OP merge 1 0 6
+OP merge 1 0 6
+OP merge 1 0 6
+OP merge 0 1 6
+OP bin 0 F 6
+OP merge 0 1 7
+OP move 0 F T 7
+OP merge 1 0 8
+OP him 1 T 8
+C F T T 0 1000000 2
+GO2
+OP merge 1 0 9
+OP merge 1 0 9
+TRACE r2.t901.nest 3 1 S,T
+OBJ 0 E P 1 1 0
+OBJ 1 E P 1 1 0
+OBJ 2 E P 1 1 0
+GO
+OP move 1 E S 2
+OP merge 1 2 3
+OP merge 2 1 3
+OP him 2 T 3
+C E T T 1000000 3 1
+GO2
+OP merge 0 2 4
+OP merge 1 0 4
+OP him 2 T 4
+C E S T 0 1000000 2
+GO2
+OP merge 0 2 5
+OP him 0 S 5
+C E S S 0 5 3
+GO2
+OP bin 0 E 6
+OP merge 1 2 7
+OP him 1 S 7
+C E S S 0 1000000 4
+GO2
+OP merge 0 2 8
+OP merge 2 0 8
+OP edit 1 E 8 5
+OP rver 1 E 1 0 9
+OP merge 0 1 10
+OP merge 0 2 10
+TRACE r2.t527.nest 3 5 S,T
+OBJ 1 E P 1 1 0
+GO
+OP move 1 E S 2
+OP merge 1 2 3
+OP move 1 E T 3
+OP merge 2 1 4
+OP merge 0 1 4
+OP move 0 E P 4
+OP merge 1 0 5
+OP move 2 E S 5
+OP merge 2 0 6
+OP him 2 S 6
+D E 6
+GO2
+OP edit 1 E 7 1
+OP rver 1 E 3 0 8
+OP del 0 E 9
+OP merge 1 2 10
+OP merge 0 1 10
+OP move 1 E S 10
+OP merge 1 0 11
+OP merge 1 2 11
+TRACE r5r1.t859.nest 3 1 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP del 2 E 2
+OP him 1 T 3
+C E S T 0 1000000 1
+GO2
+OP del 1 E 4
+OP merge 1 2 5
+OP merge 1 2 5
+OP him 1 T 5
+C E S T 1000000 0 2
+GO2
+OP him 2 T 6
+C E S T 6 0 3
+GO2
+OP him 2 T 7
+C E T T 1000000 0 4
+GO2
+OP him 2 T 8
+C E S T 1000000 1000000 5
+GO2
+OP merge 2 0 9
+OP merge 1 0 9
+OP him 2 T 9
+C E S T 0 0 6
+GO2
+OP merge 0 2 10
+OP him 2 S 10
+C E S S 0 1000000 7
+GO2
+OP him 1 T 11
+C E S T 11 0 8
+GO2
+OP rver 2 E 0 6 12
+OP merge 1 2 13
+OP him 2 T 13
+C E S T 0 13 9
+GO2
+TRACE r5r1.t2046.nest 3 0 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP edit 1 E 2 1
+OP del 0 E 3
+OP fex 2 T 4
+OP him 0 T 4
+C E S T 1000000 0 2
+GO2
+OP merge 0 1 5
+OP fim 1 T 5
+OP him 2 S 6
+C E S S 0 0 3
+D E 1000000
+GO2
+OP move 1 E S 7
+OP fex 0 T 8
+OP merge 2 1 8
+OP him 1 T 8
+D E 1000000
+GO2
+OP merge 0 1 9
+OP merge 1 2 9
+OP merge 2 0 9
+OP merge 0 1 9
+OP fex 1 S 9
+OP merge 0 1 9
+OP merge 2 1 9
+TRACE r5r1.t134.nest 3 2 S,T
+OBJ 0 E P 1 1 0
+OBJ 1 E P 1 1 0
+OBJ 2 E P 1 1 0
+GO
+OP him 0 S 2
+C E S S 0 1000000 1
+GO2
+OP him 1 S 3
+C E S S 0 0 2
+GO2
+OP him 0 T 4
+C E T T 0 4 3
+GO2
+OP edit 2 E 5 4
+OP merge 0 2 6
+OP him 1 T 6
+C E T T 6 6 5
+GO2
+OP him 2 T 7
+C E S T 1000000 1000000 6
+GO2
+OP him 0 T 8
+C E S T 1000000 0 7
+GO2
+OP him 1 S 9
+C E S S 0 0 8
+D E 1000000
+GO2
+OP merge 1 0 10
+OP move 1 E S 10
+OP merge 2 1 11
+OP bin 0 E 11
+OP him 0 S 12
+C E S S 0 0 9
+D E 1000000
+GO2
+OP empty 0 13
+OP him 2 T 14
+D E 1000000
+GO2
+OP merge 2 1 15
+OP merge 1 2 15
+TRACE r5r1.t531.nest 3 3 S,T
+OBJ 0 E P 1 1 0
+OBJ 1 E P 1 1 0
+OBJ 2 E P 1 1 0
+GO
+OP him 2 T 2
+C E T T 1000000 2 1
+GO2
+OP move 1 E S 3
+OP him 2 S 4
+C E S S 0 0 2
+D E 1000000
+GO2
+OP merge 2 1 5
+OP him 1 T 5
+C E S T 0 5 3
+GO2
+OP merge 0 2 6
+OP merge 1 2 6
+OP him 1 T 6
+C E S T 1000000 6 4
+GO2
+OP merge 2 0 7
+OP move 2 E S 7
+OP merge 1 0 8
+OP merge 2 1 8
+OP move 0 E T 8
+OP him 1 T 9
+D E 1000000
+GO2
+OP merge 0 2 10
+OP him 2 T 10
+C E T T 1000000 10 5
+GO2
+OP him 2 T 11
+C E S T 1000000 0 6
+GO2
+OP merge 2 0 12
+TRACE r6r1.t185.nest 3 5 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP him 2 S 2
+D E 0
+GO2
+OP merge 2 0 3
+OP him 1 T 3
+D E 3
+GO2
+OP del 2 E 4
+OP him 0 S 5
+C E S S 0 0 1
+GO2
+OP merge 1 2 6
+OP merge 0 1 6
+OP merge 0 2 6
+OP merge 2 0 6
+OP him 0 S 6
+C E S S 1000000 1000000 2
+GO2
+OP him 1 S 7
+C E S S 0 0 3
+D E 1000000
+GO2
+OP merge 0 2 8
+OP him 1 T 8
+C E T T 1000000 0 4
+GO2
+OP him 0 T 9
+C E S T 9 9 5
+GO2
+OP him 2 S 10
+C E S S 1000000 0 6
+GO2
+OP merge 1 2 11
+OP him 1 T 11
+C E T T 0 0 7
+D E 1000000
+GO2
+OP merge 0 2 12
+TRACE r6r1.t476.nest 3 2 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP him 2 T 2
+C E T T 0 0 1
+D E 1000000
+GO2
+OP merge 0 2 3
+OP him 0 T 3
+C E T T 1000000 0 2
+GO2
+OP merge 1 0 4
+OP him 2 T 4
+C E T T 0 0 3
+GO2
+OP him 2 T 5
+C E S T 1000000 5 4
+GO2
+OP merge 2 1 6
+OP merge 2 0 6
+OP merge 2 0 6
+OP him 0 S 6
+C E S S 1000000 0 5
+GO2
+OP merge 1 2 7
+OP him 1 T 7
+C E T T 0 7 6
+GO2
+OP move 2 E T 8
+OP merge 0 2 9
+OP merge 1 2 9
+OP merge 1 2 9
+OP him 0 T 9
+D E 0
+GO2
+OP move 2 E P 10
+TRACE r6r2.t556.nest 3 4 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP edit 1 E 2 1
+OP del 2 E 3
+OP merge 1 0 4
+OP move 0 E S 4
+OP merge 0 1 5
+OP del 0 E 5
+OP him 0 T 6
+C E S T 6 6 2
+GO2
+OP him 2 S 7
+C E S S 0 0 3
+GO2
+OP merge 2 1 8
+OP merge 0 1 8
+OP merge 2 1 8
+OP merge 2 1 8
+OP move 1 E P 8
+OP merge 2 1 9
+OP him 2 T 9
+C E T T 1000000 0 4
+GO2
+OP him 0 T 10
+D E 0
+GO2
+OP him 2 T 11
+C E T T 1000000 1000000 5
+GO2
+OP merge 1 2 12
+TRACE r6r2.t1107.nest 3 3 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP del 2 E 2
+OP merge 0 2 3
+OP merge 1 2 3
+OP him 1 T 3
+D E 0
+GO2
+OP him 2 S 4
+C E S S 0 0 1
+GO2
+OP merge 1 2 5
+OP him 2 S 5
+D E 5
+GO2
+OP fex 1 T 6
+OP merge 2 0 6
+OP fex 2 S 6
+OP fex 0 T 6
+OP merge 0 2 6
+OP him 2 T 6
+C E T T 0 0 2
+D E 1000000
+GO2
+OP him 2 S 7
+C E S S 0 0 3
+GO2
+OP merge 2 0 8
+OP merge 1 2 8
+OP merge 2 0 8
+OP him 1 T 8
+C E S T 1000000 0 4
+GO2
+TRACE r6r2.t1520.nest 3 2 S,T
+OBJ 0 E T 1 1 0
+OBJ 1 E T 1 1 0
+OBJ 2 E T 1 1 0
+GO
+OP move 2 E S 2
+OP him 1 T 3
+C E S T 1000000 3 1
+GO2
+OP him 1 S 4
+C E S S 0 0 2
+GO2
+OP merge 0 1 5
+OP merge 0 2 5
+OP merge 1 0 5
+OP del 0 E 5
+OP merge 0 1 6
+OP merge 1 0 6
+OP merge 2 0 6
+OP him 1 S 6
+C E S S 1000000 6 3
+GO2
+OP merge 2 1 7
+OP him 2 T 7
+C E S T 1000000 7 4
+GO2
+OP merge 1 0 8
+OP merge 1 2 8
+OP move 2 E T 8
+OP merge 1 2 9
+OP del 2 E 9

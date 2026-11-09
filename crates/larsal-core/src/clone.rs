@@ -10,7 +10,8 @@
 
 use crate::edit::Position;
 use crate::refs::reference;
-use crate::{Error, recycle, tree};
+use crate::{Error, origin, recycle, tree};
+use larsal_model::custom_data::CustomData;
 use larsal_model::{Entry, Field, Group, Time, Uuid, Vault};
 use std::collections::HashSet;
 
@@ -153,6 +154,8 @@ pub fn clone_entry(
     let original = tree::entry(vault, id).ok_or(Error::NoSuchEntry)?;
     let group = tree::entry_group(vault, id).ok_or(Error::NoSuchEntry)?;
     let mut clone = original.duplicate(options.history);
+    // INT-08.32: a clone is a new object; no user's move or share brought it.
+    origin::keep_own(&CustomData::default(), &mut clone.custom_data);
     check_counts(vault, limits, 0, 1, clone.history.len().saturating_add(1))?;
     let mut taken: HashSet<Uuid> = tree::all_entry_ids(vault).into_iter().collect();
     fresh(&mut clone, &mut taken, now)?;
@@ -200,6 +203,7 @@ pub fn clone_group(vault: &Vault, id: Uuid, limits: &Limits, now: Time) -> Resul
     }
     let original = tree::group(vault, id).ok_or(Error::NoSuchGroup)?;
     let mut copy = original.duplicate();
+    origin::clear_tree(&mut copy);
     let sub = copy.subtree();
     let (g, e) = (
         sub.len(),

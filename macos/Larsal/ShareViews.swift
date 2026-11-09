@@ -32,13 +32,14 @@ extension View {
     }
 }
 
-/// A path as stored or resolved: mono, broken anywhere, whole.
+/// A path as stored or resolved: mono, broken anywhere, whole; control and
+/// bidirectional characters written out (INT-08.31).
 struct SharePath: View {
     let path: String
     var size: CGFloat = 13
 
     var body: some View {
-        Text(verbatim: path).font(.mono(size)).fixedSize(horizontal: false, vertical: true)
+        Text(verbatim: sharePathShown(path: path)).font(.mono(size)).fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -168,6 +169,9 @@ extension View {
 struct ApproveShareSheet: View {
     let model: VaultModel
     let label: ShareLabel
+    /// INT-08.34: why this share would be refused, from Rust. It looks at the
+    /// path, which can be a dead folder, so off the screen thread.
+    @State private var block: String?
 
     var body: some View {
         let name = label.name
@@ -184,6 +188,10 @@ struct ApproveShareSheet: View {
             text: "Its sharing settings were not made on this Mac. After you approve, " + text, wide: true
         ) {
             DialogBody {
+                if let block {
+                    Notice(glyph: "warning", fill: Tok.warnBg, ink: Tok.warnInk) { Text(verbatim: block) }
+                        .padding(.bottom, 12)
+                }
                 Panel(rows: [
                     AnyView(
                         Fld(label: "Group") {
@@ -199,6 +207,10 @@ struct ApproveShareSheet: View {
         } foot: {
             SheetButton(title: "Cancel", cancel: true) { model.dialog = nil }
             SheetButton(title: "Approve", kind: .primary) { model.approveShare(label) }
+        }
+        .task(id: label.group) {
+            let (session, id, group) = (model.session, model.vault.id, label.group)
+            block = await Task.detached { try? session.shareBlock(vault: id, group: group) }.value
         }
     }
 }

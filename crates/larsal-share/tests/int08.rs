@@ -12,7 +12,7 @@ use larsal_crypto::hash::sha256;
 use larsal_crypto::kdf::KdfParams;
 use larsal_crypto::secret::SecretString;
 use larsal_format::limits::{Limit, Limits};
-use larsal_model::{Argon2Kind, Cipher, Compression, CustomIcon, DeletedObject, Icon, Kdf};
+use larsal_model::{Argon2Kind, Cipher, Compression, CustomIcon, DeletedObject, Group, Icon, Kdf};
 use larsal_share::container::{self, VAULT_ENTRY};
 use larsal_share::settings::{self, Item, Mode, ROOT, Settings};
 use larsal_share::{Error, NotShare};
@@ -932,14 +932,45 @@ fn t59_at_a06_zip_entry_stops_at_the_vault_file_limit() {
         declared: Some(1_024),
         ..member(VAULT_ENTRY, &zeros, true)
     }]);
+    // RT-4: the same bytes declared honestly, inflated in full: what the early
+    // stop saves, on this Mac and this load, so the check can go red.
+    let honest = zip(&[member(VAULT_ENTRY, &zeros, true)]);
     drop(zeros);
+    let start = std::time::Instant::now();
+    assert!(open(&honest, SHARE_PASSWORD).is_err());
+    let full = start.elapsed();
     let start = std::time::Instant::now();
     assert_eq!(
         open(&z, SHARE_PASSWORD).unwrap_err(),
         Error::Vault(larsal_format::Error::Corrupt)
     );
+    let stopped = start.elapsed();
     assert!(start.elapsed() < std::time::Duration::from_secs(1));
+    assert!(
+        stopped < full / 10,
+        "the bomb took {stopped:?}, its honest inflate {full:?}"
+    );
 }
+
+/// What each document of `at_a08_hostile_document_inside_a_container_is_handled`
+/// gives (RT-4); `None` opens.
+const WANT_A08: [Option<larsal_format::Error>; 11] = [
+    None,
+    // A second entry with one id gets a new id (FMT-11).
+    None,
+    // A group inside itself.
+    Some(larsal_format::Error::Corrupt),
+    // An attachment reference to nothing is dropped.
+    None,
+    // A group with no id gets one.
+    None,
+    Some(larsal_format::Error::Corrupt),
+    Some(larsal_format::Error::TooLarge(Limit::Depth)),
+    Some(larsal_format::Error::Corrupt),
+    Some(larsal_format::Error::Corrupt),
+    Some(larsal_format::Error::Unsupported),
+    Some(larsal_format::Error::TooLarge(Limit::Entries)),
+];
 
 /// A version 3.1 file around the document `xml` under the share password
 /// (FMT-17; AES-KDF 100 rounds, no gzip), so a hostile document gets past
@@ -1043,9 +1074,14 @@ fn at_a08_hostile_document_inside_a_container_is_handled() {
     };
     let pw = secret(SHARE_PASSWORD);
     let mut opened = 0;
+    // RT-4: what each document gives; `None` opens. Any other reason is a
+    // reader that no longer checks what the document attacks.
+    use larsal_format::Error as F;
+    let want: [Option<F>; 11] = WANT_A08;
     for (i, d) in docs.iter().enumerate() {
         let f = seal_v3(d, SHARE_PASSWORD);
-        match container::open(&f, &pw, &mut host(), &small) {
+        let got = container::open(&f, &pw, &mut host(), &small);
+        match &got {
             Ok(o) => {
                 opened += 1;
                 assert_eq!(larsal_model::invariants::check(&o.vault), Ok(()), "doc {i}");
@@ -1053,6 +1089,12 @@ fn at_a08_hostile_document_inside_a_container_is_handled() {
             Err(Error::Vault(_)) => {}
             Err(other) => panic!("doc {i}: {other:?}"),
         }
+        let reason = match got {
+            Ok(_) => None,
+            Err(Error::Vault(e)) => Some(e),
+            Err(other) => panic!("doc {i}: {other:?}"),
+        };
+        assert_eq!(reason, want[i], "doc {i}");
     }
     assert!(opened >= 1, "the plain document opens");
     // The same through a zip container.
@@ -1350,6 +1392,40 @@ fn at_a10_the_share_container_parser_never_blows_up_on_hostile_bytes() {
     let pw = secret(SHARE_PASSWORD);
     let mut small = Limits::DEFAULT;
     small.total_file = 64 << 20;
+    // RT-4: `container::build` strips share items, so this seed gets one back
+    // by hand: the nested assertion below has something to catch.
+    let mut hostile = container::build(id(0x20), true, &v(), NOW).unwrap();
+    let mut planted = Group::new(id(0x34), "Nested".into(), T0);
+    set_share(&mut planted, &mut export_to("victim.larsalvault"));
+    let mut deeper = Group::new(id(0x35), "Deeper".into(), T0);
+    set_share(&mut deeper, &mut export_to("victim.larsalvault"));
+    planted.groups.push(deeper);
+    hostile.root.groups.push(planted);
+    let d = Dir::new("a10");
+    let p = d.path("nested.larsalvault");
+    container::write_file(&p, &hostile, &pw, &mut host(), &Limits::DEFAULT, &[]).unwrap();
+    let nested = std::fs::read(&p).unwrap();
+    let raw = larsal_format::open(
+        &nested,
+        &container::credentials(&pw),
+        &mut host(),
+        &small,
+        None,
+    );
+    let Ok(larsal_format::Opened::Vault(raw)) = raw else {
+        panic!("the seed opens");
+    };
+    let item = |g: &Group| g.custom_data.get(&share_key()).is_some();
+    for n in [0x34, 0x35] {
+        assert!(item(raw.vault.root.find_group(id(n)).unwrap()), "seed");
+    }
+    let opened = container::open(&nested, &pw, &mut host(), &small).unwrap();
+    for n in [0x34, 0x35] {
+        assert!(
+            !item(opened.vault.root.find_group(id(n)).unwrap()),
+            "a nested share survived the open"
+        );
+    }
     // A deterministic byte sweep: truncations, bit flips and junk tails of a
     // real container and a real zip. Any panic fails the test; every vault
     // that opens is well formed and holds no nested share item.
@@ -1360,7 +1436,7 @@ fn at_a10_the_share_container_parser_never_blows_up_on_hostile_bytes() {
         x ^= x << 17;
         x
     };
-    for seed in [&base, &as_zip] {
+    for seed in [&base, &as_zip, &nested] {
         for _ in 0..2_000 {
             let mut bytes = seed.clone();
             match next() % 3 {
@@ -1436,4 +1512,129 @@ fn at_i06_a_container_is_written_owner_only_0600() {
         std::fs::metadata(&link).unwrap().permissions().mode() & 0o777,
         0o600
     );
+}
+
+/// INT-08.34 (RT-1): what an export may replace. Nothing there, this share's
+/// container or the record of the last one it wrote; never anything else.
+#[test]
+fn int08_34_a_share_replaces_only_its_own_container() {
+    let d = Dir::new("look");
+    let p = d.path("team.larsalvault");
+    let pw = secret(SHARE_PASSWORD);
+    let look = |record: Option<&str>| {
+        container::look(&p, &pw, &mut host(), &Limits::DEFAULT, record).map(|_| ())
+    };
+    let refused = Err(Error::NotThisShare);
+    assert_eq!(look(None), Ok(()), "nothing there");
+    // A container of this share, whoever wrote it.
+    std::fs::write(&p, team_container(&v(), true, SHARE_PASSWORD)).unwrap();
+    assert_eq!(look(None), Ok(()), "a container");
+    // Under another password: only the record says it is this share's.
+    let other = team_container(&v(), true, "demo-other");
+    std::fs::write(&p, &other).unwrap();
+    assert_eq!(look(None), refused, "does not open");
+    let head = larsal_share::run::hex(&larsal_share::run::head(&other));
+    assert_eq!(look(Some(&head)), Ok(()), "the record");
+    assert_eq!(look(Some(&"00".repeat(32))), refused, "another record");
+    // A vault under the share password that is no container (INT-08.12): the
+    // recycle bin on, or its own name.
+    let write = |c: &larsal_model::Vault| {
+        container::write_file(&p, c, &pw, &mut host(), &Limits::DEFAULT, &[]).unwrap()
+    };
+    let mut c = container::build(id(0x20), true, &v(), NOW).unwrap();
+    write(&c);
+    assert_eq!(look(None), Ok(()), "the shape");
+    c.meta.recycle_bin_enabled = true;
+    write(&c);
+    assert_eq!(look(None), refused, "recycle bin on");
+    c.meta.recycle_bin_enabled = false;
+    c.meta.name = "My vault".into();
+    write(&c);
+    assert_eq!(look(None), refused, "its own name");
+    // A vault whose key settings would need a question: its own container
+    // cannot be opened to look at it, so the record is what lets it be replaced.
+    let mut argon = v();
+    argon.encryption.kdf = Kdf::Argon2 {
+        kind: Argon2Kind::Id,
+        iterations: 1,
+        memory_kib: 64,
+        lanes: 1,
+    };
+    let file = team_container(&argon, true, SHARE_PASSWORD);
+    std::fs::write(&p, &file).unwrap();
+    let low = Limits {
+        kdf: larsal_crypto::kdf::Ceilings {
+            ask_memory_kib: 32,
+            ..Limits::DEFAULT.kdf
+        },
+        ..Limits::DEFAULT
+    };
+    let head = larsal_share::run::hex(&larsal_share::run::head(&file));
+    assert!(container::look(&p, &pw, &mut host(), &low, Some(&head)).is_ok());
+    assert_eq!(
+        container::look(&p, &pw, &mut host(), &low, None).map(|_| ()),
+        refused
+    );
+    // Not a regular file, a link included even to this share's own container.
+    let own = d.path("own.larsalvault");
+    std::fs::write(&own, &file).unwrap();
+    std::fs::remove_file(&p).unwrap();
+    std::os::unix::fs::symlink(&own, &p).unwrap();
+    assert_eq!(look(None), refused, "a link");
+    std::fs::remove_file(&p).unwrap();
+    std::fs::create_dir(&p).unwrap();
+    assert_eq!(look(None), refused, "a folder");
+    std::fs::remove_dir(&p).unwrap();
+    assert!(
+        std::process::Command::new("/usr/bin/mkfifo")
+            .arg(&p)
+            .status()
+            .unwrap()
+            .success()
+    );
+    assert_eq!(look(None), refused, "a FIFO");
+}
+
+/// INT-08.34 (F-162): what the look saw must still be there at the rename, or
+/// nothing is written.
+#[test]
+fn int08_34_a_write_after_a_look_needs_what_the_look_saw() {
+    let d = Dir::new("looked");
+    let p = d.path("team.larsalvault");
+    let pw = secret(SHARE_PASSWORD);
+    let c = container::build(id(0x20), true, &v(), NOW).unwrap();
+    let write = |looked: &container::Looked| {
+        container::write_share(&p, &c, &pw, &mut host(), &Limits::DEFAULT, &[], looked)
+    };
+    // Nothing there at the look; a file there at the write.
+    let looked = container::look(&p, &pw, &mut host(), &Limits::DEFAULT, None).unwrap();
+    std::fs::write(&p, "planted").unwrap();
+    assert_eq!(
+        write(&looked).unwrap_err(),
+        Error::Io(std::io::ErrorKind::AlreadyExists)
+    );
+    assert_eq!(std::fs::read(&p).unwrap(), b"planted");
+    // Nothing moved: written.
+    std::fs::remove_file(&p).unwrap();
+    let looked = container::look(&p, &pw, &mut host(), &Limits::DEFAULT, None).unwrap();
+    let head = write(&looked).unwrap();
+    assert_eq!(larsal_share::run::head(&std::fs::read(&p).unwrap()), head);
+    // A container at the look, changed before the write.
+    let looked = container::look(&p, &pw, &mut host(), &Limits::DEFAULT, None).unwrap();
+    std::fs::write(&p, "changed").unwrap();
+    assert_eq!(
+        write(&looked).unwrap_err(),
+        Error::Io(std::io::ErrorKind::AlreadyExists)
+    );
+    assert_eq!(std::fs::read(&p).unwrap(), b"changed");
+    // Taken away before the write.
+    let other = team_container(&v(), true, SHARE_PASSWORD);
+    std::fs::write(&p, &other).unwrap();
+    let looked = container::look(&p, &pw, &mut host(), &Limits::DEFAULT, None).unwrap();
+    std::fs::remove_file(&p).unwrap();
+    assert_eq!(
+        write(&looked).unwrap_err(),
+        Error::Io(std::io::ErrorKind::AlreadyExists)
+    );
+    assert!(!p.exists());
 }

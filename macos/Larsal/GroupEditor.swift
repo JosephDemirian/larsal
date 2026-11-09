@@ -139,7 +139,8 @@ struct SharingPage: View {
                     path(off)
                 } help: {
                     if !off {
-                        (Text(verbatim: "Full path: ") + Text(verbatim: view.fullPath).font(.mono(12)))
+                        let shown = sharePathShown(path: view.fullPath)
+                        (Text(verbatim: "Full path: ") + Text(verbatim: shown).font(.mono(12)))
                             .font(.sans(12)).foregroundStyle(Tok.muted).lineBox(12, 16)
                             .fixedSize(horizontal: false, vertical: true).padding(.top, 6).helpRow()
                     }
@@ -294,6 +295,10 @@ struct ShareWarningNotice: View {
         case .openVault:
             Notice(glyph: "warning-circle", fill: Tok.negBg, ink: Tok.negInk) {
                 plain("This file cannot be used for sharing: it is the file of a vault open in Larsal.")
+            }
+        case .keyFile:
+            Notice(glyph: "warning-circle", fill: Tok.negBg, ink: Tok.negInk) {
+                plain("This file cannot be used for sharing: it is a vault's key file.")
             }
         case .extension:
             Notice(glyph: "warning", fill: Tok.warnBg, ink: Tok.warnInk) {

@@ -28,6 +28,8 @@ pub mod security_keys;
 pub mod session;
 pub mod share;
 pub mod share_edit;
+#[cfg(test)]
+mod share_holes;
 pub mod ssh;
 pub mod start;
 #[cfg(feature = "sync")]

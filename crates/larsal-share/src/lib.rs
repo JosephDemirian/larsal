@@ -64,6 +64,9 @@ pub enum Error {
     Recycled,
     /// The random source failed.
     RandomSource,
+    /// INT-08.34 (MI08-26): a file is at the export's path that this share
+    /// did not write and that is not a container of it, so it was left alone.
+    NotThisShare,
 }
 
 impl std::fmt::Display for Error {
@@ -83,6 +86,7 @@ impl std::fmt::Display for Error {
             Self::NoGroup => f.write_str("the shared group is not in the vault"),
             Self::Recycled => f.write_str("the shared group is in the recycle bin"),
             Self::RandomSource => f.write_str("random source failed"),
+            Self::NotThisShare => f.write_str("another file is already at the export's path"),
         }
     }
 }

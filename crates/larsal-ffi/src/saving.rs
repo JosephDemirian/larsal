@@ -1159,14 +1159,10 @@ impl Session {
     /// # Errors
     /// `UnknownVault`, `Locked` (the event is dropped, APP-05.25).
     pub fn check_disk(&self, vault: u64) -> Result<DiskEvent, LarsalError> {
-        let (saver, path, editing, ignore) = self.with_edit(vault, |_, path, _, s| {
-            Ok((
-                s.saver.clone(),
-                path.to_path_buf(),
-                s.editing(),
-                s.disk.ignore,
-            ))
-        })?;
+        // F-278: these are looks; they must not re-queue a share import.
+        let path = self.with_open(vault, |_, path, _| Ok(path.to_path_buf()))?;
+        let (saver, editing, ignore) =
+            self.with_edit_view(vault, |_, s| (s.saver.clone(), s.editing(), s.disk.ignore))?;
         let Some(saver) = saver else {
             return Ok(DiskEvent::None);
         };
@@ -1190,7 +1186,7 @@ impl Session {
         sv.watched = seen;
         drop(sv);
         let result = (|| {
-            let changes = self.with_edit(vault, |_, _, _, s| Ok(s.changes))?;
+            let changes = self.with_edit_view(vault, |_, s| s.changes)?;
             // The KDF runs off the state lock; editor exclusion is checked
             // again under that lock when the result is applied or published.
             let event = if changes > 0 {

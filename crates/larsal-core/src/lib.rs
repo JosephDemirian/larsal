@@ -39,6 +39,7 @@ pub mod history;
 pub mod icons;
 pub mod import;
 pub mod merge;
+pub mod origin;
 pub mod pattern;
 pub mod recycle;
 pub mod refs;

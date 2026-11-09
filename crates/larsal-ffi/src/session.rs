@@ -223,6 +223,13 @@ struct Slot {
     forced: Option<String>,
     /// The shared groups' passes and what they last saw (share.rs).
     share: crate::share::State,
+    /// INT-08.34: the key file of the last unlock, resolved; never one
+    /// whose path holds a protected value (SR-12). Kept while the vault is
+    /// locked: the file is still its key.
+    key_file: Option<PathBuf>,
+    /// The key file of the attempt under way; `key_file` takes it only when
+    /// the vault opens, so a failed attempt changes nothing.
+    trying_key: Option<Option<PathBuf>>,
 }
 
 impl Slot {
@@ -335,6 +342,8 @@ pub(crate) struct ShareSlot<'a> {
     pub(crate) edit: &'a mut EditState,
     pub(crate) share: &'a mut crate::share::State,
     pub(crate) open: Vec<PathBuf>,
+    /// The key file each open vault was last unlocked with (INT-08.34).
+    pub(crate) keys: Vec<PathBuf>,
 }
 
 /// The result of one open, before it is stored.
@@ -560,6 +569,11 @@ impl Session {
     ) -> Result<R, LarsalError> {
         let mut state = self.state();
         let open = state.slots.iter().map(|s| s.path.clone()).collect();
+        let keys = state
+            .slots
+            .iter()
+            .filter_map(|s| s.key_file.clone())
+            .collect();
         let slot = state.slot(id)?;
         let forced = slot.forced.is_some();
         let out = f(ShareSlot {
@@ -571,6 +585,7 @@ impl Session {
             edit: &mut slot.edit,
             share: &mut slot.share,
             open,
+            keys,
         });
         if let Some(vault) = slot.vault.as_deref() {
             slot.edit.qr_check(vault, &slot.path);
@@ -656,6 +671,8 @@ impl Session {
                     fresh: false,
                     forced: None,
                     share: crate::share::State::default(),
+                    key_file: None,
+                    trying_key: None,
                 });
                 id
             }
@@ -751,6 +768,9 @@ impl Session {
         }
         Ok(match attempt {
             Attempt::Opened(vault, keep) => {
+                if let Some(key) = slot.trying_key.take() {
+                    slot.key_file = key;
+                }
                 // After unlock the look comes from the authenticated header.
                 slot.look = public_look(
                     vault
@@ -858,6 +878,11 @@ impl Session {
             self.settings
                 .note_keys(&path, key_file.clone(), hardware.map(Choice::remembered));
         }
+        // ponytail: only the unlock's own key file. A key file from the
+        // wizard or a key change this session has no path here; the file
+        // rule of `container::write_share` still refuses it.
+        let held = key_file.as_deref().map(|typed| key_path(&path, typed));
+        self.state().slot(id)?.trying_key = (!key_secret).then_some(held);
         let attempt = match key_file {
             Some(typed) => {
                 match read_key_as(&path, &typed, key_secret.then_some(larsal_core::refs::MASK)) {
@@ -1436,6 +1461,17 @@ pub(crate) fn read_key(vault: &Path, typed: &str) -> Result<(KeyFileKey, String)
     read_key_as(vault, typed, None)
 }
 
+/// APP-06.7: the file a chosen or typed key file path names: `~/` is the
+/// home folder, a relative path is beside the vault.
+pub(crate) fn key_path(vault: &Path, typed: &str) -> PathBuf {
+    match typed.strip_prefix("~/") {
+        Some(rest) => home().map_or_else(|| PathBuf::from(typed), |h| h.join(rest)),
+        None => vault
+            .parent()
+            .map_or_else(|| PathBuf::from(typed), |dir| dir.join(typed)),
+    }
+}
+
 /// [`read_key`] with messages and the kept name using `shown` in place of
 /// the file's name, when given.
 fn read_key_as(
@@ -1443,12 +1479,7 @@ fn read_key_as(
     typed: &str,
     shown: Option<&str>,
 ) -> Result<(KeyFileKey, String), UnlockMessage> {
-    let path = match typed.strip_prefix("~/") {
-        Some(rest) => home().map_or_else(|| PathBuf::from(typed), |h| h.join(rest)),
-        None => vault
-            .parent()
-            .map_or_else(|| PathBuf::from(typed), |dir| dir.join(typed)),
-    };
+    let path = key_path(vault, typed);
     let name = shown.map_or_else(|| file_name(&path), str::to_owned);
     let fail = |reason: KeyFileReason| -> UnlockMessage {
         messages::for_open_error(&Error::KeyFile(reason), "", &name).into()

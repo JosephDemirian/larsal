@@ -235,6 +235,9 @@ const DEFS: &[Def] = &[
     // INT-08.31: the approved shares, each `run::Share::approval` (vault
     // id, group id, SHA-256 of mode and resolved path); this Mac only.
     d("S-SHARE-05", "share.approved", S, List),
+    // INT-08.34: per share, the head of the last container it wrote
+    // (`run::Share::written`, a colon, the head in hex); this Mac only.
+    d("S-SHARE-06", "share.written", S, List),
     // View menu (classic in S-VIEW-01 and S-VIEW-02 are skipped, D-01-8).
     d(
         "S-VIEW-01",
@@ -880,6 +883,54 @@ impl LarsalSettingsStore {
             list.drain(..over);
             inner.set("share.approved", Value::from(list));
         });
+    }
+
+    /// INT-08.34: the head of the last container share `written` wrote
+    /// (`run::Share::written`), in hex.
+    pub(crate) fn share_written(&self, written: &str) -> Option<String> {
+        let start = format!("{written}:");
+        self.inner()
+            .list("share.written")
+            .iter()
+            .find_map(|k| k.strip_prefix(&start).map(str::to_owned))
+    }
+
+    /// INT-08.34: `head` is the last container share `written` wrote; the
+    /// oldest go past 1,000.
+    pub(crate) fn note_share_written(&self, written: &str, head: &str) {
+        let start = format!("{written}:");
+        self.keep(|inner| {
+            let mut list = inner.list("share.written");
+            list.retain(|k| !k.starts_with(&start));
+            list.push(format!("{start}{head}"));
+            let over = list.len().saturating_sub(MAX_ITEMS);
+            list.drain(..over);
+            inner.set("share.written", Value::from(list));
+        });
+    }
+
+    /// INT-08.31: Clear forgets every record of one share group
+    /// (`run::records_of`).
+    pub(crate) fn forget_share(&self, records: &str) {
+        self.keep(|inner| {
+            for key in ["share.approved", "share.written"] {
+                let mut list = inner.list(key);
+                list.retain(|k| !k.starts_with(records));
+                inner.set(key, Value::from(list));
+            }
+        });
+    }
+
+    /// INT-08.34: each remembered key file with its vault (APP-01.16), open
+    /// or not.
+    pub(crate) fn remembered_key_files(&self) -> Vec<(String, String)> {
+        let inner = self.inner();
+        let files = inner.get("state.key_files");
+        files.as_object().map_or_else(Vec::new, |map| {
+            map.iter()
+                .filter_map(|(vault, typed)| Some((vault.clone(), typed.as_str()?.to_owned())))
+                .collect()
+        })
     }
 
     /// INT-08.7: import allowed, export allowed, quiet success.

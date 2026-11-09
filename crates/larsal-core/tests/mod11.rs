@@ -12,7 +12,7 @@ mod common;
 use common::at;
 use larsal_core::edit::{Position, edit_entry, edit_group, move_entries, move_group};
 use larsal_core::merge::{Change, ChangeKind, Kind, Merged, Object, Options, merge, same_version};
-use larsal_core::{history, recycle};
+use larsal_core::{history, origin, recycle};
 use larsal_crypto::secret::SecretString;
 use larsal_model::{
     Argon2Kind, Cipher, CustomDataItem, CustomIcon, DeletedObject, Entry, Field, FileVersion,
@@ -859,8 +859,11 @@ fn mod11_15_missing_objects_and_deletions() {
     );
     assert!(target.root.all_entries().all(|e| e.uuid != uid(0x0a)));
     assert!(target.root.all_entries().any(|e| e.uuid == uid(0x0b)));
-    // The share's item for Y, outside S, is dropped (SI-09, MOD-11.15).
-    assert_eq!(listed(&target), [(uid(0x0a), t1())]);
+    // The share's items are rows, off the list; Y's, outside S, stays dormant
+    // (SI-09, MOD-11.15, R6 C3).
+    assert_eq!(listed(&target), []);
+    assert_eq!(scope(&target, 0x0a), [uid(0x20)]);
+    assert_eq!(scope(&target, 0x0b), [uid(0x20)]);
     // The target's own item for Y, live outside S (FMT-15.5), stays as it
     // was in a share import (MOD-11.15, FMT-15.11).
     target.deleted_objects.insert(0, gone(0x0b, t1()));
@@ -873,7 +876,8 @@ fn mod11_15_missing_objects_and_deletions() {
         },
     );
     assert!(has_entry(&target, 0x0b));
-    assert_eq!(listed(&target), [(uid(0x0b), t1()), (uid(0x0a), t1())]);
+    assert_eq!(listed(&target), [(uid(0x0b), t1())]);
+    assert_eq!(scope(&target, 0x0a), [uid(0x20)]);
     // FMT-15 15-16: a deleted group that still holds a newer entry stays.
     let mut root = grp(0x01, "Root", t0());
     let mut s = grp(0x20, "S", t0());
@@ -2113,11 +2117,14 @@ fn mod11_15_synchronize_erase_rules() {
     b.deleted_objects.push(gone(0x0a, t1()));
     run(&mut a, &b, share());
     assert_eq!(find(&a, 0x0a).value("Title"), "Kept");
-    // MG45: the earliest deletion time decides (target t3, source t1).
+    // R6 C3 in place of MG45: with the vault's own record the share's is ignored,
+    // so the record at t3 decides, later than the change at t2.
     let mut a = shared(vec![ent(0x0a, "Kept", "k", t2())], vec![]);
     a.deleted_objects.push(gone(0x0a, t3()));
     run(&mut a, &b, share());
-    assert!(a.root.all_entries().any(|e| e.uuid == uid(0x0a)));
+    assert!(!a.root.all_entries().any(|e| e.uuid == uid(0x0a)));
+    assert_eq!(listed(&a), [(uid(0x0a), t3())]);
+    assert_eq!(scope(&a, 0x0a), Vec::<Uuid>::new());
     // The same with both times before the change: erased.
     let mut a = shared(vec![ent(0x0a, "Old", "o", t0())], vec![]);
     a.deleted_objects.push(gone(0x0a, t3()));
@@ -2712,7 +2719,7 @@ fn mod11_29_t63_credentials_the_user_gave_make_it_the_same_vault() {
 }
 
 #[test]
-fn mod11_15_t64_a_shares_item_for_an_object_outside_s_is_dropped() {
+fn mod11_15_t64_a_shares_item_for_an_object_outside_s_stays_a_dormant_row() {
     for late in [false, true] {
         // T42's target: S(20) → X(0A), Y(0B) and the empty group H(0D) in
         // the root.
@@ -2728,12 +2735,16 @@ fn mod11_15_t64_a_shares_item_for_an_object_outside_s_is_dropped() {
         let outside = if late { y2099() } else { t1() };
         share.deleted_objects = vec![gone(0x0a, t1()), gone(0x0b, outside), gone(0x0d, outside)];
         run(&mut target, &share, self::share());
-        assert_eq!(listed(&target), [(uid(0x0a), t1())], "late {late}");
+        assert_eq!(listed(&target), [], "late {late}");
+        for n in [0x0a, 0x0b, 0x0d] {
+            assert_eq!(scope(&target, n), [uid(0x20)], "late {late}");
+        }
         let m = run(&mut target, &b, cli());
         assert!(has_entry(&target, 0x0b), "Y stays");
         assert!(target.root.find_group(uid(0x0d)).is_some(), "H stays");
         assert!(!has_entry(&target, 0x0a), "X stays erased");
-        assert_eq!(listed(&target), [(uid(0x0a), t1())]);
+        assert_eq!(listed(&target), []);
+        assert_eq!(scope(&target, 0x0a), [uid(0x20)]);
         assert!(m.changes.is_empty(), "{:?}", m.changes);
     }
 }
@@ -2761,22 +2772,24 @@ fn mod11_15_t65_a_shares_item_takes_the_import_time_and_the_known_limit() {
     };
     let mut container = vault(grp(0x66, "Share", t0()));
     container.deleted_objects = vec![gone(0x0e, y2099())];
-    for (with_e, loc, stays) in [(true, t3(), true), (false, t3(), true), (true, t1(), false)] {
+    // INT-08.32: the item is a row of S. E outside S stays whatever its Loc,
+    // and the row stays with it, dormant.
+    for (with_e, loc) in [(true, t3()), (false, t3()), (true, t1())] {
         let mut a = a0(with_e);
         run_at(&mut a, &container, share(), t2());
-        assert_eq!(listed(&a), [(uid(0x0e), t2())], "stored at the import time");
+        assert_eq!(listed(&a), []);
+        let rows = origin::read_rows(&a.meta.custom_data);
+        assert_eq!(
+            rows.get(&(uid(0x0e), uid(0x20))),
+            Some(&t2()),
+            "stored at the import time"
+        );
         assert!(!has_entry(&a, 0x0e));
         let m = run(&mut a, &b_moved(loc), cli());
-        assert_eq!(has_entry(&a, 0x0e), stays, "Loc {loc:?}");
-        if stays {
-            assert_eq!(group_of(&a, 0x0e), uid(0x03));
-            assert!(a.deleted_objects.is_empty());
-            assert_eq!(kinds(&m.changes), [ChangeKind::Added, ChangeKind::Metadata]);
-        } else {
-            // LD-271 (3): the accepted limit.
-            assert_eq!(listed(&a), [(uid(0x0e), t2())]);
-            assert!(m.changes.is_empty(), "{:?}", m.changes);
-        }
+        assert_eq!(group_of(&a, 0x0e), uid(0x03), "Loc {loc:?}");
+        assert_eq!(listed(&a), []);
+        assert_eq!(scope(&a, 0x0e), [uid(0x20)], "the row stays");
+        assert_eq!(kinds(&m.changes), [ChangeKind::Added]);
     }
 }
 
@@ -2879,15 +2892,12 @@ fn fmt15_26_a_shares_item_is_clamped_to_the_import_time() {
     s.deleted_objects = vec![gone(0x0a, y2099()), gone(0x40, y2099()), gone(0x41, t1())];
     run_at(&mut v, &s, share(), t2());
     assert!(!has_entry(&v, 0x0a));
-    assert_eq!(
-        listed(&v),
-        [
-            (uid(0x42), y2099()),
-            (uid(0x40), t2()),
-            (uid(0x41), t1()),
-            (uid(0x0a), t2())
-        ]
-    );
+    assert_eq!(listed(&v), [(uid(0x42), y2099())]);
+    let rows = origin::read_rows(&v.meta.custom_data);
+    let row = |n: u8| rows.get(&(uid(n), uid(0x20))).copied();
+    assert_eq!(row(0x40), Some(t2()));
+    assert_eq!(row(0x41), Some(t1()));
+    assert_eq!(row(0x0a), Some(t2()));
 }
 
 #[test]
@@ -2915,7 +2925,9 @@ fn fmt15_27_a_move_counts_as_a_change_in_the_whole_vault_pass_only() {
     s.deleted_objects = vec![gone(0x0e, t1()), gone(0x07, t1())];
     run_at(&mut m3, &s, share(), t3());
     assert!(!has_entry(&m3, 0x0e) && m3.root.find_group(uid(0x07)).is_none());
-    assert_eq!(listed(&m3), [(uid(0x0e), t1()), (uid(0x07), t1())]);
+    assert_eq!(listed(&m3), []);
+    assert_eq!(scope(&m3, 0x0e), [uid(0x20)]);
+    assert_eq!(scope(&m3, 0x07), [uid(0x20)]);
 }
 
 #[test]
@@ -3036,7 +3048,9 @@ fn si09_a_root_share_container_is_not_the_same_vault() {
     assert!(has_entry(&a, 0x0c), "Y outside S stays");
     assert!(!has_entry(&a, 0x0a), "X inside S erased");
     assert_eq!(a.root.name, "Root");
-    assert_eq!(listed(&a), [(uid(0x0a), t3())], "Y's item dropped");
+    assert_eq!(listed(&a), []);
+    assert_eq!(scope(&a, 0x0a), [uid(0x20)]);
+    assert_eq!(scope(&a, 0x0c), [uid(0x20)], "Y's item stays dormant");
 }
 
 #[test]
@@ -3105,6 +3119,700 @@ fn mod11_24_a_share_group_added_and_erased_is_recorded() {
         kinds(&m.changes),
         [ChangeKind::Added, ChangeKind::Deleted, ChangeKind::Metadata]
     );
+}
+
+/// The merges a record can travel through to another Mac (RT-2).
+fn later_merges() -> [Kind; 6] {
+    [
+        Kind::ChangeOnDisk,
+        Kind::ConflictCopy,
+        Kind::ServerSync,
+        Kind::Window,
+        Kind::CommandLine,
+        Kind::RemoteSync,
+    ]
+}
+
+/// The same vault on two Macs (RT-2): Mac A holds shared group S(20) only.
+/// Mac B also holds, outside S, group P(30) with E(50), and group G(31) with
+/// the inner entry F(51). `edit` changes B's E and F first.
+fn two_macs(edit: impl Fn(&mut Entry)) -> (Vault, Vault) {
+    let mut root = grp(0x01, "Root", t0());
+    root.groups.push(grp(0x20, "S", t0()));
+    let a = vault(root);
+    let mut b = a.duplicate();
+    let mut e = ent(0x50, "E", "p", t0());
+    edit(&mut e);
+    let mut p = grp(0x30, "P", t0());
+    p.entries.push(e);
+    let mut f = ent(0x51, "F", "p", t0());
+    edit(&mut f);
+    let mut g = grp(0x31, "G", t0());
+    g.entries.push(f);
+    b.root.groups.push(p);
+    b.root.groups.push(g);
+    (a, b)
+}
+
+/// The share groups `v` holds a row for this id in (FMT-15.11).
+fn scope(v: &Vault, b: u8) -> Vec<Uuid> {
+    origin::read_rows(&v.meta.custom_data)
+        .keys()
+        .filter(|(id, _)| *id == uid(b))
+        .map(|(_, group)| *group)
+        .collect()
+}
+
+fn mark(v: &Vault, b: u8) -> Option<Uuid> {
+    if let Some(e) = v.root.all_entries().find(|e| e.uuid == uid(b)) {
+        return origin::mark_of(&e.custom_data);
+    }
+    let g = v.root.find_group(uid(b));
+    g.and_then(|g| origin::mark_of(&g.custom_data))
+}
+
+/// Mac B's E and F stand as they did: where they were, with their passwords.
+fn holds_macb(v: &Vault, what: &str) {
+    assert_eq!(group_of(v, 0x50), uid(0x30), "{what}: E");
+    assert_eq!(group_of(v, 0x51), uid(0x31), "{what}: F");
+    for n in [0x50, 0x51] {
+        assert_eq!(pw(find(v, n)), "p", "{what}: entry {n:x}");
+        assert_eq!(mark(v, n), None, "{what}: entry {n:x}");
+        // R6 E5: at most the losing copy's value, as one history item.
+        let old = find(v, n).history.iter().map(pw).collect::<Vec<_>>();
+        let planted = old.iter().filter(|x| **x == "planted").count();
+        assert!(planted <= 1, "{what}: entry {n:x} history {old:?}");
+    }
+    let g = v.root.find_group(uid(0x31));
+    assert_eq!(g.map(|g| g.name.as_str()), Some("G"), "{what}: G");
+    assert_eq!(mark(v, 0x31), None, "{what}: G");
+    let parent = v.root.groups.iter().any(|x| x.uuid == uid(0x31));
+    assert!(parent, "{what}: G moved");
+    assert!(v.root.find_group(uid(0x30)).is_some(), "{what}: P");
+}
+
+/// Whichever Mac's file is the source, on every later merge kind and on repeat
+/// rounds, what B holds outside the share stays as it was.
+fn outside_stays(a: &Vault, b: &Vault) {
+    for kind in later_merges() {
+        for (target, source) in [(b, a), (a, b)] {
+            let mut merged = target.duplicate();
+            run(&mut merged, source, Options::new(kind));
+            holds_macb(&merged, &format!("{kind:?}"));
+            // Later rounds, with the other copy and with the result.
+            let mut again = source.duplicate();
+            run(&mut again, &merged, Options::new(kind));
+            holds_macb(&again, &format!("{kind:?}, round 2"));
+            run(&mut merged, &again, Options::new(kind));
+            holds_macb(&merged, &format!("{kind:?}, round 3"));
+            assert_eq!(
+                origin::read_rows(&merged.meta.custom_data),
+                origin::read_rows(&again.meta.custom_data),
+                "{kind:?}: both copies hold one list of rows"
+            );
+            assert_eq!(listed(&merged), [], "{kind:?}: a row stays off the list");
+        }
+    }
+}
+
+/// RT-2, SI-09, INT-08.32: a container names E, the group G and G's inner
+/// entry F, which Mac A has never held. Mac A keeps a row of the share, whatever
+/// the date (2099 is clamped to the import time), off the vault's list: no later
+/// merge with Mac B reaches them, also when B edited or moved them after the date.
+#[test]
+fn si09_rt2_a_shares_item_for_an_id_not_in_the_share_is_a_row() {
+    let edits: [fn(&mut Entry); 3] = [
+        |_| {},
+        |e| e.times.last_modification = t3(),
+        |e| e.times.location_changed = t3(),
+    ];
+    for edit in edits {
+        for when in [t1(), y2099()] {
+            let (mut a, b) = two_macs(edit);
+            let mut c = vault(grp(0x66, "Share", t0()));
+            c.deleted_objects = vec![gone(0x50, when), gone(0x31, when), gone(0x51, when)];
+            let m = run_at(&mut a, &c, share(), t2());
+            let kept = when.min(t2());
+            assert_eq!(listed(&a), [], "date {when:?}");
+            assert_eq!(kinds(&m.changes), [ChangeKind::Metadata]);
+            let rows = origin::read_rows(&a.meta.custom_data);
+            for n in [0x50, 0x31, 0x51] {
+                assert_eq!(rows.get(&(uid(n), uid(0x20))), Some(&kept), "date {when:?}");
+            }
+            outside_stays(&a, &b);
+        }
+    }
+}
+
+/// RT-2's way around the check of ids: the container brings E and G itself,
+/// with items for them, so the import adds and erases them inside the share.
+/// They are gone there, as the card says, and their items are rows.
+#[test]
+fn si09_rt2_what_the_share_brought_and_erased_is_a_row() {
+    let (mut a, b) = two_macs(|_| {});
+    let mut c_root = grp(0x66, "Share", t0());
+    c_root.entries.push(ent(0x50, "E", "p", t0()));
+    c_root.groups.push(grp(0x31, "G", t0()));
+    let mut c = vault(c_root);
+    c.deleted_objects = vec![gone(0x50, t1()), gone(0x31, t1())];
+    run_at(&mut a, &c, share(), t2());
+    assert!(!has_entry(&a, 0x50));
+    assert!(a.root.find_group(uid(0x31)).is_none());
+    assert_eq!(listed(&a), []);
+    assert_eq!(scope(&a, 0x50), [uid(0x20)]);
+    assert_eq!(scope(&a, 0x31), [uid(0x20)]);
+    outside_stays(&a, &b);
+}
+
+/// A container that brings E and G{F, N} with outside ids, and the password
+/// `planted`, all at time `m`. N is new to both Macs.
+fn planting(m: Time) -> Vault {
+    let timed = |n: u8, title: &str| {
+        let mut e = ent(n, title, "planted", m);
+        e.times.location_changed = m;
+        e
+    };
+    let mut g = grp(0x31, "Planted", m);
+    g.times.location_changed = m;
+    g.entries.push(timed(0x51, "F"));
+    g.entries.push(timed(0x52, "N"));
+    let mut root = grp(0x66, "Share", t0());
+    root.entries.push(timed(0x50, "E"));
+    root.groups.push(g);
+    vault(root)
+}
+
+fn t2_edit(e: &mut Entry) {
+    e.times.last_modification = t2();
+}
+
+/// C1-02: one round. Mac A imports the planted copies; each later merge leaves
+/// B's objects alone and takes them out of A's share: older and newer than B's,
+/// from either side, on every merge kind. The share keeps only what is its own.
+#[test]
+fn int08_32_one_round_a_planted_copy_changes_nothing_outside() {
+    for when in [t1(), t3(), y2099()] {
+        let (mut a, b) = two_macs(t2_edit);
+        run_at(&mut a, &planting(when), share(), t3());
+        assert_eq!(group_of(&a, 0x50), uid(0x20));
+        assert_eq!(mark(&a, 0x50), Some(uid(0x20)));
+        assert_eq!(mark(&a, 0x31), Some(uid(0x20)));
+        assert_eq!(mark(&a, 0x51), Some(uid(0x20)));
+        outside_stays(&a, &b);
+        // N is the share's own: inside it on both copies, whichever is the
+        // target, and the marker stays.
+        // E and F take the losing value as a history item; G has no history, so
+        // the record says it moved only where it did.
+        for (target, source, records) in [(&b, &a, 2), (&a, &b, 3)] {
+            let mut merged = target.duplicate();
+            let m = run(&mut merged, source, cli());
+            assert_eq!(group_of(&merged, 0x52), uid(0x20), "when {when:?}");
+            assert_eq!(mark(&merged, 0x52), Some(uid(0x20)));
+            let conflicts = m.changes.iter().filter(|c| c.kind == ChangeKind::Conflict);
+            assert_eq!(conflicts.count(), records, "{:?}", m.changes);
+        }
+    }
+}
+
+/// The rule converges: after a merge either way, the two results hold the same
+/// objects and a further merge changes nothing.
+#[test]
+fn int08_32_the_rule_converges_from_either_side() {
+    let shape = |v: &Vault| {
+        let mut out: Vec<_> = v
+            .root
+            .all_entries()
+            .map(|e| (e.uuid.0, group_of(v, e.uuid.0[0]), pw(e).to_owned()))
+            .collect();
+        out.sort_by_key(|x| x.0);
+        out
+    };
+    let (mut a, b) = two_macs(t2_edit);
+    run_at(&mut a, &planting(t1()), share(), t3());
+    let (mut one, mut two) = (b.duplicate(), a.duplicate());
+    run(&mut one, &a, cli());
+    run(&mut two, &b, cli());
+    assert_eq!(shape(&one), shape(&two));
+    let mut three = one.duplicate();
+    let m = run(&mut three, &two, cli());
+    assert_eq!(shape(&three), shape(&one));
+    assert!(m.changes.is_empty(), "{:?}", m.changes);
+}
+
+/// C1-01, C2-2: two rounds. The first container brings E and G{F}; the second
+/// lists them. Mac A holds the rows; B keeps everything.
+#[test]
+fn int08_32_two_rounds_never_reach_outside() {
+    for when in [t1(), t3()] {
+        for item in [t3(), y2099()] {
+            let (mut a, b) = two_macs(t2_edit);
+            run_at(&mut a, &planting(when), share(), t3());
+            let mut second = vault(grp(0x66, "Share", t0()));
+            second.deleted_objects = vec![
+                gone(0x50, item),
+                gone(0x51, item),
+                gone(0x52, item),
+                gone(0x31, item),
+            ];
+            run_at(&mut a, &second, share(), t9());
+            assert!(!has_entry(&a, 0x50), "erased in the share");
+            assert_eq!(scope(&a, 0x50), [uid(0x20)]);
+            assert_eq!(scope(&a, 0x31), [uid(0x20)]);
+            outside_stays(&a, &b);
+        }
+    }
+}
+
+/// INT-08.32 E3, inside: both copies inside the share merge as ever, and the
+/// result carries the marker only if both did.
+#[test]
+fn int08_32_two_copies_inside_merge_as_ever() {
+    let imported = || {
+        let mut a = shared(vec![], vec![]);
+        let mut c = vault(grp(0x66, "Share", t0()));
+        c.root.entries.push(ent(0x50, "E", "first", t1()));
+        run_at(&mut a, &c, share(), t2());
+        a
+    };
+    // Both imported; the later edit wins, the older goes to history.
+    let (mut one, mut two) = (imported(), imported());
+    let e = two.root.groups[0].entries.first_mut().unwrap();
+    set(e, "Password", "second");
+    e.times.last_modification = t3();
+    let m = run(&mut one, &two, cli());
+    assert_eq!(pw(find(&one, 0x50)), "second");
+    assert_eq!(mark(&one, 0x50), Some(uid(0x20)));
+    assert_eq!(hist(find(&one, 0x50)), [("first", t1())]);
+    assert_eq!(kinds(&m.changes), [ChangeKind::Modified]);
+    // The marker alone is no content: it changes nothing and adds no history.
+    assert!(same_version(
+        find(&imported(), 0x50),
+        &unmarked(&imported())
+    ));
+    // One copy holds no marker: on both sides the result has none.
+    let plain = |v: &Vault| {
+        let mut v = v.duplicate();
+        origin::strip(&mut v);
+        v
+    };
+    let (mut x, y) = (imported(), plain(&imported()));
+    run(&mut x, &y, cli());
+    assert_eq!(mark(&x, 0x50), None);
+    assert!(find(&x, 0x50).history.is_empty(), "no new version");
+    let (mut x, y) = (plain(&imported()), imported());
+    run(&mut x, &y, cli());
+    assert_eq!(mark(&x, 0x50), None);
+}
+
+/// INT-08.32 E3. Both inside: the later copy wins with its history, and the
+/// result has no marker unless both did. Both outside: the unmarked copy wins
+/// whole, later or not. A share's own update keeps what it brought marked.
+#[test]
+fn int08_32_every_other_pair_follows_the_rule() {
+    // Root -> S(20), P(30), with E and G in the group `at`.
+    let with = |at: usize, text: &str, m: Time, marked: bool| {
+        let mut root = grp(0x01, "Root", t0());
+        let mut s = grp(0x20, "S", t0());
+        s.custom_data.items.push(cd(
+            core::str::from_utf8(larsal_core::edit::SHARED_KEY).unwrap(),
+            "",
+        ));
+        root.groups.push(s);
+        root.groups.push(grp(0x30, "P", t0()));
+        let mut e = ent(0x50, "E", text, m);
+        let mut g = grp(0x31, text, m);
+        if marked {
+            origin::set_mark(&mut e.custom_data, uid(0x20));
+            origin::set_mark(&mut g.custom_data, uid(0x20));
+        }
+        root.groups[at].entries.push(e);
+        root.groups[at].groups.push(g);
+        vault(root)
+    };
+    for target_marked in [true, false] {
+        // Both inside S.
+        let what = format!("inside, target marked {target_marked}");
+        let mut x = with(0, "older", t1(), target_marked);
+        let y = with(0, "newer", t2(), !target_marked);
+        run(&mut x, &y, cli());
+        assert_eq!(pw(find(&x, 0x50)), "newer", "{what}");
+        assert_eq!(hist(find(&x, 0x50)), [("older", t1())], "{what}");
+        assert_eq!(mark(&x, 0x50), None, "{what}");
+        let g = x.root.find_group(uid(0x31)).unwrap();
+        assert_eq!(g.name, "newer", "{what}");
+        assert_eq!(mark(&x, 0x31), None, "{what}");
+        // Both outside: the unmarked copy wins whole, later or not.
+        let what = format!("outside, target marked {target_marked}");
+        let mut x = with(1, "older", t1(), target_marked);
+        let y = with(1, "newer", t2(), !target_marked);
+        run(&mut x, &y, cli());
+        let (won, lost, at) = if target_marked {
+            ("newer", "older", t1())
+        } else {
+            ("older", "newer", t2())
+        };
+        assert_eq!(pw(find(&x, 0x50)), won, "{what}");
+        assert_eq!(hist(find(&x, 0x50)), [(lost, at)], "{what}");
+        assert_eq!(mark(&x, 0x50), None, "{what}");
+        assert_eq!(x.root.find_group(uid(0x31)).unwrap().name, won, "{what}");
+        assert_eq!(mark(&x, 0x31), None, "{what}");
+    }
+    // The other copy outside, with a marker left over from before: it wins
+    // whole with what it holds, the marker too.
+    let mut x = with(0, "inside", t2(), true);
+    run(&mut x, &with(1, "outside", t1(), true), cli());
+    assert_eq!(pw(find(&x, 0x50)), "outside");
+    assert_eq!(group_of(&x, 0x50), uid(0x30));
+    assert_eq!(mark(&x, 0x50), Some(uid(0x20)));
+    assert_eq!(x.root.find_group(uid(0x31)).unwrap().name, "outside");
+    assert_eq!(mark(&x, 0x31), Some(uid(0x20)));
+    // A share's update of what it brought: the marker stays.
+    let container = |text: &str, m: Time| {
+        let mut root = grp(0x66, "Share", t0());
+        root.entries.push(ent(0x50, "E", text, m));
+        root.groups.push(grp(0x31, text, m));
+        vault(root)
+    };
+    let mut a = shared(vec![], vec![]);
+    run_at(&mut a, &container("first", t1()), share(), t2());
+    run_at(&mut a, &container("second", t3()), share(), t9());
+    assert_eq!(pw(find(&a, 0x50)), "second");
+    assert_eq!(mark(&a, 0x50), Some(uid(0x20)));
+    assert_eq!(a.root.find_group(uid(0x31)).unwrap().name, "second");
+    assert_eq!(mark(&a, 0x31), Some(uid(0x20)));
+    // A history row does not call the marker a change.
+    let plain = ent(0x50, "E", "p", t1());
+    let mut other = plain.duplicate(true);
+    origin::set_mark(&mut other.custom_data, uid(0x20));
+    assert!(!history::difference(&plain, &other).contains(&"Custom data"));
+    other.custom_data.items.push(cd("k", "v"));
+    assert!(history::difference(&plain, &other).contains(&"Custom data"));
+}
+
+/// FMT-15.11: a change of the rows alone is a change, so the caller saves it.
+#[test]
+fn fmt15_11_a_change_of_the_rows_alone_is_recorded() {
+    let scoped = |g: u8| {
+        let mut v = shared(vec![], vec![]);
+        origin::write_rows(
+            &mut v.meta.custom_data,
+            &origin::Rows::from([((uid(0x60), uid(g)), t1())]),
+        );
+        origin::write_known(
+            &mut v.meta.custom_data,
+            &origin::Set::from([uid(0x20), uid(0x21)]),
+        );
+        v
+    };
+    let (mut a, b) = (scoped(0x20), scoped(0x21));
+    let m = run(&mut a, &b, cli());
+    assert_eq!(kinds(&m.changes), [ChangeKind::Metadata]);
+    assert_eq!(scope(&a, 0x60), [uid(0x20), uid(0x21)]);
+    let m = run(&mut a, &b, cli());
+    assert!(m.changes.is_empty(), "{:?}", m.changes);
+}
+
+fn unmarked(v: &Vault) -> Entry {
+    let mut e = find(v, 0x50).duplicate(true);
+    origin::clear_mark(&mut e.custom_data);
+    e
+}
+
+/// INT-08.32 A: a stamp, a marker, rows and a known list in a container, or in any
+/// other vault's file, are never taken; a same-vault copy's are.
+#[test]
+fn int08_32_nothing_of_the_rule_can_be_planted() {
+    let stamp = origin::Stamp {
+        group: uid(0x20),
+        at: t2(),
+    };
+    let planted_text = {
+        let mut d = larsal_model::custom_data::CustomData::default();
+        origin::write_rows(
+            &mut d,
+            &origin::Rows::from([((uid(0x50), uid(0x31)), t1())]),
+        );
+        origin::write_known(&mut d, &origin::Set::from([uid(0x31)]));
+        d
+    };
+    let hostile = |root: Group| {
+        let mut c = vault(root);
+        c.meta.custom_data.items = planted_text.items.clone();
+        c
+    };
+    // Into a share: an added entry takes this group's marker, not the file's.
+    let mut root = grp(0x66, "Share", t0());
+    let mut e = ent(0x50, "E", "p", t1());
+    origin::set_mark(&mut e.custom_data, uid(0x30));
+    origin::set_stamp(&mut e.custom_data, Some(stamp));
+    root.entries.push(e);
+    let mut g = grp(0x31, "G", t1());
+    origin::set_mark(&mut g.custom_data, uid(0x30));
+    origin::set_stamp(&mut g.custom_data, Some(stamp));
+    root.groups.push(g);
+    let mut a = shared(vec![ent(0x0a, "X", "x", t0())], vec![]);
+    let mut c = hostile(root);
+    let mut x = ent(0x0a, "X", "new", t1());
+    origin::set_mark(&mut x.custom_data, uid(0x30));
+    origin::set_stamp(&mut x.custom_data, Some(stamp));
+    c.root.entries.push(x);
+    c.deleted_objects = vec![gone(0x53, t1())];
+    run(&mut a, &c, share());
+    assert_eq!(mark(&a, 0x50), Some(uid(0x20)));
+    assert_eq!(mark(&a, 0x31), Some(uid(0x20)));
+    assert_eq!(mark(&a, 0x0a), None, "what it updates was not brought");
+    for n in [0x50, 0x0a] {
+        assert_eq!(origin::stamp_of(&find(&a, n).custom_data), None, "{n:x}");
+    }
+    let g = a.root.find_group(uid(0x31)).unwrap();
+    assert_eq!(origin::stamp_of(&g.custom_data), None);
+    assert_eq!(scope(&a, 0x50), Vec::<Uuid>::new());
+    assert_eq!(scope(&a, 0x53), [uid(0x20)]);
+    assert_eq!(origin::known(&a), origin::Set::from([uid(0x20)]));
+    // Any other vault's file, on every kind that is not a same-vault merge.
+    for kind in [Kind::Window, Kind::CommandLine, Kind::ImportWizard] {
+        let mut root = grp(0x77, "Other", t0());
+        let mut e = ent(0x50, "E", "p", t1());
+        origin::set_mark(&mut e.custom_data, uid(0x20));
+        origin::set_stamp(&mut e.custom_data, Some(stamp));
+        root.entries.push(e);
+        let mut other = hostile(root);
+        other.deleted_objects = vec![gone(0x54, t1())];
+        let mut a = shared(vec![], vec![]);
+        merge(&mut a, &other, &Options::new(kind), t2()).unwrap();
+        assert_eq!(mark(&a, 0x50), None, "{kind:?}");
+        assert_eq!(origin::stamp_of(&find(&a, 0x50).custom_data), None);
+        assert!(a.meta.custom_data.get(origin::SCOPES).is_none(), "{kind:?}");
+        assert!(a.meta.custom_data.get(origin::KNOWN).is_none(), "{kind:?}");
+    }
+    // A key this Mac retired: the copy is not this vault's any more.
+    let mut planted = shared(vec![], vec![]);
+    planted.meta.custom_data.items = planted_text.items.clone();
+    let mut e = ent(0x50, "E", "p", t1());
+    origin::set_mark(&mut e.custom_data, uid(0x20));
+    origin::set_stamp(&mut e.custom_data, Some(stamp));
+    planted.root.groups[0].entries.push(e);
+    planted.deleted_objects = vec![gone(0x50, t0())];
+    let mut a = shared(vec![], vec![]);
+    let retired = Options {
+        retired: true,
+        ..Options::new(Kind::ConflictCopy)
+    };
+    merge(&mut a, &planted, &retired, t2()).unwrap();
+    assert_eq!(mark(&a, 0x50), None, "retired");
+    assert_eq!(origin::stamp_of(&find(&a, 0x50).custom_data), None);
+    assert!(a.meta.custom_data.get(origin::SCOPES).is_none(), "retired");
+    assert!(a.meta.custom_data.get(origin::KNOWN).is_none(), "retired");
+    // A copy of this vault gives all of them.
+    let mut a = shared(vec![], vec![]);
+    run(&mut a, &planted, cli());
+    assert_eq!(mark(&a, 0x50), Some(uid(0x20)));
+    assert_eq!(origin::stamp_of(&find(&a, 0x50).custom_data), Some(stamp));
+    assert_eq!(scope(&a, 0x50), [uid(0x31)]);
+    assert!(origin::known(&a).contains(&uid(0x31)));
+}
+
+/// FMT-15.11: a user's plain record reaches outside the share, from either side;
+/// a row reaches only inside its share. The same id's plain record at or after the
+/// row's time drops the row, and rows of one share from two copies unite.
+#[test]
+fn fmt15_11_a_plain_record_reaches_everywhere_and_a_row_only_its_share() {
+    // B holds E in P. A holds a row for E; `own` holds a plain record instead.
+    let mut b_root = grp(0x01, "Root", t0());
+    b_root.groups.push(grp(0x20, "S", t0()));
+    let mut p = grp(0x30, "P", t0());
+    p.entries.push(ent(0x50, "E", "p", t0()));
+    b_root.groups.push(p);
+    let b = vault(b_root);
+    let mut a = shared(vec![], vec![]);
+    a.root.groups.push(grp(0x30, "P", t0()));
+    let mut c = vault(grp(0x66, "Share", t0()));
+    c.deleted_objects = vec![gone(0x50, t1())];
+    run_at(&mut a, &c, share(), t2());
+    assert_eq!(scope(&a, 0x50), [uid(0x20)]);
+    assert_eq!(listed(&a), []);
+    let mut own = shared(vec![], vec![]);
+    own.root.groups.push(grp(0x30, "P", t0()));
+    own.deleted_objects = vec![gone(0x50, t1())];
+    // A plain record on any copy: E goes.
+    for (target, source) in [(&b, &own), (&own, &b)] {
+        let mut merged = target.duplicate();
+        run(&mut merged, source, cli());
+        assert!(!has_entry(&merged, 0x50), "the user's own deletion");
+        assert_eq!(scope(&merged, 0x50), Vec::<Uuid>::new());
+    }
+    // The row alone: E stays, and the row stays dormant.
+    for (target, source) in [(&b, &a), (&a, &b)] {
+        let mut merged = target.duplicate();
+        run(&mut merged, source, cli());
+        assert!(has_entry(&merged, 0x50), "a row stops at its share");
+        assert_eq!(scope(&merged, 0x50), [uid(0x20)]);
+    }
+    // A plain record at the row's time or later drops the row, from either side.
+    let (mut x, y) = (a.duplicate(), own.duplicate());
+    run(&mut x, &y, cli());
+    assert_eq!(scope(&x, 0x50), Vec::<Uuid>::new());
+    assert_eq!(listed(&x), [(uid(0x50), t1())]);
+    let (mut x, y) = (own.duplicate(), a.duplicate());
+    run(&mut x, &y, cli());
+    assert_eq!(scope(&x, 0x50), Vec::<Uuid>::new());
+    // Rows unite.
+    let (mut one, mut two) = (shared(vec![], vec![]), shared(vec![], vec![]));
+    let mut c1 = vault(grp(0x66, "Share", t0()));
+    c1.deleted_objects = vec![gone(0x60, t1())];
+    let mut c2 = vault(grp(0x66, "Share", t0()));
+    c2.deleted_objects = vec![gone(0x61, t1())];
+    run_at(&mut one, &c1, share(), t2());
+    run_at(&mut two, &c2, share(), t2());
+    run(&mut one, &two, cli());
+    assert_eq!(scope(&one, 0x60), [uid(0x20)]);
+    assert_eq!(scope(&one, 0x61), [uid(0x20)]);
+    // A newer object in the share: the row drops.
+    let mut a = shared(vec![], vec![]);
+    run_at(&mut a, &c1, share(), t2());
+    let b = shared(vec![ent(0x60, "E", "p", t3())], vec![]);
+    run(&mut a, &b, cli());
+    assert!(has_entry(&a, 0x60));
+    assert_eq!(listed(&a), []);
+    assert!(a.meta.custom_data.get(origin::SCOPES).is_none(), "pruned");
+    // A retired key's merge: the same.
+    let mut a = shared(vec![], vec![]);
+    run_at(&mut a, &c1, share(), t2());
+    let b = shared(vec![ent(0x60, "E", "p", t0())], vec![]);
+    let retired = Options {
+        retired: true,
+        ..Options::new(Kind::ConflictCopy)
+    };
+    merge(&mut a, &b, &retired, t2()).unwrap();
+    assert!(has_entry(&a, 0x60));
+    assert!(a.meta.custom_data.get(origin::SCOPES).is_none(), "pruned");
+}
+
+/// Honest flows. A member who moves or bins what a share brought did it on
+/// purpose: the outside copy wins from either side and the marker stays, so a
+/// copy not brought still beats it. A later move back carries a stamp.
+#[test]
+fn int08_32_a_members_move_out_wins_and_moving_back_takes_a_stamp() {
+    let with_p = || {
+        let mut a = shared(vec![], vec![]);
+        a.root.groups.push(grp(0x30, "P", t0()));
+        let mut c = vault(grp(0x66, "Share", t0()));
+        c.root.entries.push(ent(0x50, "E", "first", t0()));
+        let mut g = grp(0x31, "G", t0());
+        g.entries.push(ent(0x51, "F", "first", t0()));
+        c.root.groups.push(g);
+        run_at(&mut a, &c, share(), t1());
+        a
+    };
+    let (mac_one, mac_two) = (with_p(), with_p());
+    let mut moved = mac_one.duplicate();
+    move_entries(&mut moved, &[uid(0x50)], uid(0x30), t2()).unwrap();
+    move_group(&mut moved, uid(0x31), uid(0x30), Position::End, t2()).unwrap();
+    for n in [0x50, 0x31, 0x51] {
+        assert_eq!(mark(&moved, n), Some(uid(0x20)), "the marker stays");
+    }
+    assert_eq!(origin::stamp_of(&find(&moved, 0x50).custom_data), None);
+    for (target, source) in [(&moved, &mac_two), (&mac_two, &moved)] {
+        let mut merged = target.duplicate();
+        run(&mut merged, source, cli());
+        assert_eq!(group_of(&merged, 0x50), uid(0x30));
+        assert_eq!(group_of(&merged, 0x51), uid(0x31));
+        assert!(
+            merged
+                .root
+                .find_group(uid(0x30))
+                .is_some_and(|p| p.groups.iter().any(|g| g.uuid == uid(0x31)))
+        );
+        let again = {
+            let mut x = source.duplicate();
+            run(&mut x, &merged, cli());
+            x
+        };
+        assert_eq!(group_of(&again, 0x50), uid(0x30), "repeat round");
+    }
+    // Moving back later: the share has it again, by a stamped move.
+    let mut back = moved.duplicate();
+    move_entries(&mut back, &[uid(0x50)], uid(0x20), t3()).unwrap();
+    assert_eq!(
+        origin::stamp_of(&find(&back, 0x50).custom_data),
+        Some(origin::Stamp {
+            group: uid(0x20),
+            at: t3()
+        })
+    );
+    let mut merged = moved.duplicate();
+    run(&mut merged, &back, cli());
+    assert_eq!(group_of(&merged, 0x50), uid(0x20));
+    // Moved inside the share: the marker stays, the rule does not apply.
+    let mut inside = mac_one.duplicate();
+    move_entries(&mut inside, &[uid(0x50)], uid(0x31), t2()).unwrap();
+    assert_eq!(mark(&inside, 0x50), Some(uid(0x20)));
+    assert_eq!(origin::stamp_of(&find(&inside, 0x50).custom_data), None);
+    let mut merged = mac_two.duplicate();
+    run(&mut merged, &inside, cli());
+    assert_eq!(group_of(&merged, 0x50), uid(0x31));
+}
+
+/// Honest deletion across a member's two Macs, for a holder and a newcomer: the
+/// row applies inside the share, both ways, on every merge kind.
+#[test]
+fn int08_32_an_honest_deletion_reaches_a_members_other_mac() {
+    let item = || {
+        let mut c = vault(grp(0x66, "Share", t0()));
+        c.deleted_objects = vec![gone(0x50, t1()), gone(0x31, t1())];
+        c
+    };
+    let holder = || shared(vec![ent(0x50, "E", "p", t0())], vec![grp(0x31, "G", t0())]);
+    for kind in later_merges() {
+        for newcomer in [false, true] {
+            let mut y = if newcomer {
+                shared(vec![], vec![])
+            } else {
+                holder()
+            };
+            run_at(&mut y, &item(), share(), t2());
+            assert_eq!(scope(&y, 0x50), [uid(0x20)]);
+            let other = holder();
+            for (target, source) in [(&other, &y), (&y, &other)] {
+                let mut merged = target.duplicate();
+                run(&mut merged, source, Options::new(kind));
+                assert!(!has_entry(&merged, 0x50), "{kind:?}, newcomer {newcomer}");
+                assert!(merged.root.find_group(uid(0x31)).is_none());
+                assert_eq!(listed(&merged), [], "{kind:?}");
+                assert_eq!(scope(&merged, 0x50), [uid(0x20)], "{kind:?}");
+                assert_eq!(scope(&merged, 0x31), [uid(0x20)], "{kind:?}");
+            }
+        }
+    }
+}
+
+/// The other side of RT-2: what the share erases inside the group it held before
+/// keeps its row, and the vault's own records stay, also for an id the share names
+/// too (R6 C3: the row is not written). So a same-vault merge passes an inside
+/// deletion on.
+#[test]
+fn si09_rt2_an_inside_deletion_and_the_vaults_own_records_stay() {
+    let mut a = shared(vec![ent(0x0a, "X", "p", t0())], vec![]);
+    a.deleted_objects = vec![gone(0x40, t1()), gone(0x43, t1())];
+    // C1-07, C2-6: the vault's own record for an object a share cannot touch.
+    a.root.groups.push(grp(0x30, "P", t0()));
+    a.root.groups[1].entries.push(ent(0x43, "Later", "p", t3()));
+    let b = {
+        let mut b = shared(vec![ent(0x0a, "X", "p", t0())], vec![]);
+        b.root.groups.push(grp(0x30, "P", t0()));
+        b
+    };
+    let mut c = vault(grp(0x66, "Share", t0()));
+    c.deleted_objects = vec![gone(0x0a, t1()), gone(0x40, t2())];
+    run_at(&mut a, &c, share(), t2());
+    assert!(!has_entry(&a, 0x0a));
+    assert_eq!(listed(&a), [(uid(0x40), t1()), (uid(0x43), t1())]);
+    assert_eq!(scope(&a, 0x40), Vec::<Uuid>::new(), "the vault's own");
+    assert_eq!(scope(&a, 0x43), Vec::<Uuid>::new(), "the vault's own");
+    assert_eq!(scope(&a, 0x0a), [uid(0x20)]);
+    let mut merged = b.duplicate();
+    run(&mut merged, &a, Options::new(Kind::ConflictCopy));
+    assert!(!has_entry(&merged, 0x0a), "the deletion passes on");
 }
 
 /// FMT-15.11 step 2 (L15-3, LD-283 (1)): of two items for one id, the

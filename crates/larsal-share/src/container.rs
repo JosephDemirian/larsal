@@ -5,15 +5,16 @@
 use crate::{Error, NotShare};
 use larsal_core::edit::SHARED_KEY;
 use larsal_core::import::{self, ImportError, zip};
-use larsal_core::{recycle, storage};
+use larsal_core::{origin, recycle, storage};
 use larsal_crypto::kdf::{CostReport, Host};
 use larsal_crypto::secret::{SecretBytes, SecretString};
 use larsal_format::detect::SIGNATURE_1;
 use larsal_format::keys::Credentials;
 use larsal_format::limits::{Limit, Limits};
 use larsal_format::{Opened, OpenedVault, Saved};
+use larsal_model::custom_data::same_key;
 use larsal_model::settings::Compression;
-use larsal_model::{Group, Icon, Time, Uuid, Vault};
+use larsal_model::{DeletedObject, Group, Icon, Time, Uuid, Vault};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -147,9 +148,8 @@ fn zip_error(e: ImportError) -> Error {
 fn strip(g: &mut Group, bin: Option<Uuid>) {
     let mut stack = vec![g];
     while let Some(g) = stack.pop() {
-        g.custom_data
-            .items
-            .retain(|i| i.key.as_bytes() != SHARED_KEY);
+        let key = core::str::from_utf8(SHARED_KEY).unwrap_or("");
+        g.custom_data.items.retain(|i| !same_key(&i.key, key));
         g.groups.retain(|c| Some(c.uuid) != bin);
         stack.extend(g.groups.iter_mut());
     }
@@ -184,6 +184,8 @@ pub fn build(share: Uuid, keep_groups: bool, vault: &Vault, now: Time) -> Result
         root.groups.clear();
     }
     strip(&mut root, recycle::bin_id(vault));
+    // INT-08.32: what a share brought and a user moved in stays this vault's own.
+    origin::strip_tree(&mut root);
     let mut c = Vault::new(root, now);
     c.meta.name.clone_from(&group.name);
     c.meta.recycle_bin_enabled = false;
@@ -191,7 +193,7 @@ pub fn build(share: Uuid, keep_groups: bool, vault: &Vault, now: Time) -> Result
         compression: Compression::Gzip,
         ..vault.encryption
     };
-    c.deleted_objects.clone_from(&vault.deleted_objects);
+    c.deleted_objects = deleted_list(share, group, vault);
     let used = used_icons(&c.root);
     c.meta.custom_icons = vault
         .meta
@@ -201,6 +203,32 @@ pub fn build(share: Uuid, keep_groups: bool, vault: &Vault, now: Time) -> Result
         .cloned()
         .collect();
     Ok(c)
+}
+
+/// INT-08.32: the list a container takes: the plain records, a user's, and the rows
+/// `origin::export_rows` allows, as (id, time). Never another share's rows, so a member
+/// of one share cannot erase in another through an export. A list past the format's
+/// limit loses its last rows: such a deletion does not reach, and the export can be saved.
+fn deleted_list(share: Uuid, group: &Group, vault: &Vault) -> Vec<DeletedObject> {
+    let inside: HashSet<Uuid> = group.subtree().iter().map(|g| g.uuid).collect();
+    debug_assert!(inside.contains(&share));
+    let mut seen: HashSet<(Uuid, Time)> = vault
+        .deleted_objects
+        .iter()
+        .map(|d| (d.uuid, d.deleted_at))
+        .collect();
+    let mut list = vault.deleted_objects.clone();
+    for (id, at) in origin::export_rows(vault, share, &inside) {
+        if seen.insert((id, at)) {
+            list.push(DeletedObject {
+                uuid: id,
+                deleted_at: at,
+                unknown: Vec::new(),
+            });
+        }
+    }
+    list.truncate(Limits::DEFAULT.deleted_objects);
+    list
 }
 
 /// The custom icon ids that groups, entries and history items below `root`
@@ -244,6 +272,91 @@ pub fn write_file(
     limits: &Limits,
     keep: &[PathBuf],
 ) -> Result<[u8; 32], Error> {
+    let bytes = file_bytes(container, password, host, limits)?;
+    storage::write_export_except(path, &bytes, keep).map_err(|e| Error::Io(e.kind()))?;
+    Ok(crate::run::head(&bytes))
+}
+
+/// What an export may replace at its path (INT-08.34): only [`look`] makes
+/// one, and [`write_share`] needs one.
+#[derive(Debug)]
+pub struct Looked(Option<storage::Stamp>);
+
+/// INT-08.34: a share never replaces a file Larsal did not write as this
+/// share's container. Nothing at `path` may be created. A regular file there
+/// may be replaced only when its first bytes are `record`, the head of the
+/// last container this share wrote (hex), or when it opens with the share key
+/// and has a container's shape (INT-08.12), so the other side's rewrite is
+/// kept. Anything else is refused before the KDF: a link, a folder, a FIFO, a
+/// file that does not open.
+///
+/// # Errors
+/// [`Error::NotThisShare`] (MI08-26); [`Error::Io`] with the system's reason
+/// when the folder cannot be read.
+pub fn look(
+    path: &Path,
+    password: &SecretString,
+    host: &mut Host,
+    limits: &Limits,
+    record: Option<&str>,
+) -> Result<Looked, Error> {
+    let seen = storage::stamp(path).map_err(|e| Error::Io(e.kind()))?;
+    if seen.is_some_and(|s| {
+        s.kind != storage::NodeType::File || !ours(path, password, host, limits, record)
+    }) {
+        return Err(Error::NotThisShare);
+    }
+    Ok(Looked(seen))
+}
+
+/// The only write a share's export makes: [`write_file`], and what `looked`
+/// saw must still be there at the rename, in the folder the write uses
+/// (INT-08.34).
+///
+/// # Errors
+/// [`Error::Io`] with `AlreadyExists` when the file changed after the look;
+/// else as [`write_file`]. On any error the file at `path` is unchanged.
+pub fn write_share(
+    path: &Path,
+    container: &Vault,
+    password: &SecretString,
+    host: &mut Host,
+    limits: &Limits,
+    keep: &[PathBuf],
+    looked: &Looked,
+) -> Result<[u8; 32], Error> {
+    let bytes = file_bytes(container, password, host, limits)?;
+    storage::write_export_if(path, &bytes, keep, &|now| now == looked.0)
+        .map_err(|e| Error::Io(e.kind()))?;
+    Ok(crate::run::head(&bytes))
+}
+
+/// INT-08.34: the file at `path` is the last container this share wrote
+/// (`record`), or a container of this share: it opens with the share key and
+/// has INT-08.12's shape. A file that cannot be read is not.
+fn ours(
+    path: &Path,
+    password: &SecretString,
+    host: &mut Host,
+    limits: &Limits,
+    record: Option<&str>,
+) -> bool {
+    let Ok(bytes) = read_file(path) else {
+        return false;
+    };
+    record == Some(crate::run::hex(&crate::run::head(&bytes)).as_str())
+        || open(&bytes, password, host, limits).is_ok_and(|o| {
+            !o.vault.meta.recycle_bin_enabled && o.vault.meta.name == o.vault.root.name
+        })
+}
+
+/// The bytes of `container` as a file under the share key.
+fn file_bytes(
+    container: &Vault,
+    password: &SecretString,
+    host: &mut Host,
+    limits: &Limits,
+) -> Result<Vec<u8>, Error> {
     let key = credentials(password);
     let mut save = |approval: Option<&CostReport>| {
         larsal_format::save(container, &key, None, host, limits, approval).map_err(Error::Vault)
@@ -255,6 +368,5 @@ pub fn write_file(
     let Saved::File(file) = saved else {
         return Err(Error::Vault(larsal_format::Error::TooLarge(Limit::KdfCost)));
     };
-    storage::write_export_except(path, &file.bytes, keep).map_err(|e| Error::Io(e.kind()))?;
-    Ok(crate::run::head(&file.bytes))
+    Ok(file.bytes)
 }

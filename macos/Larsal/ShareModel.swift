@@ -145,7 +145,8 @@ extension VaultModel {
     func approveShare(_ label: ShareLabel) {
         dialog = nil
         do {
-            try session.approveShare(vault: vault.id, group: label.group)
+            try session.approveShareShown(
+                vault: vault.id, group: label.group, mode: label.mode, fullPath: label.fullPath)
         } catch {
             notify(Toast(glyph: "warning", text: message(error)))
         }

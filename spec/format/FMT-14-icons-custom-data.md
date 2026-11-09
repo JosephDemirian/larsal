@@ -90,6 +90,8 @@ FMT-14.10 **Structure.** `CustomData` holds `Item` elements. The children of `It
 | 2 | `Value` | text | all | always; empty element when empty |
 | 3 | `LastModificationTime` | time (FMT-12) | 4.1 | per FMT-14.13 |
 
+On read, `Key` loses every character FMT-12.25 removes on write (only U+007F to U+009F of them can get past FMT-12.24). One function does both, so a key compares the same before and after a save (INT-08.32).
+
 On write, `Key` and `Value`, like icon `Name`, lose the characters XML cannot hold, with the removal set of FMT-12.25 (as FMT-11.46).
 
 FMT-14.11 **Where it sits, and versions.**

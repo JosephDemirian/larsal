@@ -801,6 +801,10 @@ pub fn in_use(vault: &Vault, ids: &[Uuid]) -> bool {
 /// modification time and no history item; history items get icon 0 with
 /// their times unchanged; each icon is removed and recorded as a deleted
 /// object at `now`. One change batch. Returns how many icons went.
+///
+/// With a share known no record is written (INT-08.32): a share can bring an icon
+/// with an outside object's id, and a plain record reaches outside. A stale copy
+/// can then bring the icon back; the user removes it again.
 fn take_out(vault: &mut Vault, gone: &HashSet<Uuid>, now: Time) -> usize {
     let hit = |i: Icon| matches!(i, Icon::Custom(id) if gone.contains(&id));
     let groups: Vec<Uuid> = vault
@@ -846,6 +850,9 @@ fn take_out(vault: &mut Vault, gone: &HashSet<Uuid>, now: Time) -> usize {
         }
         !go
     });
+    if !crate::origin::known(vault).is_empty() {
+        removed.clear();
+    }
     for uuid in removed {
         vault.deleted_objects.push(DeletedObject {
             uuid,

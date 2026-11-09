@@ -30,6 +30,7 @@ use crate::error::Error;
 use crate::limits::Limit;
 use larsal_crypto::secret::{SecretBytes, SecretString};
 use larsal_crypto::stream::FieldStream;
+use larsal_model::custom_data::kept_char as keep;
 use larsal_model::entry::{STANDARD_FIELDS, cmp_utf16};
 use larsal_model::{
     AutoType, CustomData, CustomDataItem, Entry, Group, Icon, Switch, Time, Times, UnknownElement,
@@ -749,13 +750,6 @@ fn end_tag(out: &mut Grow, name: &str) {
     out.extend(b"</");
     out.extend(name.as_bytes());
     out.push(b'>');
-}
-
-/// True for a character a written text keeps (FMT-12.25).
-fn keep(c: char) -> bool {
-    !matches!(c,
-        '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}'
-        | '\u{7F}'..='\u{84}' | '\u{86}'..='\u{9F}' | '\u{FFFE}' | '\u{FFFF}')
 }
 
 /// Text: the FMT-12.25 removals, then `& < > "` as entities and CR as

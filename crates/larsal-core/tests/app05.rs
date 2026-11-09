@@ -1992,3 +1992,131 @@ fn f269_canonical_identity_cycle_and_breadth() {
     assert_eq!(wide.len(), 270);
     assert!(wide.windows(2).all(|w| w[0] < w[1]));
 }
+
+/// C2-1: the folder of a path is a FIFO. No call waits on it, and the export
+/// fails without touching it.
+#[test]
+fn e11s6_a_fifo_as_the_folder_never_waits() {
+    use std::os::unix::fs::FileTypeExt;
+    let s = Scratch::new("fifo-folder");
+    let fifo = s.path("pipe");
+    mkfifo(&fifo);
+    let target = fifo.join("team.larsalvault");
+    let p = target.clone();
+    let got = within_a_second(&fifo, move || storage::stamp(&p).map_err(|e| e.kind()));
+    assert_eq!(got, Err(ErrorKind::NotADirectory));
+    let p = target.clone();
+    let got = within_a_second(&fifo, move || {
+        storage::write_export_except(&p, b"demo", &[]).map_err(|e| e.kind())
+    });
+    assert_eq!(got, Err(ErrorKind::NotADirectory));
+    assert!(fs::symlink_metadata(&fifo).unwrap().file_type().is_fifo());
+}
+
+/// C1-07, C2-6: only the status change time tells a same-size rewrite in place,
+/// also with the modification time set back. It is refused, and stays.
+#[test]
+fn e11s6_a_same_size_rewrite_after_the_look_is_refused() {
+    let s = Scratch::new("same-size");
+    let (target, reference) = (s.path("team.larsalvault"), s.path("reference"));
+    fs::write(&reference, b"x").unwrap();
+    fs::write(&target, b"first").unwrap();
+    let touch = |p: &Path| {
+        let made = std::process::Command::new("/usr/bin/touch")
+            .arg("-r")
+            .arg(&reference)
+            .arg(p)
+            .status()
+            .unwrap();
+        assert!(made.success());
+    };
+    touch(&target);
+    let looked = storage::stamp(&target).unwrap();
+    assert!(looked.is_some_and(|s| s.kind == storage::NodeType::File));
+    fs::write(&target, b"other").unwrap();
+    touch(&target);
+    let got = storage::write_export_if(&target, b"demo", &[], &|now| now == looked);
+    assert_eq!(got.map_err(|e| e.kind()), Err(ErrorKind::AlreadyExists));
+    assert_eq!(fs::read(&target).unwrap(), b"other");
+    assert!(storage::write_export_if(&target, b"demo", &[], &|_| true).is_ok());
+    assert_eq!(fs::read(&target).unwrap(), b"demo");
+}
+
+/// C2-7: where the look saw nothing, a file that appears before the rename is
+/// another writer's: it stays, and the save says so.
+#[test]
+fn e11s6_a_file_that_appears_before_the_rename_stays() {
+    fn appears(temp: &Path) {
+        fs::write(temp.with_file_name("new.larsalvault"), b"theirs").unwrap();
+    }
+    let s = Scratch::new("exclusive");
+    let v = s.path("new.larsalvault");
+    let mut r = req(&v, b"ours", None, &s.0);
+    r.fault = Some(Fault {
+        at: FaultPoint::Swap(appears),
+        kind: ErrorKind::Other,
+        temp_name: None,
+    });
+    let got = storage::save(&r);
+    assert!(
+        matches!(
+            got,
+            Err(SaveError::Write {
+                kind: ErrorKind::AlreadyExists,
+                ..
+            })
+        ),
+        "{got:?}"
+    );
+    assert_eq!(fs::read(&v).unwrap(), b"theirs");
+    assert_eq!(s.names(), ["new.larsalvault"], "no temp file left");
+}
+
+/// APP-05.33: the volume's answer for this folder is what the folder does.
+#[test]
+fn e11s6_the_volume_says_whether_it_tells_names_apart() {
+    let s = Scratch::new("case-volume");
+    fs::write(s.path("lower.txt"), b"x").unwrap();
+    let apart = !s.path("LOWER.TXT").exists();
+    assert_eq!(larsal_platform::macos::case_sensitive(&s.0), apart);
+}
+
+/// C1-07: a path with no name, against one not there, counts as the same (fail
+/// closed).
+#[test]
+fn e11s6_a_path_with_no_name_counts_as_the_same() {
+    let s = Scratch::new("no-name");
+    assert!(storage::same_entry(
+        &s.path("absent/.."),
+        &s.path("absent.larsalvault")
+    ));
+}
+
+/// INT-08.34: a name that cannot be compared counts as the same, in the guards.
+/// APFS refuses such a name at creation, so `old_copies`, which a delete reads,
+/// cannot meet one here; its branch lists only names it can compare.
+#[test]
+fn e11s6_a_name_that_cannot_be_compared_is_refused() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt as _;
+    let s = Scratch::new("backup-odd");
+    let vault = s.path("v.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    let odd = OsStr::from_bytes(b"v\xff.old.larsalvault");
+    assert!(fs::write(s.0.join(odd), b"demo").is_err());
+    assert!(storage::is_backup("", &vault, &s.0, &s.0.join(odd)));
+    assert!(storage::same_entry(&vault, &s.0.join(odd)));
+    // In another folder it is another file, and no backup of this vault.
+    fs::create_dir(s.path("other")).unwrap();
+    let other = s.path("other").join(odd);
+    assert!(!storage::is_backup("", &vault, &s.0, &other));
+    assert!(!storage::same_entry(&vault, &other));
+    // A name that can be compared and differs stays apart in the same folder.
+    assert!(!storage::is_backup(
+        "",
+        &vault,
+        &s.0,
+        &s.path("w.old.larsalvault")
+    ));
+    assert!(!storage::same_entry(&vault, &s.path("w.larsalvault")));
+}

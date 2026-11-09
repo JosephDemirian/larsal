@@ -6,10 +6,12 @@
 //! - a share runs only when Larsal approved its mode and resolved path on this
 //!   Mac (INT-08.31): a share item that arrived by a merge, an import or
 //!   another app never imports, exports or is watched until then (AT-I04);
-//! - a share whose resolved path is the file of any vault open in Larsal, or a
-//!   backup of one (F-269), never runs (INT-08.34), and an export checks it
-//!   again at its write, in the folder it really writes, so a folder swapped
-//!   during the KDF gets nothing (F-162);
+//! - a share whose resolved path is the file of any vault open in Larsal, a
+//!   backup of one (F-269), or a key file this Mac knows, never runs
+//!   (INT-08.34), and an export checks it again at its write, in the folder it
+//!   really writes, so a folder swapped during the KDF gets nothing (F-162);
+//! - an export replaces only what this share wrote or a container of it; any
+//!   other file at its path is left alone (INT-08.34, `container::write_share`);
 //! - every pass runs on a worker thread of its own, one per vault: the
 //!   container's read and KDF run without the session lock, so a slow or
 //!   hostile container never blocks the vault (INT-08.38); a save during a
@@ -30,6 +32,7 @@
 //! (INT-08.40).
 
 use crate::session::{LarsalError, Session};
+use crate::share_edit::ShareMode;
 use crate::views::{Rated, now, parse_id};
 use larsal_core::storage::{self, DEFAULT_BACKUP_PATTERN};
 use larsal_crypto::secret::SecretBytes;
@@ -83,7 +86,10 @@ pub(crate) struct State {
     pub(crate) draft: Option<crate::share_edit::Draft>,
     /// Tests: runs once while an import's trial runs, off the lock.
     #[cfg(test)]
-    trial: Option<Hook>,
+    pub(crate) trial: Option<Hook>,
+    /// Tests: runs once between an export's look and its write, off the lock.
+    #[cfg(test)]
+    pub(crate) before_write: Option<Hook>,
 }
 
 #[cfg(test)]
@@ -133,22 +139,23 @@ struct Survey {
     changed: Vec<Uuid>,
     /// Every open vault's file.
     open: Vec<PathBuf>,
+    /// The key file each open vault was unlocked with.
+    keys: Vec<PathBuf>,
 }
 
 /// INT-08.34: `path` names the file of an open vault, or a backup of one
 /// by the pattern `backup` or the default, as APP-05.17 step 4 matches
 /// them (F-269). A path that does not exist yet is compared through its
-/// folder. macOS compares paths without letter case (APP-09.15 (b)).
+/// folder. Names compare as the file system compares them (E11-S6).
 pub(crate) fn guarded(path: &Path, open: &[PathBuf], backup: &str) -> bool {
     let real = std::fs::canonicalize(path).ok().or_else(|| {
         let folder = std::fs::canonicalize(path.parent()?).ok()?;
         Some(folder.join(path.file_name()?))
     });
     let real = real.as_deref().unwrap_or(path);
-    let key = real.to_string_lossy().to_lowercase();
     let home = home();
     open.iter().any(|p| {
-        p.to_string_lossy().to_lowercase() == key
+        storage::same_entry(real, p)
             || [backup, DEFAULT_BACKUP_PATTERN]
                 .iter()
                 .any(|b| storage::is_backup(b, &storage::real_path(p), &home, real))
@@ -176,9 +183,68 @@ fn kept(open: Vec<PathBuf>, backup: &str) -> Vec<PathBuf> {
     [open, backups].concat()
 }
 
+/// MI08-17's second text.
+const OPEN_VAULT: &str =
+    "This file cannot be used for sharing: it is the file of a vault open in Larsal.";
+/// MI08-27's editor text.
+const KEY_FILE: &str = "This file cannot be used for sharing: it is a vault's key file.";
+/// MI08-28.
+const FILE_THERE: &str = "A file is already at this path. If it is not this share's file, Larsal leaves it alone and tells you after each save.";
+
+/// A character that shows nothing, or shows as something it is not (RT-8):
+/// controls (Cc), every format character (Cf), the other default-ignorable code
+/// points, the spaces and separators that are not the plain space (Z*), blank
+/// glyphs, private use and noncharacters. Unicode 16.
+fn hidden(c: char) -> bool {
+    c.is_control()
+        || matches!(c,
+            // Cf.
+            '\u{AD}' | '\u{600}'..='\u{605}' | '\u{61C}' | '\u{6DD}' | '\u{70F}'
+            | '\u{890}'..='\u{891}' | '\u{8E2}' | '\u{180E}' | '\u{200B}'..='\u{200F}'
+            | '\u{202A}'..='\u{202E}' | '\u{2060}'..='\u{206F}' | '\u{FEFF}'
+            | '\u{FFF9}'..='\u{FFFB}' | '\u{110BD}' | '\u{110CD}' | '\u{13430}'..='\u{1343F}'
+            | '\u{1BCA0}'..='\u{1BCA3}' | '\u{1D173}'..='\u{1D17A}' | '\u{E0000}'..='\u{E0FFF}'
+            // Default-ignorable, not Cf.
+            | '\u{34F}' | '\u{115F}' | '\u{1160}' | '\u{17B4}' | '\u{17B5}'
+            | '\u{180B}'..='\u{180D}' | '\u{180F}' | '\u{3164}' | '\u{FE00}'..='\u{FE0F}'
+            | '\u{FFA0}' | '\u{FFF0}'..='\u{FFF8}'
+            // Z*, but for the plain space.
+            | '\u{A0}' | '\u{1680}' | '\u{2000}'..='\u{200A}' | '\u{2028}' | '\u{2029}'
+            | '\u{202F}' | '\u{205F}' | '\u{3000}'
+            // Blank glyphs.
+            | '\u{2800}' | '\u{1D159}' | '\u{16FE4}' | '\u{FFFC}'
+            // Private use and noncharacters.
+            | '\u{E000}'..='\u{F8FF}' | '\u{FDD0}'..='\u{FDEF}' | '\u{F0000}'..='\u{10FFFF}')
+        || (c as u32) & 0xFFFE == 0xFFFE
+}
+
+/// INT-08.31 (RT-8): a path as the Approve sheet and the group editor show it.
+/// What [`hidden`] holds, and the backslash, is written out as `\\u{...}`, so a
+/// typed `\\u{202e}` cannot read as a written-out one. Text only; the path
+/// itself does not change.
+#[uniffi::export]
+#[must_use]
+pub fn share_path_shown(path: String) -> String {
+    let mut out = String::with_capacity(path.len());
+    for c in path.chars() {
+        if hidden(c) || c == '\\' {
+            out.extend(c.escape_unicode());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 /// `~/` of a backup pattern (APP-05.21).
 fn home() -> PathBuf {
     std::env::var_os("HOME").map_or_else(PathBuf::new, PathBuf::from)
+}
+
+/// INT-08.34: `path` names one of the key files `keys`, by what file it is
+/// or by a name the file system takes for the same one.
+pub(crate) fn is_key_file(path: &Path, keys: &[PathBuf]) -> bool {
+    keys.iter().any(|k| storage::same_entry(path, k))
 }
 
 /// The SHA-256 of the first 5 KiB of the file at `path` (INT-08.15);
@@ -231,27 +297,49 @@ impl Session {
                 shares,
                 changed,
                 open: slot.open,
+                keys: slot.keys,
             })
         })
     }
 
-    /// The plan of a survey: approved shares that are no vault's file
-    /// (INT-08.31, INT-08.34), with the allow settings (INT-08.7). Checks
-    /// the paths off the session lock.
+    /// INT-08.34: `held`, the key files of this session's unlocks, and the
+    /// remembered ones of every vault (APP-01.16). Reads Larsal settings, so
+    /// off the session lock.
+    pub(crate) fn key_files(&self, mut held: Vec<PathBuf>) -> Vec<PathBuf> {
+        let known = self.settings.remembered_key_files();
+        held.extend(
+            known
+                .iter()
+                .map(|(vault, typed)| crate::session::key_path(Path::new(vault), typed)),
+        );
+        held
+    }
+
+    /// The plan of a survey: approved shares that are no vault's file and no
+    /// key file (INT-08.31, INT-08.34), with the allow settings (INT-08.7).
+    /// A key file's export is told (MI08-27). Checks the paths off the
+    /// session lock.
     fn plan(&self, survey: Survey) -> (Plan, u64, Vec<Uuid>) {
         let (allow_import, allow_export, _) = self.settings.share_flags();
         let (open, backup) = (survey.open, self.backup_pattern());
+        let keys = self.key_files(survey.keys);
+        let mut refused = Vec::new();
         let runs = survey
             .shares
             .into_iter()
             .filter(|(s, ok)| *ok && !guarded(&s.path, &open, &backup))
             .map(|(s, _)| s)
+            .filter(|s| {
+                let key = is_key_file(&s.path, &keys);
+                if key && allow_export && s.settings.exporting() {
+                    refused.push(run::key_file(&s.settings.path));
+                }
+                !key
+            })
             .collect();
-        (
-            run::plan(runs, allow_import, allow_export),
-            survey.epoch,
-            survey.changed,
-        )
+        let mut plan = run::plan(runs, allow_import, allow_export);
+        plan.export_lines.extend(refused);
+        (plan, survey.epoch, survey.changed)
     }
 
     /// Adds work for vault `id` and starts its worker unless one runs.
@@ -517,29 +605,49 @@ impl Session {
                 return None;
             }
             let vault = slot.vault?;
+            let written = s.written(vault);
             let c = container::build(s.group, s.settings.keep_groups, vault, now());
-            Some(c.map(|c| (c, slot.open)))
+            Some(c.map(|c| (c, slot.open, slot.keys, written)))
         });
-        let (c, open) = match built {
+        let (c, open, keys, written) = match built {
             Ok(Some(Ok(c))) => c,
             Ok(Some(Err(e))) => return lines.push(run::export_failed(text, &e)),
             _ => return,
         };
-        let keep = kept(open, &self.backup_pattern());
+        let mut keep = kept(open, &self.backup_pattern());
+        keep.extend(self.key_files(keys));
         let mut host = self
             .host
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone();
-        match container::write_file(
+        let record = self.settings.share_written(&written);
+        let looked = container::look(
+            &s.path,
+            &s.settings.password,
+            &mut host,
+            &Limits::DEFAULT,
+            record.as_deref(),
+        );
+        let looked = match looked {
+            Ok(looked) => looked,
+            Err(e) => return lines.push(run::export_failed(text, &e)),
+        };
+        #[cfg(test)]
+        if let Ok(Some(hook)) = self.with_share(id, |slot| slot.share.before_write.take()) {
+            hook(self);
+        }
+        match container::write_share(
             &s.path,
             &c,
             &s.settings.password,
             &mut host,
             &Limits::DEFAULT,
             &keep,
+            &looked,
         ) {
             Ok(head) => {
+                self.settings.note_share_written(&written, &run::hex(&head));
                 let _ = self.with_share(id, |slot| {
                     if slot.epoch == epoch {
                         slot.share.heads.insert(s.path.clone(), head);
@@ -589,6 +697,33 @@ impl Session {
         for id in ids {
             self.queue(id, |j| j.all = true);
         }
+    }
+
+    /// INT-08.31 (the group editor's accept, and behind the Approve sheet's
+    /// [`Session::approve_share_shown`]): Larsal approves share group
+    /// `group`'s mode and resolved path as they are now; then the share runs,
+    /// and imports at once when it imports.
+    ///
+    /// # Errors
+    /// `UnknownVault`, `Locked`, `UnknownGroup` (no group, or no share
+    /// that is set up there).
+    pub(crate) fn approve_share(&self, vault: u64, group: String) -> Result<(), LarsalError> {
+        let group = parse_id(&group, LarsalError::UnknownGroup)?;
+        let key = self.with_open(vault, |v, path, _| {
+            run::shares(v, Some(path))
+                .into_iter()
+                .find(|s| s.group == group)
+                .map(|s| s.approval(v))
+                .ok_or(LarsalError::UnknownGroup)
+        })?;
+        self.settings.approve_share(key);
+        let (import, _, _) = self.settings.share_flags();
+        if import {
+            self.queue(vault, |j| {
+                j.groups.insert(group);
+            });
+        }
+        Ok(())
     }
 
     /// Tests: waits until vault `id`'s share work is done (at most 60 s).
@@ -680,30 +815,75 @@ impl Session {
         Ok(())
     }
 
-    /// INT-08.31 (MI08-18's Approve, and the group editor's accept): Larsal
-    /// approves share group `group`'s mode and resolved path as they are
-    /// now; then the share runs, and imports at once when it imports.
+    /// INT-08.31 (MI08-18's Approve): Larsal approves share group `group`'s
+    /// mode and resolved path only when they are still the ones the sheet
+    /// showed; then the share runs, and imports at once when it imports.
     ///
     /// # Errors
-    /// `UnknownVault`, `Locked`, `UnknownGroup` (no group, or no share
-    /// that is set up there).
-    pub fn approve_share(&self, vault: u64, group: String) -> Result<(), LarsalError> {
-        let group = parse_id(&group, LarsalError::UnknownGroup)?;
-        let key = self.with_open(vault, |v, path, _| {
+    /// `UnknownVault`, `Locked`, `UnknownGroup` (no group, or no share that
+    /// is set up there); `Refused` when the share changed under the sheet.
+    pub fn approve_share_shown(
+        &self,
+        vault: u64,
+        group: String,
+        mode: ShareMode,
+        full_path: String,
+    ) -> Result<(), LarsalError> {
+        let id = parse_id(&group, LarsalError::UnknownGroup)?;
+        let same = self.with_open(vault, |v, path, _| {
             run::shares(v, Some(path))
                 .into_iter()
-                .find(|s| s.group == group)
-                .map(|s| s.approval(v))
+                .find(|s| s.group == id)
+                .map(|s| {
+                    ShareMode::from(s.settings.mode()) == mode
+                        && s.path.to_string_lossy() == full_path
+                })
                 .ok_or(LarsalError::UnknownGroup)
         })?;
-        self.settings.approve_share(key);
-        let (import, _, _) = self.settings.share_flags();
-        if import {
-            self.queue(vault, |j| {
-                j.groups.insert(group);
-            });
+        if !same {
+            return Err(LarsalError::Refused(
+                "This share changed while the sheet was open. Look at it again.".to_owned(),
+            ));
         }
-        Ok(())
+        self.approve_share(vault, group)
+    }
+
+    /// INT-08.31, INT-08.34: why the Approve sheet warns about share group
+    /// `group` (the texts of MI08-17, MI08-27 and MI08-28): its path is a
+    /// vault's file or a key file, or a file is there that this share did
+    /// not write. Looks at the paths off the session lock.
+    ///
+    /// # Errors
+    /// `UnknownVault`, `Locked`, `UnknownGroup`.
+    pub fn share_block(&self, vault: u64, group: String) -> Result<Option<String>, LarsalError> {
+        let id = parse_id(&group, LarsalError::UnknownGroup)?;
+        let (path, exporting, written, open, keys) = self.with_share(vault, |slot| {
+            let v = slot.vault.ok_or(LarsalError::Locked)?;
+            let s = run::shares(v, Some(slot.path))
+                .into_iter()
+                .find(|s| s.group == id)
+                .ok_or(LarsalError::UnknownGroup)?;
+            let written = s.written(v);
+            Ok((
+                s.path,
+                s.settings.exporting(),
+                written,
+                slot.open,
+                slot.keys,
+            ))
+        })??;
+        if guarded(&path, &open, &self.backup_pattern()) {
+            return Ok(Some(OPEN_VAULT.to_owned()));
+        }
+        if is_key_file(&path, &self.key_files(keys)) {
+            return Ok(Some(KEY_FILE.to_owned()));
+        }
+        let there = storage::stamp(&path).ok().flatten().is_some();
+        let ours = self
+            .settings
+            .share_written(&written)
+            .is_some_and(|head| head_of(&path).is_some_and(|h| run::hex(&h) == head));
+        Ok((exporting && there && !ours).then(|| FILE_THERE.to_owned()))
     }
 
     /// What share passes did since the last call (INT-08.20); `None` when
@@ -961,7 +1141,7 @@ pub(crate) mod tests {
     }
 
     /// The banner of the passes since the last look: its kind and lines.
-    fn banner(s: &Session, v: u64) -> Option<(ShareLevel, Vec<String>)> {
+    pub(crate) fn banner(s: &Session, v: u64) -> Option<(ShareLevel, Vec<String>)> {
         news(s, v)
             .and_then(|n| n.banner)
             .map(|b| (b.level, b.lines))
@@ -1360,6 +1540,18 @@ pub(crate) mod tests {
         s.share_wait(v);
         let _ = news(&s, v);
         save(&s, v);
+        // INT-08.34: the file is not this share's, so Approve does not cover it.
+        assert_eq!(std::fs::read(&victim).unwrap(), b"victim");
+        let there = format!(
+            "{}: export failed. Another file is already there, and Larsal did not write it for this share, so it was left alone. Choose another file or move that one.",
+            victim.to_string_lossy()
+        );
+        assert_eq!(
+            banner(&s, v).map(|b| (b.0, b.1.last().cloned())),
+            Some((ShareLevel::Error, Some(there)))
+        );
+        std::fs::remove_file(&victim).unwrap();
+        save(&s, v);
         assert!(read(&victim, SHARE).is_ok(), "the approved share exports");
         // The record lives in Larsal settings, outside the vault (INT-08.31).
         assert_eq!(s.settings.share_approvals().len(), 1);
@@ -1470,6 +1662,15 @@ pub(crate) mod tests {
         assert_eq!(again.root.name, "Root");
         assert!(again.root.find_group(id(0x20)).is_some());
         assert_eq!(news(&s, v), None, "nothing ran");
+        // RT-4: letter case where no file answers: the target is not there
+        // yet, so only the compare of names can tell.
+        let gone = dir.join("gone.larsalvault");
+        assert!(guarded(
+            &dir.join("GONE.LARSALVAULT"),
+            std::slice::from_ref(&gone),
+            ""
+        ));
+        assert!(!guarded(&dir.join("OTHER.LARSALVAULT"), &[gone], ""));
     }
 
     /// F-269 (INT-08.34, AT-I04): a share on V's own backup file (the
@@ -2218,11 +2419,18 @@ pub(crate) mod tests {
             let gmail = group_mut(&mut m.root, 0x25).unwrap().entries.first_mut();
             set(gmail.unwrap(), "Password", "gmail-secret-demo-2", true);
         });
+        // RT-4: the swap lands right after the look, before the KDF, every
+        // run; no timing can let the write come first.
+        let (from, old, to_home) = (shared.clone(), dir.join("shared-old"), home.clone());
+        s.with_share(v, |slot| {
+            slot.share.before_write = Some(Box::new(move |_: &Session| {
+                std::fs::rename(&from, &old).unwrap();
+                std::os::unix::fs::symlink(&to_home, &from).unwrap();
+            }));
+        })
+        .unwrap();
         let st = s.save(v).unwrap();
         assert_eq!(st.failure, None, "{st:?}");
-        std::thread::sleep(Duration::from_millis(120));
-        std::fs::rename(&shared, dir.join("shared-old")).unwrap();
-        std::os::unix::fs::symlink(&home, &shared).unwrap();
         s.share_wait(v);
         let again = read(&file, MAIN).expect("V still opens with demo-v");
         let gmail = again.root.all_entries().find(|e| e.uuid == id(0x0D));
@@ -2246,8 +2454,13 @@ pub(crate) mod tests {
     /// limit) in the member's container, for ids V does not hold. The
     /// merged vault would pass the limit, so the import is refused with
     /// MI08-02; V is unchanged and still saves and opens.
+    ///
+    /// Changed by R6 (INT-08.32, FMT-15.12): a share's items are rows, off the main
+    /// list and at most the cap, so this container no longer passes the limit. The
+    /// import goes through, the list stays 1 and V saves and opens. The refusal itself
+    /// is proved by `f163_at_a08_one_item_past_the_custom_data_limit_is_refused`.
     #[test]
-    fn f163_at_a08_an_import_past_the_readers_limits_is_refused_and_v_still_saves() {
+    fn f163_at_a08_a_full_list_in_a_container_is_rows_and_v_still_saves() {
         let dir = TempDir::new("share-f163");
         let (file, path, mut vault) = scene(&dir, true, false);
         let gone = |uuid| DeletedObject {
@@ -2262,14 +2475,15 @@ pub(crate) mod tests {
         let s = session(true);
         let v = approved(&s, &file, &vault);
         unlock(&s, v);
-        let failed = "team.larsalvault: import failed. It is larger than Larsal reads.";
-        assert_eq!(
-            banner(&s, v),
-            Some((ShareLevel::Error, vec![failed.to_owned()]))
-        );
-        assert_eq!(mail(&s, v), "pw-1");
+        assert_eq!(mail(&s, v), "pw-2");
         assert_eq!(model(&s, v, |m| m.deleted_objects.len()), 1);
-        assert_eq!(s.save_status(v).unwrap().changes, 0);
+        assert_eq!(
+            model(&s, v, |m| larsal_core::origin::read_rows(
+                &m.meta.custom_data
+            )
+            .len()),
+            larsal_core::origin::ROW_CAP
+        );
         change(&s, v, |m| m.meta.name = "V2".into());
         save(&s, v);
         let again = read(&file, MAIN).expect("V still opens");
@@ -2277,6 +2491,48 @@ pub(crate) mod tests {
             (again.meta.name.as_str(), again.deleted_objects.len()),
             ("V2", 1)
         );
+    }
+
+    /// F-163 under R6 (round 5, C1R4-03): a container entry at exactly the reader's
+    /// custom data limit, new to V. Base takes this import, so it is not refused: the
+    /// import's marker does not fit (one door), the entry comes in without it, and V
+    /// saves and opens with the entry at the limit.
+    #[test]
+    fn f163_at_a08_an_entry_at_the_custom_data_limit_imports_without_a_marker() {
+        let dir = TempDir::new("share-f163-item");
+        let (file, path, vault) = scene(&dir, true, false);
+        let mut m = member();
+        let mut heavy = Entry::new(id(0x61), T0);
+        for i in 0..larsal_format::limits::Limits::DEFAULT.custom_data_items {
+            heavy.custom_data.items.push(CustomDataItem {
+                key: format!("k{i}"),
+                value: SecretString::new("v".to_owned()),
+                last_modified: None,
+                unknown: Vec::new(),
+            });
+        }
+        team(&mut m).entries.push(heavy);
+        publish(&path, &m);
+        let s = session(true);
+        let v = approved(&s, &file, &vault);
+        unlock(&s, v);
+        assert_eq!(banner(&s, v), None);
+        assert_eq!(mail(&s, v), "pw-2");
+        let limit = larsal_format::limits::Limits::DEFAULT.custom_data_items;
+        let heavy = |m: &Vault| {
+            m.root.all_entries().find(|e| e.uuid == id(0x61)).map(|e| {
+                (
+                    e.custom_data.items.len(),
+                    larsal_core::origin::mark_of(&e.custom_data),
+                )
+            })
+        };
+        assert_eq!(model(&s, v, heavy), Some((limit, None)));
+        change(&s, v, |m| m.meta.name = "V2".into());
+        save(&s, v);
+        let again = read(&file, MAIN).expect("V still opens");
+        assert_eq!(again.meta.name, "V2");
+        assert_eq!(heavy(&again), Some((limit, None)));
     }
 
     /// F-164 (INT-08.38, AT-A08), Checker 2's probe 2 at unlock: Team of
@@ -2379,8 +2635,9 @@ pub(crate) mod tests {
     /// entries at the bottom. The merge runs on a copy, off the session
     /// lock, so at the first unlock (which imports) and at the next (which
     /// changes nothing) no `lock_epoch`, `list` or `save_status` call
-    /// waits 75 ms (seconds when the merge ran under the lock). The result
-    /// is the same.
+    /// waits a second (seconds when the merge ran under the lock; E11S6-V-02:
+    /// 75 ms broke on a loaded Mac, with calls of about 5 ms in a quiet one).
+    /// The result is the same.
     #[test]
     fn f165_int08_38_a_deep_chain_import_never_holds_the_lock_at_either_unlock() {
         let dir = TempDir::new("share-f165");
@@ -2396,7 +2653,7 @@ pub(crate) mod tests {
             );
             let (slowest, rounds) = slowest_call(&s, v);
             assert!(
-                slowest < Duration::from_millis(75),
+                slowest < Duration::from_secs(1),
                 "unlock {first}: a call waited {slowest:?} ({rounds} rounds)"
             );
             assert_eq!(count(&s), 20_003);
@@ -2411,6 +2668,46 @@ pub(crate) mod tests {
             }
             s.lock(v).unwrap();
         }
+    }
+
+    /// INT-08.34: past the plan the write itself keeps a key file, even one
+    /// that opens as this share's container, so the look passes.
+    #[test]
+    fn e11s6_rt1_the_write_itself_keeps_the_key_file() {
+        let dir = TempDir::new("e11s6-keep-key");
+        let (file, key) = (dir.join("v.larsalvault"), dir.join("k.larsalkey"));
+        publish(&key, &member());
+        let bytes = std::fs::read(&key).unwrap();
+        let mut vault = base();
+        set_share(team(&mut vault), settings(false, true, "k.larsalkey"));
+        let s = session(false);
+        s.save_settings(vec![crate::larsal_settings::LarsalSetting {
+            key: "recent.remember_keys".into(),
+            value: crate::larsal_settings::LarsalSettingValue::Flag { on: true },
+        }])
+        .unwrap();
+        s.settings.note_keys(
+            &dir.join("other.larsalvault"),
+            Some("k.larsalkey".into()),
+            None,
+        );
+        let v = approved(&s, &file, &vault);
+        unlock(&s, v);
+        let (share, epoch) = s
+            .with_share(v, |slot| {
+                let share = run::shares(slot.vault.unwrap(), Some(slot.path)).remove(0);
+                (share, slot.epoch)
+            })
+            .unwrap();
+        let mut lines = Vec::new();
+        s.export(v, epoch, &share, &mut lines);
+        assert_eq!(std::fs::read(&key).unwrap(), bytes);
+        assert_eq!(
+            run::banner(&lines, false).unwrap().lines,
+            [
+                "k.larsalkey: export failed. The file could not be written: Larsal may not use the file or its folder."
+            ]
+        );
     }
 
     /// F-165: a change the user makes while an import's trial runs wins:

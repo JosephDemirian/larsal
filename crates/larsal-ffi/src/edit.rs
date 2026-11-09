@@ -983,6 +983,7 @@ fn view(vault: &Vault, d: &Draft) -> EditorView {
             .custom_data
             .items
             .iter()
+            .filter(|i| !larsal_core::origin::ours(&i.key))
             .map(|i| CustomDataView {
                 key: if i.key.as_bytes() == SITE_ACCESS {
                     "Browser site access".to_owned()

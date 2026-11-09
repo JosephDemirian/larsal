@@ -386,6 +386,48 @@ pub fn names_in(dir: &File, limit: usize) -> io::Result<Vec<std::ffi::OsString>>
     Ok(names)
 }
 
+/// INT-08.34: [`info_in`], so a later look can tell it is the same one,
+/// unchanged (the status change time moves on every write, and no call can set
+/// it back); `None` when nothing has that name. A link is never followed.
+///
+/// # Errors
+/// The system's error.
+pub fn stamp_in(dir: &File, name: &OsStr) -> io::Result<Option<NodeInfo>> {
+    match info_in(dir, name) {
+        Ok(info) => Ok(Some(info)),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+/// F-101, INT-08.34: opens the folder at `path`, never waiting: a FIFO, or
+/// anything else that is no folder, is refused and not opened (`O_DIRECTORY`,
+/// `O_NONBLOCK`, `O_NOCTTY`). Unlike [`open_dir`] a link at the last step is
+/// followed, as a save to a vault in a linked folder always did.
+///
+/// # Errors
+/// The system's error.
+pub fn open_folder(path: &std::path::Path) -> io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NONBLOCK | libc::O_NOCTTY)
+        .open(path)
+}
+
+/// APP-05.33: the volume of `path` tells names apart by case
+/// (`pathconf(2)`, `_PC_CASE_SENSITIVE`). True when it cannot say: the caller
+/// feeds a delete and then compares names exactly.
+#[must_use]
+pub fn case_sensitive(path: &std::path::Path) -> bool {
+    use std::os::unix::ffi::OsStrExt as _;
+    let Ok(c) = CString::new(path.as_os_str().as_bytes()) else {
+        return true;
+    };
+    // SAFETY: `c` is a NUL-terminated string that lives across the call.
+    unsafe { libc::pathconf(c.as_ptr(), libc::_PC_CASE_SENSITIVE) != 0 }
+}
+
 /// F-101 (LD-225 (1)): opens the file at `path` to read, never waiting: a
 /// path that is not a regular file after links (a FIFO, a device, a
 /// socket, a folder) is refused before any open, the open does not block
@@ -626,6 +668,7 @@ fn acl(src: &File, to: &File) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write as _;
     use std::process::Command;
     use std::time::{Duration, SystemTime};
 
@@ -658,6 +701,12 @@ mod tests {
         let f = create_in(&open, name, 0o600).unwrap();
         assert!(is_file_in(&open, name, &f).unwrap());
         assert!(b.join("t.tmp").is_file() && !other.join("t.tmp").exists());
+        // INT-08.34: a stamp says what is there; any write changes it.
+        let stamp = stamp_in(&open, name).unwrap().unwrap();
+        assert_eq!(stamp.kind, NodeType::File);
+        assert_eq!(stamp_in(&open, OsStr::new("absent")).unwrap(), None);
+        (&f).write_all(b"x").unwrap();
+        assert_ne!(stamp_in(&open, name).unwrap(), Some(stamp));
         let mode = std::fs::metadata(b.join("t.tmp"))
             .unwrap()
             .permissions()

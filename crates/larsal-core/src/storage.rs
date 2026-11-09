@@ -132,6 +132,42 @@ pub fn file_id(path: &Path) -> Result<(u64, u64), PathBuf> {
         .map_err(|_| real_path(path))
 }
 
+/// INT-08.34: `a` and `b` are one file for the file system. Both there: by
+/// device and inode, so a link, a hard link and any spelling count. One not
+/// there: the same folder (by what folder it is) and the same name as
+/// [`larsal_crypto::text::file_name_key`] compares names. A name that cannot
+/// be compared counts as the same (fail closed).
+#[must_use]
+pub fn same_entry(a: &Path, b: &Path) -> bool {
+    if let (Ok(x), Ok(y)) = (file_id(a), file_id(b)) {
+        return x == y;
+    }
+    let folder = |p: &Path| file_id(&resolved_backup_folder(&folder_of(p)));
+    match (a.file_name(), b.file_name()) {
+        (Some(x), Some(y)) => folder(a) == folder(b) && same_name(x, y).unwrap_or(true),
+        _ => true,
+    }
+}
+
+/// The file system's compare of two names; `None` when one is not text.
+fn same_name(a: &OsStr, b: &OsStr) -> Option<bool> {
+    let key = |n: &OsStr| n.to_str().map(larsal_crypto::text::file_name_key);
+    Some(key(a)? == key(b)?)
+}
+
+pub use larsal_platform::macos::{NodeInfo as Stamp, NodeType};
+
+/// INT-08.34: the rename that never replaces; on a volume with no exclusive
+/// rename (`ENOTSUP`, `EINVAL`: `Unsupported`, `InvalidInput`) it is the plain rename.
+fn rename_new_in(dir: &File, from: &OsStr, to: &OsStr) -> io::Result<()> {
+    match larsal_platform::macos::rename_new_in(dir, from, dir, to) {
+        Err(e) if matches!(e.kind(), ErrorKind::Unsupported | ErrorKind::InvalidInput) => {
+            larsal_platform::macos::rename_in(dir, from, to)
+        }
+        done => done,
+    }
+}
+
 /// How a save writes (APP-05.11, APP-05.15, APP-05.16).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -589,7 +625,7 @@ fn replace_file(
         .file_name()
         .ok_or_else(|| write_err(&io::Error::from(ErrorKind::InvalidInput)))?;
     let name = target_name.to_string_lossy();
-    let folder = File::open(dir).map_err(|e| write_err(&e))?;
+    let folder = larsal_platform::macos::open_folder(dir).map_err(|e| write_err(&e))?;
     let (temp, mut f) = create_temp(dir, Some(&folder), &name, fault).map_err(|e| write_err(&e))?;
     let temp_name = temp.file_name().unwrap_or_default();
     let remove = || larsal_platform::macos::remove_in(&folder, temp_name);
@@ -613,11 +649,22 @@ fn replace_file(
     };
     // Not ours any more: leave the path alone, it holds someone else's file.
     ours_in(&folder, temp_name, &f).map_err(|e| write_err(&e))?;
+    // INT-08.34: nothing there now, so what appears from here on is another
+    // writer's file and stays.
+    let new = matches!(
+        larsal_platform::macos::stamp_in(&folder, target_name),
+        Ok(None)
+    );
     if let Some(x) = fault {
         x.before_rename(&temp);
     }
-    let renamed = fail(fault, FaultPoint::Rename)
-        .and_then(|()| larsal_platform::macos::rename_in(&folder, temp_name, target_name));
+    let rename = if new {
+        rename_new_in
+    } else {
+        larsal_platform::macos::rename_in
+    };
+    let renamed =
+        fail(fault, FaultPoint::Rename).and_then(|()| rename(&folder, temp_name, target_name));
     if let Err(e) = renamed {
         drop(f);
         let _ = remove();
@@ -725,6 +772,39 @@ pub fn write_export(path: &Path, bytes: &[u8]) -> io::Result<()> {
 /// `PermissionDenied` when the target is the file of a path in `keep`;
 /// else as [`write_export`]. Nothing is left behind.
 pub fn write_export_except(path: &Path, bytes: &[u8], keep: &[PathBuf]) -> io::Result<()> {
+    write_export_if(path, bytes, keep, &|_| true)
+}
+
+/// What is at `path` now, a link not followed (INT-08.34): `None` when
+/// nothing has that name or its folder is not there.
+///
+/// # Errors
+/// The system's error when the folder cannot be read; `InvalidInput` for a
+/// path with no file name.
+pub fn stamp(path: &Path) -> io::Result<Option<Stamp>> {
+    let name = path
+        .file_name()
+        .ok_or_else(|| io::Error::from(ErrorKind::InvalidInput))?;
+    match larsal_platform::macos::open_folder(&folder_of(path)) {
+        Ok(folder) => larsal_platform::macos::stamp_in(&folder, name),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+/// INT-08.34: [`write_export_except`] that also asks `expected` about what is
+/// at the target's name, in the folder the write uses, right before the
+/// rename. The check of `keep` comes first.
+///
+/// # Errors
+/// `AlreadyExists` when `expected` says no; else as
+/// [`write_export_except`]. Nothing is left behind.
+pub fn write_export_if(
+    path: &Path,
+    bytes: &[u8],
+    keep: &[PathBuf],
+    expected: &dyn Fn(Option<Stamp>) -> bool,
+) -> io::Result<()> {
     let name = path.file_name().unwrap_or_default();
     let guard = |folder: &File| {
         let theirs = keep.iter().any(|p| {
@@ -733,9 +813,13 @@ pub fn write_export_except(path: &Path, bytes: &[u8], keep: &[PathBuf]) -> io::R
                 .unwrap_or(false)
         });
         if theirs {
-            Err(write_err(&io::Error::from(ErrorKind::PermissionDenied)))
-        } else {
+            return Err(write_err(&io::Error::from(ErrorKind::PermissionDenied)));
+        }
+        let now = larsal_platform::macos::stamp_in(folder, name).map_err(|e| write_err(&e))?;
+        if expected(now) {
             Ok(None)
+        } else {
+            Err(write_err(&io::Error::from(ErrorKind::AlreadyExists)))
         }
     };
     replace_file(
@@ -1015,18 +1099,20 @@ pub fn old_copies(
     let mut out = Vec::new();
     let vault = file_id(real);
     if let (Some(dir), Some(name)) = (glob.parent(), glob.file_name()) {
-        for e in backup_folders(dir, None)
-            .iter()
-            .flat_map(|dir| fs::read_dir(dir).into_iter().flatten())
-            .flatten()
-        {
-            // SG43: the vault itself by what file it is, never by the
-            // spelling of the pattern's folder (F-224).
-            if backup_name_matches(name, &e.file_name(), '*')
-                && e.path().is_file()
-                && file_id(&e.path()) != vault
-            {
-                out.push(e.path());
+        for folder in backup_folders(dir, None) {
+            let exact = larsal_platform::macos::case_sensitive(&folder);
+            for e in fs::read_dir(&folder).into_iter().flatten().flatten() {
+                // SG43: the vault itself by what file it is, never by the
+                // spelling of the pattern's folder (F-224).
+                // Fed to a delete: a name that cannot be compared is not
+                // listed, and a volume that tells names apart by case keeps
+                // them apart here.
+                if name_matches(name, &e.file_name(), '*', exact) == Some(true)
+                    && e.path().is_file()
+                    && file_id(&e.path()) != vault
+                {
+                    out.push(e.path());
+                }
             }
         }
     }
@@ -1040,7 +1126,8 @@ pub fn old_copies(
 /// APP-05.17 step 4, INT-08.34 (F-269): `path` is a name the backup
 /// pattern of the vault at `real` gives, each time placeholder matching any
 /// text, whether the file exists or not. Folders compare by what folder
-/// they are, names without letter case (APP-09.15 (b)).
+/// they are, names as the file system compares them (E11-S6); a name that
+/// cannot be compared counts as a backup (fail closed).
 #[must_use]
 pub fn is_backup(pattern: &str, real: &Path, home: &Path, path: &Path) -> bool {
     let glob = backup_glob(pattern, real, home);
@@ -1052,7 +1139,7 @@ pub fn is_backup(pattern: &str, real: &Path, home: &Path, path: &Path) -> bool {
     ) {
         (Some(dir), Some(name), Some(folder), Some(file)) => {
             let folder = resolved_backup_folder(folder);
-            backup_name_matches(name, file, '*')
+            backup_name_matches(name, file, '*') != Some(false)
                 && backup_folders(dir, Some(&folder))
                     .iter()
                     .any(|dir| file_id(&resolved_backup_folder(dir)) == file_id(&folder))
@@ -1061,21 +1148,31 @@ pub fn is_backup(pattern: &str, real: &Path, home: &Path, path: &Path) -> bool {
     }
 }
 
-fn backup_name_matches(pattern: &OsStr, name: &OsStr, wildcard: char) -> bool {
-    let lower = |n: &OsStr| -> String {
-        n.to_string_lossy()
-            .chars()
-            .flat_map(char::to_lowercase)
-            .collect()
+/// `None` when one of the names is not text, so it cannot be compared as the
+/// file system compares it.
+fn backup_name_matches(pattern: &OsStr, name: &OsStr, wildcard: char) -> Option<bool> {
+    name_matches(pattern, name, wildcard, false)
+}
+
+/// [`backup_name_matches`], with `exact` comparing the names as they are.
+fn name_matches(pattern: &OsStr, name: &OsStr, wildcard: char, exact: bool) -> Option<bool> {
+    let key = |n: &OsStr| {
+        n.to_str().map(|n| {
+            if exact {
+                n.to_owned()
+            } else {
+                larsal_crypto::text::file_name_key(n)
+            }
+        })
     };
-    let pattern = lower(pattern);
+    let pattern = key(pattern)?;
     // Keep the existing filename glob behavior; directory stars are literal.
     let pattern = if wildcard == '*' {
         pattern.replace(TIME_GLOB, "*")
     } else {
         pattern
     };
-    matches_glob(&pattern, &lower(name), wildcard)
+    Some(matches_glob(&pattern, &key(name)?, wildcard))
 }
 
 /// Resolve the existing ancestor too when a backup folder has not been made.
@@ -1144,7 +1241,9 @@ fn backup_folders(dir: &Path, candidate: Option<&Path>) -> Vec<PathBuf> {
                     next.extend(
                         list.flatten()
                             .filter(|e| {
-                                backup_name_matches(name, &e.file_name(), TIME_GLOB)
+                                let exact = candidate.is_none()
+                                    && larsal_platform::macos::case_sensitive(&folder);
+                                name_matches(name, &e.file_name(), TIME_GLOB, exact) == Some(true)
                                     && e.path().is_dir()
                             })
                             .map(|e| e.path()),
@@ -1158,7 +1257,7 @@ fn backup_folders(dir: &Path, candidate: Option<&Path>) -> Vec<PathBuf> {
                     && file_id(&resolved_backup_folder(parent))
                         == file_id(&resolved_backup_folder(&folder))
                     && (if wildcard {
-                        backup_name_matches(name, file, TIME_GLOB)
+                        backup_name_matches(name, file, TIME_GLOB) != Some(false)
                     } else {
                         name == file
                     })
@@ -1306,5 +1405,23 @@ impl Failures {
     #[must_use]
     pub fn count(&self) -> u32 {
         self.count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// C2-9: the compare a case-sensitive volume gets. This Mac's volumes are
+    /// case-insensitive, so `old_copies` itself cannot reach it here.
+    #[test]
+    fn e11s6_old_copies_compare_exactly_where_the_volume_tells_names_apart() {
+        let (pattern, name) = (OsStr::new("v*.old"), OsStr::new("V1.OLD"));
+        assert_eq!(name_matches(pattern, name, '*', false), Some(true));
+        assert_eq!(name_matches(pattern, name, '*', true), Some(false));
+        assert_eq!(
+            name_matches(pattern, OsStr::new("v1.old"), '*', true),
+            Some(true)
+        );
     }
 }

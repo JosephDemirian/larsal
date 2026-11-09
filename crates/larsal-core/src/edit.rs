@@ -7,7 +7,7 @@
 //! moves into itself (MOD-02.20); group times move only for changes to the
 //! group itself (MOD-02.25, Larsal column).
 
-use crate::{Error, NameProblem, history, recycle, tree};
+use crate::{Error, NameProblem, history, origin, recycle, tree};
 use core::cmp::Ordering;
 use larsal_model::entry::{STANDARD_FIELDS, cmp_utf16};
 use larsal_model::{
@@ -680,6 +680,14 @@ pub fn move_group(
     if parent == target && final_index == index {
         return Ok(false);
     }
+    // R6 B: the shares the group counts in before the move, when any is known.
+    let known = origin::known(vault);
+    let before = (!known.is_empty()).then(|| {
+        let mut places = origin::Places::new(vault, known);
+        let prev = tree::group_at(&vault.root, &path).and_then(|g| g.previous_parent);
+        let set = places.set_at(parent, prev, Some(id));
+        (places, set)
+    });
     let from = tree::group_at_mut(&mut vault.root, parent_path).ok_or(Error::NoSuchGroup)?;
     if index >= from.groups.len() {
         return Err(Error::NoSuchGroup);
@@ -694,6 +702,12 @@ pub fn move_group(
     let to = tree::group_mut(vault, target).ok_or(Error::NoSuchGroup)?;
     let at = final_index.min(to.groups.len());
     to.groups.insert(at, g);
+    if let Some((mut places, before)) = before.filter(|_| parent != target) {
+        places.set_place(id, target, Some(parent));
+        let after = places.set_at(target, Some(parent), Some(id));
+        let new = after.difference(&before).copied().collect();
+        origin::group_moved(vault, &mut places, id, &new, now);
+    }
     Ok(true)
 }
 
@@ -735,6 +749,8 @@ pub(crate) fn move_one_entry(
     now: Time,
 ) -> Result<bool, Error> {
     let (path, i) = tree::entry_place(&vault.root, id).ok_or(Error::NoSuchEntry)?;
+    let known = origin::known(vault);
+    let mut places = (!known.is_empty()).then(|| origin::Places::new(vault, known));
     let from = tree::group_at_mut(&mut vault.root, &path).ok_or(Error::NoSuchGroup)?;
     if from.uuid == target {
         return Ok(false);
@@ -744,6 +760,13 @@ pub(crate) fn move_one_entry(
         return Err(Error::NoSuchEntry);
     }
     let mut e = from.entries.remove(i);
+    // R6 B: a move that adds a share to the entry's set is the user's move in.
+    if let Some(places) = &mut places {
+        let before = places.set_at(old, e.previous_parent, None);
+        let own = places.set_at(target, Some(old), None);
+        let new = own.difference(&before).copied().collect();
+        places.moved(&mut e.custom_data, &new, &own, now);
+    }
     e.times.location_changed = now;
     if e.previous_parent != Some(old) {
         e.previous_parent = Some(old);
@@ -1009,12 +1032,17 @@ fn make_copy(
             let new = tree::fresh_id(|u| entries.contains(&u))?;
             entries.insert(new);
             reset_entry(&mut copy, new, now, same_vault);
-            Ok((Copied::Entry(copy), icons_used(None, Some(e)), new))
+            // INT-08.32: a copy is a new object; no user's move or share brought it.
+            origin::strip_entry(&mut copy);
+            // The icons of what goes, so a private item's icon stays behind too.
+            let icons = icons_used(None, Some(&copy));
+            Ok((Copied::Entry(copy), icons, new))
         }
         Item::Group(id) => {
             let g = tree::group(vault, id).ok_or(Error::NoSuchGroup)?;
-            let icons = icons_used(Some(g), None);
             let mut copy = g.duplicate();
+            origin::strip_tree(&mut copy);
+            let icons = icons_used(Some(&copy), None);
             let mut stack = vec![&mut copy];
             let mut first = None;
             while let Some(c) = stack.pop() {

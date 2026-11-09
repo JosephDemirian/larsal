@@ -5,6 +5,28 @@ use crate::times::Time;
 use crate::unknown::UnknownElement;
 use larsal_crypto::secret::SecretString;
 
+/// True for a character a saved text keeps (FMT-12.25). The one set: the writer, the
+/// reader of custom data keys and every compare of a key below go through it.
+#[must_use]
+pub fn kept_char(c: char) -> bool {
+    !matches!(c,
+        '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}'
+        | '\u{7F}'..='\u{84}' | '\u{86}'..='\u{9F}' | '\u{FFFE}' | '\u{FFFF}')
+}
+
+/// `key` as a save writes it (FMT-12.25, FMT-14.10).
+#[must_use]
+pub fn clean_key(key: &str) -> String {
+    key.chars().filter(|c| kept_char(*c)).collect()
+}
+
+/// True when `key`, cleaned, is `held`: a key that differs only by what a save removes
+/// is that key, on every read and every compare (INT-08.32).
+#[must_use]
+pub fn same_key(key: &str, held: &str) -> bool {
+    key.chars().filter(|c| kept_char(*c)).eq(held.chars())
+}
+
 /// One custom data container.
 ///
 /// Guarantees: items keep their stored order (read order; new keys at the
@@ -93,6 +115,38 @@ mod tests {
         copy.unknown.clear();
         assert_eq!(item.value.expose(), "démo\0🗝️");
         assert_eq!(item.unknown.len(), 1);
+    }
+
+    // INT-08.32 (C2R3-01): a key that differs only by what a save removes is the key,
+    // for every removed character in every position; anything else is not.
+    #[test]
+    fn int08_32_a_near_key_is_the_key() {
+        let key = "app.larsal.share.moved";
+        let removed = (0u32..=8)
+            .chain([0xB, 0xC])
+            .chain(0xE..=0x1F)
+            .chain(0x7F..=0x84)
+            .chain(0x86..=0x9F)
+            .chain([0xFFFE, 0xFFFF])
+            .filter_map(char::from_u32);
+        for c in removed {
+            for cut in [0, 3, key.len()] {
+                let near = format!("{}{c}{}", &key[..cut], &key[cut..]);
+                assert!(same_key(&near, key), "U+{:04X} at {cut}", u32::from(c));
+                assert_eq!(clean_key(&near), key);
+            }
+        }
+        for c in ['\t', '\n', '\r', '\u{85}', 'x', '\u{A0}'] {
+            assert!(
+                !same_key(&format!("{key}{c}"), key),
+                "U+{:04X}",
+                u32::from(c)
+            );
+        }
+        assert!(
+            !same_key(key, &format!("{key}\u{7f}")),
+            "the held side is clean"
+        );
     }
 
     // INT-08.39 by type: the value (a share item's value is the share

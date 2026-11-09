@@ -23,6 +23,7 @@ use crate::error::Error;
 use crate::limits::{Limits, model_cost};
 use larsal_crypto::secret::{SecretBytes, SecretString, ct_eq};
 use larsal_crypto::stream::FieldStream;
+use larsal_model::custom_data::clean_key;
 use larsal_model::entry::{STANDARD_FIELDS, parse_tags};
 use larsal_model::{
     Association, Attachment, AutoType, CustomData, CustomDataItem, CustomIcon, DeletedObject,
@@ -1368,7 +1369,8 @@ impl<'a, 's> Parser<'a, 's> {
                 }
                 Ok(())
             })?;
-            item.key = key.ok_or(Reason::IncompleteCustomData)?;
+            // FMT-14.10: the key as a save would write it, so two spellings are one key.
+            item.key = clean_key(&key.ok_or(Reason::IncompleteCustomData)?);
             item.value = value.ok_or(Reason::IncompleteCustomData)?;
             cd.add(item);
             Ok(())

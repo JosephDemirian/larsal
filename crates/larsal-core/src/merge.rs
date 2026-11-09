@@ -10,6 +10,10 @@
 //!   the whole vault, keeping every object changed or moved after the
 //!   deletion (LD-265, LD-271 (2)); in a shared-group import only inside the
 //!   shared group (D-11-9). No other merge erases anything (MOD-11.15).
+//! - In a vault that knows a share, one rule decides, the same in both directions
+//!   and for all six same-vault kinds (rule R6, INT-08.32, `shared_merge`): a share
+//!   never wins by time, and only a user's stamped move brings an object into a
+//!   share across a merge. With no share known, this code is today's merge.
 //! - Work is linear in the objects walked; a group move that would make a
 //!   cycle is skipped with a Conflict record, so every merge ends
 //!   (MOD-11.9, AT-A08).
@@ -26,12 +30,15 @@
 use crate::Error;
 use crate::health::shown_title;
 use crate::history;
+use crate::origin;
 use crate::recycle;
 use larsal_crypto::secret::SecretString;
-use larsal_model::custom_data::CustomDataItem;
+use larsal_model::custom_data::{CustomDataItem, same_key};
 use larsal_model::entry::STANDARD_FIELDS;
 use larsal_model::{Entry, Field, Group, Kdf, Time, Uuid, Vault};
 use std::collections::{HashMap, HashSet};
+
+mod shared;
 
 /// Which merge flow runs (MOD-11.1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -254,11 +261,40 @@ fn display_item(i: &larsal_model::PublicItem) -> bool {
 /// `RandomSource` when a recycle bin must be made and no fresh id can be
 /// drawn; the target is then unchanged only in a dry run.
 pub fn merge(target: &mut Vault, source: &Vault, o: &Options, now: Time) -> Result<Merged, Error> {
+    // INT-08.32: only a copy of this vault gives a stamp, marker, list or row, so a
+    // container, or any other vault, cannot plant one. An import never takes a
+    // time from a share later than now (R6 C1).
+    let clean;
+    let import = o.kind == Kind::SharedImport;
+    let source = if !same_vault(target, source, o) && (import || origin::held(source)) {
+        let mut copy = source.duplicate();
+        origin::strip(&mut copy);
+        if import {
+            origin::clamp(&mut copy, now);
+            origin::strip_shares(&mut copy.root);
+        }
+        clean = copy;
+        &clean
+    } else {
+        source
+    };
     if o.dry_run {
         let mut copy = target.duplicate();
         return Merger::new(&mut copy, source, o, now).run();
     }
     Merger::new(target, source, o, now).run()
+}
+
+/// MOD-11's Notation: the one meaning of a same-vault merge. That the copy
+/// opened with this vault's key or with credentials the user gave for it is
+/// the caller's: the merge only ever sees an open copy. A copy under a key
+/// this Mac retired never is one (LD-267 (2)).
+fn same_vault(t: &Vault, s: &Vault, o: &Options) -> bool {
+    s.root.uuid == t.root.uuid
+        && o.target_start.is_none_or(|g| g == t.root.uuid)
+        && o.source_start.is_none_or(|g| g == s.root.uuid)
+        && !matches!(o.kind, Kind::SharedImport | Kind::ImportWizard)
+        && !o.retired
 }
 
 /// Where every target object sits, kept up to date as the merge adds and
@@ -351,6 +387,11 @@ impl Index {
         Some(g)
     }
 
+    fn entry<'a>(&self, root: &'a Group, id: Uuid) -> Option<&'a Entry> {
+        let (g, i) = *self.epos.get(&id)?;
+        self.group(root, g)?.entries.get(i).filter(|e| e.uuid == id)
+    }
+
     fn entry_mut<'a>(&self, root: &'a mut Group, id: Uuid) -> Option<&'a mut Entry> {
         let (g, i) = *self.epos.get(&id)?;
         self.group_mut(root, g)?
@@ -430,6 +471,8 @@ struct Move {
     id: Uuid,
     parent: Uuid,
     loc: Time,
+    /// R6 E3: the tie rule moved it, so the Loc compare is done.
+    force: bool,
 }
 
 #[derive(PartialEq, Eq)]
@@ -443,15 +486,7 @@ impl<'t, 's> Merger<'t, 's> {
     fn new(t: &'t mut Vault, s: &'s Vault, o: &Options, now: Time) -> Self {
         let target_start = o.target_start.unwrap_or(t.root.uuid);
         let source_start = o.source_start.unwrap_or(s.root.uuid);
-        // MOD-11's Notation: the one meaning of a same-vault merge. That the
-        // copy opened with this vault's key or with credentials the user
-        // gave for it is the caller's: the merge only ever sees an open
-        // copy. A copy under a key this Mac retired never is one (LD-267 (2)).
-        let same_vault = s.root.uuid == t.root.uuid
-            && target_start == t.root.uuid
-            && source_start == s.root.uuid
-            && !matches!(o.kind, Kind::SharedImport | Kind::ImportWizard)
-            && !o.retired;
+        let same_vault = same_vault(t, s, o);
         let ix = Index::new(&t.root);
         let mask_titles = t.meta.memory_protection.for_field("Title")
             || s.meta.memory_protection.for_field("Title");
@@ -499,19 +534,28 @@ impl<'t, 's> Merger<'t, 's> {
             // MOD-11.20: the two roots are a matched group.
             self.group_fields(start, self.target_start);
         }
-        self.walk(start, self.target_start)?;
-        self.retry_moves();
-        if self.synchronize() || self.same_vault {
-            self.deletions();
-        } else if self.o.retired {
-            // MOD-11.31 (F-173, LD-313): the user chose to keep what Merge
-            // anyway added, so this Mac's own item for it goes; left beside
-            // the object (FMT-15.5), it would let the next merge erase it or
-            // decide differently a second time (MOD-11.30).
-            let (e, g) = (&self.added_entries, &self.added_groups);
-            self.t
-                .deleted_objects
-                .retain(|d| !e.contains(&d.uuid) && !g.contains(&d.uuid));
+        let known = self.known_shares();
+        if self.same_vault && !known.is_empty() {
+            self.shared_merge(start, known);
+        } else if self.synchronize() {
+            self.shared_import(start, known)?;
+        } else {
+            self.walk(start, self.target_start)?;
+            self.retry_moves();
+            if self.same_vault {
+                self.deletions();
+            } else if self.o.retired {
+                // MOD-11.31 (F-173, LD-313): the user chose to keep what Merge
+                // anyway added, so this Mac's own item for it goes; left beside
+                // the object (FMT-15.5), it would let the next merge erase it or
+                // decide differently a second time (MOD-11.30).
+                let (e, g) = (&self.added_entries, &self.added_groups);
+                self.t
+                    .deleted_objects
+                    .retain(|d| !e.contains(&d.uuid) && !g.contains(&d.uuid));
+                let added: HashSet<Uuid> = e.union(g).copied().collect();
+                origin::drop_rows(self.t, &added);
+            }
         }
         compact(&mut self.t.root);
         self.icons();
@@ -583,8 +627,17 @@ impl<'t, 's> Merger<'t, 's> {
         });
     }
 
+    /// A share reaches its group and what is below it, never the bin: its group can be
+    /// the root (INT-08.32).
     fn in_scope(&self, group: Uuid) -> bool {
-        !self.synchronize() || self.ix.within(group, self.target_start)
+        !self.synchronize()
+            || (self.ix.within(group, self.target_start)
+                && (self.target_start != self.ix.root
+                    || self
+                        .t
+                        .meta
+                        .recycle_bin
+                        .is_none_or(|bin| !self.ix.within(group, bin))))
     }
 
     fn find_group(&self, id: Uuid) -> Found {
@@ -658,38 +711,14 @@ impl<'t, 's> Merger<'t, 's> {
                 Ok(Some(id))
             }
             Found::None => {
-                if self.bins_map()
-                    && recycle::bin_id(self.s) == Some(c.uuid)
-                    && self.t.meta.recycle_bin_enabled
-                {
-                    // MOD-11.16 (D-11-4): the source bin maps to the target bin.
-                    if let Some(bin) = recycle::bin_id(self.t) {
-                        return Ok(Some(bin));
-                    }
-                    // None yet: made (MOD-04.2) with the source bin's id, so a
-                    // dry run and the merge agree and later merges match it.
-                    let mut bin = Group::new(c.uuid, recycle::BIN_NAME.to_owned(), self.now);
-                    bin.icon = larsal_model::Icon::Standard(recycle::BIN_ICON);
-                    bin.searching = larsal_model::Switch::Off;
-                    bin.auto_type = larsal_model::Switch::Off;
-                    let root = self.ix.root;
-                    if self.push_group(root, bin) {
-                        self.added_groups.insert(c.uuid);
-                        self.t.meta.recycle_bin = Some(c.uuid);
-                        self.t.meta.recycle_bin_changed = self.now;
-                        let path = self.path_of(c.uuid);
-                        self.record(
-                            ChangeKind::Added,
-                            Object::Group,
-                            &path,
-                            "",
-                            Some(c.uuid),
-                            vec!["recycle bin made".into()],
-                        );
-                    }
-                    return Ok(Some(c.uuid));
+                if let Some(bin) = self.map_bin(c) {
+                    return Ok(Some(bin));
                 }
-                if !self.push_group(parent, own_copy(c)) {
+                let mut own = own_copy(c);
+                if self.synchronize() {
+                    origin::set_mark(&mut own.custom_data, self.target_start);
+                }
+                if !self.push_group(parent, own) {
                     return Ok(None);
                 }
                 self.added_groups.insert(c.uuid);
@@ -708,6 +737,42 @@ impl<'t, 's> Merger<'t, 's> {
         }
     }
 
+    /// MOD-11.16 (D-11-4): the source's bin maps to the target's bin: `Some` with
+    /// that bin when `c` is the source's and the mapping applies.
+    fn map_bin(&mut self, c: &Group) -> Option<Uuid> {
+        if !(self.bins_map()
+            && recycle::bin_id(self.s) == Some(c.uuid)
+            && self.t.meta.recycle_bin_enabled)
+        {
+            return None;
+        }
+        if let Some(bin) = recycle::bin_id(self.t) {
+            return Some(bin);
+        }
+        // None yet: made (MOD-04.2) with the source bin's id, so a
+        // dry run and the merge agree and later merges match it.
+        let mut bin = Group::new(c.uuid, recycle::BIN_NAME.to_owned(), self.now);
+        bin.icon = larsal_model::Icon::Standard(recycle::BIN_ICON);
+        bin.searching = larsal_model::Switch::Off;
+        bin.auto_type = larsal_model::Switch::Off;
+        let root = self.ix.root;
+        if self.push_group(root, bin) {
+            self.added_groups.insert(c.uuid);
+            self.t.meta.recycle_bin = Some(c.uuid);
+            self.t.meta.recycle_bin_changed = self.now;
+            let path = self.path_of(c.uuid);
+            self.record(
+                ChangeKind::Added,
+                Object::Group,
+                &path,
+                "",
+                Some(c.uuid),
+                vec!["recycle bin made".into()],
+            );
+        }
+        Some(c.uuid)
+    }
+
     /// MOD-11.8, MOD-11.9: move a matched group when the source's location
     /// time is newer and its parent differs; never into its own subtree.
     fn group_move(&mut self, c: &Group, id: Uuid, parent: Uuid) {
@@ -715,6 +780,7 @@ impl<'t, 's> Merger<'t, 's> {
             id,
             parent,
             loc: c.times.location_changed,
+            force: false,
         };
         if self.try_move(&wanted) == Moving::Cycle {
             // Tried again after the walk: a later move may undo the cycle.
@@ -731,7 +797,7 @@ impl<'t, 's> Merger<'t, 's> {
         let Some(tg) = self.ix.group(&self.t.root, m.id) else {
             return Moving::Stays;
         };
-        if tg.times.location_changed >= m.loc
+        if (!m.force && tg.times.location_changed >= m.loc)
             || old_parent == m.parent
             || !self.ix.has_group(m.parent)
         {
@@ -801,12 +867,20 @@ impl<'t, 's> Merger<'t, 's> {
     /// never parent, Loc, children, previous parent, view state, the
     /// shared-group item, creation, access time or usage count.
     fn group_fields(&mut self, c: &Group, id: Uuid) {
+        let newer = self
+            .ix
+            .group(&self.t.root, id)
+            .is_some_and(|g| c.times.last_modification > g.times.last_modification);
+        if newer {
+            self.group_take(c, id);
+        }
+    }
+
+    /// MOD-11.10's fields of `c` go to group `id`, whatever the times (R6 E5).
+    fn group_take(&mut self, c: &Group, id: Uuid) {
         let Some(tg) = self.ix.group_mut(&mut self.t.root, id) else {
             return;
         };
-        if c.times.last_modification <= tg.times.last_modification {
-            return;
-        }
         let mut labels: Vec<String> = Vec::new();
         let mut label = |differ: bool, name: &str| {
             if differ {
@@ -828,12 +902,19 @@ impl<'t, 's> Merger<'t, 's> {
         label(tg.searching != c.searching, "Search");
         let share = core::str::from_utf8(&SHARE_KEY).unwrap_or("");
         let mut data = c.custom_data.clone();
-        data.items.retain(|i| i.key != share);
+        data.items.retain(|i| !same_key(&i.key, share));
         if let Some(kept) = tg.custom_data.items.iter().find(|i| i.key == share) {
             data.items.push(kept.clone());
         }
-        label(tg.custom_data != data, "Custom data");
-        labels.push("Modification time".into());
+        // The stamp and marker are not fields: R6 decides them.
+        origin::keep_own(&tg.custom_data, &mut data);
+        label(!origin::same_data(&tg.custom_data, &data), "Custom data");
+        if c.times.last_modification != tg.times.last_modification {
+            labels.push("Modification time".into());
+        }
+        if labels.is_empty() {
+            return;
+        }
         tg.name.clone_from(&c.name);
         tg.notes.clone_from(&c.notes);
         tg.icon = c.icon;
@@ -886,6 +967,9 @@ impl<'t, 's> Merger<'t, 's> {
             Found::None => {
                 let mut copy = e.duplicate(true);
                 protect_passwords(&mut copy);
+                if self.synchronize() {
+                    origin::set_mark(&mut copy.custom_data, self.target_start);
+                }
                 let unknown = has_unknown(e);
                 let Some(g) = self.ix.group_mut(&mut self.t.root, group) else {
                     return;
@@ -907,15 +991,16 @@ impl<'t, 's> Merger<'t, 's> {
             }
             Found::Here(at) => {
                 self.source_times.insert(e.uuid, later(&e.times));
-                self.entry_move(e, at, group);
+                self.entry_move(e, at, group, false);
                 self.entry_conflict(e);
             }
         }
     }
 
     /// MOD-11.7: move a matched entry when the source's location time is
-    /// newer and its group differs; it takes the source's Loc (D-11-8).
-    fn entry_move(&mut self, e: &Entry, at: Uuid, group: Uuid) {
+    /// newer and its group differs; it takes the source's Loc (D-11-8). `tie`:
+    /// a tie in a vault with shares goes to the lower group id (R6 E3).
+    fn entry_move(&mut self, e: &Entry, at: Uuid, group: Uuid, tie: bool) {
         if at == group || !self.ix.has_group(group) {
             return;
         }
@@ -926,7 +1011,10 @@ impl<'t, 's> Merger<'t, 's> {
             .ix
             .group_mut(&mut self.t.root, at)
             .and_then(|from| from.entries.get_mut(pos))
-            .filter(|x| x.uuid == e.uuid && x.times.location_changed < e.times.location_changed)
+            .filter(|x| {
+                let (mine, theirs) = (x.times.location_changed, e.times.location_changed);
+                x.uuid == e.uuid && (mine < theirs || (tie && mine == theirs && group < at))
+            })
         else {
             return;
         };
@@ -980,6 +1068,11 @@ impl<'t, 's> Merger<'t, 's> {
             if let Some(h) = joined {
                 copy.history = h;
             }
+            origin::keep_own(&te.custom_data, &mut copy.custom_data);
+            // R6 C2: an import leaves the target's previous parent.
+            if self.o.kind == Kind::SharedImport {
+                copy.previous_parent = te.previous_parent;
+            }
             // F-152: in a same-vault merge the entry keeps the later Loc, so
             // a move this side made after a deletion item still counts in
             // the deletion pass (MOD-11.30, LD-271 (2)); otherwise the
@@ -1026,26 +1119,17 @@ impl<'t, 's> Merger<'t, 's> {
         }
     }
 
-    /// FMT-15.11, the deletion pass. In a same-vault merge it runs over the
-    /// whole vault, and an object's time is the latest Mod or Loc that
-    /// either side holds, so a move counts as a change (LD-265, LD-271 (2),
-    /// LD-287 (2)); an object this merge added and the pass erases leaves
-    /// no record (MOD-11.15). In a shared-group import (D-11-9) it erases
-    /// only inside the target start group, by Mod; first each of the share's
-    /// items dated after the import takes the import time (LD-271 (1)), and
-    /// a share's item that names an object outside the shared group is
-    /// dropped (SI-09).
+    /// FMT-15.11, the deletion pass of a same-vault merge of a vault with no share
+    /// known. It runs over the whole vault, and an object's time is the latest Mod
+    /// or Loc that either side holds, so a move counts as a change (LD-265, LD-271
+    /// (2), LD-287 (2)); an object this merge added and the pass erases leaves no
+    /// record (MOD-11.15).
     fn deletions(&mut self) {
-        let whole = self.same_vault;
-        let time = |t: &larsal_model::Times| {
-            if whole { later(t) } else { t.last_modification }
-        };
         // F-154, LD-287 (2): the source copy's own time counts too.
         let source_times = core::mem::take(&mut self.source_times);
         let source_group_times = core::mem::take(&mut self.source_group_times);
-        let after = |m: &HashMap<Uuid, Time>, id: &Uuid, when: Time| {
-            whole && m.get(id).is_some_and(|t| *t > when)
-        };
+        let after =
+            |m: &HashMap<Uuid, Time>, id: &Uuid, when: Time| m.get(id).is_some_and(|t| *t > when);
         // Steps 1 and 2: first sight decides; later sights keep the earliest
         // time for the checks.
         let mut list: Vec<larsal_model::DeletedObject> = Vec::new();
@@ -1053,49 +1137,26 @@ impl<'t, 's> Merger<'t, 's> {
         let mut groups: Vec<Uuid> = Vec::new();
         let mut earliest: HashMap<Uuid, Time> = HashMap::new();
         let mut seen: HashSet<Uuid> = HashSet::new();
-        let share = self.synchronize();
-        let now = self.now;
-        let items: Vec<(bool, larsal_model::DeletedObject)> = self
+        let items: Vec<larsal_model::DeletedObject> = self
             .t
             .deleted_objects
             .iter()
-            .map(|d| (false, d.clone()))
-            .chain(self.s.deleted_objects.iter().map(|d| {
-                let mut d = d.clone();
-                if share && d.deleted_at > now {
-                    d.deleted_at = now;
-                }
-                (true, d)
-            }))
+            .chain(self.s.deleted_objects.iter())
+            .cloned()
             .collect();
-        for (theirs, d) in items {
+        for d in items {
             if !seen.insert(d.uuid) {
                 if let Some(t) = earliest.get_mut(&d.uuid) {
                     *t = (*t).min(d.deleted_at);
                 }
                 continue;
             }
-            let entry_here = self
-                .ix
-                .epos
-                .get(&d.uuid)
-                .is_some_and(|(g, _)| self.ix.within(*g, self.target_start));
-            let group_here = self.ix.has_group(d.uuid)
-                && d.uuid != self.target_start
-                && d.uuid != self.ix.root
-                && self.ix.within(d.uuid, self.target_start);
-            if entry_here {
+            if self.ix.epos.contains_key(&d.uuid) {
                 entries.push(d.uuid);
                 earliest.insert(d.uuid, d.deleted_at);
-            } else if group_here {
+            } else if self.ix.has_group(d.uuid) && d.uuid != self.ix.root {
                 groups.push(d.uuid);
                 earliest.insert(d.uuid, d.deleted_at);
-            } else if share
-                && theirs
-                && (self.ix.epos.contains_key(&d.uuid) || self.ix.has_group(d.uuid))
-            {
-                // MOD-11.15 (SI-09): the share's item names an object
-                // outside the shared group on this Mac; it is dropped.
             } else {
                 list.push(d);
             }
@@ -1107,39 +1168,25 @@ impl<'t, 's> Merger<'t, 's> {
             let Some(when) = earliest.get(&id).copied() else {
                 continue;
             };
-            let Some(&(g, _)) = self.ix.epos.get(&id) else {
-                continue;
-            };
             if after(&source_times, &id, when) {
                 continue;
             }
-            let path = self.path_of(g);
             let Some(slot) = self.ix.entry_mut(&mut self.t.root, id) else {
                 continue;
             };
-            if time(&slot.times) > when {
+            if later(&slot.times) > when {
                 continue;
             }
-            let gone = core::mem::replace(slot, tomb_entry());
-            self.ix.epos.remove(&id);
+            self.erase_entry(id);
             erased = true;
             list.push(larsal_model::DeletedObject {
                 uuid: id,
                 deleted_at: when,
                 unknown: Vec::new(),
             });
-            if whole && self.added_entries.contains(&id) {
+            if self.added_entries.contains(&id) {
                 quiet_entries.insert(id);
-                continue;
             }
-            self.record(
-                ChangeKind::Deleted,
-                Object::Entry,
-                &path,
-                shown_title(&gone, self.mask_titles),
-                Some(id),
-                vec!["deleted directly".into()],
-            );
         }
         // Step 4: groups, children before parents.
         groups.sort_by_key(|id| core::cmp::Reverse(self.ix.chain(*id).map_or(0, |c| c.len())));
@@ -1151,61 +1198,24 @@ impl<'t, 's> Merger<'t, 's> {
                 continue;
             };
             let live = |x: &Uuid| *x != Uuid::default();
-            let keep = time(&g.times) > when
+            let keep = later(&g.times) > when
                 || after(&source_group_times, &id, when)
                 || g.entries.iter().any(|e| live(&e.uuid))
                 || g.groups.iter().any(|c| live(&c.uuid));
-            if keep {
+            if keep || !self.erase_group(id) {
                 continue;
             }
-            let (Some(parent), Some(at)) = (
-                self.ix.parent.get(&id).copied(),
-                self.ix.gpos.get(&id).copied(),
-            ) else {
-                continue;
-            };
-            let path = self.path_of(id);
-            let Some(slot) = self
-                .ix
-                .group_mut(&mut self.t.root, parent)
-                .and_then(|p| p.groups.get_mut(at))
-            else {
-                continue;
-            };
-            *slot = tomb_group();
-            self.ix.parent.remove(&id);
-            self.ix.gpos.remove(&id);
             erased = true;
             list.push(larsal_model::DeletedObject {
                 uuid: id,
                 deleted_at: when,
                 unknown: Vec::new(),
             });
-            if whole && self.added_groups.contains(&id) {
+            if self.added_groups.contains(&id) {
                 quiet_groups.insert(id);
-                continue;
             }
-            self.record(
-                ChangeKind::Deleted,
-                Object::Group,
-                &path,
-                "",
-                Some(id),
-                vec!["deleted directly".into()],
-            );
         }
-        // MOD-11.15: an object added and erased again leaves the target as
-        // it was, so it leaves no record.
-        if !quiet_entries.is_empty() || !quiet_groups.is_empty() {
-            self.changes.retain(|c| {
-                let quiet = match c.object {
-                    Object::Entry => &quiet_entries,
-                    Object::Group => &quiet_groups,
-                    Object::Vault => return true,
-                };
-                c.kind != ChangeKind::Added || c.id.is_none_or(|id| !quiet.contains(&id))
-            });
-        }
+        self.quiet(&quiet_entries, &quiet_groups);
         if erased {
             // FMT-10.16, FMT-11.37: nothing names an erased object, so the
             // vault still holds its invariants and can be saved.
@@ -1222,6 +1232,74 @@ impl<'t, 's> Merger<'t, 's> {
                 vec!["deleted objects changed".into()],
             );
         }
+    }
+
+    /// Takes entry `id` out, with its record (FMT-15.11).
+    fn erase_entry(&mut self, id: Uuid) {
+        let Some(&(g, _)) = self.ix.epos.get(&id) else {
+            return;
+        };
+        let path = self.path_of(g);
+        let Some(slot) = self.ix.entry_mut(&mut self.t.root, id) else {
+            return;
+        };
+        let gone = core::mem::replace(slot, tomb_entry());
+        self.ix.epos.remove(&id);
+        self.record(
+            ChangeKind::Deleted,
+            Object::Entry,
+            &path,
+            shown_title(&gone, self.mask_titles),
+            Some(id),
+            vec!["deleted directly".into()],
+        );
+    }
+
+    /// Takes group `id` out, with its record; false when it is not there.
+    fn erase_group(&mut self, id: Uuid) -> bool {
+        let (Some(parent), Some(at)) = (
+            self.ix.parent.get(&id).copied(),
+            self.ix.gpos.get(&id).copied(),
+        ) else {
+            return false;
+        };
+        let path = self.path_of(id);
+        let Some(slot) = self
+            .ix
+            .group_mut(&mut self.t.root, parent)
+            .and_then(|p| p.groups.get_mut(at))
+        else {
+            return false;
+        };
+        *slot = tomb_group();
+        self.ix.parent.remove(&id);
+        self.ix.gpos.remove(&id);
+        self.record(
+            ChangeKind::Deleted,
+            Object::Group,
+            &path,
+            "",
+            Some(id),
+            vec!["deleted directly".into()],
+        );
+        true
+    }
+
+    /// MOD-11.15: an object added and erased again leaves the target as it was, so
+    /// it leaves no record.
+    fn quiet(&mut self, entries: &HashSet<Uuid>, groups: &HashSet<Uuid>) {
+        if entries.is_empty() && groups.is_empty() {
+            return;
+        }
+        self.changes.retain(|c| {
+            let quiet = match c.object {
+                Object::Entry => entries,
+                Object::Group => groups,
+                Object::Vault => return true,
+            };
+            let added_or_gone = matches!(c.kind, ChangeKind::Added | ChangeKind::Deleted);
+            !(added_or_gone && c.id.is_some_and(|id| quiet.contains(&id)))
+        });
     }
 
     /// MOD-11.17: each source icon the target lacks is appended; an id on
@@ -1261,6 +1339,7 @@ impl<'t, 's> Merger<'t, 's> {
                 || k == "_CREATED_"
                 || k == "FDO_SECRETS_EXPOSED_GROUP"
                 || k.as_bytes() == REMOTE_SYNC
+                || origin::vault_key(k)
         };
         let mut notes: Vec<String> = Vec::new();
         let source = &self.s.meta.custom_data;
@@ -1288,7 +1367,11 @@ impl<'t, 's> Merger<'t, 's> {
             .collect();
         for item in &source.items {
             let k = item.key.as_str();
-            if k == LAST_MODIFIED || k.as_bytes() == PADDING || (browser(k) && !self.same_vault) {
+            if k == LAST_MODIFIED
+                || k.as_bytes() == PADDING
+                || origin::vault_key(k)
+                || (browser(k) && !self.same_vault)
+            {
                 continue;
             }
             match at.get(k).and_then(|i| target.items.get_mut(*i)) {
@@ -1550,7 +1633,7 @@ pub fn same_version(a: &Entry, b: &Entry) -> bool {
             .map(|(n, f)| (n, f.value.expose()))
             .eq(b.fields().map(|(n, f)| (n, f.value.expose())))
         && a.attachments == b.attachments
-        && a.custom_data == b.custom_data
+        && origin::same_data(&a.custom_data, &b.custom_data)
         && a.icon == b.icon
         && (&a.foreground_color, &a.background_color, &a.override_url)
             == (&b.foreground_color, &b.background_color, &b.override_url)
@@ -1590,9 +1673,10 @@ impl<'a> Versions<'a> {
 }
 
 /// The same versions in any order (MOD-11.30: a history whose clock went
-/// back is not re-sorted by a merge that adds nothing).
+/// back is not re-sorted by a merge that adds nothing), the same ones private.
 fn same_versions(a: &[Entry], b: &[Entry]) -> bool {
-    if a.len() != b.len() {
+    let tagged = |x: &[Entry]| x.iter().filter(|h| origin::private_item(h)).count();
+    if a.len() != b.len() || tagged(a) != tagged(b) {
         return false;
     }
     let (va, vb) = (Versions::new(a), Versions::new(b));
@@ -1619,25 +1703,50 @@ fn join(
             .push(i);
     }
     let held = |items: &[Entry], by_time: &HashMap<Time, Vec<usize>>, x: &Entry| {
-        by_time.get(&x.times.last_modification).is_some_and(|v| {
+        by_time.get(&x.times.last_modification).and_then(|v| {
             v.iter()
-                .any(|i| items.get(*i).is_some_and(|y| same_version(x, y)))
+                .copied()
+                .find(|i| items.get(*i).is_some_and(|y| same_version(x, y)))
         })
     };
+    let mut dropped: HashSet<usize> = HashSet::new();
     for h in source_hist {
-        if !held(&items, &by_time, h) {
-            by_time
-                .entry(h.times.last_modification)
-                .or_default()
-                .push(items.len());
-            items.push(h.duplicate(false));
+        match held(&items, &by_time, h) {
+            None => {
+                by_time
+                    .entry(h.times.last_modification)
+                    .or_default()
+                    .push(items.len());
+                items.push(h.duplicate(false));
+            }
+            // INT-08.32: private on one copy is private on both. As a whole win's loser
+            // (item 5): the stamp and marker go first, and a version that still cannot
+            // take the tag at the custom data item limit is dropped, never kept untagged.
+            Some(i) if origin::private_item(h) => {
+                let y = items.get_mut(i).filter(|y| !origin::private_item(y));
+                if y.is_some_and(|y| !origin::make_private(y)) {
+                    dropped.insert(i);
+                }
+            }
+            Some(_) => {}
         }
     }
-    if !same_version(loser, winner) && !held(&items, &by_time, loser) {
+    if !same_version(loser, winner) && held(&items, &by_time, loser).is_none() {
         let mut l = loser.duplicate(false);
         l.uuid = winner.uuid;
         items.push(l);
     }
+    if !dropped.is_empty() {
+        let mut at = 0usize;
+        items.retain(|_| {
+            let keep = !dropped.contains(&at);
+            at = at.saturating_add(1);
+            keep
+        });
+    }
+    // C1-09: a private item that is the winner's own version is no longer lost. Kept, the
+    // next edit would hold that version twice on one Mac and once on the others.
+    items.retain(|y| !(origin::private_item(y) && same_version(y, winner)));
     items.sort_by_key(|x| x.times.last_modification);
     if same_versions(&items, existing) {
         return None;
