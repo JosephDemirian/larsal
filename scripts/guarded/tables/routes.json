@@ -116,7 +116,7 @@
  },
  "scripts": {
   "scripts/check-names.sh": "364b0f7a6d33a4ace77ef2ae5fed8d41391fc886756cba88621ed677ed486fc3",
-  "scripts/check-vendor.sh": "2e8aba909549efb4123a155483dd84290032107d7321419524b935646214ad6d",
+  "scripts/check-vendor.sh": "5a9629aba80f662fe0ec976f971050279a082a0855b30bd1a53290c408742327",
   "scripts/check-server-blind.sh": "9bb6ac2ed80d291a041b49290be608784a2a1a20cbb0b3557a1e6bb1e3bebe8c",
   "scripts/build-core.sh": "22dc9fe2971b2e97a2c000e86e4f1c4aed2da8d9dc96bae9fd94180898c79837",
   "scripts/install-swiftlint.sh": "9a924771f7e4e1cd8c2e01b6e46386c37e00724946e4bdb628c420a977b83d8e",
@@ -154,7 +154,12 @@
   "word_list": "198fecda65b9c30b6c03f2eac28f24460f36f04b9cfbc0442b550ced8f8de62a",
   "file_decrypt": "cc9a5a6ad53a92c7896f8d69c273989ac981c2bd17d7d3c4341d5e16e16fc288",
   "folder_readers": "a6370f1c9b7a38f3b179fb89d69252ce6bf02bd6fb7ffb9d679011c67826e9af",
-  "share_merge": "9735c7f9fafa6f5fd0599eb6c538d42e9f7529d0b9fbd5915a75251ae3d129b1"
+  "share_merge": "9735c7f9fafa6f5fd0599eb6c538d42e9f7529d0b9fbd5915a75251ae3d129b1",
+  "pq_enc": "5c548b7ae1e7d5be70b8020a6689e48bd40ab7d3b538e98f330f1a1997e35ebb",
+  "pq_identity_key": "1ef7577e2044bde8ed90c9da6f39892a78d6bc12d838b08320ae110d8f8d9399",
+  "pq_open": "1aa9573a1d416e664189f49083585b1969fa55ea0b16c7a4951a2f0fde4427b9",
+  "pq_receiving_key": "d2b56ac944e0989eec3894808070e8897d47bad82d3b905f66a45357c9d35a9d",
+  "pq_signature": "7e603920f68ca73d065e720eb4911293d44c1b95e2ed789c5d061761f4599843"
  },
  "fuzz_bins": {
   "autotype_match": [
@@ -377,6 +382,41 @@
   "share_merge": [
    "name = \"share_merge\"",
    "path = \"fuzz_targets/share_merge.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "pq_enc": [
+   "name = \"pq_enc\"",
+   "path = \"fuzz_targets/pq_enc.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "pq_identity_key": [
+   "name = \"pq_identity_key\"",
+   "path = \"fuzz_targets/pq_identity_key.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "pq_open": [
+   "name = \"pq_open\"",
+   "path = \"fuzz_targets/pq_open.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "pq_receiving_key": [
+   "name = \"pq_receiving_key\"",
+   "path = \"fuzz_targets/pq_receiving_key.rs\"",
+   "test = false",
+   "doc = false",
+   "bench = false"
+  ],
+  "pq_signature": [
+   "name = \"pq_signature\"",
+   "path = \"fuzz_targets/pq_signature.rs\"",
    "test = false",
    "doc = false",
    "bench = false"
