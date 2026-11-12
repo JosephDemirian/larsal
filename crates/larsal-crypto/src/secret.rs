@@ -40,6 +40,7 @@
 //! assert_eq!(format!("{a:?} {b:?}"), "[hidden] [hidden]");
 //! ```
 
+use crate::Error;
 use core::fmt;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
@@ -79,6 +80,46 @@ pub(crate) fn scrubbed<T>(f: impl FnOnce() -> T) -> T {
 /// builds. Runs once per unlock, so the cost does not matter.
 pub(crate) fn scrubbed_deep<T>(f: impl FnOnce() -> T) -> T {
     scrubbed_words::<16384, T>(f)
+}
+
+/// The stack of a [`scrubbed_thread`] worker: 1 MiB, so 256 KiB stay free
+/// above its wipe.
+pub(crate) const PQ_STACK: usize = 1 << 20;
+
+/// The wipe of a [`scrubbed_thread`] worker, in 16-byte words: 768 KiB
+/// (786,432 bytes). The deepest post-quantum body writes 519,232 bytes of
+/// stack in a debug build and 441,344 in release (the ML-DSA-65 key
+/// expansion of identity_public; composite_sign 426,368 and 410,112, open
+/// 64,256 and 58,176, xwing_public 57,792 and 56,640, seal 34,944 and
+/// 42,816), measured by painting the stack (src/pq/tests.rs,
+/// `cry05_17_pq_stack_depth`; Rust 1.99.1, Apple M4 Pro, 2026-11-12).
+/// 768 KiB covers the deepest plus 25 percent (649,040 bytes), and that
+/// test fails when it does not.
+pub(crate) const PQ_SCRUB_WORDS: usize = 49_152;
+
+/// Runs `f` on a short-lived worker thread of its own with a [`PQ_STACK`]
+/// stack, zeroes [`PQ_SCRUB_WORDS`] words of that stack below `f` when it
+/// returns, and ends the thread before giving back `f`'s value (CRY-05.17).
+/// For the post-quantum calls, whose vendored key types are inline values
+/// about half a MiB deep: they never reach the caller's stack, however deep
+/// the caller already is, and a caller on a 512 KiB macOS secondary thread
+/// can make them. Best effort, as [`scrubbed`]: not registers.
+///
+/// # Errors
+/// `failed` when the system cannot start the thread or `f` panics; nothing
+/// of `f`'s work is returned.
+pub(crate) fn scrubbed_thread<T: Send>(
+    failed: Error,
+    f: impl FnOnce() -> T + Send,
+) -> Result<T, Error> {
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .stack_size(PQ_STACK)
+            .spawn_scoped(scope, move || scrubbed_words::<PQ_SCRUB_WORDS, T>(f))
+            .map_err(|_| failed)?
+            .join()
+            .map_err(|_| failed)
+    })
 }
 
 fn scrubbed_words<const N: usize, T>(f: impl FnOnce() -> T) -> T {

@@ -296,3 +296,43 @@ path = "fuzz_targets/folder_readers.rs"
 test = false
 doc = false
 bench = false
+
+# An X-Wing receiving public key through the hybrid HPKE seal: length and FIPS 203 modulus check (CRY-05.3; E25-S2).
+[[bin]]
+name = "pq_receiving_key"
+path = "fuzz_targets/pq_receiving_key.rs"
+test = false
+doc = false
+bench = false
+
+# The enc of a hybrid HPKE ciphertext, opened with the right key, info and ct (CRY-05.3; E25-S2).
+[[bin]]
+name = "pq_enc"
+path = "fuzz_targets/pq_enc.rs"
+test = false
+doc = false
+bench = false
+
+# A composite ML-DSA-65 + Ed25519 public key against RFC 10073's vector signature (CRY-05.5; E25-S2).
+[[bin]]
+name = "pq_identity_key"
+path = "fuzz_targets/pq_identity_key.rs"
+test = false
+doc = false
+bench = false
+
+# A composite ML-DSA-65 + Ed25519 signature against RFC 10073's vector key and message (CRY-05.5; E25-S2).
+[[bin]]
+name = "pq_signature"
+path = "fuzz_targets/pq_signature.rs"
+test = false
+doc = false
+bench = false
+
+# The whole hybrid HPKE open, suite [0x647a, 1, 3], on arbitrary enc, info and ct (CRY-05.3; E25-S2).
+[[bin]]
+name = "pq_open"
+path = "fuzz_targets/pq_open.rs"
+test = false
+doc = false
+bench = false

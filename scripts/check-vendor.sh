@@ -21,7 +21,7 @@
 #  4. Lists and cut copies: every copy but a stub lists every file on disk,
 #     in any folder, except its list itself (cargo hashes only the files a
 #     list names, and builds a build.rs it finds when the manifest names none).
-#     The copies named in cut_copies (E0-S7 steps 2 and 4, E16-S3), and no other, keep
+#     The copies named in cut_copies (E0-S7 steps 2 and 4, E16-S3, E25-S2), and no other, keep
 #     the list cargo vendor wrote as .cargo-checksum.upstream.json. Each lost
 #     only what its Cargo.toml cut and whole files never compiled on a Mac: its
 #     .cargo-checksum.json names the same package and every file it lists but
@@ -66,7 +66,7 @@ cut_copies='aead-0.6.1 aes-0.9.3 aes-gcm-0.11.1 argon2-0.6.0 base16ct-1.0.0 base
   objc2-app-kit-0.3.2 objc2-core-foundation-0.3.2
   objc2-foundation-0.3.2 objc2-io-kit-0.3.2 once_cell-1.21.4 p256-0.14.0 pbkdf2-0.13.0 pem-rfc7468-1.0.0
   png-0.18.1 poly1305-0.9.1 polyval-0.7.3 quick-xml-0.42.0 rand_core-0.10.1 rcgen-0.14.10
-  regex-automata-0.4.18 rfc6979-0.6.0 ring-0.17.14 rustix-1.1.5 salsa20-0.11.0 sec1-0.8.1 sha1-0.11.0 sha2-0.11.1
+  regex-automata-0.4.18 rfc6979-0.6.0 ring-0.17.14 rustix-1.1.5 salsa20-0.11.0 sec1-0.8.1 sha1-0.11.0 sha2-0.11.1 shake-0.1.0
   socket2-0.6.5 ssh-cipher-0.3.0 ssh-encoding-0.3.0 subtle-2.6.1 tempfile-3.27.0 textwrap-0.16.4 time-0.3.55
   tokio-1.53.3 twofish-0.8.0 typenum-1.20.1 untrusted-0.9.0 yasna-0.6.0 zeroize-1.9.1'
 uncut=$(comm -13 <(printf '%s\n' $cut_copies | sort) \

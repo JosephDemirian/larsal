@@ -1,5 +1,6 @@
 //! The only door to crypto crates: secret types, random numbers, ciphers, hashes, key derivation, base64,
-//! signatures, HPKE, key wrap, the browser bridge channel, and the file and folder format primitives.
+//! signatures, HPKE, key wrap, the browser bridge channel, the file and folder format primitives, and
+//! the post-quantum hybrid KEM and composite signature.
 #![forbid(unsafe_code)]
 // Rust rule 4: no panics on input. Here, not in Cargo.toml: [lints] workspace = true
 // cannot be mixed with a crate lint table. Test code is exempt via clippy.toml.
@@ -25,6 +26,7 @@ pub mod hpke;
 pub mod kdf;
 pub mod keywrap;
 pub mod mac;
+pub mod pq;
 pub mod random;
 pub mod secret;
 pub mod selftest;

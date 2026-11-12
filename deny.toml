@@ -101,7 +101,8 @@ deny = [
     { crate = "bech32", deny-multiple-versions = true },
     { crate = "unicode-normalization", deny-multiple-versions = true },
     { crate = "scrypt", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
-    { crate = "chacha20poly1305", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
+    # E25-S2: hpke's `chacha` feature (the hybrid suite's AEAD 0x0003, CRY-05.3) names it too.
+    { crate = "chacha20poly1305", wrappers = ["larsal-crypto", "hpke"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2); hpke for the hybrid suite (E25-S2)" },
     { crate = "aes-siv", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
     { crate = "aes-kw", wrappers = ["larsal-crypto"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
     { crate = "cmac", wrappers = ["larsal-crypto", "aes-siv"], reason = "file-format primitives and encodings stay behind larsal-crypto (E22-S2, E23-S2)" },
@@ -159,6 +160,23 @@ deny = [
     { crate = "x25519-dalek", deny-multiple-versions = true },
     { crate = "hpke", deny-multiple-versions = true },
     { crate = "hpke", wrappers = ["larsal-crypto"], reason = "only larsal-crypto imports hpke (CRY-04.1, E16-S2)" },
+    # E25-S2 (CRY-05.15): the post-quantum copies, one version each. Of Larsal's
+    # crates only larsal-crypto names them (ml-kem as a dev-dependency, for its
+    # known-answer tests); otherwise ml-kem comes in through hpke and x-wing,
+    # and x-wing through hpke.
+    { crate = "ml-dsa", deny-multiple-versions = true },
+    { crate = "ml-dsa", wrappers = ["larsal-crypto"], reason = "only larsal-crypto imports ml-dsa (CRY-05.15, E25-S2)" },
+    { crate = "ml-kem", deny-multiple-versions = true },
+    { crate = "ml-kem", wrappers = ["larsal-crypto", "hpke", "x-wing"], reason = "ML-KEM only through larsal-crypto's hpke copy (CRY-05.15, E25-S2)" },
+    { crate = "x-wing", deny-multiple-versions = true },
+    { crate = "x-wing", wrappers = ["hpke"], reason = "X-Wing only through larsal-crypto's hpke copy (CRY-05.15, E25-S2)" },
+    { crate = "kem", deny-multiple-versions = true },
+    { crate = "module-lattice", deny-multiple-versions = true },
+    { crate = "sha3", deny-multiple-versions = true },
+    { crate = "shake", deny-multiple-versions = true },
+    { crate = "turboshake", deny-multiple-versions = true },
+    { crate = "keccak", deny-multiple-versions = true },
+    { crate = "sponge-cursor", deny-multiple-versions = true },
     { crate = "hybrid-array", deny-multiple-versions = true },
     { crate = "cmov", deny-multiple-versions = true },
     { crate = "ctutils", deny-multiple-versions = true },

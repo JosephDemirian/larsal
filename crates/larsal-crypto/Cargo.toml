@@ -45,7 +45,13 @@ base64ct.workspace = true
 # gives every random byte). wrap.rs: the AES-256-GCM key wrap. aes-gcm is named
 # here also to turn on its "zeroize", so the AES round keys inside hpke's
 # contexts are wiped too.
-hpke = { workspace = true, features = ["x25519", "aes", "alloc"] }
+hpke = { workspace = true, features = ["x25519", "aes", "alloc", "mlkem", "chacha"] }
+# E25-S2 (CRY-05.15): hpke's `mlkem` and `chacha` above give kem::XWing
+# (MLKEM768-X25519, KEM id 0x647a, through x-wing and ml-kem) and
+# ChaCha20-Poly1305 for the hybrid suite [0x647a, 1, 3] (pq.rs). ML-DSA-65
+# for the composite signature: `rand_core` for hedged signing with
+# larsal-crypto's random source, `zeroize` so its key types wipe on drop.
+ml-dsa = { workspace = true, features = ["rand_core", "zeroize"] }
 aes-gcm = { workspace = true, features = ["aes", "zeroize"] }
 # E7-S1 (INT-01.49): bridge.rs, the browser bridge channel's X25519; the
 # features hpke already turns on, so the build does not change.
@@ -71,6 +77,9 @@ proptest.workspace = true
 # F-070, F-170, F-190: the probe allocator of tests/ssh_wipe.rs, tests/sync_wipe.rs
 # and tests/bridge_wipe.rs (test tools only).
 larsal-platform = { workspace = true, features = ["test-memory"] }
+# E25-S2 (CRY-05.16): the ML-KEM-768 known-answer tests run on the copy hpke and
+# x-wing use (pq/tests.rs); tests only.
+ml-kem = { workspace = true, features = ["zeroize"] }
 
 [lints]
 workspace = true

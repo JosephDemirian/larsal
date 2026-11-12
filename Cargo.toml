@@ -113,6 +113,14 @@ rcgen = { version = "=0.14.10", default-features = false, features = ["crypto", 
 # AES-256-GCM for the key wrap (CRY-04); larsal-crypto only. hpke pulls x25519-dalek
 # 3.0.0 and zeroize_derive 1.5.0. 14-day rule (LD-266 (5)).
 hpke = { version = "=0.14.1", default-features = false }
+# E25-S2 (CRY-05.15): ML-DSA-65, the post-quantum half of the composite
+# signature (CRY-05.5); larsal-crypto only. No default features (no getrandom,
+# no pkcs8). 14-day rule (LD-266 (5)): 0.1.2 of 2026-10-31 is too young.
+ml-dsa = { version = "=0.1.1", default-features = false }
+# E25-S2 (CRY-05.15): ML-KEM-768, reached through hpke and x-wing; named here so
+# larsal-crypto's known-answer tests (a dev-dependency) can run CRY-05.16's ML-KEM
+# vectors on the same copy. 14-day rule (LD-266 (5)): 0.3.4 is too young.
+ml-kem = { version = "=0.3.3", default-features = false }
 aes-gcm = { version = "=0.11.1", default-features = false }
 # E7-S1 (LD-274 (1), LD-307): X25519 of the browser bridge channel (larsal-crypto bridge.rs);
 # already in the tree through hpke, with the same features.
