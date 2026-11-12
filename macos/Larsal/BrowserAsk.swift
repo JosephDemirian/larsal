@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The bridge's dialogs (INT-02.15): the Connect dialog (INT-02.4) and the
 /// site access prompt (INT-02.18). Rust holds the line and every word;
-/// titles and user names are plain text (AT-E01), never a password.
+/// titles and user names are plain text (AT-E01), never a protected value:
+/// one Rust hides comes empty with its mark and shows the mask.
 extension MainWindowModel {
     /// Reads the questions of Larsal's SSH agent and of the bridge.
     func refreshAsks() {
@@ -37,8 +38,9 @@ extension MainWindowModel {
 }
 
 /// Frame `dialogs-connect-a-browser`: the vault's text, the Name field,
-/// MI02-01's four words, Deny and the primary Connect, disabled while the
-/// name is not valid; a taken name shows MI02-02 under the field.
+/// MI02-01's four words (W-07: Option A does not draw them yet), Deny and
+/// the primary Connect, disabled while the name is not valid; a taken name
+/// shows MI02-02 under the field.
 struct BrowserConnectDialog: View {
     let window: MainWindowModel
     let ask: BrowserQuestion
@@ -52,20 +54,21 @@ struct BrowserConnectDialog: View {
 
     var body: some View {
         let problem = window.session.browserNameProblem(vault: ask.vault, name: name)
-        DialogCard(tint: "blue", glyph: "globe", title: ask.title, text: ask.text) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(verbatim: "Name").font(.sans(13, .medium))
+        DialogCard(tint: "teal", glyph: "plugs-connected", title: ask.title, text: ask.text) {
+            DialogBody {
+                Lab(title: "Name")
                 InputBox { PlainField(prompt: "", text: $name, label: "Name") }
                 if let problem, !problem.isEmpty {
-                    Text(verbatim: problem).font(.sans(12)).foregroundStyle(Tok.negative)
+                    Help(text: problem).foregroundStyle(Tok.negative)
                 }
-                Text(verbatim: ask.words)
-                    .font(.sans(13))
-                    .foregroundStyle(Tok.muted)
-                    .padding(.top, 8)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !ask.words.isEmpty {
+                    Text(verbatim: ask.words)
+                        .font(.sans(13))
+                        .foregroundStyle(Tok.muted)
+                        .padding(.top, 8)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .padding(.top, 16)
         } foot: {
             SheetButton(title: "Deny", cancel: true) { window.answerBrowserConnect(nil) }
             SheetButton(title: "Connect", kind: .primary) { window.answerBrowserConnect(name) }
@@ -74,39 +77,54 @@ struct BrowserConnectDialog: View {
     }
 }
 
-/// Frame `dialogs-browser-asks-for-an-entry`: the line of INT-02.19, one
-/// checked row per entry, "Remember for ‹P›" (hidden for HTTP sign-in and
+/// Frame `dialogs-browser-asks-for-an-entry`: the line of INT-02.19 (W-07:
+/// Option A does not draw it yet), one row per entry in a panel, each
+/// checked, "Remember for ‹P›" (unchecked; hidden for HTTP sign-in and
 /// INT-02.19), Deny and the primary Allow Selected, disabled while no row
-/// is checked. Escape is Deny.
+/// is checked. Escape is Deny. `checked` and `remember` set another first
+/// state (Option A's frame).
 struct BrowserAccessDialog: View {
     let window: MainWindowModel
     let ask: BrowserQuestion
     @State private var checked: [Bool]
-    @State private var remember = false
+    @State private var remember: Bool
 
-    init(window: MainWindowModel, ask: BrowserQuestion) {
+    init(window: MainWindowModel, ask: BrowserQuestion, checked: [Bool]? = nil, remember: Bool = false) {
         self.window = window
         self.ask = ask
-        _checked = State(initialValue: Array(repeating: true, count: ask.rows.count))
+        _checked = State(initialValue: checked ?? Array(repeating: true, count: ask.rows.count))
+        _remember = State(initialValue: remember)
     }
 
     var body: some View {
-        DialogCard(tint: "blue", glyph: "globe", title: ask.title, text: ask.text) {
-            VStack(alignment: .leading, spacing: 8) {
+        DialogCard(tint: "teal", glyph: "globe-simple", title: ask.title, text: ask.text) {
+            DialogBody {
                 if let line = ask.line {
                     Text(verbatim: line)
                         .font(.sans(13))
                         .foregroundStyle(Tok.warning)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 8)
                 }
-                ForEach(Array(ask.rows.enumerated()), id: \.offset) { index, row in
-                    CheckRow(title: row.title, detail: row.username.isEmpty ? nil : row.username, isOn: $checked[index])
+                // `.panel` (4 by 12 inside) of `.chkrow`s, a rule between them.
+                VStack(spacing: 0) {
+                    ForEach(Array(ask.rows.enumerated()), id: \.offset) { index, row in
+                        BrowserAccessRow(row: row, isOn: $checked[index])
+                            .padding(.top, index > 0 ? 1 : 0)
+                            .overlay(alignment: .top) {
+                                if index > 0 { Rectangle().fill(Tok.rule).frame(height: 1) }
+                            }
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .padding(1)
+                .background(Tok.surface, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Tok.border))
                 if let label = ask.remember {
-                    CheckRow(title: label, isOn: $remember).padding(.top, 6)
+                    CheckRow(title: label, isOn: $remember)
                 }
             }
-            .padding(.top, 16)
         } foot: {
             SheetButton(title: "Deny", cancel: true) {
                 window.answerBrowserAccess(allow: false, checked: checked, remember: remember)
@@ -116,6 +134,55 @@ struct BrowserAccessDialog: View {
             }
             .disabled(!checked.contains(true))
         }
+    }
+}
+
+/// One entry of the site access prompt (Option A's row): the check box, the
+/// entry's 24-point logo, its title and its user name. A value Rust hides
+/// (INT-02.18, MOD-01.7) shows the mask, read "hidden" (APP-01.23); a user
+/// name follows S-VIEW-06 as everywhere (LD-219 (1)).
+struct BrowserAccessRow: View {
+    let row: BrowserQuestionRow
+    @Binding var isOn: Bool
+    @Environment(\.maskUserNames) private var mask
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            HStack(spacing: 10) {
+                CheckMark(isOn: isOn)
+                EntryLogo(title: row.title, host: row.host, icon: row.icon, custom: row.customIcon, size: .tiny)
+                VStack(alignment: .leading, spacing: 0) {
+                    (row.titleHidden ? Masked.line() : Text(verbatim: row.title))
+                        .font(.sans(14, .medium))
+                        .frame(minHeight: 20, alignment: .leading)
+                    if row.usernameHidden || !row.username.isEmpty {
+                        Group {
+                            if row.usernameHidden { Masked.line() } else { MaskedUser(user: row.username) }
+                        }
+                        .font(.sans(12))
+                        .foregroundStyle(Tok.muted)
+                        .frame(height: 16)
+                    }
+                }
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(Bare())
+        .accessibilityLabel(Text(verbatim: Self.spoken(row, mask: mask)))
+        .accessibilityValue(Text(verbatim: isOn ? "on" : "off"))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
+    /// The title and the user name as VoiceOver reads them; `mask`: S-VIEW-06.
+    static func spoken(_ row: BrowserQuestionRow, mask: Bool) -> String {
+        let title = row.titleHidden ? Masked.spoken : row.title
+        let user = row.usernameHidden || (mask && !row.username.isEmpty) ? Masked.spoken : row.username
+        return [title, user].filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }
 

@@ -38,9 +38,13 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 pub struct BrowserKey {
     /// The name the user gave it.
     pub name: String,
-    /// The `_CREATED_` time in unix seconds; `None` when missing or
-    /// unreadable.
+    /// The `_CREATED_` time in unix seconds; `None` when missing or not
+    /// ISO 8601.
     pub created: Option<i64>,
+    /// The `_CREATED_` value as stored when it is not ISO 8601 (the
+    /// reference writes the locale's short date and time), shown as it is
+    /// (INT-02.1, D-INT02-2); `None` when missing or read into `created`.
+    pub created_text: Option<String>,
 }
 
 /// What the five pages show. No secret.
@@ -409,9 +413,13 @@ impl VaultSettings {
                 history_versions,
                 browsers: settings::associations(v)
                     .into_iter()
-                    .map(|a| BrowserKey {
-                        created: a.created.as_deref().and_then(crate::edit::iso_utc),
-                        name: a.name,
+                    .map(|a| {
+                        let created = a.created.as_deref().and_then(crate::edit::iso_utc);
+                        BrowserKey {
+                            created_text: a.created.filter(|_| created.is_none()),
+                            created,
+                            name: a.name,
+                        }
                     })
                     .collect(),
                 site_access: u32::try_from(site_access_count(v)).unwrap_or(u32::MAX),
@@ -870,5 +878,63 @@ mod tests {
         .unwrap();
         // E2 and E6 list hosts; E1 holds {"Allow":[],"Deny":[]}; one is not JSON.
         assert_eq!(vs.view().unwrap().site_access, 2);
+    }
+
+    /// INT-02.1, T02 (D-INT02-2): Browser Keys gets a `_CREATED_` value
+    /// that is not ISO 8601 as stored, and an ISO 8601 one as its time.
+    #[test]
+    fn t02_int02_1_a_created_value_not_in_iso_8601_comes_as_stored() {
+        let folder = crate::test_dir::TempDir::new("e7s2-t02");
+        let path = folder.join("Vault.larsalvault");
+        let demo = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../testdata/option-a-personal.larsalvault");
+        std::fs::copy(demo, &path).unwrap();
+        let s = Session::new();
+        let id = s.open(path.to_string_lossy().into_owned()).unwrap();
+        assert_eq!(
+            s.unlock(id, Some("demo-pass-7".into()), None).unwrap(),
+            UnlockResult::Unlocked
+        );
+        let key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        s.with_edit(id, |v, _, _, _| {
+            let t = now();
+            assert!(settings::add_association(
+                v,
+                "demo",
+                key,
+                "10/24/26 8:11 PM",
+                t
+            ));
+            assert!(settings::add_association(
+                v,
+                "iso",
+                key,
+                "2026-10-24T08:11:00Z",
+                t
+            ));
+            Ok(())
+        })
+        .unwrap();
+        let browsers = VaultSettings::new(Arc::clone(&s), id)
+            .view()
+            .unwrap()
+            .browsers;
+        let find = |name: &str| browsers.iter().find(|b| b.name == name).unwrap().clone();
+        assert_eq!(
+            find("demo"),
+            BrowserKey {
+                name: "demo".into(),
+                created: None,
+                created_text: Some("10/24/26 8:11 PM".into()),
+            }
+        );
+        assert_eq!(
+            find("iso"),
+            BrowserKey {
+                name: "iso".into(),
+                created: Some(1_792_829_460),
+                created_text: None,
+            }
+        );
     }
 }

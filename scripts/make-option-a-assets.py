@@ -64,6 +64,7 @@ chat-circle database cloud minus-circle suitcase map-pin train boat
 command share-network power
 pause pause-circle
 file-arrow-up file-image files lock users
+plugs-connected
 """.split()
 
 

@@ -70,8 +70,8 @@ pub struct Access {
     pub title: String,
     /// "Choose the entries ‹browser› may use on this site."
     pub text: String,
-    /// One row per entry in state ask: title and user name, resolved,
-    /// plain text. Each starts checked.
+    /// One row per entry in state ask: title and user name resolved for
+    /// display, plain text, never a protected value. Each starts checked.
     pub rows: Vec<Row>,
     /// "Remember for ‹P›", or `None` when the box is hidden (HTTP sign-in,
     /// INT-02.19).
@@ -80,13 +80,26 @@ pub struct Access {
     pub line: Option<String>,
 }
 
-/// One row of the site access prompt.
+/// One row of the site access prompt (INT-02.18).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Row {
-    /// The title, resolved.
+    /// The title, resolved for display; empty when `title_hidden`.
     pub title: String,
-    /// The user name, resolved.
+    /// The user name, resolved for display; empty when `username_hidden`.
     pub username: String,
+    /// The title is protected (its own flag or the vault's, MOD-01.7) or
+    /// its resolution read a protected value: the row shows the mask of
+    /// hidden values (LD-207) in its place.
+    pub title_hidden: bool,
+    /// The same for the user name.
+    pub username_hidden: bool,
+    /// The host of the entry's URL for its logo; empty when there is none
+    /// or the URL is hidden as above.
+    pub host: String,
+    /// The entry's standard icon number; -1 for a custom icon.
+    pub icon: i32,
+    /// The entry's custom icon's name, if any.
+    pub custom_icon: Option<String>,
 }
 
 /// The user's answer.

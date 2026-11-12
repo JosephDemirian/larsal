@@ -143,13 +143,25 @@ impl Vaults for SessionVaults {
     }
 }
 
-/// One row of the site access prompt (INT-02.18).
+/// One row of the site access prompt (INT-02.18). Never a protected value:
+/// a hidden title or user name comes empty with its mark.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct BrowserQuestionRow {
-    /// The title, resolved, plain text.
+    /// The title, resolved for display, plain text; empty when hidden.
     pub title: String,
-    /// The user name, resolved, plain text.
+    /// The user name, resolved for display, plain text; empty when hidden.
     pub username: String,
+    /// The title is protected or reads a protected value: the row shows the
+    /// mask of hidden values (LD-207).
+    pub title_hidden: bool,
+    /// The same for the user name.
+    pub username_hidden: bool,
+    /// The host of the entry's URL for its logo; empty when none or hidden.
+    pub host: String,
+    /// The standard icon number; -1 for a custom icon.
+    pub icon: i32,
+    /// The custom icon's name, if any.
+    pub custom_icon: Option<String>,
 }
 
 /// The bridge dialog on screen: the Connect dialog (`connect`, frame
@@ -207,6 +219,11 @@ fn question(id: u64, q: Question) -> BrowserQuestion {
                 .map(|r| BrowserQuestionRow {
                     title: r.title,
                     username: r.username,
+                    title_hidden: r.title_hidden,
+                    username_hidden: r.username_hidden,
+                    host: r.host,
+                    icon: r.icon,
+                    custom_icon: r.custom_icon,
                 })
                 .collect(),
             remember: a.remember,
@@ -281,6 +298,15 @@ mod tests {
 
     const K: [u8; 32] = [0x5A; 32];
 
+    /// The dialog line is the process's one: tests that show a dialog take
+    /// turns, so one test's screen never answers another's dialog.
+    static LINE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn turn() -> std::sync::MutexGuard<'static, ()> {
+        LINE.lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     fn demo(name: &str) -> (Arc<Session>, u64, TempDir) {
         let folder = TempDir::new(&format!("bridge-{name}"));
         let path = folder.join(format!("{name}.larsalvault"));
@@ -350,6 +376,7 @@ mod tests {
 
     #[test]
     fn t01_int02_6_connect_through_the_window_stores_the_association_as_a_data_change() {
+        let _turn = turn();
         let (s, v, _folder) = demo("connect");
         let h = handler(Arc::downgrade(&s));
         let status = send(&*h, &Live::default(), "status", "").unwrap();
@@ -463,5 +490,69 @@ mod tests {
             ),
             Err(1)
         );
+    }
+
+    /// V-1: what Swift reads of a prompt row never holds a protected value.
+    /// With the vault protecting user names, the demo GitHub entry asked
+    /// for on another site (an outside fill, INT-02.22) shows its title and
+    /// logo host, and its user name empty with its mark.
+    #[test]
+    fn v1_int02_18_the_prompt_row_swift_reads_hides_a_protected_user_name() {
+        let _turn = turn();
+        let (s, v, _folder) = demo("rows");
+        let h = handler(Arc::downgrade(&s));
+        let (vid, id, user) = s
+            .with_edit(v, |vault, _, _, _| {
+                let key = larsal_crypto::base64::encode(larsal_crypto::base64::Form::Padded, &K);
+                let now = crate::views::now();
+                assert!(larsal_core::settings::add_association(
+                    vault,
+                    "demo",
+                    &key,
+                    "2026-11-01T00:00:00Z",
+                    now
+                ));
+                vault.meta.memory_protection.user_name = true;
+                let e = vault
+                    .root
+                    .all_entries()
+                    .find(|e| e.value("Title") == "GitHub")
+                    .expect("the demo GitHub entry");
+                Ok((
+                    larsal_browser::vault_id(vault),
+                    larsal_browser::entry_id(e.uuid),
+                    e.value("UserName").to_owned(),
+                ))
+            })
+            .unwrap();
+        assert!(!user.is_empty());
+        let screen = {
+            let s = s.clone();
+            std::thread::spawn(move || {
+                loop {
+                    if let Some(q) = s.browser_question() {
+                        s.answer_browser_access(q.id, false, Vec::new(), false);
+                        return q;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(2));
+                }
+            })
+        };
+        let got = send(
+            &*h,
+            &Live::default(),
+            "logins.get",
+            &format!(
+                r#","ids":[{{"vault":"{vid}","id":"{id}"}}],"url":"https://example.org/","top_url":"https://example.org/""#
+            ),
+        );
+        assert_eq!(got, Err(6));
+        let q = screen.join().unwrap();
+        assert_eq!(q.kind, "access");
+        let row = &q.rows[0];
+        assert_eq!((row.title.as_str(), row.title_hidden), ("GitHub", false));
+        assert_eq!((row.username.as_str(), row.username_hidden), ("", true));
+        assert_eq!(row.host, "github.com");
+        assert!(!format!("{q:?}").contains(&user), "{q:?}");
     }
 }

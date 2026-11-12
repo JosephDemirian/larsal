@@ -1846,6 +1846,18 @@ mod tests {
         assert!(!s.flag("lock.on_minimize".into()));
     }
 
+    /// MOD-12.18, T41: the vault settings' Browser Keys page reads S-BRW-01
+    /// here; it is off until saved on.
+    #[test]
+    fn t41_mod12_18_s_brw_01_is_off_until_saved_on() {
+        let s = LarsalSettingsStore::default();
+        assert!(!s.flag("browser.enabled".into()));
+        s.save(&[flag("browser.enabled", true)]).unwrap();
+        assert!(s.flag("browser.enabled".into()));
+        s.save(&[flag("browser.enabled", false)]).unwrap();
+        assert!(!s.flag("browser.enabled".into()));
+    }
+
     #[test]
     fn app01_9_reset_keeps_browser_ssh_and_share() {
         let dir = folder("a9");

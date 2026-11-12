@@ -26,7 +26,7 @@ use larsal_core::refs::{self, COPY_BUDGET, Context, EntryIndex};
 use larsal_core::time::Instant;
 use larsal_crypto::base64::{self, Form};
 use larsal_model::json::{Map, Value};
-use larsal_model::{Entry, Group, Time, Uuid, Vault};
+use larsal_model::{Entry, Field, Group, Icon, Time, Uuid, Vault};
 use std::cell::Cell;
 use std::sync::{Arc, Mutex, PoisonError};
 
@@ -333,14 +333,20 @@ fn access(state: State, t: &Target, outside: bool, o: &Options) -> State {
     }
 }
 
-/// A title or user name for a summary (R02-2): resolved for display;
-/// `None` when its field is protected or its resolution read a protected
-/// value.
+/// MOD-01.7, LD-207: the field's own flag, or the vault's flag for a
+/// standard field (as larsal-core `refs` masks).
+fn protected(v: Option<&Vault>, name: &str, f: &Field) -> bool {
+    f.protected || v.is_some_and(|v| v.meta.memory_protection.for_field(name))
+}
+
+/// A title, user name or URL for a summary (R02-2) or a prompt row
+/// (INT-02.18): resolved for display; `None` when its field is protected
+/// or its resolution read a protected value (the Password always, F-272).
 fn shown(e: &Entry, name: &str, ctx: &Context<'_>) -> Option<String> {
     let Some(f) = e.field(name) else {
         return Some(String::new());
     };
-    if f.protected {
+    if protected(ctx.vault, name, f) {
         return None;
     }
     let raw = f.value.expose();
@@ -351,7 +357,7 @@ fn shown(e: &Entry, name: &str, ctx: &Context<'_>) -> Option<String> {
     (!r.masked).then(|| r.text.expose().to_owned())
 }
 
-/// A field resolved in full (MOD-08), for `logins.get` and the prompt rows.
+/// A field resolved in full (MOD-08), for `logins.get`'s reply.
 fn resolved(e: &Entry, name: &str, ctx: &Context<'_>) -> String {
     let raw = e.value(name);
     if raw.contains('{') {
@@ -828,8 +834,9 @@ impl VaultSide {
         out.into_iter().map(|p| p.1).collect()
     }
 
-    /// The prompt rows of `asked` (INT-02.18): title and user name,
-    /// resolved for display, plain text.
+    /// The prompt rows of `asked` (INT-02.18): title and user name as a
+    /// summary shows them ([`shown`]: a hidden one is empty with its mark),
+    /// and the logo's host and icon.
     fn rows(&self, uses: &[Use], asked: &[Pick], meter: &Cell<usize>) -> Vec<Row> {
         let now = self.vaults.now();
         let mut rows: Vec<(usize, Row)> = Vec::new();
@@ -839,9 +846,29 @@ impl VaultSide {
                 let ctx = display(v, dir, now, meter, &index);
                 for (i, p) in asked.iter().enumerate().filter(|(_, p)| p.at == at) {
                     if let Some(e) = live(v, p.id) {
+                        let title = shown(e, "Title", &ctx);
+                        let username = shown(e, "UserName", &ctx);
+                        let (icon, custom_icon) = match e.icon {
+                            Icon::Standard(n) => (n, None),
+                            Icon::Custom(id) => (
+                                -1,
+                                v.meta
+                                    .custom_icons
+                                    .iter()
+                                    .find(|c| c.uuid == id)
+                                    .map(|c| c.name.clone()),
+                            ),
+                        };
                         let row = Row {
-                            title: resolved(e, "Title", &ctx),
-                            username: resolved(e, "UserName", &ctx),
+                            title_hidden: title.is_none(),
+                            username_hidden: username.is_none(),
+                            title: title.unwrap_or_default(),
+                            username: username.unwrap_or_default(),
+                            host: shown(e, "URL", &ctx)
+                                .and_then(|u| web_host(&u))
+                                .unwrap_or_default(),
+                            icon,
+                            custom_icon,
                         };
                         rows.push((i, row));
                     }
@@ -1158,7 +1185,7 @@ impl VaultSide {
                         break;
                     }
                     if (!o.allow_expired && is_expired(&e.times, Instant::from(now)))
-                        || !matches(e, &term)
+                        || !matches(v, e, &term)
                     {
                         continue;
                     }
@@ -1203,16 +1230,21 @@ impl VaultSide {
     }
 }
 
+/// The host of an entry URL, with or without its scheme.
+fn web_host(u: &str) -> Option<String> {
+    url_host(u).or_else(|| url_host(&format!("https://{u}")))
+}
+
 /// R02-1: `term` (lower case, not empty) is part of the title, the user
-/// name or the main URL's host. Protected fields and values holding a
-/// placeholder are never searched.
-fn matches(e: &Entry, term: &str) -> bool {
+/// name or the main URL's host. Protected fields (as [`shown`] hides them)
+/// and values holding a placeholder are never searched.
+fn matches(v: &Vault, e: &Entry, term: &str) -> bool {
     let plain = |name: &str| {
         e.field(name)
-            .filter(|f| !f.protected && !f.value.expose().contains('{'))
+            .filter(|f| !protected(Some(v), name, f) && !f.value.expose().contains('{'))
             .map(|f| f.value.expose())
     };
-    let host = plain("URL").and_then(|u| url_host(u).or_else(|| url_host(&format!("https://{u}"))));
+    let host = plain("URL").and_then(web_host);
     ["Title", "UserName"]
         .into_iter()
         .filter_map(plain)

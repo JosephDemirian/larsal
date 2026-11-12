@@ -56,6 +56,9 @@ enum SettingsDemo {
                 $0.lanes = 2
                 $0.unlockMs = 1_000
             }
+        case .browser:
+            // MOD-12.18: the frame draws the page with browser integration on.
+            try model.session.saveSettings(changes: [LarsalSetting(key: "browser.enabled", value: .flag(on: true))])
         default: break
         }
         await model.settled()
@@ -178,6 +181,51 @@ struct VaultSettingsBehaviourTests {
         #expect(model.view?.siteAccess == 4)
         model.confirmed(.forgetSites)
         #expect(model.view?.siteAccess == 0)
+        window.lockAll()
+    }
+
+    @Test("INT-02.1, T02: Browser Keys shows a _CREATED_ value that is not ISO 8601 as stored")
+    func t02CreatedAsStored() {
+        let stored = BrowserKey(name: "demo", created: nil, createdText: "10/24/26 8:11 PM")
+        #expect(SettingsBrowser.connected(stored) == "Connected 10/24/26 8:11 PM")
+        let iso = BrowserKey(name: "iso", created: 1_792_829_460, createdText: nil)
+        #expect(SettingsBrowser.connected(iso) == "Connected " + Formats.day(1_792_829_460))
+        #expect(SettingsBrowser.connected(BrowserKey(name: "none", created: nil, createdText: nil)) == "Connected")
+    }
+
+    @Test("MOD-12.18, T41: with browser integration off, Browser Keys shows the notice; buttons and table are disabled")
+    func t41FollowsIntegration() async throws {
+        let (window, model) = try SettingsDemo.model("settings-browser-off")
+        model.page = .browser
+        let first = try #require(model.view?.browsers.first)
+        for enabled in [false, true] {
+            try model.session.saveSettings(changes: [
+                LarsalSetting(key: "browser.enabled", value: .flag(on: enabled))
+            ])
+            let host = NSHostingView(rootView: SettingsBrowser(model: model).frame(width: 640, height: 420))
+            host.frame = NSRect(x: 0, y: 0, width: 640, height: 420)
+            // Never ordered front (AGENTS.md rule 10).
+            let offscreen = NSWindow(
+                contentRect: host.frame.offsetBy(dx: -20_000, dy: -20_000), styleMask: [.borderless],
+                backing: .buffered, defer: false)
+            offscreen.contentView = host
+            NSApplication.shared.setValue(true, forKey: "accessibilityEnhancedUserInterface")
+            host.layoutSubtreeIfNeeded()
+            try await Task.sleep(for: .milliseconds(150))
+            host.layoutSubtreeIfNeeded()
+            let nodes = axNodes(host)
+            func node(_ name: String) -> AnyObject? {
+                nodes.first {
+                    ($0.accessibilityLabel?() ?? nil) == name || (($0.accessibilityValue?() ?? nil) as? String) == name
+                }
+            }
+            #expect((node(SettingsBrowser.off) != nil) == !enabled, "notice, integration \(enabled)")
+            #expect(node("Disconnect " + first.name)?.isAccessibilityEnabled?() == enabled)
+            #expect(node("Remove all…")?.isAccessibilityEnabled?() == enabled)
+            // INT-02.1: the row's line as SettingsBrowser.connected words it.
+            #expect(node(SettingsBrowser.connected(first)) != nil)
+            offscreen.contentView = nil
+        }
         window.lockAll()
     }
 

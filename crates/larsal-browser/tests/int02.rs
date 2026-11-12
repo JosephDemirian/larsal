@@ -8,7 +8,7 @@
 
 use larsal_browser::{
     Answer, Changed, Live, MAX_QUEUE, MAX_USES, OpenVault, Options, Prompts, Question, Request,
-    SharedHandler, State, VaultSide, Vaults, entry_id, last_use, names, pairing_words,
+    Row, SharedHandler, State, VaultSide, Vaults, entry_id, last_use, names, pairing_words,
     read_entry_id, record_use, valid_name, vault_id,
 };
 use larsal_crypto::base64::{self, Form};
@@ -477,8 +477,12 @@ fn t01_t07_int02_1_4_connect_dialog_names_the_vault_and_writes_the_association_o
         panic!("not the Connect dialog")
     };
     // T07: the default name and the vault's name; the four words (INT-02.5).
+    // V-5: the whole text, with its warning sentence.
     assert_eq!(q.name, "Firefox on Test Mac");
-    assert!(q.text.contains("“Access demo”"), "{}", q.text);
+    assert_eq!(
+        q.text,
+        "A Larsal extension asks to connect to “Access demo”. Name it so you know it later. Only allow it if you just installed the extension."
+    );
     assert_eq!(
         q.words,
         format!(
@@ -1986,4 +1990,162 @@ fn f279_3_int02_2_a_name_of_64_characters_is_valid() {
     let n64 = "é".repeat(64);
     assert_eq!(valid_name(&n64), Some(n64.as_str()));
     assert_eq!(valid_name(&"é".repeat(65)), None);
+}
+
+// ---------------------------------------------------------------------------
+// E7-S2 round 3: Verify's V-1 (with C1-02 = C2-03 and C2-06).
+
+fn protect(e: &mut Entry, name: &str, value: &str) {
+    e.set_field(
+        name.into(),
+        Field {
+            value: SecretString::new(value.into()),
+            protected: true,
+        },
+    );
+}
+
+/// Entry `n` through `logins.find` and through the site access prompt of
+/// `logins.get` (answered Deny) on `page`: its summary and its row. Neither
+/// holds `secret`, nor does anything else the prompt hands the screen.
+fn summary_and_row(f: &Fixture, n: u8, page: &str, secret: &str) -> (Map, Row) {
+    let summary = f
+        .find(page)
+        .unwrap()
+        .into_iter()
+        .find(|m| s(m, "id") == entry_id(id(n)))
+        .unwrap();
+    let screen = f.answer(|_| Answer::Deny { remember: false });
+    assert_eq!(f.get(&[n], page), Err(6));
+    let Question::Access(q) = screen.join().unwrap() else {
+        panic!("not the site access prompt")
+    };
+    let text = format!("{q:?} {}", json::to_string(&Value::Object(summary.clone())));
+    assert!(!text.contains(secret), "{secret}: {text}");
+    (summary, q.rows[0].clone())
+}
+
+/// What a summary and a row show for the title and the user name, each
+/// with its hidden mark.
+fn shown(summary: &Map, row: &Row) -> [(String, bool); 4] {
+    let hidden = summary.get("hidden_value") == Some(&Value::Bool(true));
+    [
+        (s(summary, "title").to_owned(), hidden),
+        (s(summary, "username").to_owned(), hidden),
+        (row.title.clone(), row.title_hidden),
+        (row.username.clone(), row.username_hidden),
+    ]
+}
+
+fn t(text: &str, hidden: bool) -> (String, bool) {
+    (text.to_owned(), hidden)
+}
+
+/// V-1 (Verify's probe, named): a UserName stored as a protected field is
+/// hidden in the summary (R02-2) and in the prompt's row (INT-02.18): empty,
+/// with its mark; the title beside it shows.
+#[test]
+fn v1_int02_18_a_protected_user_name_is_hidden_in_the_summary_and_in_the_prompt_rows() {
+    let f = Fixture::new();
+    f.e(2, |e| protect(e, "UserName", "demo-protected-user"));
+    let (summary, row) = summary_and_row(&f, 2, "https://example.com/", "demo-protected-user");
+    assert_eq!(
+        shown(&summary, &row),
+        [
+            t("Example (work)", true),
+            t("", true),
+            t("Example (work)", false),
+            t("", true)
+        ]
+    );
+    assert_eq!((row.host.as_str(), row.icon), ("example.com", 0));
+}
+
+/// V-1: a Title stored as a protected field, and a Title, UserName or URL
+/// that only the vault's flags protect (MOD-01.7, LD-207), are hidden in the
+/// summary and in the prompt's row, and never searched (R02-1).
+#[test]
+fn v1_int02_18_r02_1_a_protected_title_and_the_vault_flags_hide_the_value() {
+    let search = |f: &Fixture, term: &str| {
+        titles(&list(
+            &f.k1("logins.search", &format!(r#""text":"{term}""#))
+                .unwrap(),
+        ))
+    };
+    // The field's own flag.
+    let f = Fixture::new();
+    f.e(2, |e| protect(e, "Title", "demo-protected-title"));
+    let (summary, row) = summary_and_row(&f, 2, "https://example.com/", "demo-protected-title");
+    let title_hidden = [
+        t("", true),
+        t("work-bot", true),
+        t("", true),
+        t("work-bot", false),
+    ];
+    assert_eq!(shown(&summary, &row), title_hidden);
+    assert!(search(&f, "demo-protected").is_empty());
+    // The vault's Title flag; the field stored plain.
+    let f = Fixture::new();
+    f.v(|v| v.meta.memory_protection.title = true);
+    let (summary, row) = summary_and_row(&f, 2, "https://example.com/", "Example (work)");
+    assert_eq!(shown(&summary, &row), title_hidden);
+    assert!(search(&f, "(work)").is_empty());
+    assert_eq!(search(&f, "work-bot"), [""]);
+    // The vault's UserName flag.
+    let f = Fixture::new();
+    f.v(|v| v.meta.memory_protection.user_name = true);
+    let (summary, row) = summary_and_row(&f, 2, "https://example.com/", "work-bot");
+    assert_eq!(
+        shown(&summary, &row),
+        [
+            t("Example (work)", true),
+            t("", true),
+            t("Example (work)", false),
+            t("", true)
+        ]
+    );
+    assert!(search(&f, "work-bot").is_empty());
+    // The vault's URL flag: no host for the logo, and no host searched.
+    let f = Fixture::new();
+    f.v(|v| v.meta.memory_protection.url = true);
+    let (_, row) = summary_and_row(&f, 2, "https://example.com/", "https://example.com");
+    assert_eq!(row.host, "");
+    assert!(search(&f, "mail.example").is_empty());
+}
+
+/// V-1, C2-06: a title or user name whose placeholder reads a protected
+/// value is hidden in the summary and in the prompt's row: a reference to a
+/// protected user name (the field's own flag, then only the vault's flag),
+/// the entry's password, and a title found by another entry's password.
+#[test]
+fn v1_c2_06_int02_18_a_reference_to_a_protected_value_is_hidden_in_the_prompt_rows() {
+    let e1 = entry_id(id(1));
+    for (field, value, secret) in [
+        ("UserName", format!("{{REF:U@I:{e1}}}"), "demo-hidden-user"),
+        ("Title", format!("{{REF:U@I:{e1}}}"), "alex"),
+        ("Title", "{PASSWORD}".to_owned(), "demo-net-pass"),
+        (
+            "Title",
+            "{REF:T@P:demo-mail-pass-2}".to_owned(),
+            "Example (work)",
+        ),
+    ] {
+        let f = Fixture::new();
+        match secret {
+            "demo-hidden-user" => f.e(1, |e| protect(e, "UserName", secret)),
+            "alex" => f.v(|v| v.meta.memory_protection.user_name = true),
+            _ => {}
+        }
+        f.e(7, |e| set(e, field, &value));
+        let (summary, row) = summary_and_row(&f, 7, "https://example.net/", secret);
+        let [title, username, row_title, row_username] = shown(&summary, &row);
+        let (hidden, row_hidden) = if field == "Title" {
+            (title, row_title)
+        } else {
+            (username, row_username)
+        };
+        assert_eq!(hidden, t("", true), "{value}");
+        assert_eq!(row_hidden, t("", true), "{value}");
+        assert_eq!(row.host, "example.net", "{value}");
+    }
 }

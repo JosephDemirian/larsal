@@ -106,6 +106,7 @@ enum Glyphs {
         "pencil-simple": 0xE3B4,
         "play": 0xE3D0,
         "plug": 0xE946,
+        "plugs-connected": 0xEB5A,
         "plus": 0xE3D4,
         "plus-circle": 0xE3D6,
         "power": 0xE3DA,

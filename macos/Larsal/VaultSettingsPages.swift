@@ -76,49 +76,70 @@ struct SettingsHistory: View {
 struct SettingsBrowser: View {
     let model: VaultSettingsModel
 
+    /// MOD-12.18, T41: the notice while S-BRW-01 is off.
+    static let off = "Browser integration is turned off. Turn it on in Larsal's settings, Browser Integration."
+
+    /// INT-02.1, T02: an ISO 8601 `_CREATED_` as a date, any other text as
+    /// stored (D-INT02-2).
+    static func connected(_ browser: BrowserKey) -> String {
+        if let created = browser.created { return "Connected " + Formats.day(created) }
+        if let text = browser.createdText, !text.isEmpty { return "Connected " + text }
+        return "Connected"
+    }
+
     var body: some View {
         let view = model.view
+        // MOD-12.18: the page works only while browser integration is on.
+        let enabled = model.session.settings().flag(key: "browser.enabled")
         VStack(alignment: .leading, spacing: 24) {
-            SetGroup(title: "Connected browsers") {
-                let browsers = view?.browsers ?? []
-                RowBox(
-                    rows: browsers.isEmpty
-                        ? [AnyView(SRow(title: "No browser is connected.") { EmptyView() }.foregroundStyle(Tok.muted))]
-                        : browsers.map { browser in
-                            AnyView(
-                                DetailRow(title: "") {
-                                    Text(
-                                        verbatim: browser.created.map { "Connected " + Formats.day($0) } ?? "Connected")
-                                } control: {
-                                    RedButton(title: "Disconnect") { model.sheet = .confirm(.disconnect(browser.name)) }
-                                        .accessibilityLabel(Text(verbatim: "Disconnect " + browser.name))
-                                }
-                                .overlay(alignment: .topLeading) {
-                                    HStack(spacing: 10) {
-                                        BrowserLogo(name: browser.name)
-                                        Text(verbatim: browser.name)
-                                    }
-                                    .frame(height: 20)
-                                    .padding(.leading, 14)
-                                    .padding(.top, 10)
-                                }
-                                // CSS: the 18-point logo's inline-flex line box is 3.5 taller.
-                                .environment(\.titleGap, 3.5))
-                        })
+            if !enabled {
+                Notice(glyph: "info", fill: Tok.raised, ink: Tok.text) { Text(verbatim: Self.off) }
             }
-            SetGroup(title: "Stored permissions") {
-                let count = Int(view?.siteAccess ?? 0)
-                let row = AnyView(
-                    SRow(
-                        title: "Site permissions kept in entries",
-                        detail: Formats.count(count, "entry holds", "entries hold") + " allowed or blocked sites"
-                    ) {
-                        Button("Remove all…") { model.sheet = .confirm(.forgetSites) }
-                            .buttonStyle(Btn(size: .small))
-                            .disabled(count == 0)
+            Group { pages(view) }
+                .disabled(!enabled)
+                .opacity(enabled ? 1 : 0.55)
+        }
+    }
+
+    @ViewBuilder private func pages(_ view: VaultSettingsView?) -> some View {
+        SetGroup(title: "Connected browsers") {
+            let browsers = view?.browsers ?? []
+            RowBox(
+                rows: browsers.isEmpty
+                    ? [AnyView(SRow(title: "No browser is connected.") { EmptyView() }.foregroundStyle(Tok.muted))]
+                    : browsers.map { browser in
+                        AnyView(
+                            DetailRow(title: "") {
+                                Text(verbatim: Self.connected(browser))
+                            } control: {
+                                RedButton(title: "Disconnect") { model.sheet = .confirm(.disconnect(browser.name)) }
+                                    .accessibilityLabel(Text(verbatim: "Disconnect " + browser.name))
+                            }
+                            .overlay(alignment: .topLeading) {
+                                HStack(spacing: 10) {
+                                    BrowserLogo(name: browser.name)
+                                    Text(verbatim: browser.name)
+                                }
+                                .frame(height: 20)
+                                .padding(.leading, 14)
+                                .padding(.top, 10)
+                            }
+                            // CSS: the 18-point logo's inline-flex line box is 3.5 taller.
+                            .environment(\.titleGap, 3.5))
                     })
-                RowBox(rows: [row])
-            }
+        }
+        SetGroup(title: "Stored permissions") {
+            let count = Int(view?.siteAccess ?? 0)
+            let row = AnyView(
+                SRow(
+                    title: "Site permissions kept in entries",
+                    detail: Formats.count(count, "entry holds", "entries hold") + " allowed or blocked sites"
+                ) {
+                    Button("Remove all…") { model.sheet = .confirm(.forgetSites) }
+                        .buttonStyle(Btn(size: .small))
+                        .disabled(count == 0)
+                })
+            RowBox(rows: [row])
         }
     }
 }
