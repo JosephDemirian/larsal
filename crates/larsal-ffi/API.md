@@ -302,7 +302,7 @@ INT-01.6 to INT-01.15 over larsal-browser's `Listeners` and `Manifests`. The obj
 
 ## The bridge's vault side and dialogs (E7-S2, `bridge_vaults.rs`)
 
-INT-02 over larsal-browser's `VaultSide`: the session's open vaults answer the bridge's requests (`handler(session)` gives the `SharedHandler` for `Bridge::shared`). One dialog shows at a time, in turn (INT-02.15); a new one or one that ends calls `session_changed`, and a new one also `bring_to_front`. Titles and user names come resolved for display, as plain text, by the rule of the extension's summaries (R02-2): one whose field is protected by its own flag or the vault's (MOD-01.7), or whose resolution read a protected value (the Password always, F-272), comes as empty text with its hidden mark and the dialog shows the mask (LD-207). Never a password, a code, a key or a protected value.
+INT-02 over larsal-browser's `VaultSide`: the session's open vaults answer the bridge's requests (`handler(session)` gives the `SharedHandler` for `Bridge::shared`). One dialog shows at a time, in turn (INT-02.15); a new one or one that ends calls `session_changed`, and a new one also `bring_to_front`. Titles and user names come resolved for display, as plain text, by the rule of the extension's summaries (LD-191 R02-2): one whose field is protected by its own flag or the vault's (MOD-01.7), or whose resolution read a protected value (the Password always, F-272), comes as empty text with its hidden mark and the dialog shows the mask (LD-207). Never a password, a code, a key or a protected value.
 
 | Rust | Swift | Inputs | Output | Secret |
 |---|---|---|---|---|
