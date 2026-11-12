@@ -2092,12 +2092,12 @@ fn fil02_t21_fil03_t10_broken_stderr_and_a_failing_destination_fail() {
             "{broken}"
         );
         assert_eq!(std::fs::read(d.path(out)).unwrap(), plain, "{broken}");
-        if broken == "stdout" {
-            assert!(
-                String::from_utf8_lossy(&o.stderr)
-                    .ends_with("larsal: standard output or standard error could not be written.\n"),
-                "{o:?}"
-            );
+        // F-551: the stream that still works says the readable file was kept.
+        let kept = "larsal: standard output or standard error could not be written. The readable file given to --output was saved, and it is not encrypted.\n";
+        match broken {
+            "stdout" => assert!(String::from_utf8_lossy(&o.stderr).ends_with(kept), "{o:?}"),
+            "stderr" => assert!(String::from_utf8_lossy(&o.stdout).ends_with(kept), "{o:?}"),
+            _ => {}
         }
     }
     // The output stops at 32 KiB: the write fails, nothing stays.
@@ -2712,4 +2712,746 @@ fn int10_45_encrypt_and_decrypt_are_not_shell_commands() {
         "{}",
         o.err
     );
+}
+
+// ---------------------------------------------------------------------------
+// E22-S6, the Red team run (FIL-01, FIL-02.18 to .22, FIL-03): one test per
+// attack on the command line, named after it. Each passes while its defence
+// holds; the private-copy mutant in its doc comment turns it red. A defence
+// that does not hold has its test written to fail and ignored, with its
+// finding. Signals go only to the `larsal` this test started, by its handle.
+
+/// Polls `seen` every millisecond until it is true, while `child` runs.
+fn wait_seen(child: &mut Child, what: &str, mut seen: impl FnMut() -> bool) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(120);
+    loop {
+        if seen() {
+            return true;
+        }
+        if child.try_wait().unwrap().is_some() {
+            return false;
+        }
+        assert!(Instant::now() < deadline, "never saw {what}");
+        thread::sleep(Duration::from_millis(1));
+    }
+}
+
+fn staging_in(dir: &Path) -> Vec<PathBuf> {
+    let mut out: Vec<PathBuf> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            p.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(".larsal-staging-")
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+/// The ciphertext files a capture in TMPDIR holds now.
+fn captured(tmp: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for s in std::fs::read_dir(tmp).into_iter().flatten().flatten() {
+        for op in std::fs::read_dir(s.path()).into_iter().flatten().flatten() {
+            let c = op.path().join("ciphertext");
+            if std::fs::metadata(&c).is_ok_and(|m| m.len() > 0) {
+                out.push(c);
+            }
+        }
+    }
+    out
+}
+
+/// E22-S6 RT-13 (F-528, FIL-03.7, FIL-03.11, FIL-03-T07, FIL-03-T11, AT-FILE-07):
+/// a kill (SIGKILL, by this test's handle) at each step of a decrypt leaves only
+/// the residue the cards name. In the capture: ciphertext only, in this tool's
+/// own scratch (0700 folders, a 0600 file), and the next start sweeps it. In the
+/// check: nothing at all. In the readable write: nothing at the chosen name and
+/// one hidden staging folder, this user's, 0700, holding only `incomplete`,
+/// 0600, a prefix of the plaintext (F-528's readable residual); the next start
+/// does not sweep it (FIL-03.9), and the next decrypt to the same name works.
+/// Mutant M14: the start sweep not run (files.rs, `run`, `sweep_scratch()`).
+/// Mutant M13 (larsal-files): the staging folder made 0755.
+#[test]
+fn fil_rt_a_kill_at_each_step_leaves_only_the_documented_residue() {
+    use std::os::unix::fs::MetadataExt;
+    let d = Dir::new("rtkill");
+    d.put("pass.txt", STRONG.as_bytes());
+    let plain = demo(64 << 20, 61);
+    d.put("in.bin", &plain);
+    lib_encrypt(
+        &d.path("in.bin"),
+        &d.path("in.age"),
+        &Lock::Passphrase(&secret(STRONG)),
+    );
+    let ct = std::fs::read(d.path("in.age")).unwrap();
+    let own = std::fs::metadata(&d.0).unwrap().uid();
+    let start = |out: &str| {
+        d.command(APP)
+            .args([
+                "decrypt",
+                "in.age",
+                "--output",
+                out,
+                "--passphrase-file",
+                "pass.txt",
+            ])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap()
+    };
+    let killed = |mut child: Child| {
+        child.kill().unwrap();
+        child.wait().unwrap();
+    };
+
+    let tmp = d.path("tmp");
+    // In the check: the snapshot has no name, the scratch folder is gone.
+    let mut child = start("chk.bin");
+    let said = collect(child.stderr.take().unwrap());
+    assert!(wait_seen(&mut child, "the check", || text(&said)
+        .contains("Checking the whole file")));
+    killed(child);
+    assert_absent(&d.path("chk.bin"));
+    assert!(staging_in(&d.0).is_empty());
+    assert!(d.scratch_left().is_empty(), "{:?}", d.scratch_left());
+
+    // In the readable write.
+    let mut child = start("out.bin");
+    let seen = wait_seen(&mut child, "the write", || {
+        staging_in(&d.0)
+            .first()
+            .and_then(|s| std::fs::metadata(s.join("incomplete")).ok())
+            .is_some_and(|m| m.len() > 0)
+    });
+    assert!(seen, "the decrypt ended before its write was seen");
+    killed(child);
+    assert_absent(&d.path("out.bin"));
+    let staged = staging_in(&d.0);
+    assert_eq!(staged.len(), 1, "{staged:?}");
+    let tail = staged[0]
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let tail = tail.strip_prefix(".larsal-staging-").unwrap().to_owned();
+    assert!(tail.len() == 32 && tail.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')));
+    let m = std::fs::symlink_metadata(&staged[0]).unwrap();
+    assert!(m.is_dir());
+    assert_eq!(
+        (m.mode() & 0o7777, m.uid()),
+        (0o700, own),
+        "the staging folder"
+    );
+    let inside: Vec<_> = std::fs::read_dir(&staged[0])
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(inside, ["incomplete"]);
+    let f = std::fs::symlink_metadata(staged[0].join("incomplete")).unwrap();
+    assert!(f.is_file() && f.nlink() == 1);
+    assert_eq!(
+        (f.mode() & 0o7777, f.uid()),
+        (0o600, own),
+        "the incomplete file"
+    );
+    let partial = std::fs::read(staged[0].join("incomplete")).unwrap();
+    assert!(
+        plain.starts_with(&partial),
+        "F-528: readable bytes, a prefix"
+    );
+
+    // In the capture. The copy is quick: a few tries may be needed.
+    let mut caught = None;
+    for _ in 0..8 {
+        let mut child = start("cap.bin");
+        if wait_seen(&mut child, "the capture", || !captured(&tmp).is_empty()) {
+            killed(child);
+            caught = Some(captured(&tmp));
+            break;
+        }
+        child.wait().unwrap();
+        let _ = std::fs::remove_file(d.path("cap.bin"));
+    }
+    let left = caught.expect("a kill in the capture");
+    assert_eq!(left.len(), 1, "{left:?}");
+    let bytes = std::fs::read(&left[0]).unwrap();
+    assert!(
+        !bytes.is_empty() && ct.starts_with(&bytes),
+        "only ciphertext"
+    );
+    let m = std::fs::symlink_metadata(&left[0]).unwrap();
+    assert_eq!((m.mode() & 0o7777, m.uid()), (0o600, own));
+    for folder in [
+        left[0].parent().unwrap(),
+        left[0].parent().unwrap().parent().unwrap(),
+    ] {
+        let m = std::fs::symlink_metadata(folder).unwrap();
+        assert_eq!((m.mode() & 0o7777, m.uid()), (0o700, own), "{folder:?}");
+    }
+    assert_absent(&d.path("cap.bin"));
+
+    assert_eq!(staging_in(&d.0), staged, "the capture made no staging");
+
+    // The next start: the capture's ciphertext is swept, the staging folder
+    // is not (FIL-03.9), and the same name is free.
+    let o = d.run(
+        &[
+            "decrypt",
+            "in.age",
+            "--output",
+            "out.bin",
+            "--passphrase-file",
+            "pass.txt",
+        ],
+        b"",
+    );
+    assert_eq!(o.code, Some(0), "{}", o.err);
+    assert_eq!(std::fs::read(d.path("out.bin")).unwrap(), plain);
+    assert!(
+        captured(&tmp).is_empty(),
+        "the next start sweeps the capture"
+    );
+    assert!(d.scratch_left().is_empty(), "{:?}", d.scratch_left());
+    assert_eq!(staging_in(&d.0), staged, "F-528: never swept");
+}
+
+/// E22-S6 RT-14 (F-551, SC2R2-01, FIL-02.21, FIL-03.10): when stdout cannot be
+/// written, `larsal decrypt` exits 1 and keeps the complete readable file; its
+/// last line must then say that the readable file was saved, so a script that
+/// reads exit 1 as "nothing written" is told. Fails on BASE: the last line is
+/// only "larsal: standard output or standard error could not be written."
+/// (files.rs, `work`, the `term::broken()` branch). Fix by the Builder.
+#[test]
+fn fil_rt_a_broken_stdout_still_says_the_readable_file_was_kept() {
+    let d = Dir::new("rtstdout");
+    let plain = demo(200_000, 71);
+    d.put("in.bin", &plain);
+    d.put("pass.txt", STRONG.as_bytes());
+    lib_encrypt(
+        &d.path("in.bin"),
+        &d.path("in.age"),
+        &Lock::Passphrase(&secret(STRONG)),
+    );
+    let (reader, writer) = std::io::pipe().unwrap();
+    drop(reader);
+    let o = d
+        .command(APP)
+        .args([
+            "decrypt",
+            "in.age",
+            "--output",
+            "kept.bin",
+            "--passphrase-file",
+            "pass.txt",
+        ])
+        .stdin(Stdio::null())
+        .stdout(writer)
+        .stderr(Stdio::piped())
+        .output()
+        .unwrap();
+    assert_eq!(o.status.code(), Some(1));
+    assert_eq!(std::fs::read(d.path("kept.bin")).unwrap(), plain);
+    let err = String::from_utf8_lossy(&o.stderr).into_owned();
+    let last = err.lines().last().unwrap_or_default().to_owned();
+    assert!(
+        last.contains("readable") || last.contains("kept.bin"),
+        "the last line does not say the readable file was saved: {err:?}"
+    );
+}
+
+/// E22-S6 RT-15 (F-552, C1R2-02, FIL-02.21, FIL-03.14): an error from the
+/// vault side never repeats what the user typed: an entry path, a group path, a
+/// vault path, a key file path (a secret typed there by mistake would be
+/// printed). Fails on BASE: "no entry at <typed>.", "no group at <typed>.",
+/// "<typed> does not exist." (files.rs `password_of`, `keys_of`, `generate`;
+/// vault.rs). Fix by the Builder.
+#[test]
+fn fil_rt_vault_side_errors_never_repeat_typed_words() {
+    let d = Dir::new("rttyped");
+    d.put("in.bin", &demo(1000, 73));
+    let (_, public) = identity();
+    let o = d.run(
+        &[
+            "encrypt",
+            "in.bin",
+            "--output",
+            "k.age",
+            "--recipient",
+            &public,
+        ],
+        b"",
+    );
+    assert_eq!(o.code, Some(0), "{}", o.err);
+    const TYPED: &str = "Typed7Qz";
+    let entry = format!("{TYPED} entry");
+    let group = format!("{TYPED} group");
+    let vault = format!("{TYPED}.larsalvault");
+    let key = format!("{TYPED}.key");
+    let runs: [(&[&str], &[u8]); 5] = [
+        (
+            &[
+                "decrypt",
+                "k.age",
+                "--output",
+                "o1",
+                "--identity-entry",
+                entry.as_str(),
+                "--vault",
+                "w.larsalvault",
+            ],
+            b"demo-pass-4\n",
+        ),
+        (
+            &[
+                "decrypt",
+                "k.age",
+                "--output",
+                "o2",
+                "--passphrase-entry",
+                entry.as_str(),
+                "--vault",
+                "w.larsalvault",
+            ],
+            b"demo-pass-4\n",
+        ),
+        (
+            &[
+                "encrypt",
+                "in.bin",
+                "--output",
+                "o3.age",
+                "--generate",
+                "--vault",
+                "w.larsalvault",
+                "--group",
+                group.as_str(),
+                "--title",
+                "t",
+            ],
+            b"demo-pass-4\n",
+        ),
+        (
+            &[
+                "decrypt",
+                "k.age",
+                "--output",
+                "o4",
+                "--passphrase-entry",
+                "x",
+                "--vault",
+                vault.as_str(),
+            ],
+            b"demo-pass-4\n",
+        ),
+        (
+            &[
+                "decrypt",
+                "k.age",
+                "--output",
+                "o5",
+                "--passphrase-entry",
+                "x",
+                "--vault",
+                "w.larsalvault",
+                "--key-file",
+                key.as_str(),
+            ],
+            b"demo-pass-4\n",
+        ),
+    ];
+    let mut leaked = Vec::new();
+    for (args, input) in runs {
+        let o = d.run(args, input);
+        assert_ne!(o.code, Some(0), "{args:?}");
+        if o.err.contains(TYPED) || o.out.contains(TYPED) {
+            leaked.push(format!("{:?} -> {:?}", args[5], o.err.trim_end()));
+        }
+    }
+    for out in ["o1", "o2", "o3.age", "o4", "o5"] {
+        assert_absent(&d.path(out));
+    }
+    assert!(leaked.is_empty(), "typed words repeated: {leaked:#?}");
+}
+
+/// E22-S6 RT-16 (F-556, C1R3-01, FIL-02.19): an entry with both a "File key"
+/// field and a different, non-empty Password is read by its "File key": a
+/// file to that key opens, a file to the key in the Password does not.
+/// Mutant M16: the Password read first when it is not empty (files.rs, `keys_of`).
+#[test]
+fn fil_rt_a_file_key_field_comes_before_the_password() {
+    use larsal_ffi::files::FileSave;
+    let d = Dir::new("rtbothkeys");
+    let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../testdata");
+    std::fs::copy(
+        data.join("option-a-personal.larsalvault"),
+        d.path("app.larsalvault"),
+    )
+    .unwrap();
+    let plain = demo(70_000, 79);
+    d.put("in.bin", &plain);
+    let public_a = {
+        let s = larsal_ffi::session::Session::new();
+        let v = s
+            .open(d.path("app.larsalvault").to_string_lossy().into_owned())
+            .unwrap();
+        s.unlock(v, Some("demo-pass-7".into()), None).unwrap();
+        s.create_file_key(FileSave {
+            vault: v,
+            group: None,
+            title: "Both keys".into(),
+        })
+        .unwrap()
+    };
+    let (private_b, public_b) = identity();
+    let o = d.run(
+        &[
+            "edit",
+            "-q",
+            "--password-prompt",
+            "app.larsalvault",
+            "Both keys",
+        ],
+        format!("demo-pass-7\n{}\n", private_b.expose()).as_bytes(),
+    );
+    assert_eq!(o.code, Some(0), "{}", o.err);
+    for (name, to) in [("a.age", &public_a), ("b.age", &public_b)] {
+        let o = d.run(
+            &["encrypt", "in.bin", "--output", name, "--recipient", to],
+            b"",
+        );
+        assert_eq!(o.code, Some(0), "{}", o.err);
+    }
+    let decrypt = |input: &str, out: &str| {
+        d.run(
+            &[
+                "decrypt",
+                input,
+                "--output",
+                out,
+                "--identity-entry",
+                "Both keys",
+                "--vault",
+                "app.larsalvault",
+            ],
+            b"demo-pass-7\n",
+        )
+    };
+    let o = decrypt("a.age", "a.bin");
+    assert_eq!(o.code, Some(0), "the File key opens its file: {}", o.err);
+    assert_eq!(std::fs::read(d.path("a.bin")).unwrap(), plain);
+    let o = decrypt("b.age", "b.bin");
+    assert_eq!(o.code, Some(1), "the Password is not read: {}", o.err);
+    assert_absent(&d.path("b.bin"));
+}
+
+/// E22-S6 RT-17 (F-557, C2R3-02, FIL-03.13, FIL-03.14): an entry whose key text
+/// does not parse gives FIL-03's fixed words, and the text is on neither stream.
+/// Mutant M17: the entry's key list added to the error (files.rs, `start`,
+/// `Mode::IdentityEntry`).
+#[test]
+fn fil_rt_a_bad_key_in_an_entry_is_never_printed() {
+    let d = Dir::new("rtbadkey");
+    d.put("in.bin", &demo(1000, 83));
+    let (_, public) = identity();
+    let o = d.run(
+        &[
+            "encrypt",
+            "in.bin",
+            "--output",
+            "k.age",
+            "--recipient",
+            &public,
+        ],
+        b"",
+    );
+    assert_eq!(o.code, Some(0), "{}", o.err);
+    const BAD: &str = "AGE-SECRET-KEY-1DEMO7NOTAKEY7TEXT7QZ";
+    let o = d.run(
+        &["add", "-q", "-p", "w.larsalvault", "Bad key"],
+        format!("demo-pass-4\n{BAD}\n").as_bytes(),
+    );
+    assert_eq!(o.code, Some(0), "{}", o.err);
+    let o = d.run(
+        &[
+            "decrypt",
+            "k.age",
+            "--output",
+            "o.bin",
+            "--identity-entry",
+            "Bad key",
+            "--vault",
+            "w.larsalvault",
+        ],
+        b"demo-pass-4\n",
+    );
+    assert_eq!(o.code, Some(1), "{}", o.err);
+    assert!(o.err.ends_with(DECRYPT_MSG), "{}", o.err);
+    for needle in [BAD, "DEMO7NOTAKEY", "AGE-SECRET-KEY"] {
+        assert!(
+            !o.err.contains(needle) && !o.out.contains(needle),
+            "{needle}: {} {}",
+            o.out,
+            o.err
+        );
+    }
+    assert_absent(&d.path("o.bin"));
+}
+
+/// E22-S6 RT-18 (FIL-02.18, FIL-03.8, AT-FILE-09): `--output` that tries to
+/// leave or replace: `..`, a folder, `/`, a path ending in `/` or `/.`, an
+/// existing file, a link (to a file outside and dangling), a FIFO, a path
+/// under a missing folder. Each is refused before any key derivation (no
+/// "Preparing" line), nothing changes, and the run never waits on the FIFO.
+/// Mutant M18: the early look at the output name removed (files.rs, `output`,
+/// `symlink_metadata`): a FIFO is then refused only later, at the create, after
+/// the prompt-free work started.
+#[test]
+fn fil_rt_output_paths_that_leave_or_replace_are_refused_first() {
+    let d = Dir::new("rtout");
+    d.put("in.bin", &demo(5000, 89));
+    d.put("pass.txt", STRONG.as_bytes());
+    lib_encrypt(
+        &d.path("in.bin"),
+        &d.path("in.age"),
+        &Lock::Passphrase(&secret(STRONG)),
+    );
+    std::fs::create_dir(d.path("sub")).unwrap();
+    d.put("taken.bin", b"demo taken");
+    d.put("outside.txt", b"demo outside");
+    std::os::unix::fs::symlink(d.path("outside.txt"), d.path("link.bin")).unwrap();
+    std::os::unix::fs::symlink(d.path("nowhere"), d.path("dangling.bin")).unwrap();
+    assert!(
+        Command::new("/usr/bin/mkfifo")
+            .arg(d.path("fifo.bin"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    let before = |d: &Dir| {
+        let mut n: Vec<String> = std::fs::read_dir(&d.0)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        n.sort();
+        n
+    };
+    let names = before(&d);
+    for (cmd, input) in [("decrypt", "in.age"), ("encrypt", "in.bin")] {
+        for out in [
+            "..",
+            "sub",
+            "sub/",
+            "sub/.",
+            "/",
+            "sub/..",
+            "taken.bin",
+            "link.bin",
+            "dangling.bin",
+            "fifo.bin",
+            "missing/x.bin",
+            "in.age",
+            "in.bin",
+        ] {
+            let mut child = d
+                .command(APP)
+                .args([cmd, input, "--output", out, "--passphrase-file", "pass.txt"])
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            let err = collect(child.stderr.take().unwrap());
+            let deadline = Instant::now() + Duration::from_secs(20);
+            let status = loop {
+                if let Some(s) = child.try_wait().unwrap() {
+                    break s;
+                }
+                if Instant::now() > deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("{cmd} --output {out}: still runs after 20 s");
+                }
+                thread::sleep(Duration::from_millis(10));
+            };
+            thread::sleep(Duration::from_millis(20));
+            let err = text(&err);
+            assert_eq!(status.code(), Some(1), "{cmd} --output {out}: {err}");
+            assert!(
+                !err.contains("Preparing") && !err.contains("Encrypting"),
+                "{cmd} {out}: {err}"
+            );
+            assert!(
+                err.ends_with("larsal: A file already exists with this name. Choose a different name.\n")
+                    || err.ends_with("larsal: This location cannot be used. Choose another folder and a new file name.\n"),
+                "{cmd} --output {out}: {err}"
+            );
+        }
+    }
+    assert_eq!(before(&d), names);
+    assert_eq!(
+        std::fs::read(d.path("outside.txt")).unwrap(),
+        b"demo outside"
+    );
+    assert_eq!(std::fs::read(d.path("taken.bin")).unwrap(), b"demo taken");
+    assert_absent(&d.path("nowhere"));
+    assert_eq!(std::fs::read_dir(d.path("sub")).unwrap().count(), 0);
+    assert!(std::fs::read_dir(d.0.parent().unwrap()).unwrap().all(|e| {
+        !e.unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".larsal-staging-")
+    }));
+}
+
+/// E22-S6 (F-552, FIL-02.18, FIL-02.21): the vault-side texts RT-15 does not
+/// reach name the option, never what was typed: a taken `--title`, a folder
+/// as VAULT, `--no-password` alone, a folder as key file, an early kind of
+/// key file, a file that is no vault, a vault that cannot be saved. The vault
+/// password prompt still names VAULT once it is found as a file, so in the
+/// cases that reach it the words after the prompt are checked.
+#[test]
+fn e22s6_f552_vault_side_texts_name_the_option_never_the_typed_words() {
+    const TYPED: &str = "Typed7Qz";
+    let d = Dir::new("f552");
+    d.put("in.bin", &demo(1000, 79));
+    let (_, public) = identity();
+    let o = d.run(
+        &[
+            "encrypt",
+            "in.bin",
+            "--output",
+            "k.age",
+            "--recipient",
+            &public,
+        ],
+        b"",
+    );
+    assert_eq!(o.code, Some(0), "{}", o.err);
+    let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../testdata");
+    let named = |tail: &str| format!("{TYPED}{tail}");
+    std::fs::copy(
+        data.join("keyfile-hex64.larsalvault"),
+        d.path(&named("-k.larsalvault")),
+    )
+    .unwrap();
+    std::fs::copy(
+        data.join("key-hex64.larsalkey"),
+        d.path(&named(".larsalkey")),
+    )
+    .unwrap();
+    std::fs::copy(d.path("w.larsalvault"), d.path(&named(".larsalvault"))).unwrap();
+    std::fs::create_dir(d.path(&named("-dir"))).unwrap();
+    d.put(&named("-junk.larsalvault"), b"demo bytes, not a vault");
+    let ro = d.path(&named("-ro"));
+    std::fs::create_dir(&ro).unwrap();
+    std::fs::copy(d.path("w.larsalvault"), ro.join("w.larsalvault")).unwrap();
+    let title = named(" title");
+    let generate = |out: &str, vault: &str| {
+        d.run(
+            &[
+                "encrypt",
+                "in.bin",
+                "--output",
+                out,
+                "--generate",
+                "--vault",
+                vault,
+                "--group",
+                "/",
+                "--title",
+                title.as_str(),
+            ],
+            b"demo-pass-4\n",
+        )
+    };
+    assert_eq!(generate("one.age", "w.larsalvault").code, Some(0));
+    let (dir, vault, keys, junk) = (
+        named("-dir"),
+        named(".larsalvault"),
+        named("-k.larsalvault"),
+        named("-junk.larsalvault"),
+    );
+    let key = named(".larsalkey");
+    let pass = |out: &'static str, rest: &[&str]| {
+        let args = [
+            &[
+                "decrypt",
+                "k.age",
+                "--output",
+                out,
+                "--passphrase-entry",
+                "x",
+            ][..],
+            rest,
+        ]
+        .concat();
+        d.run(&args, b"demo-pass-4\n")
+    };
+    let no_entry = "larsal: no entry at the path given to --passphrase-entry.\n";
+    // Each case: the run, the words after the prompt (if any), what they end with.
+    let cases = [
+        (generate("two.age", "w.larsalvault"), String::new(), "larsal: an entry is already found at the --group and --title given. Choose another --title.\n".to_owned()),
+        (pass("o2", &["--vault", dir.as_str()]), String::new(), "larsal: the file given to --vault is not a vault file but a folder or special file.\n".to_owned()),
+        (pass("o3", &["--vault", vault.as_str(), "--no-password"]), String::new(), "larsal: nothing to unlock the file given to --vault with. --no-password needs --key-file or --hw-key.\n".to_owned()),
+        (pass("o4", &["--vault", "w.larsalvault", "--key-file", dir.as_str()]), String::new(), "larsal: The key file is a folder or a special file. Choose a normal file as the key file.\n".to_owned()),
+        (pass("o5", &["--vault", keys.as_str(), "--no-password", "--key-file", key.as_str()]), String::new(), format!("Note: the file given to --key-file is an early kind of key file. It works, but a later Larsal may stop reading it. db-edit --set-key-file moves the vault to a new key file.\n{no_entry}")),
+        (pass("o6", &["--vault", junk.as_str()]), format!("Vault password for {junk}: "), "larsal: the file given to --vault is not a vault file. Open the file that holds your vault.\n".to_owned()),
+    ];
+    for (i, (o, prompt, end)) in cases.iter().enumerate() {
+        assert_eq!(o.code, Some(1), "case {i}: {}", o.err);
+        let after = o
+            .err
+            .strip_prefix(prompt.as_str())
+            .unwrap_or_else(|| panic!("case {i}: {}", o.err));
+        assert!(after.ends_with(end.as_str()), "case {i}: {}", o.err);
+        assert!(
+            !after.contains(TYPED) && !o.out.contains(TYPED),
+            "case {i}: {:?} {:?}",
+            o.out,
+            o.err
+        );
+    }
+    // A vault that cannot be saved: its folder and file are read only.
+    let ro_vault = format!("{}/w.larsalvault", named("-ro"));
+    std::fs::set_permissions(
+        ro.join("w.larsalvault"),
+        std::fs::Permissions::from_mode(0o444),
+    )
+    .unwrap();
+    std::fs::set_permissions(&ro, std::fs::Permissions::from_mode(0o555)).unwrap();
+    let o = generate("o7.age", &ro_vault);
+    std::fs::set_permissions(&ro, std::fs::Permissions::from_mode(0o755)).unwrap();
+    std::fs::set_permissions(
+        ro.join("w.larsalvault"),
+        std::fs::Permissions::from_mode(0o644),
+    )
+    .unwrap();
+    assert_eq!(o.code, Some(1), "{}", o.err);
+    let after = o
+        .err
+        .strip_prefix(format!("Vault password for {ro_vault}: ").as_str())
+        .unwrap_or_else(|| panic!("{}", o.err));
+    assert!(
+        after.contains("larsal: could not save the file given to --vault: "),
+        "{}",
+        o.err
+    );
+    assert!(
+        after.ends_with(". The file on disk is unchanged.\n"),
+        "{}",
+        o.err
+    );
+    assert!(
+        !after.contains(TYPED) && !o.out.contains(TYPED),
+        "{after:?}"
+    );
+    for out in ["two.age", "o2", "o3", "o4", "o5", "o6", "o7.age"] {
+        assert_absent(&d.path(out));
+    }
 }

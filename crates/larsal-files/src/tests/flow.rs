@@ -559,6 +559,16 @@ fn fil03_t08_only_a_folder_can_be_an_output_folder() {
     assert!(!first.join("demo.out").exists());
 }
 
+/// E22-S6 (RT-12b): the open that never waits still follows a link to a
+/// folder, as a chosen folder may be one (`/tmp` is a link on macOS).
+#[test]
+fn e22s6_a_link_to_a_folder_is_still_an_output_folder() {
+    let t = Temp::new();
+    let link = t.0.join("link");
+    symlink(t.sub("real"), &link).unwrap();
+    assert!(OutputFolder::open(&link).is_ok());
+}
+
 /// Says stop at the second question. The first is the safe point before the output
 /// exists (FIL-02.13), where a stop leaves nothing to clean.
 fn stop_once_made() -> impl FnMut(Phase, u64) -> bool {

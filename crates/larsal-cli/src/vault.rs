@@ -17,6 +17,31 @@ use std::fs::{File, OpenOptions};
 use std::io::{ErrorKind, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// F-552 (FIL-02.21): `larsal encrypt` and `larsal decrypt` name the vault and
+/// the key file in their texts by the option that gave them, never as typed,
+/// so a secret typed there by mistake is not printed. Those two commands
+/// never run in the shell (`args::lookup`), so the switch reaches no other.
+static BY_ROLE: AtomicBool = AtomicBool::new(false);
+
+/// Turns F-552's naming on for the rest of this process.
+pub fn name_by_role() {
+    BY_ROLE.store(true, Ordering::Relaxed);
+}
+
+fn by_role() -> bool {
+    BY_ROLE.load(Ordering::Relaxed)
+}
+
+/// `path` in a text: as typed, or by its `--option`.
+fn named(path: &str, option: &str) -> String {
+    if by_role() {
+        format!("the file given to --{option}")
+    } else {
+        path.to_owned()
+    }
+}
 
 /// The current time in whole seconds.
 pub fn now() -> Time {
@@ -117,16 +142,17 @@ impl<'a> Unlock<'a> {
 
 /// INT-10.11: VAULT exists, is a regular file after links, can be read.
 pub fn check_vault(path: &str) -> Res {
+    let name = named(path, "vault");
     let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
-        ErrorKind::PermissionDenied => fail(format!("{path} cannot be read: permission denied.")),
-        _ => fail(format!("{path} does not exist.")),
+        ErrorKind::PermissionDenied => fail(format!("{name} cannot be read: permission denied.")),
+        _ => fail(format!("{name} does not exist.")),
     })?;
     if !meta.is_file() {
         return Err(fail(format!(
-            "{path} is not a vault file but a folder or special file."
+            "{name} is not a vault file but a folder or special file."
         )));
     }
-    File::open(path).map_err(|_| fail(format!("{path} cannot be read: permission denied.")))?;
+    File::open(path).map_err(|_| fail(format!("{name} cannot be read: permission denied.")))?;
     Ok(())
 }
 
@@ -141,7 +167,8 @@ pub fn check_unlock(path: &str, u: &Unlock<'_>) -> Res {
     }
     if u.no_password && u.key_file.is_none() && u.hw_key.is_none() {
         return Err(fail(format!(
-            "nothing to unlock {path} with. --no-password needs --key-file or --hw-key."
+            "nothing to unlock {} with. --no-password needs --key-file or --hw-key.",
+            named(path, "vault")
         )));
     }
     Ok(())
@@ -181,7 +208,8 @@ pub fn read_key(path: &str, quiet: bool) -> Res<KeyFileKey> {
     let key = load_key(path).map_err(fail)?;
     if key.kind().old_format() && !quiet {
         term::err(&format!(
-            "Note: {path} is an early kind of key file. It works, but a later Larsal may stop reading it. db-edit --set-key-file moves the vault to a new key file."
+            "Note: {} is an early kind of key file. It works, but a later Larsal may stop reading it. db-edit --set-key-file moves the vault to a new key file.",
+            named(path, "key-file")
         ));
     }
     Ok(key)
@@ -326,7 +354,7 @@ impl Session {
     /// Saves the vault the safe way (INT-10.20, APP-05.9 to APP-05.12):
     /// links resolved, the pre-save check, mode kept, no backup.
     pub fn save(&mut self) -> Res {
-        let path = self.path.clone();
+        let path = named(&self.path, "vault");
         let failed = |reason: String| {
             fail(format!(
                 "could not save {path}: {reason}. The file on disk is unchanged."
@@ -439,31 +467,42 @@ pub fn vault_as_key_file() -> String {
 /// M06-01 to M06-26 for `error`, naming the vault file `file` and the key
 /// file `key` (file names, cleaned here).
 pub fn open_error(error: &Error, file: &str, key: &str) -> String {
-    let file = clean_name(file);
+    // F-552: by role, the vault is named by its option.
+    let file = if by_role() {
+        named(file, "vault")
+    } else {
+        format!("\"{}\"", clean_name(file))
+    };
     let key = clean_name(key);
     match error {
-        Error::NotAVault => format!("\"{file}\" is not a vault file. Open the file that holds your vault."),
-        Error::OldFormat => format!("\"{file}\" is in the first vault format. Larsal can only import it: Import… makes a new vault from its contents."),
+        Error::NotAVault => format!("{file} is not a vault file. Open the file that holds your vault."),
+        Error::OldFormat => format!("{file} is in the first vault format. Larsal can only import it: Import… makes a new vault from its contents."),
         Error::Unsupported => "This vault uses a file version or setting that Larsal does not support yet. A Larsal update may open it.".into(),
-        Error::Corrupt => format!("\"{file}\" is damaged and cannot be unlocked. If you have a backup copy, open that instead."),
+        Error::Corrupt => format!("{file} is damaged and cannot be unlocked. If you have a backup copy, open that instead."),
         Error::NoCredentials => "Enter the password for this vault.".into(),
         Error::WrongKey => "Wrong password, key file or security key. Check them and try again.".into(),
         Error::KeyFile(reason) => key_file_text(reason, &key),
         Error::HardwareKey(reason) => hardware_key_text(*reason),
         Error::TooLarge(Limit::KdfCost) => "This vault's unlock settings ask for more than this Mac can do. Lower them in the app that made the vault, then try again.".into(),
-        Error::TooLarge(Limit::TotalFile) => format!("\"{file}\" is larger than Larsal can open (about 1 GiB). Make it smaller in the app that made it, for example by removing large attachments."),
-        Error::TooLarge(_) => format!("\"{file}\" holds more than Larsal can open safely. Make it smaller in the app that made it."),
-        Error::Io(ErrorKind::NotFound) => format!("\"{file}\" cannot be found. It may have been moved, renamed or deleted. Open it from its new place."),
-        Error::Io(ErrorKind::PermissionDenied) => format!("Larsal is not allowed to read \"{file}\". Check its permissions in Finder, then try again."),
-        Error::Io(_) => format!("Larsal could not read \"{file}\". Check that its disk is connected, then try again."),
+        Error::TooLarge(Limit::TotalFile) => format!("{file} is larger than Larsal can open (about 1 GiB). Make it smaller in the app that made it, for example by removing large attachments."),
+        Error::TooLarge(_) => format!("{file} holds more than Larsal can open safely. Make it smaller in the app that made it."),
+        Error::Io(ErrorKind::NotFound) => format!("{file} cannot be found. It may have been moved, renamed or deleted. Open it from its new place."),
+        Error::Io(ErrorKind::PermissionDenied) => format!("Larsal is not allowed to read {file}. Check its permissions in Finder, then try again."),
+        Error::Io(_) => format!("Larsal could not read {file}. Check that its disk is connected, then try again."),
     }
 }
 
 /// M06-07 to M06-16.
 pub fn key_file_text(reason: &KeyFileReason, key: &str) -> String {
+    // F-552: by role, the key file goes unnamed.
+    let key = if by_role() {
+        String::new()
+    } else {
+        format!(" \"{key}\"")
+    };
     match reason {
         KeyFileReason::Empty => {
-            format!("The key file \"{key}\" is empty. Choose the right key file.")
+            format!("The key file{key} is empty. Choose the right key file.")
         }
         KeyFileReason::UnsupportedVersion(v) => {
             let plain = !v.is_empty()
@@ -471,37 +510,42 @@ pub fn key_file_text(reason: &KeyFileReason, key: &str) -> String {
                 && v.chars().all(|c| c.is_ascii_digit() || c == '.');
             if plain {
                 format!(
-                    "The key file \"{key}\" has version {v}, which Larsal cannot read. Choose another key file."
+                    "The key file{key} has version {v}, which Larsal cannot read. Choose another key file."
                 )
             } else {
                 format!(
-                    "The key file \"{key}\" has a version Larsal cannot read. Choose another key file."
+                    "The key file{key} has a version Larsal cannot read. Choose another key file."
                 )
             }
         }
         KeyFileReason::CheckValueMismatch => format!(
-            "The key file \"{key}\" is damaged: its built-in check failed. Use a backup copy of the key file."
+            "The key file{key} is damaged: its built-in check failed. Use a backup copy of the key file."
         ),
         KeyFileReason::DataUnreadable => format!(
-            "The key file \"{key}\" is damaged: Larsal cannot read the key in it. Use a backup copy of the key file."
+            "The key file{key} is damaged: Larsal cannot read the key in it. Use a backup copy of the key file."
         ),
         KeyFileReason::Io(ErrorKind::NotFound) => {
-            format!("The key file \"{key}\" cannot be found. Choose it again.")
+            format!("The key file{key} cannot be found. Choose it again.")
         }
         KeyFileReason::Io(ErrorKind::PermissionDenied) => format!(
-            "Larsal is not allowed to read the key file \"{key}\". Check its permissions in Finder, then try again."
+            "Larsal is not allowed to read the key file{key}. Check its permissions in Finder, then try again."
         ),
         KeyFileReason::Io(_) => format!(
-            "Larsal could not read the key file \"{key}\". Check that its disk is connected, then try again."
+            "Larsal could not read the key file{key}. Check that its disk is connected, then try again."
         ),
         KeyFileReason::NotRegularFile => format!(
-            "\"{key}\" is a folder or a special file. Choose a normal file as the key file."
+            "{} is a folder or a special file. Choose a normal file as the key file.",
+            if key.is_empty() {
+                "The key file"
+            } else {
+                key.trim_start()
+            }
         ),
         KeyFileReason::Dtd => format!(
-            "Larsal does not accept the key file \"{key}\" because it declares a document type. Choose another key file."
+            "Larsal does not accept the key file{key} because it declares a document type. Choose another key file."
         ),
         KeyFileReason::TooLarge(_) => format!(
-            "The key file \"{key}\" is too complex for Larsal to read safely. Choose another key file."
+            "The key file{key} is too complex for Larsal to read safely. Choose another key file."
         ),
     }
 }

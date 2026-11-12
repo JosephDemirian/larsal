@@ -9,8 +9,8 @@ use crate::error::{Error, io_error};
 use crate::{Control, Phase, payload};
 use larsal_crypto::random;
 use larsal_platform::macos::{
-    create_in, effective_uid, has_acl, ignores_ownership, is_file_in, make_dir_in, open_dir_in,
-    open_regular_nofollow, remove_dir_in, remove_in, rename_new_in,
+    create_in, effective_uid, has_acl, ignores_ownership, is_file_in, make_dir_in, open_dir,
+    open_dir_in, open_folder, open_regular_nofollow, remove_dir_in, remove_in, rename_new_in,
 };
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, DirBuilder, File, Metadata};
@@ -166,12 +166,14 @@ pub struct ScratchRoot {
 
 impl ScratchRoot {
     /// Opens the folder and checks it is the user's own, closed to everyone else,
-    /// by its mode and by having no access list.
+    /// by its mode and by having no access list. The open takes a folder only,
+    /// never through a link at its last step and never waiting (F-555): a FIFO
+    /// or a link put at the name is refused unopened.
     ///
     /// # Errors
     /// [`Error::Destination`] for anything else; no file is changed.
     pub fn open(path: &Path) -> Result<Self, Error> {
-        let dir = File::open(path).map_err(|_| Error::Destination)?;
+        let dir = open_dir(path).map_err(|_| Error::Destination)?;
         let meta = dir.metadata().map_err(|_| Error::Destination)?;
         if !meta.is_dir() || !private(&dir, OWNER_DIR) {
             return Err(Error::Destination);
@@ -478,12 +480,14 @@ fn write_scratch(file: &mut File, bytes: &[u8]) -> io::Result<()> {
 pub struct OutputFolder(File);
 
 impl OutputFolder {
-    /// Opens the folder.
+    /// Opens the folder, never waiting: a FIFO or anything else that is no
+    /// folder is refused unopened (E22-S6 RT-12b). A link to a folder is
+    /// followed, as the user may choose one.
     ///
     /// # Errors
     /// [`Error::Destination`] when `path` is not a folder this user can open.
     pub fn open(path: &Path) -> Result<Self, Error> {
-        let dir = File::open(path).map_err(|_| Error::Destination)?;
+        let dir = open_folder(path).map_err(|_| Error::Destination)?;
         if dir.metadata().map_err(|_| Error::Destination)?.is_dir() {
             Ok(Self(dir))
         } else {

@@ -2013,3 +2013,228 @@ fn fil03_t12_c1r3_06_a_decrypt_on_one_volume_counts_the_scratch_copy() {
     );
     std::fs::remove_file(source).unwrap();
 }
+
+// ---------------------------------------------------------------------------
+// E22-S6, the Red team run: the app's path, larsal-ffi's files bridge, with the
+// same attacks as the format and the command line. Each passes while its
+// defence holds; the private-copy mutant in its doc comment turns it red.
+
+/// E22-S6 RT-19 (AT-FILE-01, AT-FILE-02, AT-FILE-09, FIL-03.8, FIL-03.13): the
+/// app's decrypt job with changed files (a header byte, the MAC, the payload
+/// nonce, the last chunk, a cut at a chunk edge, a cut of one byte, one byte
+/// more, two chunks swapped) and a wrong passphrase: each MSG-FILE-DECRYPT and
+/// no output. Names that leave the chosen folder (`..`, `../x`, `a/b`, an
+/// absolute path, an empty name) are MSG-FILE-DESTINATION for a decrypt and an
+/// encrypt, and nothing is made next to the folder.
+/// Mutant M10 (larsal-files): the plain-name check removed.
+#[test]
+fn fil_rt_the_app_job_refuses_changed_files_and_names_outside_the_folder() {
+    let _one = serial();
+    let d = Demo::new("rt-changed");
+    const PASS: &str = "demo red team pass 9";
+    let sealed = sealed_demo(&d, 200_000, PASS);
+    let good = std::fs::read(&sealed).unwrap();
+    std::fs::remove_file(&sealed).unwrap();
+    let at = good.windows(4).position(|w| w == b"--- ").unwrap();
+    let end = at + good[at..].iter().position(|b| *b == b'\n').unwrap() + 1;
+    let chunk = 65_536 + 16;
+    let body = end + 16;
+    let flip = |i: usize| {
+        let mut b = good.clone();
+        b[i] ^= 0x04;
+        b
+    };
+    let mut swapped = good[..body].to_vec();
+    swapped.extend_from_slice(&good[body + chunk..body + 2 * chunk]);
+    swapped.extend_from_slice(&good[body..body + chunk]);
+    swapped.extend_from_slice(&good[body + 2 * chunk..]);
+    let mut longer = good.clone();
+    longer.push(0);
+    let variants = [
+        flip(30),
+        flip(at + 6),
+        flip(end + 3),
+        flip(good.len() - 3),
+        good[..body + chunk].to_vec(),
+        good[..good.len() - 1].to_vec(),
+        longer,
+        swapped,
+    ];
+    for (i, bad) in variants.iter().enumerate() {
+        let source = d.file(&format!("bad-{i}.age"), bad);
+        let e = decrypt(&d, phrase(PASS), &source, "plain.bin");
+        assert_eq!(id_of(&e), "MSG-FILE-DECRYPT", "variant {i}");
+        assert!(d.out_names().is_empty(), "variant {i}");
+    }
+    let source = d.file("good.age", &good);
+    let e = decrypt(&d, phrase("demo red team pass 8"), &source, "plain.bin");
+    assert_eq!(id_of(&e), "MSG-FILE-DECRYPT");
+    assert!(d.out_names().is_empty());
+    let absolute = d.dir.join("absolute-escape").to_string_lossy().into_owned();
+    for name in [
+        "..",
+        "../escape.bin",
+        "out/../../escape.bin",
+        "a/b",
+        absolute.as_str(),
+        "",
+    ] {
+        let e = decrypt(&d, phrase(PASS), &source, name);
+        assert_eq!(id_of(&e), "MSG-FILE-DESTINATION", "decrypt to {name:?}");
+        let plain = d.file("plain-for-rt.bin", b"demo plain for rt");
+        let job = started(
+            d.s.encrypt_file_passphrase(
+                PASS.into(),
+                PASS.into(),
+                true,
+                None,
+                plain,
+                d.out(),
+                name.into(),
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            id_of(&finish(&job)),
+            "MSG-FILE-DESTINATION",
+            "encrypt to {name:?}"
+        );
+    }
+    assert!(d.out_names().is_empty(), "{:?}", d.out_names());
+    for gone in ["escape.bin", "absolute-escape", "a"] {
+        assert!(d.dir.join(gone).symlink_metadata().is_err(), "{gone}");
+    }
+    // Control: the unchanged file opens.
+    let e = decrypt(&d, phrase(PASS), &source, "plain.bin");
+    assert_eq!(id_of(&e), "done");
+    assert_eq!(
+        std::fs::read(d.dir.join("out/plain.bin")).unwrap(),
+        demo_bytes(200_000)
+    );
+}
+
+/// E22-S6 RT-20 (FIL-03.15, FIL-03-T15's stale half, AT-FILE-08): a revoked
+/// job takes no answer given after the revoke, a finished job takes no late
+/// answer, and an entry of another vault is refused with a typed error before
+/// any job. Nothing is written.
+/// Mutant M20: a revoke that no longer marks the job (files.rs, `Job::revoke`).
+#[test]
+fn fil_rt_fil03_t15_a_revoked_or_finished_job_takes_no_late_answer() {
+    let _one = serial();
+    let d = Demo::new("rt-late");
+    let source = d.file("from another tool.bin", &foreign());
+    let job = started(
+        d.s.decrypt_file(phrase("password"), source.clone(), d.out(), "plain".into())
+            .unwrap(),
+    );
+    let q = number(&wait_ask(&job, false));
+    job.revoke();
+    job.answer_weak(q, true);
+    assert_eq!(id_of(&finish(&job)), "MSG-FILE-CANCELLED");
+    job.answer_weak(q, true);
+    std::thread::sleep(Duration::from_millis(200));
+    assert!(d.out_names().is_empty());
+    assert_eq!(id_of(&job.progress().end.unwrap()), "MSG-FILE-CANCELLED");
+
+    let job = started(
+        d.s.decrypt_file(phrase("password"), source, d.out(), "plain2".into())
+            .unwrap(),
+    );
+    let q = number(&wait_ask(&job, false));
+    job.answer_weak(q, false);
+    assert_eq!(id_of(&finish(&job)), "MSG-FILE-CANCELLED");
+    job.answer_weak(q, true);
+    std::thread::sleep(Duration::from_millis(200));
+    assert!(d.out_names().is_empty());
+
+    // Another vault's entry, named with this vault's number.
+    let other = d.dir.join("Other.larsalvault");
+    std::fs::copy(d.dir.join("Demo.larsalvault"), &other).unwrap();
+    let v2 = d.s.open(other.to_string_lossy().into_owned()).unwrap();
+    d.s.unlock(v2, Some("demo-pass-7".into()), None).unwrap();
+    d.s.create_file_key(FileSave {
+        vault: v2,
+        group: None,
+        title: "Only in the other vault".into(),
+    })
+    .unwrap();
+    let id =
+        d.s.file_key_choices(v2)
+            .unwrap()
+            .into_iter()
+            .find(|c| c.title == "Only in the other vault")
+            .unwrap()
+            .entry;
+    let source = d.file("any.age", b"age-encryption.org/v1\n");
+    let r = d.s.decrypt_file(
+        FileCredential::Entry {
+            vault: d.v,
+            entry: id,
+        },
+        source,
+        d.out(),
+        "plain3".into(),
+    );
+    assert!(matches!(r, Err(LarsalError::UnknownEntry)), "{r:?}");
+    assert!(d.out_names().is_empty());
+}
+
+/// E22-S6 RT-21 (FIL-01.10, FIL-01-T10, the bridge's half): two file keys under
+/// one label are two choices, each with its own entry and its whole public
+/// key; a file to the first opens by the first entry only. The Swift review
+/// screen is not tested here (no Swift work in E22-S6).
+/// Mutant M21: choices told apart by their label (files.rs, `file_key_choices`
+/// keeps the first entry of each title).
+#[test]
+fn fil_rt_fil01_t10_two_keys_under_one_label_are_told_apart() {
+    let _one = serial();
+    let d = Demo::new("rt-label");
+    let k1 = d.s.create_file_key(d.save("Same label")).unwrap();
+    let k2 = d.s.create_file_key(d.save("Same label")).unwrap();
+    assert_ne!(k1, k2);
+    let choices: Vec<FileKeyChoice> =
+        d.s.file_key_choices(d.v)
+            .unwrap()
+            .into_iter()
+            .filter(|c| c.title == "Same label")
+            .collect();
+    assert_eq!(choices.len(), 2, "{choices:?}");
+    assert_ne!(choices[0].entry, choices[1].entry);
+    let mut got: Vec<String> = choices
+        .iter()
+        .map(|c| c.recipient.clone().unwrap())
+        .collect();
+    got.sort();
+    let mut want = vec![k1.clone(), k2.clone()];
+    want.sort();
+    assert_eq!(got, want, "each choice carries its whole key");
+    let first = choices
+        .iter()
+        .find(|c| c.recipient.as_deref() == Some(k1.as_str()))
+        .unwrap()
+        .entry
+        .clone();
+    let second = choices
+        .iter()
+        .find(|c| c.recipient.as_deref() == Some(k2.as_str()))
+        .unwrap()
+        .entry
+        .clone();
+    let source = d.file("plain.bin", &demo_bytes(5000));
+    let job = started(
+        d.s.encrypt_file_recipients(vec![k1], source, d.out(), "to-first.age".into())
+            .unwrap(),
+    );
+    assert_eq!(id_of(&finish(&job)), "done");
+    let sealed = d
+        .dir
+        .join("out/to-first.age")
+        .to_string_lossy()
+        .into_owned();
+    let by = |entry: String| FileCredential::Entry { vault: d.v, entry };
+    assert_eq!(
+        id_of(&decrypt(&d, by(second), &sealed, "x.bin")),
+        "MSG-FILE-DECRYPT"
+    );
+    assert_eq!(id_of(&decrypt(&d, by(first), &sealed, "y.bin")), "done");
+}

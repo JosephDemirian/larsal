@@ -56,6 +56,11 @@ const FAILED: u8 = 1;
 const USAGE: u8 = 2;
 const CANCELLED: u8 = 130;
 
+/// FIL-02.21: a line that could not be written. A decrypt names what it
+/// kept, so exit 1 is not read as nothing written (F-551, FIL-03.10).
+const BROKEN: &str = "larsal: standard output or standard error could not be written.";
+const BROKEN_READABLE: &str = "larsal: standard output or standard error could not be written. The readable file given to --output was saved, and it is not encrypted.";
+
 /// FIL-01.7: the warning for a manual passphrase below Excellent, and its
 /// question; no is the default.
 const WEAK_PASSPHRASE: &str = "This passphrase may be easy to guess. Anyone with the encrypted file can test guesses offline, with no limit on tries.";
@@ -92,6 +97,7 @@ enum Credential {
 /// Runs `larsal encrypt` or `larsal decrypt` from the words after the command
 /// name, and returns the exit code (FIL-02.21).
 pub fn run(cmd: &'static Cmd, words: &[String]) -> u8 {
+    vault::name_by_role();
     let p = match args::parse(cmd, words, false) {
         Ok(p) => p,
         Err(Problem::Help) => {
@@ -319,19 +325,21 @@ fn is_stdin(file: &File) -> bool {
 fn password_of<'v>(session: &'v vault::Session, path: &str) -> Result<&'v str, Fail> {
     find_entry(&session.vault, path)
         .map(|(e, _)| e.value("Password"))
-        .ok_or_else(|| term::fail(format!("no entry at {path}.")))
+        .ok_or_else(|| term::fail("no entry at the path given to --passphrase-entry."))
 }
 
 /// The keys of the entry at `path`: its protected field "File key", where
-/// the Mac app saves a file key (FIL-02.9), else its Password, as the app's
-/// own decrypt by entry reads them (larsal-ffi).
+/// the Mac app saves a file key (FIL-02.9), else its Password, each read as
+/// a list of keys. The app reads the same field but takes one key from it,
+/// and reads a Password as a passphrase (larsal-ffi, F-558); here a Password
+/// as a passphrase is `--passphrase-entry`.
 fn keys_of<'v>(session: &'v vault::Session, path: &str) -> Result<&'v str, Fail> {
     find_entry(&session.vault, path)
         .map(|(e, _)| match e.field(FILE_KEY) {
             Some(key) => key.value.expose(),
             None => e.value("Password"),
         })
-        .ok_or_else(|| term::fail(format!("no entry at {path}.")))
+        .ok_or_else(|| term::fail("no entry at the path given to --identity-entry."))
 }
 
 /// FIL-01.5, FIL-03.1: an empty or over-limit passphrase is refused before
@@ -426,12 +434,12 @@ fn generate(p: &Parsed, vault_path: &str) -> Result<SecretString, Fail> {
     let mut s = vault::unlock(vault_path, &unlock_options(p))?;
     let gid = find_group(&s.vault, group)
         .map(|g| g.uuid)
-        .ok_or_else(|| term::fail(format!("no group at {group}.")))?;
+        .ok_or_else(|| term::fail("no group at the path given to --group."))?;
     let path = format!("{}/{title}", group.trim_end_matches('/'));
     if find_entry(&s.vault, &path).is_some() {
-        return Err(term::fail(format!(
-            "an entry is already found at {path}. Choose another --title."
-        )));
+        return Err(term::fail(
+            "an entry is already found at the --group and --title given. Choose another --title.",
+        ));
     }
     let options = passphrase::Options::command_line(GENERATED_WORDS);
     let phrase = passphrase::generate(&options, wordlist::builtin())
@@ -545,9 +553,14 @@ fn work(
                 term::err(note);
             }
             // FIL-02.21: a line that could not be written is a failure; the
-            // complete output stays.
+            // complete output stays, and a decrypt says so on the stream that
+            // still works (F-551).
             if term::broken() || io::stdout().flush().is_err() {
-                term::err("larsal: standard output or standard error could not be written.");
+                if p.cmd.name == "decrypt" {
+                    said_on_either(BROKEN_READABLE);
+                } else {
+                    term::err(BROKEN);
+                }
                 return FAILED;
             }
             0
@@ -565,6 +578,14 @@ fn work(
                 FAILED
             }
         }
+    }
+}
+
+/// F-551: `line` on stderr, else on stdout when stderr cannot take it.
+fn said_on_either(line: &str) {
+    if writeln!(io::stderr(), "{line}").is_err() {
+        let mut out = io::stdout();
+        let _ = writeln!(out, "{line}").and_then(|()| out.flush());
     }
 }
 

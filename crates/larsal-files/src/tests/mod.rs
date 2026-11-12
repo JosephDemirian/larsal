@@ -4,6 +4,7 @@
 mod flow;
 mod format;
 mod limits;
+mod redteam;
 mod scratch;
 mod tamper;
 mod vectors;
