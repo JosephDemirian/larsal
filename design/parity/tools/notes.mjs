@@ -12,12 +12,12 @@ const LEVEL_APP = /^(Excellent|Good|Poor|Weak|Very poor|Fair)$/;
 // dialogs-weak-vault-password and dialogs-create-key-file (2026-10-28). E5-S10
 // built dialogs-changed-on-disk, dialogs-close-with-unsaved-changes and
 // dialogs-save-failed (2026-10-28). E8-S2 built menubar-auto-type-picker
-// (2026-10-28). The other dialogs of the section belong to later stories.
+// (2026-10-28). E7-S2 built dialogs-connect-a-browser and
+// dialogs-browser-asks-for-an-entry (2026-11-12). The other dialogs of the
+// section belong to later stories.
 export const LATER = {
   'dialogs-export-warning': 'E5-S11 (FEA-09)',
   'dialogs-import': 'E5-S11 (FEA-08)',
-  'dialogs-browser-asks-for-an-entry': 'E7',
-  'dialogs-connect-a-browser': 'E7',
 };
 
 export const RULES = [
