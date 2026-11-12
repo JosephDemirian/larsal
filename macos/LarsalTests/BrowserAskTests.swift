@@ -130,8 +130,9 @@ struct BrowserAskTests {
         let screen = Screen(window)
         let first = BrowserAccessRow.spoken(Self.row, mask: false)
         func state() -> String? {
-            guard let row = screen.node(first) else { return nil }
-            return (row.accessibilityValue?() ?? nil) as? String
+            guard let element = screen.node(first) else { return nil }
+            let value: Any? = element.accessibilityValue?() ?? nil
+            return value as? String
         }
         for button in ["Deny", "Allow Selected"] {
             window.browserAsk = Self.access

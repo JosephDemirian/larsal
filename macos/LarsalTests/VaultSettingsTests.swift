@@ -215,8 +215,9 @@ struct VaultSettingsBehaviourTests {
             host.layoutSubtreeIfNeeded()
             let nodes = axNodes(host)
             func node(_ name: String) -> AnyObject? {
-                nodes.first {
-                    ($0.accessibilityLabel?() ?? nil) == name || (($0.accessibilityValue?() ?? nil) as? String) == name
+                nodes.first { element in
+                    let value: Any? = element.accessibilityValue?() ?? nil
+                    return (element.accessibilityLabel?() ?? nil) == name || (value as? String) == name
                 }
             }
             #expect((node(SettingsBrowser.off) != nil) == !enabled, "notice, integration \(enabled)")
