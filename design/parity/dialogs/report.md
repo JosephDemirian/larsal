@@ -4,6 +4,8 @@ Date 2026-10-28. Reference: design/option-a/mockup.html (reference images export
 
 **Result: 17 of 17 built frames PASS** (21 frames in the section; 4 belong to later stories).
 
+E7-S2 (2026-11-12) built dialogs-connect-a-browser and dialogs-browser-asks-for-an-entry; only 2 frames now belong to later stories. Their two rows say "not measured" until the lead's native run makes their shots (see their findings below).
+
 Check tools: pixelmatch 8.0.0, pngjs 7.0.0 (installed under /tmp/parity-tools, not in the project). Pixel diff: threshold 0.1, anti-aliasing ignored. "Outside accepted" = changed pixels left after masking the areas of accepted differences and live values (window buttons, strength words and meters, counts, codes, countdowns, times, paths).
 
 | Frame | Light | Dark | Pixels light / dark (outside accepted) | Missing strings | Token mismatches | Boxes / text runs > 2 pt (light, dark) | Verdict |
@@ -24,8 +26,8 @@ Check tools: pixelmatch 8.0.0, pngjs 7.0.0 (installed under /tmp/parity-tools, n
 | dialogs-save-failed | present | present | 0.33 % (0.33 %) / 0.38 % (0.38 %) | 0 | 0 / 0 | 0 + 0 / 0 + 0 | PASS |
 | dialogs-export-warning | – | – | – | – | – | – | later story (E5-S11 (FEA-09)) |
 | dialogs-import | – | – | – | – | – | – | later story (E5-S11 (FEA-08)) |
-| dialogs-browser-asks-for-an-entry | – | – | – | – | – | – | later story (E7) |
-| dialogs-connect-a-browser | – | – | – | – | – | – | later story (E7) |
+| dialogs-browser-asks-for-an-entry | not measured | not measured | – | – | – | – | built by E7-S2; measurement carried (below) |
+| dialogs-connect-a-browser | not measured | not measured | – | – | – | – | built by E7-S2; measurement carried (below) |
 | dialogs-ssh-key-use | present | present | 0.38 % (0.38 %) / 0.4 % (0.4 %) | 0 | 0 / 0 | 0 + 0 / 0 + 0 | PASS |
 | dialogs-weak-vault-password | present | present | undefined % (undefined %) / undefined % (undefined %) | 0 | 0 / 0 | 0 + 0 / 0 + 0 | PASS |
 | dialogs-create-key-file | present | present | 2.29 % (2.29 %) / 2.16 % (2.09 %) | 0 | 0 / 0 | 0 + 0 / 0 + 0 | PASS |
@@ -123,13 +125,16 @@ Not built yet: E5-S11 (FEA-09). Not checked.
 
 Not built yet: E5-S11 (FEA-08). Not checked.
 
-### dialogs-browser-asks-for-an-entry: later story (E7)
+### dialogs-browser-asks-for-an-entry: built, not measured
 
-Not built yet: E7. Not checked.
+- Built by E7-S2 (round 3, 2026-11-12): macos/Larsal/BrowserAsk.swift `BrowserAccessDialog` as the mockup's `dlg('--teal','globe-simple')`: the teal tile with globe-simple, the title and text, the asked entries in the bordered panel (one `BrowserAccessRow` each: check, logo tile, title, user name; a protected value as the mask, INT-02.18), "Remember for ‹P›", Deny and Allow Selected; 460 × 325 pt, so 920 × 650 px at 2x like the reference. The words and the INT-02.19 form lines stay as they are until the owner answers W-07.
+- Not measured yet: E7-S2 round 3 stopped its native work after its first guarded native run (that run's build of the test target failed, so no shot was made; its NOTES.txt says why), and Chrome, which mockup-dom.mjs needs, is not on this Mac. The lead's native run makes the shots (`BrowserAskTests` `accessFrame`, light and dark) and the next `compare.mjs dialogs` run fills this row; its behaviour test is "Parity dialogs-browser-asks-for-an-entry: a row toggles; Deny and Allow Selected answer and close it".
 
-### dialogs-connect-a-browser: later story (E7)
+### dialogs-connect-a-browser: built, not measured
 
-Not built yet: E7. Not checked.
+- Built by E7-S2 (round 3, 2026-11-12): macos/Larsal/BrowserAsk.swift `BrowserConnectDialog` as the mockup's `dlg('--teal','plugs-connected')`: the teal tile with plugs-connected (added to scripts/make-option-a-assets.py from the vendored Phosphor 2.1.2 set; Glyphs.swift made again by the script), the title, INT-02.4's text, the Name field, Deny and Connect; 460 × 270 pt, so 920 × 540 px at 2x like the reference. The words and the pairing-words line stay as they are until the owner answers W-07.
+- The reference images in design/option-a/reference still show an older first sentence of the text than design/option-a/manifest.json and INT-02.4; exporting them again needs Chrome.
+- Not measured yet, as above; the lead's native run makes the shots (`BrowserAskTests` `connectFrame`) and the next `compare.mjs dialogs` run fills this row; its behaviour test is "Parity dialogs-connect-a-browser: the dialog shows over the window; Deny and Connect answer and close it".
 
 ### dialogs-ssh-key-use: PASS
 
