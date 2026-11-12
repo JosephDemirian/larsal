@@ -4056,7 +4056,7 @@ fn syn03_1_save_as_takes_the_part_along() {
 /// nothing until it opens. A wrong password asks again.
 #[test]
 fn syn03_8_t13_ld264_a_key_change_and_an_upload_under_the_old_key_keep_both_edits() {
-    let k = KeyChange::new("t13");
+    let k = KeyChange::new("t13-ld264");
     k.changes();
     let (a, b) = (&k.a, &k.b);
     k.to_old_key();
@@ -4853,7 +4853,10 @@ fn restart(old: &Mac, address: Option<&str>) -> Mac {
         .open(old.dir.join("Personal.larsalvault").display().to_string())
         .unwrap();
     Mac {
-        dir: TempDir::new("restart-spare"),
+        dir: TempDir::new(&format!(
+            "restart-spare-{}",
+            old.dir.file_name().unwrap().to_string_lossy()
+        )),
         s,
         v,
         clock: old.clock.clone(),
