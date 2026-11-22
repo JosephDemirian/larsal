@@ -129,7 +129,7 @@ MOD-12.17 **Passwords always protected** (lead decision D-12-5, recommended). La
 
 ### Actions that act at once
 
-MOD-12.18 **Browser integration page.** Enabled only while browser integration is on in the app settings (APP-01, INT-02); otherwise a notice says to turn it on. Meaning of the items: INT-02.
+MOD-12.18 **Browser integration page.** Enabled only while browser integration is on in the app settings (S-BRW-01, APP-01, INT-02.28); otherwise the page shows, above its rows, the notice "Browser integration is turned off. Turn it on in Larsal's settings, Browser Integration." and its table and every button on it (Disconnect, "Remove all…" and the others) are disabled (APP-01.5). Meaning of the items: INT-02.
 - Table of stored associations: name (the key without the browser prefix `4B 50 58 43 5F 42 52 4F 57 53 45 52 5F`, stored encoded, name rule), public key value, created time (from the `_CREATED_` item, read only). Editing a name renames both the key item and its `_CREATED_` item; editing a value: the reference replaces the value of the first association it finds holding the old value (search order unspecified, so with two associations of equal value it may change the wrong one); Larsal changes the value of the edited row's own association.
 - `vault.act.remove_association`: confirm (default Cancel), then removes the selected associations' key items and `_CREATED_` items.
 - `vault.act.disconnect_all`: confirm, then removes every key item with the browser prefix and reports how many (none found: a notice). Reference: the `_CREATED_` items stay behind. Larsal (lead decision D-12-7, recommended): removes them too.
@@ -237,7 +237,7 @@ MOD-12.22 **New vault defaults.**
 | T38 MOD-12.18 disconnect all | Associations `demo`, `work` with `_CREATED_` items | Disconnect all, confirm | Both key items removed; report says 2. Larsal: `_CREATED_demo` and `_CREATED_work` also gone. Reference: they stay |
 | T39 MOD-12.18 forget site access | Entries E1 with the site-access item, E2 without; E1 has 1 history item | Forget site access, confirm, at T5 | E1 loses the item, E1 Mod = T5, E1 has 2 history items (the newest holds the item); report says 1 |
 | T40 MOD-12.18 new root id | Root group id(01) | New root id, confirm | Root id is a new random id; no deleted object added |
-| T41 MOD-12.18 integration off | Browser integration off in app settings | Open the page | Buttons and table disabled; notice to turn integration on |
+| T41 MOD-12.18 integration off | Browser integration off in app settings (S-BRW-01, its default) | Open the page; then turn integration on and open it again | Off: the notice "Browser integration is turned off. Turn it on in Larsal's settings, Browser Integration."; Disconnect, "Remove all…" and the table disabled. On: no notice; the buttons enabled |
 | T42 MOD-12.19 delete used icon | Icon id(32) used by entry E (Mod T0) and by E's history item; group G uses it | Delete icon, confirm, at T5 | E icon 0, Mod T5; history item icon 0, its times unchanged; G icon 48; icon gone; deleted object id(32) at T5 |
 | T43 MOD-12.19 purge | Icons id(32) unused, id(33) used only by a history item, id(34) used by a group | Purge at T5 | id(32) and id(33) removed, the history item gets icon 0 with its times unchanged; deleted objects id(32) and id(33) at T5; report says 2; id(34) stays |
 | T44 MOD-12.20 kept values | `Color` `#1a2b3c`, MaintenanceHistoryDays 30, EntryTemplatesGroup = group id(07) | Open and Apply settings, save | All three written back unchanged |
