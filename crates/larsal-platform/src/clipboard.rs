@@ -38,6 +38,10 @@ struct Inner {
     /// `None`: the general pasteboard; else a private named one.
     name: Option<String>,
     state: Mutex<State>,
+    /// Tests only (F-439): a clock the test moves by hand for the
+    /// countdown; `None` is the Mac's clock. A release build has no field.
+    #[cfg(test)]
+    manual: Option<tests::Manual>,
 }
 
 #[derive(Default)]
@@ -64,6 +68,27 @@ impl Inner {
         state.countdown = state.countdown.wrapping_add(1);
         state.deadline = None;
         emptied
+    }
+
+    /// Now, on the countdown's clock: the Mac's (in tests, a manual clock
+    /// when one is set).
+    fn now(&self) -> Instant {
+        #[cfg(test)]
+        if let Some(clock) = &self.manual {
+            return clock.now();
+        }
+        Instant::now()
+    }
+
+    /// The countdown's wait: `after` on the Mac's clock (in tests, until a
+    /// manual clock is moved `after` past its time now).
+    fn sleep(&self, after: Duration) {
+        #[cfg(test)]
+        if let Some(clock) = &self.manual {
+            clock.sleep(after);
+            return;
+        }
+        thread::sleep(after);
     }
 }
 
@@ -106,6 +131,8 @@ impl Clipboard {
             inner: Arc::new(Inner {
                 name,
                 state: Mutex::default(),
+                #[cfg(test)]
+                manual: None,
             }),
         }
     }
@@ -133,12 +160,12 @@ impl Clipboard {
         let Some(after) = clear_after else {
             return Ok(());
         };
-        state.deadline = Instant::now().checked_add(after);
+        state.deadline = self.inner.now().checked_add(after);
         let (inner, countdown) = (Arc::clone(&self.inner), state.countdown);
         let started = thread::Builder::new()
             .name("clipboard clear".into())
             .spawn(move || {
-                thread::sleep(after);
+                inner.sleep(after);
                 let mut state = inner.state();
                 if state.countdown == countdown {
                     let _ = inner.clear(&mut state);
@@ -166,7 +193,7 @@ impl Clipboard {
     #[must_use]
     pub fn seconds_left(&self) -> u64 {
         self.inner.state().deadline.map_or(0, |d| {
-            let left = d.saturating_duration_since(Instant::now());
+            let left = d.saturating_duration_since(self.inner.now());
             left.as_secs() + u64::from(left.subsec_nanos() > 0)
         })
     }
@@ -199,20 +226,161 @@ impl Clipboard {
 mod tests {
     use super::*;
     use crate::macos::pasteboard::{CONCEALED, TEXT, TRANSIENT};
+    use std::sync::Condvar;
+
+    /// F-439: a clock that stands still until the test moves it. The
+    /// countdown's wait ends only once the clock passes its end, however
+    /// late a busy Mac runs the threads; the clock knows the ends of the
+    /// waits in progress, so a test can tell when every countdown whose end
+    /// has come has acted (`settle`).
+    pub(super) struct Manual {
+        zero: Instant,
+        waits: Mutex<Waits>,
+        moved: Condvar,
+    }
+
+    #[derive(Default)]
+    struct Waits {
+        /// The clock's time, from `zero`.
+        now: Duration,
+        /// The end of each wait in progress, from `zero`.
+        ends: Vec<Duration>,
+    }
+
+    impl Manual {
+        fn waits(&self) -> MutexGuard<'_, Waits> {
+            self.waits.lock().unwrap_or_else(PoisonError::into_inner)
+        }
+
+        pub(super) fn now(&self) -> Instant {
+            self.zero + self.waits().now
+        }
+
+        /// Waits until the clock is `after` past its time now.
+        pub(super) fn sleep(&self, after: Duration) {
+            let mut w = self.waits();
+            let end = w.now + after;
+            w.ends.push(end);
+            while w.now < end {
+                w = self.moved.wait(w).unwrap_or_else(PoisonError::into_inner);
+            }
+            let at = w.ends.iter().position(|e| *e == end).unwrap();
+            w.ends.swap_remove(at);
+        }
+
+        fn set(&self, to: Duration) {
+            let mut w = self.waits();
+            assert!(to >= w.now, "the clock only moves on");
+            w.now = to;
+            self.moved.notify_all();
+        }
+
+        /// The waits whose end has not come.
+        fn ahead(&self) -> usize {
+            let w = self.waits();
+            w.ends.iter().filter(|e| **e > w.now).count()
+        }
+    }
+
+    /// A private clipboard whose countdown runs on a manual clock at 0.
+    fn manual() -> Clipboard {
+        let name = Clipboard::private().name().map(str::to_owned);
+        Clipboard {
+            inner: Arc::new(Inner {
+                name,
+                state: Mutex::default(),
+                manual: Some(Manual {
+                    zero: Instant::now(),
+                    waits: Mutex::default(),
+                    moved: Condvar::new(),
+                }),
+            }),
+        }
+    }
+
+    /// Waits until every countdown whose end has come on the manual clock
+    /// has acted: each countdown's thread holds the clipboard's state until
+    /// it is done, so the threads still alive must be exactly the waits
+    /// whose end is ahead (a thread not yet waiting counts as not done).
+    /// The wall clock only ends a hang, after 30 s: a busy Mac can delay
+    /// the countdown's thread, never move its end.
+    fn settle(c: &Clipboard) {
+        let clock = c.inner.manual.as_ref().unwrap();
+        let start = Instant::now();
+        while Arc::strong_count(&c.inner) - 1 != clock.ahead() {
+            assert!(
+                start.elapsed() < Duration::from_secs(30),
+                "a countdown hangs"
+            );
+            thread::sleep(Duration::from_millis(1));
+        }
+    }
+
+    /// Moves the manual clock to `ms` after the start and settles.
+    fn at(c: &Clipboard, ms: u64) {
+        settle(c);
+        c.inner
+            .manual
+            .as_ref()
+            .unwrap()
+            .set(Duration::from_millis(ms));
+        settle(c);
+    }
 
     /// The text item of a peek, if the pasteboard holds exactly one item.
     fn text(c: &Clipboard) -> Option<String> {
-        let items = c.peek();
-        let [item] = items.as_slice() else {
+        text_in(&c.peek())
+    }
+
+    fn text_in(items: &[Vec<(String, Vec<u8>)>]) -> Option<String> {
+        let [item] = items else {
             return None;
         };
         let (_, data) = item.iter().find(|(kind, _)| kind == TEXT)?;
         Some(String::from_utf8(data.clone()).unwrap())
     }
 
-    fn sleep_until(start: Instant, ms: u64) {
-        let at = start + Duration::from_millis(ms);
-        thread::sleep(at.saturating_duration_since(Instant::now()));
+    /// F-439: when the countdown of a copy just made ends, measured from the
+    /// copy. The countdown keeps its end (`deadline`), set after the
+    /// pasteboard write, and its clear thread sleeps `after` from a later
+    /// moment, so no clear comes before it; however long a busy Mac took to
+    /// write. `start` is read just before the copy, so `start + after` is
+    /// the earliest end there can be: the later of the two holds even if
+    /// the kept end were wrong.
+    fn countdown_end(c: &Clipboard, start: Instant, after: Duration) -> Instant {
+        let kept = c.inner.state().deadline;
+        kept.map_or(start + after, |d| d.max(start + after))
+    }
+
+    /// F-439: watches a copy of `value` whose countdown ends at `end`
+    /// (`countdown_end`), `start` read just before the copy. Every check
+    /// that ends before `end` must see the copy, however late a busy Mac
+    /// runs it. Then it waits for the clear itself, which a busy Mac can
+    /// only delay, for up to 30 s from `start`: only a clear that never
+    /// comes misses that. A check during the clear can see the item without
+    /// its data, so after the end only the empty pasteboard counts. Returns
+    /// how many checks ended before the end and when the clear was seen.
+    fn watch_countdown(
+        c: &Clipboard,
+        value: &str,
+        start: Instant,
+        end: Instant,
+    ) -> (usize, Duration) {
+        let mut before = 0;
+        loop {
+            let items = c.peek();
+            let now = Instant::now();
+            let at = now - start;
+            if now < end {
+                let seen = text_in(&items);
+                assert_eq!(seen.as_deref(), Some(value), "{at:?} in, before the end");
+                before += 1;
+            } else if items.is_empty() {
+                return (before, at);
+            }
+            assert!(at < Duration::from_secs(30), "no clear {at:?} in");
+            thread::sleep(Duration::from_millis(10));
+        }
     }
 
     /// LD-206: Larsal's own record names the private pasteboard a copy and
@@ -298,80 +466,102 @@ mod tests {
         assert_eq!(text(&c).as_deref(), Some("other"));
     }
 
-    /// APP-03.11, T18: cleared when the countdown ends, not before.
+    /// APP-03.11, T18 on the manual clock (F-439): a 10 s countdown still
+    /// holds the copy at t = 9.5 and has cleared it by t = 10.5.
     #[test]
     fn countdown_clears() {
-        let c = Clipboard::private();
-        let start = Instant::now();
-        c.copy("demo-pass-1", Some(Duration::from_millis(800)))
+        let c = manual();
+        c.copy("demo-pass-1", Some(Duration::from_secs(10)))
             .unwrap();
-        sleep_until(start, 400);
-        assert_eq!(text(&c).as_deref(), Some("demo-pass-1"));
-        sleep_until(start, 1600);
-        assert!(c.peek().is_empty());
+        at(&c, 9_500);
+        assert_eq!(text(&c).as_deref(), Some("demo-pass-1"), "t = 9.5");
+        at(&c, 10_500);
+        assert!(c.peek().is_empty(), "t = 10.5");
     }
 
-    /// APP-03.11, T19: a new copy restarts the countdown; the first one's
-    /// end does nothing.
+    /// APP-03.11, T19 on the manual clock (F-439): a copy at 0, a new copy
+    /// at 4; at t = 10 the first countdown's end leaves the new copy, which
+    /// is still there at 13.5 and gone by 14.5.
     #[test]
     fn new_copy_restarts_countdown() {
-        let c = Clipboard::private();
-        let start = Instant::now();
-        let after = Some(Duration::from_millis(800));
+        let c = manual();
+        let after = Some(Duration::from_secs(10));
         c.copy("demo-pass-1", after).unwrap();
-        sleep_until(start, 400);
+        at(&c, 4_000);
         c.copy("demo@example.com", after).unwrap();
-        sleep_until(start, 1000);
-        assert_eq!(text(&c).as_deref(), Some("demo@example.com"));
-        sleep_until(start, 2000);
-        assert!(c.peek().is_empty());
+        at(&c, 10_000);
+        assert_eq!(text(&c).as_deref(), Some("demo@example.com"), "t = 10");
+        at(&c, 13_500);
+        assert_eq!(text(&c).as_deref(), Some("demo@example.com"), "t = 13.5");
+        at(&c, 14_500);
+        assert!(c.peek().is_empty(), "t = 14.5");
     }
 
-    /// APP-03.12, T21: a countdown that ends after another app wrote leaves
-    /// its content.
+    /// APP-03.11 on the Mac's clock (F-439): the order of events, which no
+    /// manual clock shows. Every check that ends before the countdown's end
+    /// sees the copy, however late a busy Mac runs it; the clear comes
+    /// after, within a 30 s backstop.
+    #[test]
+    fn countdown_clears_on_the_mac_clock() {
+        let c = Clipboard::private();
+        let after = Duration::from_millis(800);
+        let start = Instant::now();
+        c.copy("demo-pass-1", Some(after)).unwrap();
+        let end = countdown_end(&c, start, after);
+        let (before, cleared) = watch_countdown(&c, "demo-pass-1", start, end);
+        eprintln!(
+            "the countdown ends {:?} in; {before} checks before the end; cleared {cleared:?} in",
+            end - start
+        );
+    }
+
+    /// APP-03.12, T21 on the manual clock (F-439): a countdown that ends
+    /// after another app wrote leaves its content.
     #[test]
     fn countdown_leaves_newer_content() {
-        let c = Clipboard::private();
-        let start = Instant::now();
-        c.copy("demo-pass-1", Some(Duration::from_millis(600)))
+        let c = manual();
+        c.copy("demo-pass-1", Some(Duration::from_secs(10)))
             .unwrap();
         c.write_as_other_app("other");
-        sleep_until(start, 1400);
+        at(&c, 10_500);
         assert_eq!(text(&c).as_deref(), Some("other"));
     }
 
-    /// APP-03.12, APP-03.15: a clear (as on lock) stops the countdown, so a
-    /// later copy is not cut short by it.
+    /// APP-03.12, APP-03.15 on the manual clock (F-439): a clear (as on
+    /// lock) stops the countdown, so a later copy is not cut short by it.
     #[test]
     fn clear_stops_countdown() {
-        let c = Clipboard::private();
-        let start = Instant::now();
-        c.copy("demo-pass-1", Some(Duration::from_millis(600)))
+        let c = manual();
+        c.copy("demo-pass-1", Some(Duration::from_secs(10)))
             .unwrap();
         c.clear();
         assert!(c.peek().is_empty());
         c.copy("demo@example.com", None).unwrap();
-        sleep_until(start, 1200);
+        at(&c, 10_500);
         assert_eq!(text(&c).as_deref(), Some("demo@example.com"));
     }
 
-    /// F-078, APP-02.8: the countdown's seconds left, rounded up; none
-    /// without a countdown, after the clear and after the end.
+    /// F-078, APP-03.11 (T20 remaining) on the manual clock (F-439): the countdown's
+    /// seconds left, rounded up; none without a countdown, after the clear
+    /// and after the end.
     #[test]
     fn f_078_seconds_left_follows_the_countdown() {
-        let c = Clipboard::private();
+        let c = manual();
         c.copy("demo-pass-1", None).unwrap();
         assert_eq!(c.seconds_left(), 0, "no countdown");
         c.copy("demo-pass-1", Some(Duration::from_secs(10)))
             .unwrap();
-        assert_eq!(c.seconds_left(), 10);
+        assert_eq!(c.seconds_left(), 10, "t = 0");
+        at(&c, 3_200);
+        assert_eq!(c.seconds_left(), 7, "T20: t = 3.2");
         c.clear();
         assert_eq!(c.seconds_left(), 0, "cleared");
-        let start = Instant::now();
         c.copy("demo-pass-1", Some(Duration::from_millis(300)))
             .unwrap();
         assert_eq!(c.seconds_left(), 1, "rounded up");
-        sleep_until(start, 900);
+        at(&c, 3_499);
+        assert_eq!(c.seconds_left(), 1, "1 ms left");
+        at(&c, 3_500);
         assert_eq!(c.seconds_left(), 0, "ended");
     }
 }

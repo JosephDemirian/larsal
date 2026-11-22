@@ -50,6 +50,28 @@ pub const MAX_PATTERN_LABELS: usize = 10;
 /// The error a page Larsal cannot match gets (INT-03.1, INT-01.40).
 pub const NOT_A_PAGE: u8 = 14;
 
+/// Tests only (F-439): the matcher's work on this thread, in steps: one per
+/// byte of a URL, host or path it reads through in a pass, and one per
+/// label it compares. A release build has no counter; a step changes no
+/// result.
+#[cfg(test)]
+mod steps {
+    use core::cell::Cell;
+
+    thread_local! {
+        static STEPS: Cell<usize> = const { Cell::new(0) };
+    }
+
+    pub(super) fn add(n: usize) {
+        STEPS.with(|s| s.set(s.get().saturating_add(n)));
+    }
+
+    /// The steps since the last take.
+    pub(super) fn take() -> usize {
+        STEPS.with(|s| s.replace(0))
+    }
+}
+
 /// The main URL field.
 const MAIN: &str = "URL";
 /// The prefix of additional URL fields (MOD-01.8).
@@ -261,6 +283,8 @@ fn read_web(url: &str) -> Option<Web> {
 /// upper case, so escapes compare without letter case; `*` stays. An empty
 /// path is `/`.
 fn encode_path(path: &str) -> SecretString {
+    #[cfg(test)]
+    steps::add(path.len());
     const HEX: &[u8; 16] = b"0123456789ABCDEF";
     let mut out = String::with_capacity(path.len().saturating_mul(3).saturating_add(1));
     if path.is_empty() {
@@ -370,6 +394,8 @@ impl Page {
     /// host or longer than INT-01.25's limit, or text Larsal cannot read. A
     /// form URL Larsal cannot read is left out (it only ranks).
     pub fn read(url: &str, form_url: Option<&str>, match_scheme: bool) -> Result<Page, u8> {
+        #[cfg(test)]
+        steps::add(url.len());
         if url.len() > MAX_URL {
             return Err(NOT_A_PAGE);
         }
@@ -460,6 +486,8 @@ impl Page {
 
     /// The rate of one entry URL, `None` when it does not fit.
     fn rate(&self, kind: Kind, value: &str, site: &Site<'_>) -> Option<u8> {
+        #[cfg(test)]
+        steps::add(value.len());
         if value.chars().nth(MAX_ENTRY_URL).is_some() {
             return None;
         }
@@ -500,6 +528,8 @@ impl Page {
             && e.port.unwrap_or(p.scheme.port()) == p.port
             && match (&e.host, &p.host) {
                 (Host::Name(h), Host::Name(ph)) if h.contains('.') => {
+                    #[cfg(test)]
+                    steps::add(h.len().saturating_add(ph.len()));
                     (ph == h || below(ph, h))
                         && self
                             .domain
@@ -590,6 +620,8 @@ fn parent_folder(entry: &str, page: &str) -> bool {
 
 /// A plain entry URL (INT-03.3) as fitted (INT-03.9).
 fn plain(v: &str, omit_www: bool) -> Option<Plain<'_>> {
+    #[cfg(test)]
+    steps::add(v.len());
     let raw = split_entry(v)?;
     let scheme = web_scheme(raw.scheme)?;
     let mut host = host_form(raw.host)?;
@@ -671,6 +703,8 @@ impl<'a> Pattern<'a> {
     /// The pattern of `v` (trimmed, no forbidden character), `None` when it
     /// never fits (step 1, MI03-01) or has no valid host or scheme.
     fn read(v: &'a str) -> Option<Pattern<'a>> {
+        #[cfg(test)]
+        steps::add(v.len());
         let stars = v.matches('*').count();
         if stars > MAX_STARS || v.chars().all(|c| c == '*') || v.contains("**") || v.contains("*.*")
         {
@@ -717,6 +751,8 @@ impl<'a> Pattern<'a> {
 
 /// Step 1 and step 3's host of a pattern holding `*`.
 fn pattern_host(host: &str) -> Option<PatternHost> {
+    #[cfg(test)]
+    steps::add(host.len());
     let host = host.strip_suffix('.').unwrap_or(host);
     let labels: Vec<&str> = host.split('.').collect();
     // More labels never fit (INT-03.11 step 1, F-245): each run between
@@ -771,6 +807,8 @@ fn pattern_host(host: &str) -> Option<PatternHost> {
 /// leftmost, which is exact for this kind of pattern.
 fn labels_fit(pattern: &[Label], page: &[&str]) -> bool {
     let run_fits = |run: &[Label], at: &[&str]| {
+        #[cfg(test)]
+        steps::add(run.len());
         run.len() == at.len() && run.iter().zip(at).all(|(l, p)| l.fits(p))
     };
     let mut runs = pattern.split(|l| matches!(l, Label::Any));
@@ -806,6 +844,8 @@ fn labels_fit(pattern: &[Label], page: &[&str]) -> bool {
 /// Each part between `*`s is found leftmost with the standard library's
 /// linear substring search, so the work is linear in the two lengths.
 fn glob(pattern: &str, text: &str) -> bool {
+    #[cfg(test)]
+    steps::add(text.len());
     // No `Vec` per call: a `*` label run calls this once per label (F-252).
     let Some((head, last)) = pattern.rsplit_once('*') else {
         return pattern == text;
@@ -941,4 +981,150 @@ pub fn note(value: &str) -> Option<Note> {
         plain(v, false).is_some()
     };
     (!fits).then_some(Note::NoHost)
+}
+
+/// F-439: INT-03.17's bound on the matcher's own work, counted in steps
+/// ([`steps`]) rather than timed, so a busy Mac cannot fail it and a slow
+/// algorithm cannot pass it. The cases are T83's request with F-245's and
+/// F-252's entry URLs (tests/int03.rs runs them whole and prints their
+/// time against the card's 200 ms goal). Each entry costs the same, so a
+/// request's steps are the page's plus 10,000 times one entry's.
+#[cfg(test)]
+#[allow(clippy::arithmetic_side_effects)]
+mod f439_tests {
+    use super::*;
+    use larsal_model::{Field, Time, Uuid};
+
+    /// T83's entries in one request.
+    const ENTRIES: usize = 10_000;
+    /// The bound: steps per byte of each entry URL and of the page, for
+    /// each URL. Each URL is read through a few times, and a pattern's
+    /// labels are compared at each label of the page host (at most 10 of
+    /// them, INT-03.11), so the work stays linear in what it reads.
+    const PER_BYTE: usize = 8;
+
+    /// An entry with main URL `main` and additional URLs `extra`.
+    fn entry(main: &str, extra: &[&str]) -> Entry {
+        let mut e = Entry::new(Uuid([0x11; 16]), Time(0));
+        let mut set = |name: String, value: &str| {
+            let value = SecretString::new(value.into());
+            e.set_field(
+                name,
+                Field {
+                    value,
+                    protected: false,
+                },
+            );
+        };
+        set(MAIN.into(), main);
+        for (i, v) in extra.iter().enumerate() {
+            set(
+                if i == 0 {
+                    EXTRA.into()
+                } else {
+                    format!("{EXTRA}_{i}")
+                },
+                v,
+            );
+        }
+        e
+    }
+
+    /// The steps of a request for `page` against 10,000 entries with URLs
+    /// `main` and `extra`, each of which fits or not as `fits` says, and
+    /// its bound: [`PER_BYTE`] × (each URL + the page) for each URL.
+    fn counted(page: &str, main: &str, extra: &[&str], fits: bool) -> (usize, usize) {
+        steps::take();
+        let p = Page::read(page, None, true).unwrap();
+        let read = steps::take();
+        let e = entry(main, extra);
+        let ctx = Context::new(None, Time(0));
+        assert_eq!(p.rank(&e, &ctx, &Site::NONE).is_some(), fits);
+        let one = steps::take();
+        assert!(p.rank(&e, &ctx, &Site::NONE).is_some() == fits);
+        assert_eq!(steps::take(), one, "every entry counts the same");
+        let bytes: usize = core::iter::once(main)
+            .chain(extra.iter().copied())
+            .map(|u| u.len() + page.len())
+            .sum();
+        (
+            read + ENTRIES * one,
+            PER_BYTE * (page.len() + ENTRIES * bytes),
+        )
+    }
+
+    /// F-245's request with a page host of `n` labels `a` before
+    /// `example.com` (121 is INT-03.4's 253 octets): each shape's steps and
+    /// bound.
+    fn f245(n: usize) -> Vec<(&'static str, usize, usize)> {
+        let h = format!("{}example.com", "a.".repeat(n));
+        let page = format!("https://{h}/x");
+        let plain = format!("https://{h}/a");
+        let tail = format!("https://*.{}/*", h.split_once('.').unwrap().1);
+        let run = format!("https://*.{}b.*.example.com/", "a.".repeat(n / 2));
+        let worst = "https://*.a.a.a.a.a.b.*.example.com/";
+        let shapes: [(&str, &str, &[&str], bool); 4] = [
+            ("(a) plain", &plain, &[&plain, &plain, &plain], true),
+            ("(b) long tail", "", &[&tail, &tail, &tail, &tail], false),
+            ("(c) label run", "", &[&run, &run, &run, &run], false),
+            ("(d) 10 labels", "", &[worst, worst, worst, worst], false),
+        ];
+        shapes
+            .into_iter()
+            .map(|(name, main, extra, fits)| {
+                let (steps, bound) = counted(&page, main, extra, fits);
+                (name, steps, bound)
+            })
+            .collect()
+    }
+
+    /// F-245 (INT-03.17, INT-03.4) counted: at the DNS limit each shape's
+    /// request stays under its bound, and twice the page host's labels
+    /// cost at most 2.2 times the steps.
+    #[test]
+    fn f245_int03_17_hosts_at_the_dns_limit_count_linear_work() {
+        assert_eq!(format!("{}example.com", "a.".repeat(121)).len(), 253);
+        for ((name, steps, bound), (_, half, _)) in f245(121).into_iter().zip(f245(60)) {
+            println!("F-245 {name}: {steps} steps, bound {bound}; {half} at 60 labels");
+            assert!(steps <= bound, "F-245 {name}: {steps} steps, bound {bound}");
+            assert!(
+                10 * steps <= 22 * half,
+                "F-245 {name}: {steps}, {half} at half"
+            );
+        }
+    }
+
+    /// F-252's request: 4 URLs of `len` characters per entry (`é` past the
+    /// host, or a pattern whose host does not fit), on
+    /// `https://example.com/`; each case's steps and bound.
+    fn f252(len: usize) -> Vec<(&'static str, usize, usize)> {
+        let accent = format!("https://example.org/{}", "\u{e9}".repeat(len - 20));
+        let long = format!("https://*.example.org/{}*", "a".repeat(len - 23));
+        [("\u{e9}", accent), ("long pattern", long)]
+            .into_iter()
+            .map(|(name, url)| {
+                assert_eq!(url.chars().count(), len);
+                let extra = [url.as_str(); 3];
+                let (steps, bound) = counted("https://example.com/", &url, &extra, false);
+                (name, steps, bound)
+            })
+            .collect()
+    }
+
+    /// F-252 (INT-03.17, LD-328) counted: URLs of 2,048 characters stay
+    /// under the bound, and twice the length costs at most 2.2 times the
+    /// steps.
+    #[test]
+    fn f252_int03_17_urls_of_2048_characters_count_linear_work() {
+        for ((name, steps, bound), (_, half, _)) in
+            f252(MAX_ENTRY_URL).into_iter().zip(f252(MAX_ENTRY_URL / 2))
+        {
+            println!("F-252 {name}: {steps} steps, bound {bound}; {half} at half the length");
+            assert!(steps <= bound, "F-252 {name}: {steps} steps, bound {bound}");
+            assert!(
+                10 * steps <= 22 * half,
+                "F-252 {name}: {steps}, {half} at half"
+            );
+        }
+    }
 }

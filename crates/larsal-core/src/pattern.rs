@@ -390,3 +390,115 @@ fn ascii_classes(pattern: &str) -> String {
     }
     out
 }
+
+/// F-439: LD-123's margin carried by checked values, not by a busy Mac's
+/// clock. A short text is charged as 512 bytes, and one resolution's
+/// replaces stop once their charges would pass 800,000,000 (half of
+/// LD-113's 1.6 × 10^9). Both numbers are written here as LD-123 and
+/// LD-118 give them, never read from the constants, so a change to either
+/// constant fails here.
+#[cfg(test)]
+#[allow(clippy::arithmetic_side_effects)]
+mod ld_123_tests {
+    use super::*;
+    use crate::refs::{Context, REGEX_PER_UNIT, resolve};
+    use larsal_crypto::secret::SecretString;
+    use larsal_model::{Entry, Field, Group, Time, Uuid, Vault};
+
+    /// LD-123 (1): the least text length a search is charged for.
+    const FLOOR: usize = 512;
+    /// LD-118, LD-123: one resolution's regex budget.
+    const BUDGET: usize = 800_000_000;
+    /// Two patterns of the same length that both match "aa" whole, with
+    /// different compiled sizes.
+    const HEAVY: &str = "(?:[a-z]{1,48}){1,48}a";
+    const LIGHT: &str = "(?:[a-z]{1,24}){1,24}a";
+
+    fn vault(text: &str) -> Vault {
+        let mut e = Entry::new(Uuid([1; 16]), Time(0));
+        e.set_field(
+            "T".into(),
+            Field {
+                value: SecretString::new(text.into()),
+                protected: false,
+            },
+        );
+        let mut root = Group::new(Uuid([2; 16]), "Root".into(), Time(0));
+        root.entries.push(e);
+        Vault::new(root, Time(0))
+    }
+
+    fn size(pattern: &str) -> usize {
+        match compile_sized(pattern) {
+            Compiled::Ok(_, size) => size,
+            Compiled::TooBig | Compiled::Invalid => panic!("{pattern} compiles"),
+        }
+    }
+
+    fn replaces(pattern: &str, copies: usize) -> String {
+        format!("{{T-REPLACE-RX:/{{S:T}}/{pattern}/X/}}").repeat(copies)
+    }
+
+    /// The meter units one resolution of `text` spends, read from the
+    /// meter itself, and the result, kept in its secret type (E4-B1: no
+    /// plain copy, test code too).
+    fn spent(v: &Vault, text: &str) -> (usize, SecretString) {
+        let start = usize::MAX / 2;
+        let meter = Cell::new(start);
+        let ctx = Context {
+            meter: Some(&meter),
+            ..Context::new(Some(v), Time(0))
+        };
+        let r = resolve(text, &v.root.entries[0], &ctx);
+        assert!(!r.bounded, "the meter never runs out here");
+        (start - meter.get(), r.text)
+    }
+
+    /// A replace on a 2-byte text pays its compiled size × 512 from the
+    /// meter: the two patterns differ only in compiled size, so the
+    /// difference of the meter's counts is the regex charge alone.
+    #[test]
+    fn ld_123_a_short_replace_is_charged_512_bytes() {
+        let v = vault("aa");
+        let (heavy, out_heavy) = spent(&v, &replaces(HEAVY, 1));
+        let (light, out_light) = spent(&v, &replaces(LIGHT, 1));
+        assert_eq!((out_heavy.expose(), out_light.expose()), ("X", "X"));
+        let (big, small) = (size(HEAVY), size(LIGHT));
+        assert!(big > small, "{big} {small}");
+        assert_eq!(heavy - light, (big - small) * FLOOR / REGEX_PER_UNIT);
+    }
+
+    /// One resolution's replaces stop once 800,000,000 is spent: those that
+    /// fit replace, the rest keep their text.
+    #[test]
+    fn ld_123_a_resolution_stops_when_its_charge_passes_the_budget() {
+        let v = vault("aa");
+        let fit = BUDGET / (size(HEAVY) * FLOOR);
+        assert!((1..100).contains(&fit), "{fit}");
+        let copies = fit + 3;
+        let (_, out) = spent(&v, &replaces(HEAVY, copies));
+        assert_eq!(
+            out.expose(),
+            format!("{}{}", "X".repeat(fit), "aa".repeat(3))
+        );
+    }
+
+    /// A search whose lazy DFA must quit (a Unicode word boundary next to
+    /// a non-ASCII byte) runs the PikeVM, which takes compiled size × 512
+    /// from the run's budget for a short text, and size × length past 512.
+    #[test]
+    fn ld_123_a_short_search_is_charged_512_bytes() {
+        let mut fold = MAX_FOLDED;
+        let Built::Ok(m) = matcher(r"\bdemo\b", MAX_NEST, &mut fold) else {
+            panic!("builds");
+        };
+        let long = format!("é {} demo", "x".repeat(1_000));
+        for (text, charged) in [("é demo", FLOOR), (long.as_str(), long.len())] {
+            let meter = Cell::new(usize::MAX / 2);
+            let mut slow = SEARCH_BUDGET;
+            assert_eq!(m.is_match(text, &meter, &mut slow), Some(true));
+            assert_eq!(SEARCH_BUDGET - slow, m.size() * charged, "{}", text.len());
+            assert!(usize::MAX / 2 - meter.get() >= m.size() * charged * 2 / 3);
+        }
+    }
+}

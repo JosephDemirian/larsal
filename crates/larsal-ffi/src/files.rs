@@ -489,11 +489,20 @@ impl<'a> Pass<'a> {
             self.job.done.store(bytes, Ordering::SeqCst);
         }
         #[cfg(test)]
-        if step == FileStep::Saving && bytes > 0 {
-            let hook = lock(&AT_WRITE).take();
-            if let Some(hook) = hook {
-                self.held = None;
-                hook();
+        {
+            let mut armed = lock(&AT_STEP);
+            if armed
+                .as_ref()
+                .is_some_and(|(at, from, _, _)| *at == step && bytes >= *from)
+            {
+                let hook = armed.take().map(|(_, _, in_hand, hook)| (in_hand, hook));
+                drop(armed);
+                if let Some((in_hand, hook)) = hook {
+                    if !in_hand {
+                        self.held = None;
+                    }
+                    hook();
+                }
             }
         }
         self.pass()
@@ -502,17 +511,37 @@ impl<'a> Pass<'a> {
 
 static ACTIVE: Mutex<Option<Arc<Job>>> = Mutex::new(None);
 
-/// Test-only: runs once in the worker, after a readable chunk is written and
-/// before its safe point takes the gate.
+/// Test-only (F-439): runs once in the worker, at the first safe point of
+/// the step whose count has reached the bytes given (0: the step's first
+/// safe point, which for Encrypting comes after its key derivation; 1: the
+/// first after a chunk), before that point takes the gate: with the gate free,
+/// or, when the flag is set, still held as for the chunk just written (the
+/// chunk in hand).
 #[cfg(test)]
 type Hook = Box<dyn FnOnce() + Send>;
 #[cfg(test)]
-static AT_WRITE: Mutex<Option<Hook>> = Mutex::new(None);
+static AT_STEP: Mutex<Option<(FileStep, u64, bool, Hook)>> = Mutex::new(None);
 /// Test-only: runs once in the next [`Job::progress`], between its two reads.
 #[cfg(test)]
 static BETWEEN_READS: Mutex<Option<Hook>> = Mutex::new(None);
+/// Test-only (F-439): runs once in the thread that finds the mutex at this
+/// address held, just before it waits for it.
+#[cfg(test)]
+static WAITS_ON: Mutex<Option<(usize, Hook)>> = Mutex::new(None);
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    #[cfg(test)]
+    if let Err(std::sync::TryLockError::WouldBlock) = m.try_lock() {
+        let mut armed = WAITS_ON.lock().unwrap_or_else(PoisonError::into_inner);
+        if armed
+            .as_ref()
+            .is_some_and(|(at, _)| *at == std::ptr::from_ref(m).addr())
+        {
+            let hook = armed.take().map(|(_, hook)| hook);
+            drop(armed);
+            hook.into_iter().for_each(|hook| hook());
+        }
+    }
     m.lock().unwrap_or_else(PoisonError::into_inner)
 }
 

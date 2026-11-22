@@ -628,8 +628,19 @@ impl Session {
         f(&slots, state.shown)
     }
 
+    #[cfg(not(test))]
     fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Tests (F-439): every take of the session lock, here, is timed from the
+    /// take to the guard's drop while a test records the session.
+    #[cfg(test)]
+    fn state(&self) -> crate::share::Timed<MutexGuard<'_, State>> {
+        crate::share::Timed::new(
+            self,
+            self.state.lock().unwrap_or_else(PoisonError::into_inner),
+        )
     }
 
     /// APP-09.15 (a) to (c) for one path; the vault's id.

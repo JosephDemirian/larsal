@@ -1,6 +1,6 @@
 //! System facts for `--debug-info` (APP-09.4), the KDF cost check
-//! (CRY-02.14), the KDF benchmark's clock (LD-72) and local times
-//! (INT-10.31).
+//! (CRY-02.14), the KDF benchmark's clock (LD-72), local times (INT-10.31)
+//! and the thread the timed tests run their work on (F-439).
 
 #[cfg(feature = "appkit")]
 use objc2_foundation::NSProcessInfo;
@@ -88,6 +88,50 @@ pub fn thread_cpu_time() -> Duration {
     )
 }
 
+/// Tests only (F-439): runs `work` on a new thread of the user-interactive
+/// QoS class and returns what it returns. A work bound reads
+/// [`thread_cpu_time`] inside `work`, around the steps it bounds, so it
+/// counts this thread's own work and never the time a busy Mac makes it
+/// wait. The class asks macOS for a performance core ahead of work at the
+/// default class; on an efficiency core the same steps count two to four
+/// times the CPU time (F-439). The wall clock bounds only a hang: when
+/// `work` has not returned after `backstop`, this panics and leaves the
+/// thread behind. Not for product code.
+///
+/// # Panics
+/// When `work` panics (its panic goes on here), when it has not returned
+/// after `backstop`, or when the thread cannot start or get its class.
+#[doc(hidden)]
+pub fn on_timing_thread<T: Send + 'static>(
+    backstop: Duration,
+    work: impl FnOnce() -> T + Send + 'static,
+) -> T {
+    let (send, answer) = std::sync::mpsc::channel();
+    std::thread::Builder::new()
+        .name("timed work".into())
+        .spawn(move || {
+            let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                // SAFETY: sets only the calling thread's own QoS class; no
+                // pointer is passed and no memory of ours is touched.
+                let set = unsafe {
+                    libc::pthread_set_qos_class_self_np(
+                        libc::qos_class_t::QOS_CLASS_USER_INTERACTIVE,
+                        0,
+                    )
+                };
+                assert_eq!(set, 0, "the timed work's thread got no QoS class");
+                work()
+            }));
+            let _ = send.send(done);
+        })
+        .expect("the timed work's thread starts");
+    match answer.recv_timeout(backstop) {
+        Ok(Ok(out)) => out,
+        Ok(Err(panic)) => std::panic::resume_unwind(panic),
+        Err(e) => panic!("the timed work gave no answer within {backstop:?} ({e})"),
+    }
+}
+
 /// The local time's offset from UTC in seconds at Unix time `t`, by
 /// macOS's own zone rules: they follow `TZ`, and a zone's rule string covers
 /// the years after its stored changes (LD-178). `None` when macOS cannot
@@ -156,6 +200,62 @@ mod tests {
         let worked = || thread_cpu_time().saturating_sub(before);
         while worked() < Duration::from_millis(20) && start.elapsed() < Duration::from_secs(5) {}
         assert!(worked() >= Duration::from_millis(20));
+    }
+
+    /// The calling thread's QoS class, as its number.
+    fn qos_class() -> u32 {
+        let mut class: u32 = 0;
+        let mut priority: libc::c_int = 0;
+        // SAFETY: both pointers are valid for writes and live across the
+        // call; the class is kept as a u32, so any value written is valid.
+        let done = unsafe {
+            libc::pthread_get_qos_class_np(
+                libc::pthread_self(),
+                std::ptr::from_mut(&mut class).cast(),
+                &mut priority,
+            )
+        };
+        assert_eq!(done, 0);
+        class
+    }
+
+    /// F-439: the timed work runs on a thread of its own at the
+    /// user-interactive class; its answer and its panic come back; a hang
+    /// fails at the backstop: not before it, and long before 30 s.
+    #[test]
+    fn on_timing_thread_runs_the_work_at_user_interactive() {
+        let caller = std::thread::current().id();
+        let (class, own) = on_timing_thread(Duration::from_secs(30), move || {
+            (qos_class(), std::thread::current().id() != caller)
+        });
+        assert_eq!(class, libc::qos_class_t::QOS_CLASS_USER_INTERACTIVE as u32);
+        assert!(own, "a thread of its own");
+        let panic = std::panic::catch_unwind(|| {
+            on_timing_thread::<()>(Duration::from_secs(30), || panic!("demo panic"));
+        })
+        .unwrap_err();
+        assert_eq!(panic.downcast_ref::<&str>(), Some(&"demo panic"));
+        // The hang waits on a thread of its own, so a backstop that never
+        // fires fails here at 30 s instead of hanging the run.
+        let (send, ended) = std::sync::mpsc::channel();
+        let start = std::time::Instant::now();
+        std::thread::spawn(move || {
+            let hang = std::panic::catch_unwind(|| {
+                on_timing_thread::<()>(Duration::from_millis(100), || {
+                    loop {
+                        std::thread::park();
+                    }
+                });
+            });
+            let _ = send.send((start.elapsed(), hang));
+        });
+        let (waited, hang) = ended
+            .recv_timeout(Duration::from_secs(30))
+            .expect("the backstop fires");
+        assert!(waited >= Duration::from_millis(100), "{waited:?}");
+        let hang = hang.unwrap_err();
+        let said = hang.downcast_ref::<String>().unwrap();
+        assert!(said.contains("no answer within 100ms"), "{said}");
     }
 
     #[test]

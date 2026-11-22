@@ -61,7 +61,7 @@ pub const REGEX_PER_UNIT: usize = 4;
 /// caller that resolves many fields (LD-126 (3), F-156); without it every
 /// reference walks the tree.
 pub struct EntryIndex<'v> {
-    order: Vec<&'v Entry>,
+    order: order::Order<'v>,
     groups: usize,
     by_id: HashMap<Uuid, &'v Entry>,
     /// Ids that more than one live entry holds.
@@ -72,6 +72,57 @@ pub struct EntryIndex<'v> {
     group_of: Vec<usize>,
     /// Every group in pre-order.
     tree: Vec<Node>,
+}
+
+/// [`EntryIndex`]'s live entries in search order. F-439 (C1R2-2, C2-2): a
+/// test build counts each entry handed out, in the index itself and on
+/// every thread, so a lookup that walks them shows the work it does,
+/// whatever it reports to the meter and wherever it runs, and no other
+/// index's work adds to it; the entries are private to this module, so no
+/// lookup reaches them past the count. A normal build counts nothing.
+mod order {
+    use larsal_model::Entry;
+
+    #[derive(Default)]
+    pub(super) struct Order<'v> {
+        all: Vec<&'v Entry>,
+        #[cfg(test)]
+        read: core::sync::atomic::AtomicUsize,
+    }
+
+    impl<'v> Order<'v> {
+        pub(super) fn push(&mut self, e: &'v Entry) {
+            self.all.push(e);
+        }
+
+        pub(super) fn len(&self) -> usize {
+            self.all.len()
+        }
+
+        pub(super) fn get(&self, place: usize) -> Option<&&'v Entry> {
+            self.seen();
+            self.all.get(place)
+        }
+
+        pub(super) fn iter(&self) -> impl Iterator<Item = &&'v Entry> {
+            self.all.iter().inspect(|_| self.seen())
+        }
+
+        /// The entries this index handed out so far, on every thread.
+        #[cfg(test)]
+        pub(super) fn read(&self) -> usize {
+            self.read.load(core::sync::atomic::Ordering::Relaxed)
+        }
+
+        #[cfg(test)]
+        fn seen(&self) {
+            self.read
+                .fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+        }
+
+        #[cfg(not(test))]
+        fn seen(&self) {}
+    }
 }
 
 /// A group of [`EntryIndex::tree`]; places are pre-order positions.
@@ -95,7 +146,7 @@ impl<'v> EntryIndex<'v> {
         let key = core::str::from_utf8(share_item::KEY).unwrap_or_default();
         let bin_id = crate::recycle::bin_id(vault);
         let mut index = Self {
-            order: Vec::new(),
+            order: order::Order::default(),
             groups: 0,
             by_id: HashMap::new(),
             repeated: HashSet::new(),
@@ -1438,5 +1489,66 @@ mod f_130_tests {
         show.display = false;
         let plain = resolve("{REF:T@P:demo-s}", e, &show);
         assert!(!plain.masked && plain.text.expose() == "Target");
+    }
+}
+
+#[cfg(test)]
+mod f_244_tests {
+    use super::*;
+    use larsal_model::Group;
+
+    /// F-244 (INT-03.17, LD-126 (3)), F-439 (C1R2-2, C1R3-1, C2-2): through
+    /// the index an id reference finds its entry in one lookup, whatever the
+    /// vault holds: a reference to the first, the middle and the last of
+    /// 10,001 entries reads at most one entry of the search order each,
+    /// where a walk from either end reads thousands for one of them. The
+    /// count is the index's own (`Order::read`, on every thread), not what
+    /// the lookup reports to the meter. The control: a search by title
+    /// walks to the last entry, and each entry it reads is counted.
+    #[test]
+    fn f_244_an_id_reference_reads_one_entry_at_most_through_the_index() {
+        let mut root = Group::new(Uuid([0xA0; 16]), "Root".into(), Time(0));
+        for i in 0..10_001u32 {
+            let mut e = Entry::new(Uuid([0x11; 16]), Time(0));
+            e.uuid.0[..4].copy_from_slice(&i.to_be_bytes());
+            root.entries.push(e);
+        }
+        let marked = [
+            (0, "DemoF", "first.example.com"),
+            (5_000, "DemoM", "middle.example.com"),
+            (10_000, "DemoT", "example.com"),
+        ];
+        for (place, title, password) in marked {
+            for (name, value) in [("Title", title), ("Password", password)] {
+                root.entries[place].set_field(
+                    name.into(),
+                    Field {
+                        value: SecretString::new(value.into()),
+                        protected: false,
+                    },
+                );
+            }
+        }
+        let v = Vault::new(root, Time(0));
+        let index = EntryIndex::new(&v);
+        let ctx = Context {
+            index: Some(&index),
+            ..Context::new(Some(&v), Time(0))
+        };
+        let reads = |text: &str| {
+            let before = index.order.read();
+            let r = resolve(text, &v.root.entries[1], &ctx);
+            (r.text, index.order.read().saturating_sub(before))
+        };
+        for (place, _, password) in marked {
+            let (found, by_id) = reads(&reference('P', v.root.entries[place].uuid));
+            assert_eq!(found.expose(), password, "place {place}");
+            assert!(
+                by_id <= 1,
+                "an id lookup of place {place} read {by_id} entries"
+            );
+        }
+        let (found, by_title) = reads("{REF:P@T:DemoT}");
+        assert_eq!((found.expose(), by_title), ("example.com", 10_001));
     }
 }

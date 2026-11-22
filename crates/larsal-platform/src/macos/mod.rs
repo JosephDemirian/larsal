@@ -36,7 +36,7 @@ pub use process::{core_dumps_off, deny_debugger, resident_bytes};
 #[cfg(any(test, feature = "test-signals"))]
 pub use signals::reset_quit_signals_for_tests;
 pub use signals::{QuitGuard, catch_quit};
-pub use system::{host_name, kernel, thread_cpu_time, utc_offset};
+pub use system::{host_name, kernel, on_timing_thread, thread_cpu_time, utc_offset};
 #[cfg(feature = "appkit")]
 pub use system::{os_version, physical_memory};
 pub use terminal::{EchoOff, echo_off, window_size};

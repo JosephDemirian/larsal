@@ -15,8 +15,9 @@ struct One(#[allow(dead_code)] MutexGuard<'static, ()>);
 
 impl Drop for One {
     fn drop(&mut self) {
-        lock(&AT_WRITE).take();
+        lock(&AT_STEP).take();
         lock(&BETWEEN_READS).take();
+        lock(&WAITS_ON).take();
         let last = lock(&ACTIVE).clone();
         if let Some(job) = last {
             assert!(
@@ -593,21 +594,14 @@ fn fil02_t24_files_from_another_tool_open_through_the_app_job() {
     }
 }
 
-/// Holds the job between two safe points, and fails unless it is still in
-/// `step` with work left: what changes now changes before that step's end.
-fn hold(job: &FileJob, step: FileStep) -> MutexGuard<'_, ()> {
-    let held = lock(&job.job.gate);
-    let p = job.progress();
-    assert!(!p.finished && p.step == step, "held too late: {p:?}");
-    held
-}
-
 /// FIL-02.23 (FIL-02-T23): the credential, the source, the folder and a chosen
-/// key file are bound at the confirmation. The worker is held between safe
-/// points while another file takes the source's name, another folder the
-/// folder's, the entry's password changes and another key the key file's name:
-/// the job still reads the chosen file, writes into the chosen folder and opens
-/// with the confirmed credential.
+/// key file are bound at the confirmation. The worker is held at a safe point
+/// ([`pause_at`]: before the encrypted output exists, or in the decrypt's copy,
+/// before the key file is read) while another file takes the source's name,
+/// another folder the folder's, the entry's password changes and another key the
+/// key file's name: the job still reads the chosen file, writes into the chosen
+/// folder and opens with the confirmed credential. F-439: held by the gate, not
+/// caught by a race, so the job cannot pass the point first at any load.
 #[test]
 fn fil02_t23_the_credential_source_and_folder_are_bound_at_the_confirmation() {
     let _one = serial();
@@ -631,21 +625,23 @@ fn fil02_t23_the_credential_source_and_folder_are_bound_at_the_confirmation() {
     };
     // Another file at the source's name: never read; the job stops with
     // MSG-FILE-CHANGED and writes nothing.
+    let (paused, go) = pause_at(FileStep::Encrypting, 0);
     let job = encrypt(None);
-    let held = hold(&job, FileStep::Encrypting);
+    held(&paused, &job);
     std::fs::rename(&source, d.dir.join("chosen.bin")).unwrap();
     d.file("a.bin", b"another demo file at the chosen name");
-    drop(held);
+    go.send(()).unwrap();
     assert_eq!(id_of(&finish(&job)), "MSG-FILE-CHANGED");
     assert!(d.out_names().is_empty());
     std::fs::rename(d.dir.join("chosen.bin"), &source).unwrap();
     // Another folder at the folder's name: the output goes to the chosen one.
+    let (paused, go) = pause_at(FileStep::Encrypting, 0);
     let job = encrypt(Some(d.save("Bound")));
-    let held = hold(&job, FileStep::SavingPassphrase);
+    held(&paused, &job);
     let chosen = d.dir.join("chosen");
     std::fs::rename(d.dir.join("out"), &chosen).unwrap();
     std::fs::create_dir(d.dir.join("out")).unwrap();
-    drop(held);
+    go.send(()).unwrap();
     assert_eq!(id_of(&finish(&job)), "done");
     assert!(d.out_names().is_empty(), "never the new folder");
     let sealed = chosen.join("a.age").to_string_lossy().into_owned();
@@ -656,11 +652,12 @@ fn fil02_t23_the_credential_source_and_folder_are_bound_at_the_confirmation() {
         vault: d.v,
         entry: entry.entry.clone(),
     };
+    let (paused, go) = pause_at(FileStep::Preparing, 1);
     let job = started(
         d.s.decrypt_file(by_entry, sealed, d.out(), "back.bin".into())
             .unwrap(),
     );
-    let held = hold(&job, FileStep::Preparing);
+    held(&paused, &job);
     let id = parse_id(&entry.entry, LarsalError::UnknownEntry).unwrap();
     d.s.with_edit(d.v, |v, _, _, _| {
         let e = v.root.entries.iter_mut().find(|e| e.uuid == id).unwrap();
@@ -674,7 +671,7 @@ fn fil02_t23_the_credential_source_and_folder_are_bound_at_the_confirmation() {
         Ok(())
     })
     .unwrap();
-    drop(held);
+    go.send(()).unwrap();
     assert_eq!(id_of(&finish(&job)), "done");
     assert_eq!(std::fs::read(d.dir.join("out/back.bin")).unwrap(), plain);
 
@@ -700,14 +697,15 @@ fn fil02_t23_the_credential_source_and_folder_are_bound_at_the_confirmation() {
         passphrase: None,
     };
     let sealed = d.dir.join("out/big.age").to_string_lossy().into_owned();
+    let (paused, go) = pause_at(FileStep::Preparing, 1);
     let job = started(
         d.s.decrypt_file(by_file, sealed, d.out(), "big.back".into())
             .unwrap(),
     );
-    let held = hold(&job, FileStep::Preparing);
+    held(&paused, &job);
     std::fs::rename(&key, d.dir.join("moved.key")).unwrap();
     d.file("mine.key", other.expose().as_bytes());
-    drop(held);
+    go.send(()).unwrap();
     assert_eq!(id_of(&finish(&job)), "done");
     assert!(std::fs::read(d.dir.join("out/big.back")).unwrap() == big);
 }
@@ -845,6 +843,15 @@ fn fil02_t12_progress_names_each_step_with_its_own_counts() {
     assert!(matches!(p.end, Some(FileEnd::Done { .. })));
 }
 
+/// FIL-02-T13: a revoke at each step leaves no output, and once it returned no
+/// further chunk is written. F-439 (C2R3-04): the worker is held at a safe point
+/// of the step ([`pause_at`]) until the revoke returned, so the job cannot end
+/// before the revoke at any load; a revoke that stops nothing ends "done". The
+/// chunk in hand: the worker is held after a chunk, still holding the gate it
+/// took for it ([`pause_in_hand`]), and a revoke must wait for it; it runs on a
+/// thread of its own and either reaches the gate and waits there (`WAITS_ON`), or
+/// returns, which fails the test: a revoke that does not wait, or a worker that
+/// writes without the gate. No clock decides either.
 #[test]
 fn fil02_t13_a_revoke_at_each_step_leaves_no_output() {
     let _one = serial();
@@ -866,8 +873,10 @@ fn fil02_t13_a_revoke_at_each_step_leaves_no_output() {
     );
     assert_eq!(id_of(&finish(&job)), "done");
     let sealed = d.dir.join("out/a.age").to_string_lossy().into_owned();
-    // Encrypt: at once (in the derivation), and in the write.
-    for wait in [None, Some(FileStep::Encrypting)] {
+    // Encrypt: at the derivation's end (before the output exists), and in the
+    // write.
+    for from in [0, 1] {
+        let (paused, go) = pause_at(FileStep::Encrypting, from);
         let job = started(
             d.s.encrypt_file_passphrase(
                 pass.into(),
@@ -880,34 +889,75 @@ fn fil02_t13_a_revoke_at_each_step_leaves_no_output() {
             )
             .unwrap(),
         );
-        if let Some(step) = wait {
-            while job.progress().done == 0 && !job.progress().finished {
-                reach(&job, step);
-            }
-        }
+        held(&paused, &job);
         job.revoke();
         // The gate: once revoke returned, no further chunk is written.
         let stopped = job.progress().done;
-        assert_eq!(id_of(&finish(&job)), "MSG-FILE-CANCELLED", "{wait:?}");
+        go.send(()).unwrap();
+        assert_eq!(id_of(&finish(&job)), "MSG-FILE-CANCELLED", "{from}");
         assert_eq!(
             job.progress().done,
             stopped,
-            "{wait:?}: a chunk after the revoke"
+            "{from}: a chunk after the revoke"
         );
-        assert_eq!(d.out_names(), ["a.age"], "{wait:?}");
+        assert_eq!(d.out_names(), ["a.age"], "{from}");
     }
+    // The chunk in hand: the worker is held after its first chunk, with the gate
+    // it took for that chunk.
+    let (paused, go) = pause_in_hand(FileStep::Encrypting, 1);
+    let job = started(
+        d.s.encrypt_file_passphrase(
+            pass.into(),
+            pass.into(),
+            true,
+            None,
+            source.clone(),
+            d.out(),
+            "b.age".into(),
+        )
+        .unwrap(),
+    );
+    held(&paused, &job);
+    let stopped = job.progress().done;
+    let (waits, waiting) = std::sync::mpsc::channel();
+    let hook: Hook = Box::new(move || {
+        let _ = waits.send(());
+    });
+    *lock(&WAITS_ON) = Some((std::ptr::from_ref(&job.job.gate).addr(), hook));
+    let revoking = {
+        let job = Arc::clone(&job);
+        std::thread::spawn(move || job.revoke())
+    };
+    let until = Instant::now() + Duration::from_secs(120);
+    while waiting.recv_timeout(Duration::from_millis(10)).is_err() {
+        assert!(
+            !revoking.is_finished(),
+            "the revoke returned while a chunk was in hand"
+        );
+        assert!(Instant::now() < until, "the revoke never reached the gate");
+    }
+    // The worker lets the gate go at its safe point; the revoke returns.
+    go.send(()).unwrap();
+    revoking.join().unwrap();
+    assert_eq!(id_of(&finish(&job)), "MSG-FILE-CANCELLED", "in hand");
+    assert_eq!(
+        job.progress().done,
+        stopped,
+        "in hand: a chunk after the revoke"
+    );
+    assert_eq!(d.out_names(), ["a.age"], "in hand");
     // Decrypt: in the copy, in the check, in the write.
     for step in [FileStep::Preparing, FileStep::Checking, FileStep::Saving] {
+        let (paused, go) = pause_at(step, 1);
         let job = started(
             d.s.decrypt_file(phrase(pass), sealed.clone(), d.out(), "plain".into())
                 .unwrap(),
         );
-        reach(&job, step);
-        while job.progress().done == 0 && !job.progress().finished {
-            std::thread::sleep(Duration::from_micros(200));
-        }
+        held(&paused, &job);
         job.revoke();
         let progress = job.progress();
+        assert_eq!(progress.step, step);
+        go.send(()).unwrap();
         let end = finish(&job);
         assert_eq!(
             id_of(&end),
@@ -924,12 +974,17 @@ fn fil02_t13_a_revoke_at_each_step_leaves_no_output() {
     }
 }
 
+/// FIL-02-T14: a lock stops a job that needs no vault; another session's lock
+/// does not. F-439: the job is held at its first safe point (after its key
+/// derivation, before the output exists) while both locks come, so it cannot end
+/// before them at any load.
 #[test]
 fn fil02_t14_a_lock_stops_a_job_that_needs_no_vault() {
     let _one = serial();
     let d = Demo::new("lock");
     let source = d.file("a.bin", &demo_bytes(24 * 1024 * 1024));
     let pass = "correct horse battery staple demo";
+    let (paused, go) = pause_at(FileStep::Encrypting, 0);
     let job = started(
         d.s.encrypt_file_passphrase(
             pass.into(),
@@ -942,21 +997,26 @@ fn fil02_t14_a_lock_stops_a_job_that_needs_no_vault() {
         )
         .unwrap(),
     );
-    reach(&job, FileStep::Encrypting);
+    held(&paused, &job);
     // Another session's lock is not this one's.
     Demo::new("lock-other").s.lock_all();
     assert!(!job.job.revoked.load(Ordering::SeqCst));
     d.s.lock_all();
+    go.send(()).unwrap();
     assert_eq!(id_of(&finish(&job)), "MSG-FILE-CANCELLED");
     assert!(d.out_names().is_empty());
 }
 
+/// FIL-02-T17: one file operation at a time. F-439: the first job is held at its
+/// first safe point until the others were refused, so it cannot end before them
+/// at any load.
 #[test]
 fn fil02_t17_one_operation_at_a_time() {
     let _one = serial();
     let d = Demo::new("busy");
     let source = d.file("a.bin", &demo_bytes(24 * 1024 * 1024));
     let pass = "correct horse battery staple demo";
+    let (_paused, go) = pause_at(FileStep::Encrypting, 0);
     let job = started(
         d.s.encrypt_file_passphrase(
             pass.into(),
@@ -996,6 +1056,7 @@ fn fil02_t17_one_operation_at_a_time() {
     assert!(draft.show().is_some(), "nothing was replaced or taken");
     assert!(d.entry("Busy").is_none());
     job.revoke();
+    go.send(()).unwrap();
     finish(&job);
     assert!(!file_busy());
 }
@@ -1187,29 +1248,47 @@ fn staged_bytes(d: &Demo) -> u64 {
         .sum()
 }
 
-/// Arms the worker to stop once, right after the first readable chunk of the
-/// next decrypt is written and before its safe point takes the gate: `paused`
-/// says it stopped, a send on `go` lets it on. The caller takes the gate in
-/// between, so the job is held in its write with readable bytes on disk.
-fn pause_in_write() -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+/// Arms the next job's worker to stop once, at the first safe point of `step`
+/// whose count has reached `from` bytes (`AT_STEP`), with the gate free:
+/// `paused` says it stopped, a send on `go` (or dropping it) lets it on. A test
+/// acts while the job is held in that step, so the job cannot end first at any
+/// load (F-439); with `(FileStep::Saving, 1)` readable bytes are on disk.
+fn pause_at(
+    step: FileStep,
+    from: u64,
+) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
     let (stopped, paused) = std::sync::mpsc::channel();
     let (go, wait) = std::sync::mpsc::channel::<()>();
-    *lock(&AT_WRITE) = Some(Box::new(move || {
+    let hook: Hook = Box::new(move || {
         let _ = stopped.send(());
         let _ = wait.recv();
-    }));
+    });
+    *lock(&AT_STEP) = Some((step, from, false, hook));
     (paused, go)
 }
 
-/// Waits until the job stopped in its write ([`pause_in_write`]); a job that ends
-/// first fails the test, never hangs it (C2R5-03).
-fn in_write(paused: &std::sync::mpsc::Receiver<()>, job: &FileJob) {
+/// As [`pause_at`], but the worker stays held with the gate it took for the
+/// chunk just written: a chunk in hand, which a revoke must wait for.
+fn pause_in_hand(
+    step: FileStep,
+    from: u64,
+) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+    let pause = pause_at(step, from);
+    if let Some((_, _, in_hand, _)) = lock(&AT_STEP).as_mut() {
+        *in_hand = true;
+    }
+    pause
+}
+
+/// Waits until the job stopped where [`pause_at`] armed it; a job that ends first
+/// fails the test, never hangs it (C2R5-03).
+fn held(paused: &std::sync::mpsc::Receiver<()>, job: &FileJob) {
     let until = Instant::now() + Duration::from_secs(120);
     while paused.recv_timeout(Duration::from_millis(10)).is_err() {
         let p = job.progress();
         assert!(
             !p.finished && Instant::now() < until,
-            "never held in its write: {p:?}"
+            "never held in its step: {p:?}"
         );
     }
 }
@@ -1246,12 +1325,12 @@ fn fil02_t14_c1_01_a_quit_in_the_readable_write_waits_for_the_cleanup() {
     let d = Demo::new("quit");
     let pass = "correct horse battery staple demo";
     let sealed = sealed_demo(&d, 48 * 1024 * 1024, pass);
-    let (paused, go) = pause_in_write();
+    let (paused, go) = pause_at(FileStep::Saving, 1);
     let job = started(
         d.s.decrypt_file(phrase(pass), sealed, d.out(), "plain".into())
             .unwrap(),
     );
-    in_write(&paused, &job);
+    held(&paused, &job);
     let held = lock(&job.job.gate);
     go.send(()).unwrap();
     assert!(
@@ -1324,12 +1403,12 @@ fn fil02_t14_the_quit_wait_is_bounded() {
     let d = Demo::new("quit-bound");
     let pass = "correct horse battery staple demo";
     let sealed = sealed_demo(&d, 8 * 1024 * 1024, pass);
-    let (paused, go) = pause_in_write();
+    let (paused, go) = pause_at(FileStep::Saving, 1);
     let job = started(
         d.s.decrypt_file(phrase(pass), sealed, d.out(), "plain".into())
             .unwrap(),
     );
-    in_write(&paused, &job);
+    held(&paused, &job);
     let held = lock(&job.job.gate);
     go.send(()).unwrap();
     let start = Instant::now();

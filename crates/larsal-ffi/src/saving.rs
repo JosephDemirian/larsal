@@ -2931,7 +2931,9 @@ mod tests {
 
     /// F-101: a save an automatic lock overtook (Saving.swift stops waiting
     /// for it after a second) and that then does not write keeps the change
-    /// in the recovery copy, as that lock would have (APP-02.16).
+    /// in the recovery copy, as that lock would have (APP-02.16). F-439: the
+    /// lock comes once the save has its copy, known by the save's own looks
+    /// at the vault, not after a time a busy Mac can stretch.
     #[test]
     fn f_101_a_save_the_lock_overtook_keeps_the_change_in_a_recovery_copy() {
         let (dir, path, s, v) = personal("f101-overtaken");
@@ -2946,13 +2948,21 @@ mod tests {
         mkfifo(&path);
         let saver = save_lock(&s, v);
         let host = s.host.lock().unwrap();
+        // Each look through `with_edit` counts in the slot's version (this
+        // read through `with_share` does not).
+        let looks = || s.with_share(v, |slot| *slot.version).unwrap();
+        let before = looks();
         let save = {
             let s = Arc::clone(&s);
             std::thread::spawn(move || s.save(v))
         };
         wait_held(&saver, 3, &save);
-        // It takes its copy of the vault, then waits for `host` (the KDF).
-        std::thread::sleep(std::time::Duration::from_millis(200));
+        // The save looks twice before the KDF: for the save lock, then for
+        // its copy of the vault; then it waits for `host`.
+        while looks() < before + 2 {
+            assert!(!save.is_finished(), "the save waits for the KDF");
+            std::thread::yield_now();
+        }
         s.lock_all();
         drop(host);
         assert!(matches!(save.join().unwrap(), Err(LarsalError::Locked)));

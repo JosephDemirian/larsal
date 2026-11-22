@@ -224,80 +224,260 @@ mod probe {
             count: *mut libc::c_uint,
             object: *mut libc::c_uint,
         ) -> libc::c_int;
+        fn mach_vm_read_overwrite(
+            task: libc::c_uint,
+            address: u64,
+            size: u64,
+            data: u64,
+            outsize: *mut u64,
+        ) -> libc::c_int;
     }
     const REGION_BASIC_INFO_64: libc::c_int = 9;
     const REGION_BASIC_INFO_COUNT_64: libc::c_uint = 9;
+    /// The bytes the search reads from the kernel at a time.
+    const PIECE: usize = 1 << 20;
 
     /// How many copies of a span this process's writable memory holds: heap,
     /// freed blocks and stacks. `masked` is the span with each byte XOR `mask`,
-    /// so the search never finds its own needle. For a test program that runs
-    /// this one test alone: nothing may unmap memory during the search. Reads
-    /// only through `memchr` and single byte reads of mapped pages.
+    /// so the search never finds its own needle. F-439 (C1R2-3, C1R3-2): the
+    /// memory is read a piece at a time with `mach_vm_read_overwrite` into a
+    /// buffer of the probe's own, mapped for the search and outside the heap;
+    /// for a piece that another thread unmapped or protected meanwhile the
+    /// kernel answers an error, never a fault, and the search asks
+    /// `mach_vm_region` again from that address and goes on with what is
+    /// still mapped readable and writable there ([`in_region`]); it prints the
+    /// bytes it could not read. So other threads may run, map and unmap during
+    /// the search. The count is exact for the memory that stays mapped
+    /// readable and writable through the search, and only while no other
+    /// thread makes, frees or wipes a copy meanwhile, so a test that counts
+    /// copies still runs alone in its program.
     ///
     /// # Panics
-    /// When `masked` is empty.
+    /// When `masked` is empty, or no memory is left for the buffer.
     #[must_use]
     pub fn copies_in_memory(masked: &[u8], mask: u8) -> usize {
-        let first = libc::c_int::from(masked[0] ^ mask);
-        let mut found = 0;
+        assert!(!masked.is_empty(), "an empty span");
+        let mut buf = Buffer::new(PIECE + masked.len() - 1);
+        let (mut found, mut skipped) = (0, 0);
         let mut address = 0_u64;
-        loop {
-            let (mut size, mut object) = (0_u64, 0);
-            let mut info = [0; 16];
-            let mut count = REGION_BASIC_INFO_COUNT_64;
-            // SAFETY: the out pointers are valid locals; `info` is larger than
-            // the 9 ints the count asks for; the call only asks the kernel about
-            // this task.
-            let result = unsafe {
-                mach_vm_region(
-                    mach_task_self_,
-                    &raw mut address,
-                    &raw mut size,
-                    REGION_BASIC_INFO_64,
-                    info.as_mut_ptr(),
-                    &raw mut count,
-                    &raw mut object,
-                )
-            };
-            if result != 0 {
-                return found;
-            }
-            let readable_and_writable = info[0] & 3 == 3;
+        while let Some((start, size, readable_and_writable)) = region(address) {
             let Ok(len) = usize::try_from(size) else {
-                return found;
+                break;
             };
             if readable_and_writable && len >= masked.len() {
-                let start = address as usize;
-                found += in_region(start, len, masked, mask, first);
+                let (n, lost) = in_region(start, len, buf.bytes(), masked, mask);
+                found += n;
+                skipped += lost;
             }
-            address += size;
+            address = start + size;
         }
+        if skipped > 0 {
+            println!(
+                "copies_in_memory: {skipped} bytes skipped, gone or refused during the search"
+            );
+        }
+        found
     }
 
-    /// The copies in one mapped region of `len` bytes from `start`.
-    fn in_region(start: usize, len: usize, masked: &[u8], mask: u8, first: libc::c_int) -> usize {
+    /// The region `mach_vm_region` lists now at or above `address`: its
+    /// start, its size and whether it is readable and writable; `None` past
+    /// the last.
+    fn region(address: u64) -> Option<(u64, u64, bool)> {
+        let (mut address, mut size, mut object) = (address, 0_u64, 0);
+        let mut info = [0; 16];
+        let mut count = REGION_BASIC_INFO_COUNT_64;
+        // SAFETY: the out pointers are valid locals; `info` is larger than
+        // the 9 ints the count asks for; the call only asks the kernel about
+        // this task.
+        let result = unsafe {
+            mach_vm_region(
+                mach_task_self_,
+                &raw mut address,
+                &raw mut size,
+                REGION_BASIC_INFO_64,
+                info.as_mut_ptr(),
+                &raw mut count,
+                &raw mut object,
+            )
+        };
+        (result == 0).then_some((address, size, info[0] & 3 == 3))
+    }
+
+    /// The first readable and writable part, at or above `at` and below
+    /// `end`, of what `mach_vm_region` lists now: its start and end.
+    fn part(mut at: u64, end: u64) -> Option<(u64, u64)> {
+        while at < end {
+            let (start, size, readable_and_writable) = region(at)?;
+            let (from, to) = (start.max(at), (start + size).min(end));
+            if from >= end {
+                return None;
+            }
+            if readable_and_writable {
+                return Some((from, to));
+            }
+            at = to;
+        }
+        None
+    }
+
+    /// The copies in the `len` bytes of this process's memory from `start` (a
+    /// region as `mach_vm_region` listed it), and how many of its bytes the
+    /// search could not read. They are read into `buf` a piece at a time: a
+    /// piece is `buf.len()` bytes or what is left, and the next one starts
+    /// `masked.len() - 1` bytes before its end, so a copy across two pieces
+    /// is counted once, in the first. Before a piece that takes in the
+    /// buffer's own memory, `buf` is zeroed, so the search never finds what
+    /// it read itself. A piece the kernel refuses (another thread unmapped or
+    /// protected memory there meanwhile): the search asks `mach_vm_region`
+    /// again from that address and goes on with what is still mapped readable
+    /// and writable in the listed bytes ([`part`]), after a hole too; the
+    /// bytes it passes over count as skipped, as does a part the kernel
+    /// refuses again unchanged. A copy across the end of a part that the
+    /// kernel lists apart is not counted, as across two regions.
+    fn in_region(start: u64, len: usize, buf: &mut [u8], masked: &[u8], mask: u8) -> (usize, u64) {
+        let step = buf.len() + 1 - masked.len();
+        let first = anchor(masked, mask);
+        let own = buf.as_ptr() as u64..buf.as_ptr() as u64 + buf.len() as u64;
+        let (span, end) = (masked.len() as u64, start + len as u64);
+        // The part being read, `at` to `stop`: the whole region until a piece
+        // is refused.
+        let (mut at, mut stop) = (start, end);
+        let (mut found, mut skipped) = (0, 0);
+        loop {
+            if at + span > stop {
+                // This part is done; on to what is mapped past it, if any.
+                if stop >= end {
+                    break;
+                }
+                let Some((from, to)) = part(stop, end) else {
+                    skipped += end - stop;
+                    break;
+                };
+                skipped += from - stop;
+                (at, stop) = (from, to);
+                continue;
+            }
+            let want = buf
+                .len()
+                .min(usize::try_from(stop - at).unwrap_or(usize::MAX));
+            if at < own.end && own.start < at + want as u64 {
+                buf.fill(0);
+            }
+            let mut got = 0_u64;
+            // SAFETY: the kernel writes at most `want` bytes, no more than
+            // `buf.len()`, into `buf`, which is ours and writable, and reads
+            // the source range itself: a range no longer mapped readable gets
+            // an error code, not a fault in this process. No Rust object is
+            // formed over the source memory.
+            let result = unsafe {
+                mach_vm_read_overwrite(
+                    mach_task_self_,
+                    at,
+                    want as u64,
+                    buf.as_mut_ptr() as u64,
+                    &raw mut got,
+                )
+            };
+            if result == 0 && got == want as u64 {
+                found += count(&buf[..want], masked, mask, first, step);
+                at += step as u64;
+                continue;
+            }
+            // Refused: what is still mapped readable and writable from here?
+            match part(at, end) {
+                Some((from, to)) if from > at || to < stop => {
+                    skipped += from - at;
+                    (at, stop) = (from, to);
+                }
+                // Nothing, or this part again unchanged: passed over.
+                _ => {
+                    skipped += stop - at;
+                    at = stop;
+                }
+            }
+        }
+        (found, skipped)
+    }
+
+    /// Where in the span the byte is that the search looks for first: the
+    /// first byte that is neither 0x00 nor 0xFF, which fill most memory, else
+    /// the first 0xFF, else the first. A span that starts with 0x00 would
+    /// stop the search at nearly every byte (F-439: qr_t29's spans of 0x00,
+    /// 0x01 and 0xFF bytes); the count is the same.
+    fn anchor(masked: &[u8], mask: u8) -> usize {
+        let plain = |b: &u8| b ^ mask;
+        masked
+            .iter()
+            .position(|b| !matches!(plain(b), 0x00 | 0xFF))
+            .or_else(|| masked.iter().position(|b| plain(b) == 0xFF))
+            .unwrap_or(0)
+    }
+
+    /// The copies in `hay` that start before `limit`, found by their byte at
+    /// `first` (see [`anchor`]).
+    fn count(hay: &[u8], masked: &[u8], mask: u8, first: usize, limit: usize) -> usize {
+        let Some(last) = hay.len().checked_sub(masked.len()) else {
+            return 0;
+        };
+        let end = limit.min(last + 1);
+        let byte = libc::c_int::from(masked[first] ^ mask);
         let (mut at, mut found) = (0, 0);
-        let last = len - masked.len();
-        while at <= last {
-            // SAFETY: the kernel just reported the region mapped read and
-            // write, and the caller keeps it so (the test runs alone); memchr
-            // reads bytes as unsigned char inside it. The pointer is made from
-            // the address on purpose: no Rust object is formed over this memory.
-            let hit =
-                unsafe { libc::memchr((start + at) as *const libc::c_void, first, last - at + 1) };
+        while at < end {
+            // SAFETY: memchr reads `end - at` bytes from `hay[at + first]`;
+            // the last is `hay[end - 1 + first]`, at most `hay[last + first]`,
+            // inside the slice since `first < masked.len()`.
+            let hit = unsafe { libc::memchr(hay[at + first..].as_ptr().cast(), byte, end - at) };
             if hit.is_null() {
                 break;
             }
-            let here = hit as usize;
-            // SAFETY: `here` is at most `start + last`, so every byte read lies
-            // in the region; volatile, so each is a real read of that byte.
-            let same = masked.iter().enumerate().all(|(i, want)| unsafe {
-                ((here + i) as *const u8).read_volatile() ^ mask == *want
-            });
+            let here = hit as usize - hay.as_ptr() as usize - first;
+            let same = hay[here..here + masked.len()]
+                .iter()
+                .zip(masked)
+                .all(|(b, want)| b ^ mask == *want);
             found += usize::from(same);
-            at = here - start + 1;
+            at = here + 1;
         }
         found
+    }
+
+    /// The search's own buffer: anonymous memory mapped for one search and
+    /// unmapped after it, so the search takes no block of the heap.
+    struct Buffer(*mut u8, usize);
+
+    impl Buffer {
+        fn new(len: usize) -> Self {
+            // SAFETY: an anonymous private mapping of `len` bytes touches no
+            // memory of ours; the result is checked before any use.
+            let at = unsafe {
+                libc::mmap(
+                    std::ptr::null_mut(),
+                    len,
+                    libc::PROT_READ | libc::PROT_WRITE,
+                    libc::MAP_PRIVATE | libc::MAP_ANON,
+                    -1,
+                    0,
+                )
+            };
+            assert!(at != libc::MAP_FAILED, "no memory for the search");
+            Self(at.cast(), len)
+        }
+
+        fn bytes(&mut self) -> &mut [u8] {
+            // SAFETY: `self.1` bytes from `self.0` are the mapping `new`
+            // made, zero-filled by the kernel, written only through this
+            // slice and the kernel's copies into it, and mapped until drop;
+            // `&mut self` keeps this the only slice over it.
+            unsafe { std::slice::from_raw_parts_mut(self.0, self.1) }
+        }
+    }
+
+    impl Drop for Buffer {
+        fn drop(&mut self) {
+            // SAFETY: the mapping `new` made, unmapped once; no slice over it
+            // outlives `&mut self`.
+            unsafe { libc::munmap(self.0.cast(), self.1) };
+        }
     }
 
     /// The bytes this process has wired (`proc_pid_rusage`, `ri_wired_size`):
@@ -448,6 +628,180 @@ mod probe {
             } else {
                 System.dealloc(ptr, layout);
             }
+        }
+    }
+
+    /// F-439 (C1R2-3, C1R3-2): the search never faults while another thread
+    /// maps and unmaps memory, reads a region in pieces as one whole, and
+    /// goes on past a part that is gone.
+    #[cfg(test)]
+    mod tests {
+        use super::{anchor, copies_in_memory, in_region};
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering::Relaxed};
+
+        const MASK: u8 = 0xA5;
+        /// The other thread's region: 64 MiB, never touched, so reading it
+        /// takes the search a while.
+        const CHURN: usize = 64 << 20;
+
+        /// Another thread maps a 64 MiB region, keeps it a millisecond and
+        /// unmaps it, again and again, while the probe searches all writable
+        /// memory five times; the searches start once it has unmapped one
+        /// (an event, so a busy Mac cannot start them first). A search that
+        /// read unmapped memory would end the program on SIGSEGV; the
+        /// kernel's copy answers an error instead. A copy planted here is
+        /// found every time.
+        #[test]
+        fn copies_in_memory_never_faults_while_another_thread_unmaps() {
+            let plain: Vec<u8> = (0..64_u8).map(|i| i.wrapping_mul(29) ^ 0xC3).collect();
+            let masked: Vec<u8> = plain.iter().map(|b| b ^ MASK).collect();
+            let stop = Arc::new(AtomicBool::new(false));
+            let rounds = Arc::new(AtomicUsize::new(0));
+            let churn = {
+                let (stop, rounds) = (Arc::clone(&stop), Arc::clone(&rounds));
+                std::thread::spawn(move || {
+                    let mut unmapped = 0_usize;
+                    while !stop.load(Relaxed) {
+                        // SAFETY: an anonymous mapping of our own, never
+                        // read or written here, unmapped once by this thread.
+                        unsafe {
+                            let at = libc::mmap(
+                                std::ptr::null_mut(),
+                                CHURN,
+                                libc::PROT_READ | libc::PROT_WRITE,
+                                libc::MAP_PRIVATE | libc::MAP_ANON,
+                                -1,
+                                0,
+                            );
+                            if at != libc::MAP_FAILED {
+                                std::thread::sleep(std::time::Duration::from_millis(1));
+                                libc::munmap(at, CHURN);
+                                unmapped += 1;
+                            }
+                        }
+                        rounds.store(unmapped, Relaxed);
+                    }
+                    unmapped
+                })
+            };
+            // A hang backstop only: the other thread's first unmap takes
+            // about a millisecond.
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+            while rounds.load(Relaxed) == 0 {
+                assert!(std::time::Instant::now() < deadline, "no unmap in 30 s");
+                std::thread::yield_now();
+            }
+            let found: Vec<usize> = (0..5).map(|_| copies_in_memory(&masked, MASK)).collect();
+            stop.store(true, Relaxed);
+            let unmapped = churn.join().unwrap();
+            std::hint::black_box(&plain);
+            println!("the other thread unmapped {unmapped} regions; found {found:?}");
+            assert!(found.iter().all(|&n| n >= 1), "the planted copy: {found:?}");
+        }
+
+        /// F-439 (C1R3-2, Checker 1's TH): a region listed whole, then part
+        /// of it protected or unmapped by the time it is read. The search
+        /// reads a refused piece again up to the hole, goes on after it, and
+        /// counts the bytes it passed over. Copies at 0.5, 1.25 and 3.5 MiB:
+        /// with 1.5 to 2 MiB protected all three count; with the first MiB
+        /// protected too, the two still readable; with the first MiB
+        /// unmapped instead (TH), the same two, still mapped and made, freed
+        /// or wiped by nobody.
+        #[test]
+        fn a_copy_past_a_hole_is_counted() {
+            const MIB: usize = 1 << 20;
+            let needle = *b"F439-hole-builder-4!";
+            let masked: Vec<u8> = needle.iter().map(|b| b ^ MASK).collect();
+            let mut buf = vec![0_u8; super::PIECE + masked.len() - 1];
+            // SAFETY: an anonymous mapping of our own; the copies are written
+            // inside it before any part of it is protected or unmapped; then
+            // it is read only by the kernel's copy, and unmapped at the end.
+            let (protected, both, unmapped) = unsafe {
+                let at = libc::mmap(
+                    std::ptr::null_mut(),
+                    4 * MIB,
+                    libc::PROT_READ | libc::PROT_WRITE,
+                    libc::MAP_PRIVATE | libc::MAP_ANON,
+                    -1,
+                    0,
+                );
+                assert!(at != libc::MAP_FAILED);
+                let base = at.cast::<u8>();
+                for place in [MIB / 2, MIB + MIB / 4, 3 * MIB + MIB / 2] {
+                    std::ptr::copy_nonoverlapping(needle.as_ptr(), base.add(place), needle.len());
+                }
+                let hole = base.add(MIB + MIB / 2).cast();
+                assert_eq!(libc::mprotect(hole, MIB / 2, libc::PROT_NONE), 0);
+                let start = base as u64;
+                let protected = in_region(start, 4 * MIB, &mut buf, &masked, MASK);
+                assert_eq!(libc::mprotect(at, MIB, libc::PROT_NONE), 0);
+                let both = in_region(start, 4 * MIB, &mut buf, &masked, MASK);
+                libc::munmap(at, MIB);
+                let unmapped = in_region(start, 4 * MIB, &mut buf, &masked, MASK);
+                libc::munmap(base.add(MIB).cast(), 3 * MIB);
+                (protected, both, unmapped)
+            };
+            println!(
+                "copies, bytes skipped: {protected:?}; the first MiB protected too: {both:?}; unmapped: {unmapped:?}"
+            );
+            let half = (MIB / 2) as u64;
+            assert_eq!(protected, (3, half), "1.5 to 2 MiB protected");
+            assert_eq!(both, (2, 3 * half), "0 to 1 and 1.5 to 2 MiB protected");
+            assert_eq!(
+                unmapped.0, 2,
+                "the copies at 1.25 and 3.5 MiB are still mapped"
+            );
+            // The first MiB is a hole another thread may map meanwhile.
+            assert!((half..=3 * half).contains(&unmapped.1), "{unmapped:?}");
+        }
+
+        /// A region read in pieces of 8 to 200 bytes holds its 5 copies,
+        /// two of them across a piece's end at some sizes, each counted
+        /// once; also for a span found by its third byte, as one that starts
+        /// with 0x00 is.
+        #[test]
+        fn a_copy_across_two_pieces_is_counted_once() {
+            for needle in [*b"F439-ab!", [0, 0, b'F', b'4', b'3', b'9', 0xFF, b'!']] {
+                let masked: Vec<u8> = needle.iter().map(|b| b ^ MASK).collect();
+                let mut region = [0_u8; 100];
+                for at in [0, 13, 40, 61, 92] {
+                    region[at..at + 8].copy_from_slice(&needle);
+                }
+                for piece in [8, 9, 16, 23, 200] {
+                    let mut buf = vec![0_u8; piece + needle.len() - 1];
+                    let start = region.as_ptr() as u64;
+                    let found = in_region(start, region.len(), &mut buf, &masked, MASK);
+                    assert_eq!(found, (5, 0), "pieces of {piece}, {needle:?}");
+                }
+            }
+        }
+
+        /// The byte looked for first: not 0x00 or 0xFF where the span has
+        /// another, else 0xFF, else the first.
+        #[test]
+        fn the_search_looks_first_for_a_rare_byte() {
+            let at = |plain: &[u8]| {
+                let masked: Vec<u8> = plain.iter().map(|b| b ^ MASK).collect();
+                anchor(&masked, MASK)
+            };
+            assert_eq!(at(b"F439"), 0);
+            assert_eq!(at(&[0, 0xFF, 0, 1, 7]), 3);
+            assert_eq!(at(&[0, 0, 0xFF, 0]), 2);
+            assert_eq!(at(&[0, 0, 0]), 0);
+        }
+
+        /// The buffer still holds a copy from the piece before when the
+        /// search comes to the buffer's own memory: that copy is not counted.
+        #[test]
+        fn the_search_never_counts_its_own_buffer() {
+            let needle = *b"F439-ab!";
+            let masked: Vec<u8> = needle.iter().map(|b| b ^ MASK).collect();
+            let mut buf = [0_u8; 64];
+            buf[20..28].copy_from_slice(&needle);
+            let start = buf.as_ptr() as u64;
+            let len = buf.len();
+            assert_eq!(in_region(start, len, &mut buf, &masked, MASK), (0, 0));
         }
     }
 }

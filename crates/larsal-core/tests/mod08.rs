@@ -12,6 +12,7 @@ use larsal_core::url::{
 };
 use larsal_crypto::secret::SecretString;
 use larsal_model::{Entry, Field, Group, Vault};
+use std::time::Duration;
 
 fn set(e: &mut Entry, name: &str, value: &str) {
     let protected = e.field(name).is_some_and(|f| f.protected);
@@ -114,6 +115,29 @@ fn res_ctx(v: &Vault, n: u8, text: &str, ctx: &Context<'_>) -> String {
 fn field_of(v: &Vault, n: u8, name: &str) -> String {
     let e = find(v, id(n));
     res(v, n, e.value(name))
+}
+
+/// F-439: `work` on `v`, on a thread of its own at the user-interactive
+/// class, and the CPU time that thread spent on it: the caller's `bound`
+/// counts the resolver's work, never the time a busy Mac makes it wait. The
+/// wall clock only ends a hang, at ten times `bound` (the F-439 backstop).
+/// The vault moves to that thread and back, untimed.
+fn cpu_timed<T: Send + 'static>(
+    v: &mut Vault,
+    bound: Duration,
+    work: impl FnOnce(&Vault) -> T + Send + 'static,
+) -> (T, Duration) {
+    let cpu = larsal_platform::macos::thread_cpu_time;
+    let owned = std::mem::replace(v, Vault::new(Group::new(id(0), String::new(), T0), T0));
+    let (out, took, owned) =
+        larsal_platform::macos::on_timing_thread(bound.saturating_mul(10), move || {
+            let start = cpu();
+            let out = work(&owned);
+            let took = cpu() - start;
+            (out, took, owned)
+        });
+    *v = owned;
+    (out, took)
 }
 
 #[test]
@@ -667,11 +691,12 @@ fn mod_08_19_no_fresh_budgets() {
         &[("UserName", "{T-REPLACE-RX:/{USERNAME}/a/b/}")],
     ));
     v.root.entries.push(mk(0x63, "{REF:T@T:{TITLE}}", &[]));
-    let started = std::time::Instant::now();
-    assert_eq!(field_of(&v, 0x61, "UserName"), "{USERNAME}");
-    assert_eq!(field_of(&v, 0x62, "UserName"), "{USERNAME}");
-    assert_eq!(field_of(&v, 0x63, "Title"), "");
-    assert!(started.elapsed().as_millis() < 50 * 3);
+    let ((), took) = cpu_timed(&mut v, Duration::from_millis(50 * 3), |v| {
+        assert_eq!(field_of(v, 0x61, "UserName"), "{USERNAME}");
+        assert_eq!(field_of(v, 0x62, "UserName"), "{USERNAME}");
+        assert_eq!(field_of(v, 0x63, "Title"), "");
+    });
+    assert!(took.as_millis() < 50 * 3, "{took:?}");
 }
 
 #[test]
@@ -713,11 +738,12 @@ fn mod_08_20_work_bound() {
             ("UserName", &"{S:X}".repeat(3000)),
         ],
     ));
-    let started = std::time::Instant::now();
-    let e = find(&w, id(0x66));
-    let r = resolve(e.value("UserName"), e, &Context::new(Some(&w), T0));
+    let (r, took) = cpu_timed(&mut w, Duration::from_secs(2), |w| {
+        let e = find(w, id(0x66));
+        resolve(e.value("UserName"), e, &Context::new(Some(w), T0))
+    });
     assert!(r.bounded);
-    assert!(started.elapsed().as_secs() < 2);
+    assert!(took.as_secs() < 2, "{took:?}");
 }
 
 #[test]
@@ -801,14 +827,14 @@ fn mod_08_22_no_catastrophic_backtracking() {
     let mut v = r8();
     let text = format!("{}!", "a".repeat(4000));
     set(&mut v.root.entries[0], "Long", &text);
-    let started = std::time::Instant::now();
-    assert_eq!(res(&v, 0x0f, "{T-REPLACE-RX:/{S:Long}/(a+)+$/X/}"), text);
-    assert_eq!(res(&v, 0x0f, "{T-REPLACE-RX:/{S:Long}/(a|aa)*b/X/}"), text);
-    assert!(
-        started.elapsed().as_millis() < 500,
-        "{:?}",
-        started.elapsed()
-    );
+    let (out, took) = cpu_timed(&mut v, Duration::from_millis(500), |v| {
+        [
+            res(v, 0x0f, "{T-REPLACE-RX:/{S:Long}/(a+)+$/X/}"),
+            res(v, 0x0f, "{T-REPLACE-RX:/{S:Long}/(a|aa)*b/X/}"),
+        ]
+    });
+    assert_eq!(out, [text.clone(), text]);
+    assert!(took.as_millis() < 500, "{took:?}");
     assert!(larsal_core::pattern::compile("(a+)+$").is_some());
 }
 
@@ -1146,13 +1172,11 @@ fn mod_08_22_timed_patterns() {
     ];
     for (p, text) in &cases {
         set(&mut v.root.entries[0], "T", text);
-        let started = std::time::Instant::now();
-        let out = res(&v, 0x0f, &format!("{{T-REPLACE-RX:/{{S:T}}/{p}/X/}}"));
-        assert!(
-            started.elapsed() < time_bound(),
-            "{p}: {:?}",
-            started.elapsed()
-        );
+        let p = *p;
+        let (out, took) = cpu_timed(&mut v, time_bound(), move |v| {
+            res(v, 0x0f, &format!("{{T-REPLACE-RX:/{{S:T}}/{p}/X/}}"))
+        });
+        assert!(took < time_bound(), "{p}: {took:?}");
         assert!(out.is_empty() || out == *text, "{p}");
     }
     for len in [65_536usize, 16_384, 6_100, 1_000] {
@@ -1162,13 +1186,11 @@ fn mod_08_22_timed_patterns() {
             .find(|p| larsal_core::pattern::compile_for(p, len).is_some())
             .unwrap();
         set(&mut v.root.entries[0], "T", &"a".repeat(len));
-        let started = std::time::Instant::now();
-        let out = res(&v, 0x0f, &format!("{{T-REPLACE-RX:/{{S:T}}/{largest}/X/}}"));
-        assert!(
-            started.elapsed() < time_bound(),
-            "{len} {largest}: {:?}",
-            started.elapsed()
-        );
+        let n = largest.clone();
+        let (out, took) = cpu_timed(&mut v, time_bound(), move |v| {
+            res(v, 0x0f, &format!("{{T-REPLACE-RX:/{{S:T}}/{n}/X/}}"))
+        });
+        assert!(took < time_bound(), "{len} {largest}: {took:?}");
         assert_eq!(out.len(), len);
     }
 }
@@ -1211,15 +1233,12 @@ fn mod_08_9_hosts_within_dns_limits() {
             "URL",
             &format!("https://{label}.example/"),
         );
-        let started = std::time::Instant::now();
-        assert_eq!(res(&v, 0x0a, "{URL:HOST}"), "");
-        let ms = started.elapsed().as_millis();
         // The release bound is the proof (check.sh runs this file in
         // release too); a debug build under load only must not hang.
-        assert!(
-            ms < if cfg!(debug_assertions) { 2_000 } else { 30 },
-            "{ms} ms"
-        );
+        let bound = Duration::from_millis(if cfg!(debug_assertions) { 2_000 } else { 30 });
+        let (host, took) = cpu_timed(&mut v, bound, |v| res(v, 0x0a, "{URL:HOST}"));
+        assert_eq!(host, "");
+        assert!(took < bound, "{took:?}");
     }
 }
 
@@ -1424,13 +1443,10 @@ fn mod_08_22_one_budget_per_resolution() {
         let one = format!("{{T-REPLACE-RX:/{{S:T}}/(?:[a-z]{{1,{n}}}){{1,{n}}}x/X/}}");
         let mut v = r8();
         set(&mut v.root.entries[0], "T", &"a".repeat(len));
-        let started = std::time::Instant::now();
-        let out = res(&v, 0x0f, &one.repeat(copies));
-        assert!(
-            started.elapsed() < time_bound(),
-            "{copies} × n={n} on {len}: {:?}",
-            started.elapsed()
-        );
+        let (out, took) = cpu_timed(&mut v, time_bound(), move |v| {
+            res(v, 0x0f, &one.repeat(copies))
+        });
+        assert!(took < time_bound(), "{copies} × n={n} on {len}: {took:?}");
         assert_eq!(out.len(), copies * len);
     }
     // Once the budget is spent, later replaces leave their text unchanged:
@@ -1471,9 +1487,10 @@ fn mod_08_22_budget_floor_for_short_texts() {
     let fit = budget_fit(pattern, 2);
     assert!(fit < 500, "{fit}");
     let one = format!("{{T-REPLACE-RX:/{{S:T}}/{pattern}/X/}}");
-    let started = std::time::Instant::now();
-    let out = res(&v, 0x0f, &one.repeat(500));
-    assert!(started.elapsed() < time_bound(), "{:?}", started.elapsed());
+    let (out, took) = cpu_timed(&mut v, time_bound(), move |v| {
+        res(v, 0x0f, &one.repeat(500))
+    });
+    assert!(took < time_bound(), "{took:?}");
     assert_eq!(
         out,
         format!("{}{}", "X".repeat(fit), "aa".repeat(500 - fit))
@@ -1525,23 +1542,21 @@ fn mod_08_22_timed_compiles() {
         (format!("(?i){}", "[^\\W]".repeat(200)), 1_000),
     ];
     for (p, copies) in &cases {
-        let started = std::time::Instant::now();
-        let _ = res(&v, 0x0f, &one(p).repeat(*copies));
-        assert!(
-            started.elapsed() < time_bound(),
-            "{copies} × {}: {:?}",
-            &p[..20],
-            started.elapsed()
-        );
+        let (pattern, copies) = (p.clone(), *copies);
+        let ((), took) = cpu_timed(&mut v, time_bound(), move |v| {
+            let _ = res(v, 0x0f, &one(&pattern).repeat(copies));
+        });
+        assert!(took < time_bound(), "{copies} × {}: {took:?}", &p[..20]);
     }
     // The slowest compile found at 1,024 characters, 8 distinct ones, each
     // used many times.
     let field: String = (0..8)
         .map(|i| one(&format!("(?i){}{}", "\\W".repeat(500), "a".repeat(i + 1))).repeat(100))
         .collect();
-    let started = std::time::Instant::now();
-    let _ = res(&v, 0x0f, &field);
-    assert!(started.elapsed() < time_bound(), "{:?}", started.elapsed());
+    let ((), took) = cpu_timed(&mut v, time_bound(), move |v| {
+        let _ = res(v, 0x0f, &field);
+    });
+    assert!(took < time_bound(), "{took:?}");
     // Wide case-folded ranges are refused before any folding (LD-120).
     assert!(larsal_core::pattern::compile("(?i)[\\x{80}-\\x{10FFFF}]").is_none());
     assert!(
@@ -1580,13 +1595,9 @@ fn mod_08_22_many_copies_under_load() {
     for (len, field) in &cases {
         let mut v = r8();
         set(&mut v.root.entries[0], "T", &"a".repeat(*len));
-        let started = std::time::Instant::now();
-        let out = res(&v, 0x0f, field);
-        assert!(
-            started.elapsed() < time_bound(),
-            "{len}: {:?}",
-            started.elapsed()
-        );
+        let field = field.clone();
+        let (out, took) = cpu_timed(&mut v, time_bound(), move |v| res(v, 0x0f, &field));
+        assert!(took < time_bound(), "{len}: {took:?}");
         assert!(!out.is_empty());
     }
 }

@@ -73,6 +73,20 @@ fn cpu() -> Duration {
     larsal_platform::macos::thread_cpu_time()
 }
 
+/// F-439: each timed request runs on a thread of its own at the
+/// user-interactive class and reads that thread's CPU clock, so a busy Mac
+/// cannot fail its bound; the wall clock only ends a hang, after 30 s (more
+/// than ten times every bound here).
+fn on_own_thread<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> T {
+    larsal_platform::macos::on_timing_thread(Duration::from_secs(30), work)
+}
+
+/// F-439: the wall clock's backstop for F-244, F-245 and F-252, whose work
+/// is counted, not timed: ten times INT-03.17's 200 ms goal. It ends only
+/// a hang; the goal is measured on the request thread's CPU clock and
+/// printed.
+const BACKSTOP: Duration = Duration::from_secs(2);
+
 // --- INT-03.3, INT-03.5: reading entry URLs, schemes ---
 
 #[test]
@@ -1366,9 +1380,15 @@ fn t81_t82_int03_17_patterns_with_16_stars_run_in_linear_time() {
     let page = format!("https://example.com/{}", "a".repeat(8_000));
     // The list loads once per process, on first use (see T83).
     assert!(registrable_domain("example.com").is_some());
-    let start = cpu();
-    assert_eq!(extra_on(&p, &page), None, "T81");
-    let took = cpu() - start;
+    let (found, took) = {
+        let (p, page) = (p.clone(), page.clone());
+        on_own_thread(move || {
+            let start = cpu();
+            let found = extra_on(&p, &page);
+            (found, cpu() - start)
+        })
+    };
+    assert_eq!(found, None, "T81");
     eprintln!("T81: {took:?}");
     assert!(took < Duration::from_millis(10), "T81 took {took:?}");
     let fits = format!("{page}b");
@@ -1422,7 +1442,6 @@ fn t83_int03_17_ten_thousand_entries_with_four_urls_under_200_ms() {
         },
     );
     let v = Vault::new(root, Time(0));
-    let ctx = Context::new(Some(&v), Time(0));
     let page = format!("https://example.com/{}", "p".repeat(8_192 - 20));
     assert_eq!(page.len(), 8_192);
     // The list is read once per process, on first use; that is not part of
@@ -1430,68 +1449,121 @@ fn t83_int03_17_ten_thousand_entries_with_four_urls_under_200_ms() {
     let start = cpu();
     assert!(registrable_domain("example.com").is_some());
     eprintln!("T83: the list loads in {:?}", cpu() - start);
-    let start = cpu();
-    let p = Page::read(&page, None, true).unwrap();
-    let mut found: Vec<(u8, usize)> = v
-        .root
-        .entries
-        .iter()
-        .enumerate()
-        .filter_map(|(i, e)| Some((p.rank(e, &ctx, &Site::NONE)?, i)))
-        .collect();
-    order(&mut found, false);
-    let took = cpu() - start;
+    let (found, took) = on_own_thread(move || {
+        let ctx = Context::new(Some(&v), Time(0));
+        let start = cpu();
+        let p = Page::read(&page, None, true).unwrap();
+        let mut found: Vec<(u8, usize)> = v
+            .root
+            .entries
+            .iter()
+            .enumerate()
+            .filter_map(|(i, e)| Some((p.rank(e, &ctx, &Site::NONE)?, i)))
+            .collect();
+        order(&mut found, false);
+        (found, cpu() - start)
+    });
     eprintln!("T83: {took:?}");
     assert_eq!(found, [(85, 1234)]);
     assert!(took < Duration::from_millis(200), "T83 took {took:?}");
 }
 
-/// F-244 (INT-03.17, LD-126 (1), (3)): one work meter for the request
-/// pays every resolution of entry URLs, and one entry index finds the
-/// entries, so a hostile vault's references never make matching hang.
-/// Entry T's password is 1,000,000 `p`; 10,000 entries each hold 64
-/// additional URLs that copy it. Once the meter is empty, a URL is read as
-/// stored, and a stored `{` never fits (INT-03.3). The clock is read after
-/// each entry, so a missing meter or index fails at once.
-#[test]
-#[cfg_attr(debug_assertions, ignore = "timed: release only")]
-fn t83_f244_int03_17_one_meter_and_index_per_request_bound_references() {
+/// F-244's request (F-439): `n` entries with main URL `main` and additional
+/// URLs `extra`, and entry T in the middle of the tree (an id search that
+/// walks from either end meets it after half the entries, C1R3-1), with
+/// password `password`; one work meter and one entry index per request
+/// (LD-126 (1), (3)), the wall clock only a backstop. How many entries fit,
+/// the meter units spent and the request thread's CPU time.
+fn metered(n: u32, main: &str, extra: &[&str], password: &str) -> (usize, usize, Duration) {
     let mut root = Group::new(Uuid([0xA0; 16]), "Root".into(), Time(0));
-    let mut t = Entry::new(Uuid([0xEE; 16]), Time(0));
-    set(&mut t, "Password", &"p".repeat(1_000_000));
-    root.entries.push(t);
-    let url = format!("https://example.com/{{REF:P@I:{}}}", "EE".repeat(16));
-    let urls = vec![url.as_str(); 64];
-    for i in 0..10_000u32 {
-        let mut e = entry("", &urls);
+    for i in 0..n {
+        let mut e = entry(main, extra);
         e.uuid.0[..4].copy_from_slice(&i.to_be_bytes());
         root.entries.push(e);
     }
+    let mut t = Entry::new(Uuid([0xEE; 16]), Time(0));
+    set(&mut t, "Password", password);
+    root.entries.insert(root.entries.len() / 2, t);
     let v = Vault::new(root, Time(0));
     // The list loads once per process, on first use (see T83).
     assert!(registrable_domain("example.com").is_some());
-    let start = cpu();
-    // One meter and one entry index per request (LD-126 (1), (3)).
-    let meter = Cell::new(COPY_BUDGET);
-    let index = EntryIndex::new(&v);
-    let ctx = Context {
-        meter: Some(&meter),
-        index: Some(&index),
-        ..Context::new(Some(&v), Time(0))
+    larsal_platform::macos::on_timing_thread(BACKSTOP, move || {
+        let start = cpu();
+        let meter = Cell::new(COPY_BUDGET);
+        let index = EntryIndex::new(&v);
+        let ctx = Context {
+            meter: Some(&meter),
+            index: Some(&index),
+            ..Context::new(Some(&v), Time(0))
+        };
+        let p = Page::read("https://example.com/", None, true).unwrap();
+        let found = v
+            .root
+            .entries
+            .iter()
+            .filter(|e| p.rank(e, &ctx, &Site::NONE).is_some())
+            .count();
+        (found, COPY_BUDGET - meter.get(), cpu() - start)
+    })
+}
+
+/// F-244 (INT-03.17, LD-126 (1), (3)): one work meter for the request
+/// pays every resolution of entry URLs, and one entry index finds the
+/// entries, so a hostile vault's references never make matching hang.
+/// F-439: counted on the request's own meter, never timed; the wall clock
+/// ends only a hang, at [`BACKSTOP`], and the card's 200 ms goal is
+/// measured on the request thread's CPU clock and printed.
+///
+/// The index: 10,000 entries each hold 4 URLs `https://{REF:P@I:<T>}/`,
+/// and T's password is `example.com`. With the index each reference finds
+/// T at once, so all 10,000 fit, and each URL costs at most 8 passes over
+/// its characters and T's password at 2 units each (`CHAR_UNITS`) plus 2
+/// entries visited at 20 units each (`VISIT_UNITS`), and at least one pass;
+/// twice the entries cost at most 2.2 times the units. Without the index
+/// each reference walks the tree to T, in the middle, and pays for every
+/// entry it visits, so the meter runs out and most entries do not fit. The
+/// meter charges what a lookup reports; that an id lookup through the index
+/// reads one entry at most, whatever it reports, is counted in larsal-core
+/// (`refs::f_244_tests`, F-439).
+///
+/// The meter: T's password is 1,000,000 `p`; 10,000 entries each hold 64
+/// additional URLs that copy it. Once the meter is empty, a URL is read as
+/// stored, and a stored `{` never fits (INT-03.3).
+#[test]
+#[cfg_attr(debug_assertions, ignore = "timed: release only")]
+fn t83_f244_int03_17_one_meter_and_index_per_request_bound_references() {
+    let url = format!("https://{{REF:P@I:{}}}/", "EE".repeat(16));
+    let urls = [url.as_str(); 3];
+    let per_url = |most: bool| {
+        let chars = url.len() + "example.com".len();
+        if most {
+            8 * 2 * chars + 2 * 20
+        } else {
+            2 * chars
+        }
     };
-    let p = Page::read("https://example.com/", None, true).unwrap();
-    let mut found = 0;
-    for (n, e) in v.root.entries.iter().enumerate() {
-        found += usize::from(p.rank(e, &ctx, &Site::NONE).is_some());
-        let took = cpu() - start;
-        assert!(
-            took < Duration::from_millis(200),
-            "F-244: {n} entries took {took:?}"
-        );
-    }
-    eprintln!("F-244: {:?}", cpu() - start);
+    let (found, spent, took) = metered(10_000, &url, &urls, "example.com");
+    let (twice_found, twice, _) = metered(20_000, &url, &urls, "example.com");
+    eprintln!("F-244 index: {spent} units, {twice} at 20,000 entries; {took:?} (goal 200 ms)");
+    assert_eq!(
+        (found, twice_found),
+        (10_000, 20_000),
+        "every reference resolved"
+    );
+    assert!(spent <= 40_000 * per_url(true), "F-244: {spent} units");
+    assert!(
+        spent >= 40_000 * per_url(false),
+        "F-244: {spent} units: all paid"
+    );
+    assert!(
+        10 * twice <= 22 * spent,
+        "F-244: {twice} units at 20,000 entries"
+    );
+    let hostile = format!("https://example.com/{{REF:P@I:{}}}", "EE".repeat(16));
+    let (found, spent, took) = metered(10_000, "", &[hostile.as_str(); 64], &"p".repeat(1_000_000));
+    eprintln!("F-244 meter: {took:?} (goal 200 ms)");
     assert_eq!(found, 0);
-    assert_eq!(meter.get(), 0, "the meter bounded the work");
+    assert_eq!(spent, COPY_BUDGET, "the meter bounded the work");
 }
 
 /// F-245 (INT-03.11 step 1, INT-03.17): a host pattern holding `*` has
@@ -1528,7 +1600,8 @@ fn dns_limit_host() -> String {
 }
 
 /// The thread CPU time of one request for `page` against 10,000 entries,
-/// each with main URL `main` and additional URLs `extra`, and how many fit.
+/// each with main URL `main` and additional URLs `extra`, and how many fit;
+/// the request runs on a thread of its own (F-439).
 fn timed(main: &str, extra: &[&str], page: &str) -> (usize, Duration) {
     let mut root = Group::new(Uuid([0xA0; 16]), "Root".into(), Time(0));
     for i in 0..10_000u32 {
@@ -1537,26 +1610,33 @@ fn timed(main: &str, extra: &[&str], page: &str) -> (usize, Duration) {
         root.entries.push(e);
     }
     let v = Vault::new(root, Time(0));
-    let ctx = Context::new(Some(&v), Time(0));
     // The list loads once per process, on first use (see T83).
     assert!(registrable_domain("example.com").is_some());
-    let start = cpu();
-    let p = Page::read(page, None, true).unwrap();
-    let found = v
-        .root
-        .entries
-        .iter()
-        .filter(|e| p.rank(e, &ctx, &Site::NONE).is_some())
-        .count();
-    (found, cpu() - start)
+    let page = page.to_owned();
+    larsal_platform::macos::on_timing_thread(BACKSTOP, move || {
+        let ctx = Context::new(Some(&v), Time(0));
+        let start = cpu();
+        let p = Page::read(&page, None, true).unwrap();
+        let found = v
+            .root
+            .entries
+            .iter()
+            .filter(|e| p.rank(e, &ctx, &Site::NONE).is_some())
+            .count();
+        (found, cpu() - start)
+    })
 }
 
-/// F-245 (INT-03.17, INT-03.4): T83's bound holds with page and entry
-/// hosts at the DNS limit and with hostile patterns: 10,000 entries with 4
-/// URLs each, under 200 ms each. (a) plain `https://H/a`; (b) the long
-/// pattern tail `https://*.<H less its first label>/*` and (c) a crafted
-/// label run, both over 10 labels, so refused; (d) the worst 10-label
-/// pattern, whose run `a.a.a.a.a.b` is tried at each place of H.
+/// F-245 (INT-03.17, INT-03.4): T83's request with page and entry hosts
+/// at the DNS limit and with hostile patterns: 10,000 entries with 4 URLs
+/// each. (a) plain `https://H/a`; (b) the long pattern tail
+/// `https://*.<H less its first label>/*` and (c) a crafted label run, both
+/// over 10 labels, so refused; (d) the worst 10-label pattern, whose run
+/// `a.a.a.a.a.b` is tried at each place of H. F-439: the bound is on the
+/// matcher's counted work (`f245_int03_17_hosts_at_the_dns_limit_count_linear_work`
+/// in src/matching.rs, where the step counter is); here each request's
+/// CPU time is printed against the card's 200 ms goal, and the wall clock
+/// ends only a hang, at [`BACKSTOP`].
 #[test]
 #[cfg_attr(debug_assertions, ignore = "timed: release only")]
 fn t83_f245_int03_17_hosts_at_the_dns_limit_under_200_ms() {
@@ -1574,23 +1654,21 @@ fn t83_f245_int03_17_hosts_at_the_dns_limit_under_200_ms() {
     ];
     for (name, main, extra, fit) in shapes {
         let (found, took) = timed(main, extra, &page);
-        eprintln!("F-245 {name}: {took:?}");
+        eprintln!("F-245 {name}: {took:?} (goal 200 ms)");
         assert_eq!(found, fit, "F-245 {name}");
-        assert!(
-            took < Duration::from_millis(200),
-            "F-245 {name} took {took:?}"
-        );
     }
 }
 
-/// F-252 (INT-03.17, LD-328): T83's bound holds with entry URLs of 2,048
+/// F-252 (INT-03.17, LD-328): T83's request with entry URLs of 2,048
 /// characters, INT-03.17's limit, on page `https://example.com/`: 10,000
-/// entries with 4 URLs each (the main URL and 3 additional), under 200 ms
-/// each, nothing fits. `é`: each character past the host is tested against
-/// INT-03.3's characters; long pattern: its host does not fit, so its path
-/// of 2,025 `a` and a `*` is never encoded. INT-03.17 fixes the bound, not a
-/// timing method, so the best of 5 runs counts: noise on a loaded Mac cannot
-/// fail it (201.3 ms at load 20, F-334), and a slow algorithm is slow in all 5.
+/// entries with 4 URLs each (the main URL and 3 additional), nothing fits.
+/// `é`: each character past the host is tested against INT-03.3's
+/// characters; long pattern: its host does not fit, so its path of 2,025
+/// `a` and a `*` is never encoded. F-439: the bound is on the matcher's
+/// counted work (`f252_int03_17_urls_of_2048_characters_count_linear_work`
+/// in src/matching.rs, where the step counter is); here each request's
+/// CPU time is printed against the card's 200 ms goal, and the wall clock
+/// ends only a hang, at [`BACKSTOP`].
 #[test]
 #[cfg_attr(debug_assertions, ignore = "timed: release only")]
 fn t83_f252_int03_17_urls_of_2048_characters_under_200_ms() {
@@ -1598,16 +1676,9 @@ fn t83_f252_int03_17_urls_of_2048_characters_under_200_ms() {
     let long = format!("https://*.example.org/{}*", "a".repeat(2_025));
     for (name, url) in [("\u{e9}", &accent), ("long pattern", &long)] {
         assert_eq!(url.chars().count(), MAX_ENTRY_URL);
-        let (found, took) = (0..5)
-            .map(|_| timed(url, &[url, url, url], "https://example.com/"))
-            .min_by_key(|run| run.1)
-            .unwrap();
-        eprintln!("F-252 {name}: {took:?}");
+        let (found, took) = timed(url, &[url, url, url], "https://example.com/");
+        eprintln!("F-252 {name}: {took:?} (goal 200 ms)");
         assert_eq!(found, 0, "F-252 {name}");
-        assert!(
-            took < Duration::from_millis(200),
-            "F-252 {name} took {took:?}"
-        );
     }
 }
 

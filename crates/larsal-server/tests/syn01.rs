@@ -976,11 +976,30 @@ fn syn02_7_t12_read_during_commits_gives_the_whole_version() {
         let s = start(Config::default()).await;
         let big = vault_bytes(8 * 1024 * 1024, 1);
         assert_eq!(exchange(&s, &put(&s, ID, CREATE, &big)).await.status, 201);
-        // The GET's reply waits on a client that does not read yet.
+        // The reply's head and first body bytes show the server has opened
+        // version 1's file and streams it (F-439: a signal, not a sleep).
+        // The client then stops reading, so the rest of the 8 MiB waits on
+        // flow control and leaves the file across the commits below.
         let mut reading = tls(&s, &version::TLS13).await;
         reading.write_all(&get(&s, ID, "")).await.unwrap();
         reading.flush().await.unwrap();
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        let mut seen = Vec::new();
+        let started = async {
+            let mut buf = [0u8; 4096];
+            while !seen
+                .windows(4)
+                .position(|w| w == b"\r\n\r\n")
+                .is_some_and(|end| seen.len() > end + 4)
+            {
+                let n = reading.read(&mut buf).await.unwrap();
+                assert!(n > 0, "the server closed before the first body bytes");
+                seen.extend_from_slice(&buf[..n]);
+            }
+        };
+        tokio::time::timeout(Duration::from_secs(60), started)
+            .await
+            .expect("the reply's head and first bytes came within 60 s");
+        assert!(seen.len() < big.len() / 2, "most of the body is unread");
         for n in 1..=6u64 {
             let r = exchange(
                 &s,
@@ -991,7 +1010,8 @@ fn syn02_7_t12_read_during_commits_gives_the_whole_version() {
         }
         let path = s.data.0.join("blobs").join(blob_name(&big));
         assert!(!path.exists(), "version 1's file was deleted");
-        let r = Reply::parse(&read_all(&mut reading).await);
+        seen.extend_from_slice(&read_all(&mut reading).await);
+        let r = Reply::parse(&seen);
         assert_eq!((r.status, r.header("etag")), (200, Some("\"1\"")));
         assert!(r.body == big, "the whole of version 1");
     });

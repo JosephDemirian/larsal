@@ -672,17 +672,29 @@ fn f_104_open_attachment_checks_the_vault_and_the_name_before_it_asks() {
     );
 }
 
+/// MOD-09.10. F-439: "now" is read inside the call, so it lies between two
+/// reads of the same clock, one before the call and one after, however long
+/// a busy Mac makes the call; no margin of seconds.
 #[test]
 fn mod_09_10_ticking_expires_sets_now() {
     let (s, v, _) = personal("expiry");
     s.begin_edit(v, entry_id(&s, v, "GitHub")).unwrap();
-    let before = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    let secs = || {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64
+    };
+    let before = secs();
     s.set_expiry(v, true, None).unwrap();
+    let after = secs();
     let view = s.editor(v).unwrap();
-    assert!(view.expires && (view.expiry - before).abs() <= 2);
+    assert!(view.expires);
+    assert!(
+        (before..=after).contains(&view.expiry),
+        "{} not in {before}..={after}",
+        view.expiry
+    );
     s.set_expiry(v, true, Some(1_800_000_000)).unwrap();
     s.set_expiry(v, false, None).unwrap();
     let view = s.editor(v).unwrap();

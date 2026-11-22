@@ -95,6 +95,138 @@ pub(crate) struct State {
 #[cfg(test)]
 type Hook = Box<dyn FnOnce(&Session) + Send>;
 
+/// Tests (F-439): the points of an import where a test's hook runs, on the
+/// worker's thread and off the session lock: a test holds the worker at a
+/// point, or reads its thread's CPU clock there.
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Point {
+    /// Before the container's read and KDF.
+    Read,
+    /// After the KDF, before the copy is taken under the lock.
+    Opened,
+    /// After the copy (and [`State::trial`]), before the trial merge.
+    Trial,
+    /// After the trial merge, before the swap under the lock.
+    Merged,
+    /// After the swap.
+    Done,
+}
+
+/// Tests (F-439): a hook for (session address, vault, point), run once.
+#[cfg(test)]
+type PointHook = (usize, u64, Point, Box<dyn FnOnce() + Send>);
+
+/// Tests (F-439): the hooks set. A test keeps its session alive until it
+/// takes back the ones that did not run, so an address is never reused
+/// meanwhile.
+#[cfg(test)]
+static POINTS: std::sync::Mutex<Vec<PointHook>> = std::sync::Mutex::new(Vec::new());
+
+/// Tests (F-439): one timed hold of the session lock, as (holding thread,
+/// its CPU time, wall time).
+#[cfg(test)]
+type HoldTime = (
+    std::thread::ThreadId,
+    std::time::Duration,
+    std::time::Duration,
+);
+
+/// Tests (F-439): the holds of each session a test records, by session
+/// address (`tests::Holds`).
+#[cfg(test)]
+static HOLDS: std::sync::Mutex<Vec<(usize, Vec<HoldTime>)>> = std::sync::Mutex::new(Vec::new());
+
+/// Tests (F-439): one hold of the session lock, from its take in
+/// `Session::state` (every take goes through it, on any thread and through
+/// any `with_*` door) to the drop of its guard ([`Timed`]), on the holding
+/// thread's own CPU clock and on the wall clock. Timed only while a test
+/// records the session.
+#[cfg(test)]
+pub(crate) struct Hold {
+    me: usize,
+    cpu: std::time::Duration,
+    wall: std::time::Instant,
+}
+
+#[cfg(test)]
+impl Hold {
+    /// Starts timing a hold of `s`'s lock, if a test records `s`.
+    pub(crate) fn begin(s: &Session) -> Option<Self> {
+        let me = std::ptr::from_ref(s).addr();
+        let all = HOLDS.lock().unwrap_or_else(PoisonError::into_inner);
+        all.iter().any(|r| r.0 == me).then(|| Self {
+            me,
+            cpu: larsal_platform::macos::thread_cpu_time(),
+            wall: std::time::Instant::now(),
+        })
+    }
+}
+
+#[cfg(test)]
+impl Drop for Hold {
+    fn drop(&mut self) {
+        let cpu = larsal_platform::macos::thread_cpu_time().saturating_sub(self.cpu);
+        let wall = self.wall.elapsed();
+        let mut all = HOLDS.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(r) = all.iter_mut().find(|r| r.0 == self.me) {
+            r.1.push((std::thread::current().id(), cpu, wall));
+        }
+    }
+}
+
+/// Tests (F-439, C2-1): the session lock's guard as `Session::state` hands
+/// it out in a test build, with its [`Hold`]; the hold is dropped first, so
+/// the lock is still held at its end.
+#[cfg(test)]
+pub(crate) struct Timed<G> {
+    _hold: Option<Hold>,
+    guard: G,
+}
+
+#[cfg(test)]
+impl<G> Timed<G> {
+    pub(crate) fn new(s: &Session, guard: G) -> Self {
+        Self {
+            _hold: Hold::begin(s),
+            guard,
+        }
+    }
+}
+
+#[cfg(test)]
+impl<G: std::ops::Deref> std::ops::Deref for Timed<G> {
+    type Target = G::Target;
+
+    fn deref(&self) -> &G::Target {
+        &self.guard
+    }
+}
+
+#[cfg(test)]
+impl<G: std::ops::DerefMut> std::ops::DerefMut for Timed<G> {
+    fn deref_mut(&mut self) -> &mut G::Target {
+        &mut self.guard
+    }
+}
+
+#[cfg(test)]
+impl Session {
+    /// Runs the hook a test set for vault `id` at `at`, if any.
+    fn at(&self, id: u64, at: Point) {
+        let me = std::ptr::from_ref(self).addr();
+        let hook = {
+            let mut all = POINTS.lock().unwrap_or_else(PoisonError::into_inner);
+            all.iter()
+                .position(|h| (h.0, h.1, h.2) == (me, id, at))
+                .map(|i| all.remove(i).3)
+        };
+        if let Some(hook) = hook {
+            hook();
+        }
+    }
+}
+
 /// The kind of a share banner (INT-08.20).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum ShareLevel {
@@ -471,6 +603,8 @@ impl Session {
                 return false;
             }
         }
+        #[cfg(test)]
+        self.at(id, Point::Read);
         let bytes = match container::read_file(path) {
             Ok(bytes) => bytes,
             Err(e) => {
@@ -500,6 +634,8 @@ impl Session {
             .unwrap_or_else(PoisonError::into_inner)
             .clone();
         let opened = container::open(&bytes, &s.settings.password, &mut host, &Limits::DEFAULT);
+        #[cfg(test)]
+        self.at(id, Point::Opened);
         drop(bytes);
         // F-163, F-165: the merge runs on a copy, off the session lock, and
         // a save of its result must still pass the reader's limits; the
@@ -525,7 +661,12 @@ impl Session {
                 if let Ok(Some(hook)) = self.with_share(id, |slot| slot.share.trial.take()) {
                     hook(self);
                 }
-                Ok(run::fits(copy, s.group, &o.vault, now(), &mut host).map(|t| (t, version)))
+                #[cfg(test)]
+                self.at(id, Point::Trial);
+                let fits = run::fits(copy, s.group, &o.vault, now(), &mut host);
+                #[cfg(test)]
+                self.at(id, Point::Merged);
+                Ok(fits.map(|t| (t, version)))
             }
             Err(e) => Err(e),
         };
@@ -574,6 +715,8 @@ impl Session {
                 j.groups.insert(s.group);
             });
         }
+        #[cfg(test)]
+        self.at(id, Point::Done);
         match done {
             // The vault it replaced is dropped here, off the lock.
             Ok(Some(Ok((got, _old)))) => {
@@ -1783,46 +1926,33 @@ pub(crate) mod tests {
     }
 
     /// INT-08.38: a container whose KDF takes a long time never blocks
-    /// the vault; the session answers at once while it runs.
+    /// the vault; the session answers at once while it runs. F-439: the
+    /// test holds the session lock for the whole read and KDF, which still
+    /// end ([`import_held`]); a list and a save status call, on their own
+    /// CPU time, with the longest hold of the lock meanwhile by any thread
+    /// but the test's, on the holding thread's CPU time, take under 150 ms;
+    /// that hold's wall time stays under ten times that (1.5 s), the
+    /// backstop.
     #[test]
     fn t61_int08_38_a_slow_container_never_blocks_the_vault() {
         let dir = TempDir::new("share-t61");
         let (file, path, vault) = scene(&dir, true, false);
-        let mut slow = member();
-        slow.encryption.kdf = Kdf::Argon2 {
-            kind: Argon2Kind::Id,
-            iterations: 40,
-            memory_kib: 65_536,
-            lanes: 1,
-        };
-        publish(&path, &slow);
+        publish_slow(&path);
         let s = session(true);
         let v = approved(&s, &file, &vault);
-        assert_eq!(
-            s.unlock(v, Some(MAIN.into()), None).unwrap(),
-            UnlockResult::Unlocked
-        );
-        let start = Instant::now();
-        let busy = |s: &Session| s.with_share(v, |slot| slot.share.running).unwrap();
-        let (mut calls, mut slowest) = (0, Duration::ZERO);
-        while busy(&s) {
-            let t = Instant::now();
-            let _ = s.list(v, crate::views::ListView::All).unwrap();
-            let _ = s.save_status(v).unwrap();
-            slowest = slowest.max(t.elapsed());
-            calls += 1;
-            std::thread::sleep(Duration::from_millis(20));
-        }
-        let took = start.elapsed();
+        let (held, kdf) = import_held(&s, v);
         assert!(
-            took > Duration::from_millis(300),
-            "the KDF took only {took:?}"
+            kdf > Duration::from_millis(300),
+            "the KDF took only {kdf:?}"
         );
-        assert!(calls >= 5, "{calls} calls in {took:?}");
+        let [_, _, list, status] = own_work(&s, v);
+        println!("t61: KDF {kdf:?}; longest hold {held:?}; calls {list:?} + {status:?}");
+        let waited = held.cpu + list + status;
         assert!(
-            slowest < Duration::from_millis(150),
-            "a call waited {slowest:?}"
+            waited < Duration::from_millis(150),
+            "a call waited {waited:?} ({held:?})"
         );
+        assert!(held.wall < Duration::from_millis(1_500), "{held:?}");
         assert_eq!(mail(&s, v), "pw-2");
     }
 
@@ -1903,14 +2033,36 @@ pub(crate) mod tests {
         assert_eq!(cp, (1, 65_536, 129));
         assert_eq!(vp, cp);
         assert_ne!(vs, cs, "the container's salt is V's");
-        // W imports the same path: MI08-02 at once, no question.
+        // W imports the same path: MI08-02 at once, no question. F-439: "at
+        // once" is the work's CPU time on the two threads that do it, each
+        // read on its own clock: W's unlock (on the timing thread) and the
+        // import on the worker's thread, from the container's read to the
+        // import's end. The wall clock ends only a hang: the unlock at 30 s,
+        // the import at 300 s (share_wait's 60 s after it).
         let w = session(true);
         let mut wv = base();
         set_share(team(&mut wv), settings(true, false, "team.larsalvault"));
         let wid = approved(&w, &dir.join("w.larsalvault"), &wv);
-        let start = Instant::now();
-        unlock(&w, wid);
-        assert!(start.elapsed() < Duration::from_secs(2));
+        let watch = Watch::new(&w, wid, &[(Point::Read, false), (Point::Done, false)]);
+        let unlocking = Arc::clone(&w);
+        let (unlocked, unlock_cpu) =
+            larsal_platform::macos::on_timing_thread(Duration::from_secs(30), move || {
+                let cpu = larsal_platform::macos::thread_cpu_time;
+                let t = cpu();
+                let unlocked = unlocking.unlock(wid, Some(MAIN.into()), None).unwrap();
+                (unlocked, cpu() - t)
+            });
+        assert_eq!(unlocked, UnlockResult::Unlocked);
+        let read = watch.next(Point::Read, "the import never began");
+        let done = watch.next(Point::Done, "the import never ended");
+        w.share_wait(wid);
+        assert_eq!(read.thread, done.thread);
+        let work = unlock_cpu + (done.cpu - read.cpu);
+        println!(
+            "t67: unlock {unlock_cpu:?} + import {:?}",
+            done.cpu - read.cpu
+        );
+        assert!(work < Duration::from_secs(2), "{work:?}");
         assert_eq!(
             banner(&w, wid),
             Some((
@@ -2539,7 +2691,16 @@ pub(crate) mod tests {
     /// the container holds a new group named with 524,288 'A' and 4,000
     /// new entries. The import holds the session lock only briefly: no call
     /// of the screen waits 75 ms (about 5 ms here; 140 to 330 ms when each
-    /// record held the whole path).
+    /// record held the whole path). F-439: the read, the KDF and the merge
+    /// run while the test holds the lock ([`import_held`]), and the plan
+    /// takes no lock. Every hold of the lock meanwhile by any thread but the
+    /// test's is timed where the lock is taken: the worker's jobs taken,
+    /// survey, copy, swap, news and last look for jobs, and any other. A
+    /// round of the screen's calls, on its own CPU time, with the longest of
+    /// those holds, on the holding thread's CPU time, takes under 75 ms;
+    /// that hold's wall time stays under ten times that
+    /// (750 ms), the backstop, which alone bounds a wait without CPU under
+    /// the lock.
     #[test]
     fn f164_int08_38_a_long_group_name_times_many_entries_never_holds_the_lock() {
         let dir = TempDir::new("share-f164");
@@ -2551,67 +2712,327 @@ pub(crate) mod tests {
         publish(&path, &m);
         let s = session(true);
         let v = approved(&s, &file, &vault);
-        assert_eq!(
-            s.unlock(v, Some(MAIN.into()), None).unwrap(),
-            UnlockResult::Unlocked
+        let (held, _) = import_held(&s, v);
+        let [busy, _, list, status] = own_work(&s, v);
+        println!(
+            "f164: longest of {} holds {held:?}; calls {busy:?} + {list:?} + {status:?}",
+            held.holds
         );
-        let (mut calls, mut slowest) = (0, Duration::ZERO);
-        loop {
-            let t = Instant::now();
-            let busy = running(&s, v);
-            let _ = s.list(v, crate::views::ListView::All).unwrap();
-            let _ = s.save_status(v).unwrap();
-            slowest = slowest.max(t.elapsed());
-            calls += 1;
-            if !busy {
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(5));
-        }
+        let waited = held.cpu + busy + list + status;
         assert!(
-            slowest < Duration::from_millis(75),
-            "a call waited {slowest:?} ({calls} calls)"
+            waited < Duration::from_millis(75),
+            "a call waited {waited:?} ({held:?})"
         );
+        assert!(held.wall < Duration::from_millis(750), "{held:?}");
         let held = model(&s, v, |m| {
             m.root.find_group(id(0x30)).map(|g| g.entries.len())
         });
         assert_eq!(held, Some(4_000));
     }
 
-    /// The slowest `lock_epoch`, `list` and `save_status` call while vault
-    /// `v`'s share work runs (and of the look at whether it runs, so a
-    /// lock held between two rounds is seen too), and the number of rounds.
-    /// At most 60 s, as [`Session::share_wait`].
-    fn slowest_call(s: &Session, v: u64) -> (Duration, u32) {
-        let start = Instant::now();
-        let (mut rounds, mut slowest) = (0, Duration::ZERO);
-        let mut timed = |f: &dyn Fn()| {
-            let t = Instant::now();
-            f();
-            slowest = slowest.max(t.elapsed());
-        };
-        loop {
-            let busy = std::cell::Cell::new(false);
-            timed(&|| busy.set(running(s, v)));
-            timed(&|| {
-                s.lock_epoch(v).unwrap();
-            });
-            timed(&|| {
-                s.list(v, crate::views::ListView::All).unwrap();
-            });
-            timed(&|| {
-                s.save_status(v).unwrap();
-            });
-            rounds += 1;
-            if !busy.get() {
-                return (slowest, rounds);
+    /// F-439: a watched import that hangs fails at this deadline, which ends
+    /// only a hang and bounds no work: the longest step here (F-165's merge
+    /// of 20,000 entries) takes seconds of CPU time, which a busy Mac
+    /// stretches past [`Session::share_wait`]'s 60 s.
+    const HANG: Duration = Duration::from_secs(300);
+
+    /// F-439: what a hook of a watched import tells: the point it reached,
+    /// its thread and that thread's CPU clock there.
+    #[derive(Clone, Copy, Debug)]
+    struct Mark {
+        at: Point,
+        thread: std::thread::ThreadId,
+        cpu: Duration,
+    }
+
+    /// F-439: the next import of a vault, watched at its points. Each hook
+    /// sends its [`Mark`] when the worker reaches it; a held one then waits
+    /// until the test lets the worker go. Dropped, a failed test included,
+    /// it takes back the hooks that did not run and lets a held worker go.
+    struct Watch {
+        me: usize,
+        marks: std::sync::mpsc::Receiver<Mark>,
+        held: Vec<(Point, std::sync::mpsc::Sender<()>)>,
+    }
+
+    impl Watch {
+        /// Hooks on vault `v` of `s`, one for each (point, held), in order:
+        /// a point given twice watches a second import too.
+        fn new(s: &Session, v: u64, points: &[(Point, bool)]) -> Self {
+            let me = std::ptr::from_ref(s).addr();
+            let (tell, marks) = std::sync::mpsc::channel();
+            let mut held = Vec::new();
+            let mut all = POINTS.lock().unwrap_or_else(PoisonError::into_inner);
+            for &(at, hold) in points {
+                let tell = tell.clone();
+                let wait = hold.then(|| {
+                    let (go, wait) = std::sync::mpsc::channel::<()>();
+                    held.push((at, go));
+                    wait
+                });
+                let hook = move || {
+                    let _ = tell.send(Mark {
+                        at,
+                        thread: std::thread::current().id(),
+                        cpu: larsal_platform::macos::thread_cpu_time(),
+                    });
+                    if let Some(wait) = wait {
+                        // A failed test drops its sender, and the worker goes on.
+                        let _ = wait.recv();
+                    }
+                };
+                all.push((me, v, at, Box::new(hook)));
             }
-            assert!(
-                start.elapsed() < Duration::from_secs(60),
-                "share work did not end"
-            );
-            std::thread::sleep(Duration::from_millis(5));
+            Self { me, marks, held }
         }
+
+        /// The next mark, which must be at `at`; `why` fails the test when
+        /// none comes within [`HANG`].
+        fn next(&self, at: Point, why: &str) -> Mark {
+            let mark = self
+                .marks
+                .recv_timeout(HANG)
+                .unwrap_or_else(|e| panic!("{why} ({e})"));
+            assert_eq!(mark.at, at, "{why}");
+            mark
+        }
+
+        /// Lets the worker held at `at` go on.
+        fn go(&mut self, at: Point) {
+            let i = self.held.iter().position(|h| h.0 == at).expect("held");
+            self.held.remove(i).1.send(()).expect("the worker waits");
+        }
+    }
+
+    impl Drop for Watch {
+        fn drop(&mut self) {
+            let me = self.me;
+            POINTS
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .retain(|h| h.0 != me);
+        }
+    }
+
+    /// F-439: waits until vault `v`'s share work ends; at most [`HANG`].
+    fn work_ends(s: &Session, v: u64) {
+        let start = Instant::now();
+        let busy = || {
+            s.with_share(v, |slot| slot.share.running || !slot.share.jobs.is_empty())
+                .unwrap()
+        };
+        while busy() {
+            assert!(start.elapsed() < HANG, "share work did not end");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    /// F-439: records every hold of `s`'s session lock, on every thread and
+    /// through every door (each take goes through `Session::state`; checked
+    /// by `f439_every_take_of_the_session_lock_is_timed_once`), until
+    /// dropped, a failed test included.
+    struct Holds(usize);
+
+    impl Holds {
+        fn record(s: &Session) -> Self {
+            let me = std::ptr::from_ref(s).addr();
+            HOLDS
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .push((me, Vec::new()));
+            Self(me)
+        }
+
+        fn take(&self) -> Vec<HoldTime> {
+            let mut all = HOLDS.lock().unwrap_or_else(PoisonError::into_inner);
+            all.iter_mut()
+                .find(|r| r.0 == self.0)
+                .map(|r| std::mem::take(&mut r.1))
+                .unwrap_or_default()
+        }
+    }
+
+    impl Drop for Holds {
+        fn drop(&mut self) {
+            let me = self.0;
+            HOLDS
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .retain(|r| r.0 != me);
+        }
+    }
+
+    /// F-439: the longest of the holds of the session lock in a watched
+    /// import by any thread but the test's own, on the holding thread's CPU
+    /// clock and on the wall clock, and how many holds there were.
+    #[derive(Debug)]
+    struct Held {
+        cpu: Duration,
+        wall: Duration,
+        holds: usize,
+    }
+
+    /// F-439 (INT-08.38): unlocks vault `v` of `s` and follows the import
+    /// the unlock starts. While the worker reads and opens the container
+    /// (its KDF) and while it merges, this test holds the session lock: a
+    /// step that took the lock would wait for the test, so the worker
+    /// reaching the step's end proves the step never takes it, at any load
+    /// (Goetz et al., Java Concurrency in Practice, 12.1.2: a blocking
+    /// operation is tested by the thread it blocks, not by a timer). The
+    /// plan runs off the lock too (it reads only settings and paths). Every
+    /// hold of the lock while the import runs, by any thread but this
+    /// test's own (whose holds stop the worker on purpose), from the first
+    /// jobs the worker takes to the end of its work, is timed on the holding
+    /// thread's own CPU clock and on the wall clock ([`Hold`], at each take):
+    /// the worker's jobs taken, survey, copy, swap, news and last look for
+    /// jobs (and the heads read of an import that runs only on a change,
+    /// which an unlock's is not), and any hold another thread or another
+    /// door takes meanwhile (F-439, C2-1). The longest is the most a screen
+    /// call can wait for; its CPU time counts
+    /// the work held, which a busy Mac cannot stretch, and its wall time
+    /// is a backstop that also catches a long wait without CPU under the
+    /// lock. Returns that hold and the CPU time of the read and KDF.
+    fn import_held(s: &Session, v: u64) -> (Held, Duration) {
+        use Point::{Done, Merged, Opened, Read, Trial};
+        let holds = Holds::record(s);
+        let mut watch = Watch::new(
+            s,
+            v,
+            &[
+                (Read, true),
+                (Opened, false),
+                (Trial, true),
+                (Merged, false),
+                (Done, false),
+            ],
+        );
+        assert_eq!(
+            s.unlock(v, Some(MAIN.into()), None).unwrap(),
+            UnlockResult::Unlocked
+        );
+        let read = watch.next(Read, "the import never began");
+        let opened = s
+            .with_share(v, |_| {
+                watch.go(Read);
+                watch.next(Opened, "the read or the KDF waited for the session lock")
+            })
+            .unwrap();
+        let trial = watch.next(Trial, "the import took no copy");
+        let merged = s
+            .with_share(v, |_| {
+                watch.go(Trial);
+                watch.next(Merged, "the merge waited for the session lock")
+            })
+            .unwrap();
+        let done = watch.next(Done, "the merged copy was never swapped in");
+        work_ends(s, v);
+        assert_ne!(
+            read.thread,
+            std::thread::current().id(),
+            "the import ran in the unlock call"
+        );
+        for m in [opened, trial, merged, done] {
+            assert_eq!(m.thread, read.thread, "{:?} on another thread", m.at);
+        }
+        let me = std::thread::current().id();
+        let others: Vec<HoldTime> = holds.take().into_iter().filter(|h| h.0 != me).collect();
+        // At least the worker's jobs taken, survey, copy and swap.
+        let worker = others.iter().filter(|h| h.0 == read.thread).count();
+        assert!(worker >= 4, "{worker} holds of the worker timed");
+        let held = Held {
+            cpu: others.iter().map(|h| h.1).max().unwrap(),
+            wall: others.iter().map(|h| h.2).max().unwrap(),
+            holds: others.len(),
+        };
+        (held, opened.cpu - read.cpu)
+    }
+
+    /// F-439: the CPU time of each screen call these tests make (`running`,
+    /// `lock_epoch`, `list`, `save_status`) once on vault `v` as the import
+    /// left it, on the timing thread's own clock: the work a call adds to
+    /// its wait for the lock. The wall clock ends only a hang, at 30 s.
+    fn own_work(s: &Arc<Session>, v: u64) -> [Duration; 4] {
+        let s = Arc::clone(s);
+        larsal_platform::macos::on_timing_thread(Duration::from_secs(30), move || {
+            let cpu = larsal_platform::macos::thread_cpu_time;
+            let timed = |f: &dyn Fn()| {
+                let t = cpu();
+                f();
+                cpu() - t
+            };
+            [
+                timed(&|| {
+                    running(&s, v);
+                }),
+                timed(&|| {
+                    s.lock_epoch(v).unwrap();
+                }),
+                timed(&|| {
+                    s.list(v, crate::views::ListView::All).unwrap();
+                }),
+                timed(&|| {
+                    s.save_status(v).unwrap();
+                }),
+            ]
+        })
+    }
+
+    /// F-439 (C2-1, C2-3): every take of the session lock is timed once, at
+    /// the take (`Session::state`), whichever door it comes through, and on
+    /// whichever thread takes it, so [`import_held`] sees a hold another
+    /// thread or another door makes while the import runs.
+    #[test]
+    fn f439_every_take_of_the_session_lock_is_timed_once() {
+        let dir = TempDir::new("share-f439-takes");
+        let file = dir.join("v.larsalvault");
+        write(&file, &base(), MAIN);
+        let s = session(true);
+        let v = s.open(file.to_string_lossy().into_owned()).unwrap();
+        unlock(&s, v);
+        work_ends(&s, v);
+        let holds = Holds::record(&s);
+        let me = std::thread::current().id();
+        let mine = |door: &str| {
+            let got = holds.take();
+            let n = got.iter().filter(|h| h.0 == me).count();
+            assert_eq!(n, 1, "{door}: {got:?}");
+        };
+        let doors: [(&str, &dyn Fn()); 11] = [
+            ("with_share", &|| s.with_share(v, |_| ()).unwrap()),
+            ("with_vault", &|| s.with_vault(v, |_| Ok(())).unwrap()),
+            ("with_open", &|| s.with_open(v, |_, _, _| Ok(())).unwrap()),
+            ("with_edit", &|| {
+                s.with_edit(v, |_, _, _, _| Ok(())).unwrap()
+            }),
+            ("with_edit_view", &|| {
+                s.with_edit_view(v, |_, _| ()).unwrap()
+            }),
+            ("with_draft_state", &|| {
+                s.with_draft_state(v, |_, _| Ok(())).unwrap();
+            }),
+            ("with_qr", &|| s.with_qr(v, |_, _, _| Ok(())).unwrap()),
+            ("with_breach", &|| s.with_breach(v, |_, _| Ok(())).unwrap()),
+            ("with_edit_state", &|| s.with_edit_state(v, |_| ())),
+            ("with_slots", &|| s.with_slots(|_, _| ())),
+            ("lock_epoch", &|| {
+                s.lock_epoch(v).unwrap();
+            }),
+        ];
+        for (door, take) in doors {
+            take();
+            mine(door);
+        }
+        let other = std::thread::scope(|sc| {
+            sc.spawn(|| {
+                s.with_share(v, |_| ()).unwrap();
+                std::thread::current().id()
+            })
+            .join()
+            .unwrap()
+        });
+        let got = holds.take();
+        let n = got.iter().filter(|h| h.0 == other).count();
+        assert_eq!(n, 1, "another thread's take: {got:?}");
     }
 
     /// The member's V (Mail `pw-2`) with, in Team, a chain of 450 nested
@@ -2637,7 +3058,12 @@ pub(crate) mod tests {
     /// changes nothing) no `lock_epoch`, `list` or `save_status` call
     /// waits a second (seconds when the merge ran under the lock; E11S6-V-02:
     /// 75 ms broke on a loaded Mac, with calls of about 5 ms in a quiet one).
-    /// The result is the same.
+    /// The result is the same. F-439: the read, the KDF and the merge run
+    /// while the test holds the lock ([`import_held`]); the longest of the
+    /// screen's calls, on its own CPU time, with the longest hold of the
+    /// lock meanwhile by any thread but the test's, on the holding thread's
+    /// CPU time, takes under 1 s; that hold's wall time stays under ten
+    /// times that (10 s), the backstop.
     #[test]
     fn f165_int08_38_a_deep_chain_import_never_holds_the_lock_at_either_unlock() {
         let dir = TempDir::new("share-f165");
@@ -2647,15 +3073,15 @@ pub(crate) mod tests {
         let v = approved(&s, &file, &vault);
         let count = |s: &Session| model(s, v, |m| m.root.all_entries().count());
         for first in [true, false] {
-            assert_eq!(
-                s.unlock(v, Some(MAIN.into()), None).unwrap(),
-                UnlockResult::Unlocked
-            );
-            let (slowest, rounds) = slowest_call(&s, v);
+            let (held, _) = import_held(&s, v);
+            let call = own_work(&s, v).into_iter().max().unwrap();
+            println!("f165 unlock {first}: longest hold {held:?}; longest call {call:?}");
+            let waited = held.cpu + call;
             assert!(
-                slowest < Duration::from_secs(1),
-                "unlock {first}: a call waited {slowest:?} ({rounds} rounds)"
+                waited < Duration::from_secs(1),
+                "unlock {first}: a call waited {waited:?} ({held:?})"
             );
+            assert!(held.wall < Duration::from_secs(10), "{held:?}");
             assert_eq!(count(&s), 20_003);
             let imported = (
                 ShareLevel::Success,
@@ -2742,31 +3168,36 @@ pub(crate) mod tests {
     /// F-167 (INT-08.38), Checker 2's probe: T23's scene with a 450-group
     /// chain and 6,000 new entries in the member's Team (a trial of about
     /// 2 s here), and the editor open on Bank, its live code asked for as
-    /// the Entry page does (here every 100 ms, more often than its once a
-    /// second). A draft call only reads the vault, so it is not a change:
-    /// the import lands while the calls go on (it never did when each call
-    /// counted, and one core stayed busy).
+    /// the Entry page does, while the trial runs. A draft call only reads
+    /// the vault, so it is not a change: the import lands at that trial (it
+    /// never did when each call counted: every trial was dropped and ran
+    /// again, and one core stayed busy). F-439: the call comes while the
+    /// worker is held at the trial's start (after the copy, before the
+    /// merge), not on a timer, and a second trial fails the test.
     #[test]
     fn f167_int08_38_the_editors_live_code_never_holds_an_import_back() {
+        use Point::{Read, Trial};
         let dir = TempDir::new("share-f167");
         let (file, path, vault) = scene(&dir, true, false);
         publish(&path, &deep_member(6_000));
         let s = session(true);
         let v = approved(&s, &file, &vault);
+        let mut watch = Watch::new(&s, v, &[(Read, true), (Trial, true), (Trial, false)]);
         assert_eq!(
             s.unlock(v, Some(MAIN.into()), None).unwrap(),
             UnlockResult::Unlocked
         );
+        watch.next(Read, "the import never began");
         s.begin_edit(v, crate::views::hex(id(0x0B))).unwrap();
-        let start = Instant::now();
-        while running(&s, v) {
-            s.draft_code(v).unwrap();
-            assert!(
-                start.elapsed() < Duration::from_secs(30),
-                "the import never landed while the editor was open"
-            );
-            std::thread::sleep(Duration::from_millis(100));
-        }
+        watch.go(Read);
+        watch.next(Trial, "the import took no copy");
+        s.draft_code(v).unwrap();
+        watch.go(Trial);
+        work_ends(&s, v);
+        assert!(
+            watch.marks.try_recv().is_err(),
+            "the draft call dropped the trial: the import ran again"
+        );
         assert_eq!(mail(&s, v), "pw-2");
         assert_eq!(model(&s, v, |m| m.root.all_entries().count()), 6_003);
         assert_eq!(s.editor(v).unwrap().title, "Bank");

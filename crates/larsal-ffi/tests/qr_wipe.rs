@@ -1,8 +1,13 @@
 //! QR-T29, native (FEA-10.10, LD-133): what one code's release leaves in this
 //! process's memory, per buffer, measured by searching all of its writable
 //! memory (heap, freed blocks and this thread's stack) with the vault still
-//! unlocked. Alone in its program: the search reads all memory, so nothing else
-//! may run. Spans come from one version 40 Wi-Fi join, large enough that a plain
+//! unlocked. Alone in its program: the search reads all memory, so a copy another
+//! test made or freed meanwhile would count. The session's own threads may still
+//! end and unmap memory during a search: it reads through the kernel, which
+//! answers memory that is gone with an error; the search then asks again what is
+//! still mapped there, goes on with it, and prints the bytes it skipped (F-439).
+//! The count is exact for memory that stays mapped through the search. Spans come
+//! from one version 40 Wi-Fi join, large enough that a plain
 //! free keeps their bytes. A join text is never stored, so each span here exists
 //! only where the QR path made it.
 //!
