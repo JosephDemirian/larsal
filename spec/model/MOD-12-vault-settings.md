@@ -56,7 +56,7 @@ MOD-12.3 **Name, description, default user name.**
 
 Applying sets each value; its "...Changed" time moves only when the value really changes (FMT-10.24). The default user name is filled into the user name of every new entry made in the window (not in the command line tool). Length is bounded only by the text limit of LD-22.
 
-MOD-12.4 **Public display settings.** `vault.public_name` (text), `vault.public_color` (colour picker with a Clear button), `vault.public_icon` (picker over Larsal's built-in vault icons, with a Clear button). Stored in the outer header's public custom data; FMT-03.23 owns names, types, the lowercase colour rule, removal when cleared and how Larsal shows them before unlock. The group box says these values are not encrypted and anyone with the file can read them (SF-12). Reference: applying the page rewrites a stored colour in lowercase and removes a colour it cannot read (FMT-03).
+MOD-12.4 **Public display settings.** `vault.public_name` (text), `vault.public_color` (colour picker with a Clear button), `vault.public_icon` (picker over Larsal's built-in vault icons, with a Clear button). Stored in the outer header's public custom data; FMT-03.23 owns names, types, the lowercase colour rule, removal when cleared and how Larsal shows them before unlock. The group box says these values are not encrypted and anyone with the file can read them (SF-12). Reference: applying the page rewrites a stored colour in lowercase and removes a colour it cannot read (FMT-03). On a vault linked to a server these settings do not apply (FMT-03.22, LD-427). The group box says, in place of the "not encrypted" notice: "This vault is on a server. The public name, colour and icon do not apply, so the server never reads them." The three controls are disabled. A value that reaches a linked vault is dropped at its next save. E16-S9 draws this.
 
 MOD-12.5 **History limits.** Two check-box-and-number pairs. Behavior of the limits: MOD-03.
 
@@ -88,7 +88,7 @@ MOD-12.10 **Changing the composite key** (`vault.credentials`). The page shows t
 5. Key file must load (FMT-18); an error names the file and the reason. A key file of any kind other than XML version 2.0 or the hashed kind gets a warning advising a new key file. Choosing a file follows FMT-18.24 (the vault itself refused, a file named like a vault file warned).
 6. Hardware key: a key with a challenge-response slot must be present (INT-07); errors: no key found, slot without challenge-response.
 7. No part left at all: refused (`vault.msg.no_key_part`).
-8. Effect: the new composite key replaces the old one; `MasterKeyChanged` = now, even when the same password was typed again (FMT-10.24); the force-once flag is cleared (MOD-13.11); this vault's quick unlock data is removed (APP-04); the vault is marked changed. The key derivation with the new key runs at the next save (CRY-03).
+8. Effect: the new composite key replaces the old one; `MasterKeyChanged` as MOD-13.11 sets it, even when the same password was typed again (FMT-10.24); the force-once flag is cleared (MOD-13.11); this vault's quick unlock data is removed (APP-04); the vault is marked changed. The key derivation with the new key runs at the next save (CRY-03).
 9. After that save, Larsal tells the user that backups and recovery copies made before the change still open with the old credentials, and offers to delete the ones Larsal made of this vault (APP-05.33; Decided: spec/decisions.md LD-53).
 
 ### Encryption page
@@ -199,6 +199,7 @@ MOD-12.22 **New vault defaults.**
 | T03 MOD-12.3 changed time | Name `Demo`, DatabaseNameChanged T0 | Apply with name `Demo` (unchanged), then with `Demo2` at time T5 | First apply: DatabaseNameChanged stays T0. Second: T5 |
 | T04 MOD-12.3 default user name | Default user name `demo` | Create a new entry in the window | Its user name field is `demo`. `larsal add` on the command line leaves it empty |
 | T05 MOD-12.4 public colour | Public colour cleared | Apply, save, read the outer header | No public colour item (FMT-03.23); the page shows the "not encrypted" notice |
+| T05b MOD-12.4 on a server | D linked | Open the General page | The notice above; the three controls disabled (E16-S9). The core half: `ld427_f322_a_public_name_is_on_no_request_and_in_no_server_bytes` |
 | T06 MOD-12.5 reference rounding | Stored HistoryMaxSize 3,500,000 | Reference: open settings, Apply untouched | Stored 3,145,728; histories cut to it |
 | T07 MOD-12.5 Larsal keeps value | Stored HistoryMaxSize 3,500,000; HistoryMaxSize 100 in a second vault | Larsal: open settings, Apply untouched | 3,500,000 and 100 stay; SettingsChanged unchanged |
 | T08 MOD-12.5 overflow | Reference size field 2,048 MiB | Apply, save, reopen | Stored −2,147,483,648, read back as the earlier value (FMT-10.15). Larsal: field refuses values above 2,047 |

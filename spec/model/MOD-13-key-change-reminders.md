@@ -60,7 +60,7 @@ MOD-13.9 **Forced, when the save fails** (lead decision D-13-4). If the save aft
 
 MOD-13.10 **Recommended, in the window.** After the vault opens, a notice `keychange.msg.recommended` in the vault view gives the days since the last change and the chosen interval. Buttons: Change now (opens the credentials page) and Later (hides the notice until the next unlock). The vault is usable while the notice shows. It appears at most once per unlock.
 
-MOD-13.11 **What counts as a key change.** A confirmed change of the composite key: the credentials page (MOD-12.10) or the command line tool's vault edit command. It sets `MasterKeyChanged` to now, even when the same password was typed again (FMT-10.24), and clears the force-once flag. Changing only the cipher, the KDF or its settings is not a key change. Opening and saving never move `MasterKeyChanged`.
+MOD-13.11 **What counts as a key change.** A confirmed change of the composite key: the credentials page (MOD-12.10) or the command line tool's vault edit command. It sets `MasterKeyChanged` to the later of now and one second past the highest key-change time Larsal has seen for that vault on this Mac, in its file at any unlock or in any copy of it Larsal opened (LD-264; the new LD row on monotonic key times, LD-584), even when the same password was typed again (FMT-10.24), and clears the force-once flag. When that highest time is the largest the format holds, there is no second past it: the change takes that time and ties. A tie still converges, as every equal key time does: a server merge starts from the server copy and takes this Mac's key only when it is newer, so the key that went up first stays. Each other Mac takes it once its password is given; a Mac that retired that key gets SYN-03.9's question instead, and its answer uploads its own key. So a key time ahead of now (another Mac's clock, a planted copy) never makes a real change lose LD-264's compare. SYN-03.1's part is no change the user confirmed: it keeps the force-once flag as it was. Changing only the cipher, the KDF or its settings is not a key change. Opening and saving never move `MasterKeyChanged`.
 
 MOD-13.12 **Settings controls** (Larsal only; on the security page, MOD-12.1; lead decision D-13-7 for the range).
 
@@ -152,6 +152,7 @@ N is the elapsed day count of MOD-13.4; R and F are the stored day values.
 | T29 MOD-13.15 future time | `MasterKeyChanged` 2027-01-01T00:00:00Z, Rec 1 | Unlock at 2026-10-25T00:00:00Z | None |
 | T30 MOD-13.16 command line notice | Values of T03 | `larsal ls` with password `demo` at 2026-10-25 | One notice line on stderr (forced, Force 1); entry list on stdout; exit 0. With `-q`: no notice |
 | T31 MOD-13.17 messages | Values of T07 | Unlock in the window | `keychange.msg.recommended` shows 5,315 and 101, no vault name or entry data in the message |
+| T32 MOD-13.11 a key time ahead of now | `MasterKeyChanged` 2099-01-01 | Change the password at T5 | `MasterKeyChanged` 2099-01-01 00:00:01 (`mod13_11_a_key_change_never_goes_back_in_time`) |
 
 ## How this was learned
 
