@@ -124,7 +124,7 @@ Larsal uses no other code (D-INT10-2), except `encrypt` and `decrypt`, which fol
 
 ### Messages
 
-Larsal's own words. `<vault>`, `<path>`, `<file>` are shown as typed. Errors start with `larsal: `.
+Larsal's own words. `<vault>`, `<path>`, `<file>` are shown as typed, except in `encrypt` and `decrypt`, which name them by their option (FIL-02.21, F-552): `<vault>` is "the file given to --vault" in M10-11 to M10-14, M10-90 and M10-91, `<keyfile>` is "the file given to --key-file" in M10-16, M10-20 and M10-21 say "the path given to --passphrase-entry", "--identity-entry" or "--group", and the APP-06 texts name the vault "the file given to --vault" and leave the key file unnamed. M10-10, M10-15 and M10-17 show `<vault>` as typed there too. Errors start with `larsal: `.
 
 | ID | Stream | When | Text (Larsal) |
 |---|---|---|---|
