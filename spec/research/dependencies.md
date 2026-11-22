@@ -754,3 +754,20 @@ Record of 2026-11-05, on Main since commit ccdaf96. Ten exact registry archives 
 | tinyvec_macros 0.1.1 | `1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20` | 8 | `LICENSE-APACHE.md`, `LICENSE-MIT.md`, `LICENSE-ZLIB.md` |
 
 Existing license alternatives and copyrights keep their own terms. The approved metadata/source choice does not establish signed release authenticity, whole-process erasure, Unicode18 interoperability or file-format/runtime success. No age peer program is extracted or executed by this vendoring step. S2's checks passed and Verify V1, V3 and V4 signed on 2026-11-06, dependency scope only (LD-379, security/parity/E22-S2-E23-S2-crates.md).
+
+## E25-S2 post-quantum copies (CRY-05.15)
+
+Record of 2026-11-12. Ten exact registry archives, fetched once by E25-S2's Builder on 2026-11-09 (LD-428) and again, independently, by both round 2 Checkers. Their 184 regular members are kept unchanged in vendor/crates-io but one: shake's `tests/data/shake128_kat.blb`, a test blob never built, cut for the name guard, with the upstream list kept as `.cargo-checksum.upstream.json`. Each `.cargo-checksum.json` names the publisher's archive SHA-256. No stub, build script, proc macro or online source is added. Proof: security/parity/E25-S2-post-quantum-building-blocks.md.
+
+| Package | Archive SHA-256 | Raw files | Notices retained |
+|---|---|---:|---|
+| ml-dsa 0.1.1 | `add6b9d92e496f16f4526d68ff29da1483aba4b119baeab8bed3b9e3544a6f3d` | 31 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| ml-kem 0.3.3 | `a9ba01ebcf90f6aff8e9b9f55bb69b19e6250e4ade5787d0040eaa27dd226238` | 27 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| x-wing 0.1.1 | `01576e56599d01d75c5efcd5b30fa5de29e776f5a225e43fbf8c92c7302d4c8b` | 12 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| module-lattice 0.2.3 | `0c61b87c9683ab7cb1c6871d261ad5479b6b10ceb52c4352aaca3b5d35a8febe` | 15 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| kem 0.3.0 | `01737161ba802849cfd486b5bd209d38ba4943494c249a8126005170c7621edd` | 9 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| sha3 0.12.0 | `bc9bad02c26382724b2d2692c6f179285e4b54eeecd7968f52a50059c3c11759` | 32 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| shake 0.1.0 | `09057cb2149ad4cbd2da1e26b351f9a4c354219421229c69c3063e6f61947c4a` | 13 (12 kept) | `LICENSE-APACHE`, `LICENSE-MIT` |
+| turboshake 0.7.1 | `f892c6904b0bd5a9241eac848347abcbbbd2b9f3892bad23ac3e6efab8d6f06a` | 15 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| keccak 0.2.2 | `d8f198d1db720e4940b5a493201d199d9f24f568f8f746bd13706243a2f71598` | 18 | `LICENSE-APACHE`, `LICENSE-MIT` |
+| sponge-cursor 0.1.0 | `3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620` | 12 | `LICENSE-APACHE`, `LICENSE-MIT` |
