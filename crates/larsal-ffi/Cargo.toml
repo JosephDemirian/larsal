@@ -64,12 +64,10 @@ larsal-format = { workspace = true, features = ["software-key"] }
 # the test proxy), test clock and test-seam device key (LD-317 (2)).
 larsal-sync = { workspace = true, features = ["test-server"] }
 # E25-S3 (CRY-05 T29): the sync tests' zero-knowledge search looks for each
-# wrap's KEM shared secret (pq.rs `kem_shared_secret`); never in a product build.
-larsal-crypto = { workspace = true, features = ["test-kem-secret"] }
+# wrap's KEM shared secret (pq.rs `kem_shared_secret`). E24-S2 (Checker 1
+# C1-F4): New SSH Key's random-failure test makes the OS source fail
+# (larsal-crypto random.rs `test_os_source_down`). Never in a product build.
+larsal-crypto = { workspace = true, features = ["test-kem-secret", "test-random"] }
 # E22-S4: the file tests reach the unprotected-disk consent through the app's job;
 # never in a product build.
 larsal-files = { workspace = true, features = ["test-volume"] }
-# E24-S2 (Checker 1 C1-F4): New SSH Key's random-failure test makes the OS
-# source fail (larsal-crypto random.rs `test_os_source_down`); never in a
-# product build.
-larsal-crypto = { workspace = true, features = ["test-random"] }
