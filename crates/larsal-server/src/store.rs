@@ -4,8 +4,11 @@
 //! and `sessions` tables and the vault's account (SYN-04); E17-S1 (schema 2)
 //! adds the account keys (SYN-06.6), a challenge's kind (LD-327 (7)), the
 //! uploader and signature of each version (SYN-01.7) and the `keyparts`
-//! table (SYN-06.9). A store of schema 1 gets them at open, in one
-//! transaction ([`MIGRATE_1`]).
+//! table (SYN-06.9). E17-S2 (schema 3) adds the `approvals` table
+//! (SYN-06.11, SYN-05). As LD-327 (5) and E17-S2's ruling (8) say, a schema
+//! changes in place and has no migration code: no store exists outside
+//! test folders, so a store of an older schema is refused at open, before
+//! anything in the folder changes.
 //!
 //! Guarantees: the file is made with mode 0600 (SQLite gives its `-wal` and
 //! `-shm` files the mode of the database); a store whose `user_version` is
@@ -19,8 +22,9 @@
 
 use crate::Error;
 use larsal_proto::account::AccountKeys;
+use larsal_proto::approval::{ApprovalState, DEVICE_KEY};
 use larsal_proto::limits::{SESSION_IDLE_SECONDS, SESSION_MAX_SECONDS};
-use larsal_proto::messages::{AccountId, DeviceId, VaultId, VaultVersion};
+use larsal_proto::messages::{AccountId, DeviceId, Id, VaultId, VaultVersion};
 use larsal_proto::routes::Precondition;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use std::fs::{self, OpenOptions};
@@ -29,7 +33,7 @@ use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// The schema version this server writes and reads (SYN-02.2).
-pub(crate) const SCHEMA: i64 = 2;
+pub(crate) const SCHEMA: i64 = 3;
 
 /// Old versions kept beside the current one, for restore only (SYN-02.5).
 pub(crate) const OLD_VERSIONS: u64 = 5;
@@ -100,27 +104,24 @@ CREATE TABLE keyparts (
     vault BLOB PRIMARY KEY NOT NULL REFERENCES vaults (id),
     record BLOB NOT NULL
 ) STRICT;
-PRAGMA user_version = 2;
-";
-
-/// Schema 1 to 2 (E17-S1): the columns and the table [`TABLES`] adds, with
-/// every row kept; a challenge row of schema 1 is a device's (kind 0).
-const MIGRATE_1: &str = "
-ALTER TABLE accounts ADD COLUMN identity_public_key BLOB;
-ALTER TABLE accounts ADD COLUMN kem_public_key BLOB;
-ALTER TABLE accounts ADD COLUMN kem_signature BLOB;
-ALTER TABLE accounts ADD COLUMN recovery_public_key BLOB;
-ALTER TABLE accounts ADD COLUMN blob BLOB;
-ALTER TABLE challenges ADD COLUMN kind INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE vaults ADD COLUMN uploader BLOB;
-ALTER TABLE vaults ADD COLUMN signature BLOB;
-ALTER TABLE vault_versions ADD COLUMN uploader BLOB;
-ALTER TABLE vault_versions ADD COLUMN signature BLOB;
-CREATE TABLE keyparts (
-    vault BLOB PRIMARY KEY NOT NULL REFERENCES vaults (id),
-    record BLOB NOT NULL
+CREATE TABLE approvals (
+    id BLOB PRIMARY KEY NOT NULL,
+    account BLOB NOT NULL REFERENCES accounts (id),
+    code_hash BLOB NOT NULL UNIQUE,
+    expires INTEGER NOT NULL,
+    state INTEGER NOT NULL DEFAULT 0,
+    device_public_key BLOB,
+    device_name TEXT,
+    commitment BLOB,
+    keys_r BLOB,
+    nonce_r BLOB,
+    keys_c BLOB,
+    nonce_c BLOB,
+    seal BLOB,
+    device BLOB
 ) STRICT;
-PRAGMA user_version = 2;
+CREATE INDEX approvals_by_expiry ON approvals (expires);
+PRAGMA user_version = 3;
 ";
 
 fn failed(e: rusqlite::Error) -> Error {
@@ -132,8 +133,8 @@ fn failed(e: rusqlite::Error) -> Error {
 /// store with no schema the tables of SYN-02.3.
 ///
 /// # Errors
-/// The store is from a newer server (refused before anything changes), WAL
-/// cannot be turned on, or SQLite fails.
+/// The store is from a newer or an older server (refused before anything
+/// changes), WAL cannot be turned on, or SQLite fails.
 pub(crate) fn open(path: &Path) -> Result<Connection, Error> {
     if fs::symlink_metadata(path).is_err() {
         OpenOptions::new()
@@ -154,6 +155,13 @@ pub(crate) fn open(path: &Path) -> Result<Connection, Error> {
         return Err(Error::new(format!(
             "{} was made by a newer server (schema {version}); this server reads schema \
              {SCHEMA}, so it changes nothing and does not start",
+            path.display()
+        )));
+    }
+    if version != 0 && version < SCHEMA {
+        return Err(Error::new(format!(
+            "{} was made by an older server (schema {version}); this server reads schema \
+             {SCHEMA} and has no migration, so it changes nothing and does not start",
             path.display()
         )));
     }
@@ -178,9 +186,6 @@ pub(crate) fn open(path: &Path) -> Result<Connection, Error> {
         .map_err(failed)?;
     if version == 0 {
         db.execute_batch(&format!("BEGIN; {TABLES} COMMIT;"))
-            .map_err(failed)?;
-    } else if version == 1 {
-        db.execute_batch(&format!("BEGIN; {MIGRATE_1} COMMIT;"))
             .map_err(failed)?;
     }
     Ok(db)
@@ -485,27 +490,6 @@ fn insert_device(
         ],
     )
     .map_err(failed)?;
-    Ok(true)
-}
-
-/// SYN-04.11: another device of an existing account (tests only, until
-/// E17-S2's approval). False when the key is registered already.
-#[cfg(any(test, feature = "test-seams"))]
-pub(crate) fn add_device(
-    db: &mut Connection,
-    account: &AccountId,
-    device: &DeviceId,
-    public_key: &[u8; 65],
-    name: &str,
-    now: u64,
-) -> Result<bool, Error> {
-    let tx = db
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(failed)?;
-    if !insert_device(&tx, account, device, public_key, name, now)? {
-        return Ok(false);
-    }
-    tx.commit().map_err(failed)?;
     Ok(true)
 }
 
@@ -894,6 +878,343 @@ pub(crate) fn revoke(
     Ok(Revoke::Done)
 }
 
+/// How far an approval request has come (SYN-06.11, SYN-05.2): each route
+/// moves it one stage on, and only from the stage before.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Stage {
+    /// Made by E (`POST /v1/approvals`).
+    Open = 0,
+    /// N's claim is stored.
+    Claimed = 1,
+    /// N's commitment, SYN-05's message (1), is stored.
+    Committed = 2,
+    /// E's `K_R` and `n_R`, message (2).
+    Keyed = 3,
+    /// N's `K_C` and `n_C`, message (3).
+    Revealed = 4,
+    /// E's seal is stored and N's device registered.
+    Sealed = 5,
+}
+
+/// An approval request's row (SYN-02.3): the SHA-256 of its code (never the
+/// code), its account, its expiry and what the routes stored so far.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Approval {
+    /// The request's id.
+    pub(crate) id: Id,
+    /// The account of the Mac that made it.
+    pub(crate) account: AccountId,
+    /// Its stage.
+    pub(crate) stage: Stage,
+    /// What `GET /v1/approvals/{approval_id}` shows; `expires` is the end of
+    /// its 15 minutes on the server's clock.
+    pub(crate) state: ApprovalState,
+}
+
+const APPROVAL: &str = "SELECT id, account, code_hash, expires, state, device_public_key, \
+     device_name, commitment, keys_r, nonce_r, keys_c, nonce_c, seal, device FROM approvals";
+
+fn stage(n: i64) -> Option<Stage> {
+    [
+        Stage::Open,
+        Stage::Claimed,
+        Stage::Committed,
+        Stage::Keyed,
+        Stage::Revealed,
+        Stage::Sealed,
+    ]
+    .into_iter()
+    .find(|s| *s as i64 == n)
+}
+
+type ApprovalColumns = (
+    [u8; 16],
+    [u8; 16],
+    [u8; 32],
+    i64,
+    i64,
+    (Option<[u8; DEVICE_KEY]>, Option<String>, Option<[u8; 32]>),
+    (Option<Vec<u8>>, Option<[u8; 32]>),
+    (Option<Vec<u8>>, Option<[u8; 32]>),
+    (Option<Vec<u8>>, Option<[u8; 16]>),
+);
+
+fn approval_columns(r: &rusqlite::Row<'_>) -> rusqlite::Result<ApprovalColumns> {
+    Ok((
+        r.get(0)?,
+        r.get(1)?,
+        r.get(2)?,
+        r.get(3)?,
+        r.get(4)?,
+        (r.get(5)?, r.get(6)?, r.get(7)?),
+        (r.get(8)?, r.get(9)?),
+        (r.get(10)?, r.get(11)?),
+        (r.get(12)?, r.get(13)?),
+    ))
+}
+
+/// The row and its code hash.
+fn approval_row(c: ApprovalColumns) -> Result<(Approval, [u8; 32]), Error> {
+    let (id, account, code_hash, expires, n, claim, keys_r, keys_c, seal) = c;
+    let (device_public_key, device_name, commit) = claim;
+    let pair = |(k, n): (Option<Vec<u8>>, Option<[u8; 32]>)| k.zip(n);
+    let state = ApprovalState {
+        device_public_key,
+        device_name,
+        commit,
+        keys_r: pair(keys_r),
+        keys_c: pair(keys_c),
+        seal: seal.0.zip(seal.1.map(DeviceId::from_bytes)),
+        expires: number(expires)?,
+    };
+    let stage = stage(n).ok_or_else(|| Error::new("an approval row has no known stage"))?;
+    Ok((
+        Approval {
+            id: Id::from_bytes(id),
+            account: AccountId::from_bytes(account),
+            stage,
+            state,
+        },
+        code_hash,
+    ))
+}
+
+/// SYN-06.11 step 1: ends every request past its 15 minutes (as
+/// [`end_approval`]), then stores a new one for `account` under the SHA-256
+/// of its code, in one transaction. False (nothing written) when a request
+/// has that hash already (409).
+pub(crate) fn create_approval(
+    db: &mut Connection,
+    id: &Id,
+    account: &AccountId,
+    code_hash: &[u8; 32],
+    expires: u64,
+    now: u64,
+) -> Result<bool, Error> {
+    let tx = db
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(failed)?;
+    let ended: Vec<[u8; 16]> = {
+        let mut q = tx
+            .prepare("SELECT id FROM approvals WHERE expires <= ?1")
+            .map_err(failed)?;
+        q.query_map([at(now)?], |r| r.get(0))
+            .map_err(failed)?
+            .collect::<Result<_, _>>()
+            .map_err(failed)?
+    };
+    for old in ended {
+        end(&tx, &Id::from_bytes(old))?;
+    }
+    let added = tx
+        .execute(
+            "INSERT INTO approvals (id, account, code_hash, expires) VALUES (?1, ?2, ?3, ?4) \
+             ON CONFLICT DO NOTHING",
+            params![id.as_bytes(), account.as_bytes(), code_hash, at(expires)?],
+        )
+        .map_err(failed)?;
+    tx.commit().map_err(failed)?;
+    Ok(added == 1)
+}
+
+/// The request whose code has the SHA-256 `code_hash`: looked up by the
+/// hash, then the stored hash compared with it in constant time (CRY-04.11,
+/// E17-S2's ruling (4)). Its expiry is the caller's to check.
+pub(crate) fn approval_by_code(
+    db: &Connection,
+    code_hash: &[u8; 32],
+) -> Result<Option<Approval>, Error> {
+    let row = db
+        .query_row(
+            &format!("{APPROVAL} WHERE code_hash = ?1"),
+            [code_hash],
+            approval_columns,
+        )
+        .optional()
+        .map_err(failed)?;
+    let Some(row) = row.map(approval_row).transpose()? else {
+        return Ok(None);
+    };
+    let (approval, stored) = row;
+    Ok(larsal_crypto::secret::ct_eq(&stored, code_hash).then_some(approval))
+}
+
+/// The request `id` of `account`; another account's is `None` (404).
+pub(crate) fn approval_of(
+    db: &Connection,
+    id: &Id,
+    account: &AccountId,
+) -> Result<Option<Approval>, Error> {
+    let row = db
+        .query_row(
+            &format!("{APPROVAL} WHERE id = ?1 AND account = ?2"),
+            [id.as_bytes(), account.as_bytes()],
+            approval_columns,
+        )
+        .optional()
+        .map_err(failed)?;
+    Ok(row.map(approval_row).transpose()?.map(|(a, _)| a))
+}
+
+/// SYN-06.11's end of a request, whichever way (Codes differ, a failed
+/// check, a second message, 15 minutes): the row goes with its nonces, its
+/// commitment and its key lists (SYN-05.6), and a device its seal
+/// registered that N has not taken yet goes with it, its sessions and
+/// challenges too, so nothing stays registered.
+pub(crate) fn end_approval(db: &mut Connection, id: &Id) -> Result<(), Error> {
+    let tx = db
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(failed)?;
+    end(&tx, id)?;
+    tx.commit().map_err(failed)
+}
+
+fn end(db: &Connection, id: &Id) -> Result<(), Error> {
+    let device: Option<Option<[u8; 16]>> = db
+        .query_row(
+            "SELECT device FROM approvals WHERE id = ?1",
+            [id.as_bytes()],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(failed)?;
+    if let Some(Some(device)) = device {
+        db.execute("DELETE FROM challenges WHERE device = ?1", [&device])
+            .map_err(failed)?;
+        db.execute("DELETE FROM devices WHERE id = ?1", [&device])
+            .map_err(failed)?;
+    }
+    db.execute("DELETE FROM approvals WHERE id = ?1", [id.as_bytes()])
+        .map_err(failed)?;
+    Ok(())
+}
+
+/// SYN-06.11 step 6: N has read the seal; the request is done and its row
+/// goes, the device it registered stays.
+pub(crate) fn hand_over(db: &Connection, id: &Id) -> Result<(), Error> {
+    db.execute(
+        "DELETE FROM approvals WHERE id = ?1 AND state = ?2",
+        params![id.as_bytes(), Stage::Sealed as i64],
+    )
+    .map_err(failed)
+    .map(drop)
+}
+
+/// Moves request `id` from `from` to the next stage with the columns of
+/// `set` (`?2` on); false when it was not at `from`.
+fn step(
+    db: &Connection,
+    id: &Id,
+    from: Stage,
+    set: &str,
+    values: &[&dyn rusqlite::ToSql],
+) -> Result<bool, Error> {
+    let sql = format!(
+        "UPDATE approvals SET state = state + 1, {set} WHERE id = ?1 AND state = {}",
+        from as i64
+    );
+    let mut all: Vec<&dyn rusqlite::ToSql> = vec![id.as_bytes()];
+    all.extend_from_slice(values);
+    let changed = db.execute(&sql, all.as_slice()).map_err(failed)?;
+    Ok(changed == 1)
+}
+
+/// Step 2: N's claim, its device key and name.
+pub(crate) fn claim_approval(
+    db: &Connection,
+    id: &Id,
+    key: &[u8; DEVICE_KEY],
+    name: &str,
+) -> Result<bool, Error> {
+    step(
+        db,
+        id,
+        Stage::Open,
+        "device_public_key = ?2, device_name = ?3",
+        &[key, &name],
+    )
+}
+
+/// SYN-05's message (1).
+pub(crate) fn commit_approval(db: &Connection, id: &Id, commit: &[u8; 32]) -> Result<bool, Error> {
+    step(db, id, Stage::Claimed, "commitment = ?2", &[commit])
+}
+
+/// SYN-05's message (2): `K_R` and `n_R`.
+pub(crate) fn keys_approval(
+    db: &Connection,
+    id: &Id,
+    keys: &[u8],
+    nonce: &[u8; 32],
+) -> Result<bool, Error> {
+    step(
+        db,
+        id,
+        Stage::Committed,
+        "keys_r = ?2, nonce_r = ?3",
+        &[&keys, nonce],
+    )
+}
+
+/// SYN-05's message (3): `K_C` and `n_C`.
+pub(crate) fn reveal_approval(
+    db: &Connection,
+    id: &Id,
+    keys: &[u8],
+    nonce: &[u8; 32],
+) -> Result<bool, Error> {
+    step(
+        db,
+        id,
+        Stage::Keyed,
+        "keys_c = ?2, nonce_c = ?3",
+        &[&keys, nonce],
+    )
+}
+
+/// What a seal did (step 5).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Sealed {
+    /// The seal is stored and N's device registered.
+    Done,
+    /// N's device key is registered already (409).
+    Taken,
+    /// The request was not at its reveal (409).
+    Stale,
+}
+
+/// Step 5: N's device row and the seal, in one transaction; nothing when
+/// the key is registered already or the request is not at its reveal.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn seal_approval(
+    db: &mut Connection,
+    id: &Id,
+    account: &AccountId,
+    device: &DeviceId,
+    key: &[u8; DEVICE_KEY],
+    name: &str,
+    seal: &[u8],
+    now: u64,
+) -> Result<Sealed, Error> {
+    let tx = db
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(failed)?;
+    if !insert_device(&tx, account, device, key, name, now)? {
+        return Ok(Sealed::Taken);
+    }
+    if !step(
+        &tx,
+        id,
+        Stage::Revealed,
+        "seal = ?2, device = ?3",
+        &[&seal, device.as_bytes()],
+    )? {
+        return Ok(Sealed::Stale);
+    }
+    tx.commit().map_err(failed)?;
+    Ok(Sealed::Done)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -917,7 +1238,7 @@ mod tests {
         assert_eq!(int("synchronous"), 2, "2 is FULL");
         assert_eq!(int("fullfsync"), 1, "F_FULLFSYNC on macOS");
         assert_eq!(int("foreign_keys"), 1);
-        assert_eq!(int("user_version"), 2);
+        assert_eq!(int("user_version"), 3);
         assert_eq!(int("busy_timeout"), 5000);
         // A second start reads the same store and keeps its schema.
         drop(db);
@@ -929,7 +1250,7 @@ mod tests {
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(tables, 7);
+        assert_eq!(tables, 8);
     }
 
     /// The new vault's row, the compare-and-swap and the prune on their own.
@@ -1057,7 +1378,7 @@ mod tests {
         {
             let db = Connection::open(&path).unwrap();
             db.execute_batch(
-                "PRAGMA journal_mode = WAL; CREATE TABLE t (a); PRAGMA user_version = 3;",
+                "PRAGMA journal_mode = WAL; CREATE TABLE t (a); PRAGMA user_version = 4;",
             )
             .unwrap();
         }
@@ -1075,7 +1396,7 @@ mod tests {
         let before = tree();
         let err = open(&path).unwrap_err().to_string();
         assert!(
-            err.contains("was made by a newer server (schema 3)"),
+            err.contains("was made by a newer server (schema 4)"),
             "{err}"
         );
         assert_eq!(tree(), before);
@@ -1188,8 +1509,8 @@ mod tests {
             .query_row("SELECT count(*) FROM accounts", [], |r| r.get(0))
             .unwrap();
         assert_eq!(accounts, 2, "no account row for a taken key");
-        assert!(!add_device(&mut db, &me, &d2, &[2; 65], "Mac", t0).unwrap());
-        assert!(add_device(&mut db, &me, &d2, &[50; 65], "Mac 2", t0).unwrap());
+        assert!(!insert_device(&db, &me, &d2, &[2; 65], "Mac", t0).unwrap());
+        assert!(insert_device(&db, &me, &d2, &[50; 65], "Mac 2", t0).unwrap());
         open_session(&mut db, &[5; 32], &d2, t0).unwrap();
         challenge(&db, &[5; 32], &d2, t0 + 300, t0).unwrap();
         assert_eq!(revoke(&mut db, &them, &d2).unwrap(), Revoke::NotFound);
@@ -1203,7 +1524,7 @@ mod tests {
     }
 
     /// The schema 1 of E16 as the server before E17-S1 made it, for the
-    /// migration check.
+    /// refusal check.
     const SCHEMA_1: &str = "
 CREATE TABLE accounts (
     id BLOB PRIMARY KEY NOT NULL,
@@ -1271,64 +1592,136 @@ PRAGMA user_version = 1;
         }
     }
 
-    /// SYN-02.2 (schema 2, E17-S1): a store of schema 1 opens as schema 2
-    /// with every row kept: its account has no keys, its challenge stays a
-    /// device's, its version stays unsigned, and the `keyparts` table is
-    /// there. A second open changes nothing.
+    /// SYN-02.2 (schema 3, E17-S2; LD-327 (5)): no migration code, so a
+    /// store of schema 1 (E16) or 2 (E17-S1) is refused at open with a plain
+    /// message, and nothing in the folder changes.
     #[test]
-    fn syn02_2_a_schema_1_store_opens_as_schema_2_with_its_rows() {
-        let scratch = Scratch::new();
-        let path = scratch.0.join("store.sqlite");
-        let (a, d, v) = ([1u8; 16], [101u8; 16], [7u8; 16]);
-        {
-            let db = Connection::open(&path).unwrap();
-            db.execute_batch(SCHEMA_1).unwrap();
-            db.execute(
-                "INSERT INTO accounts (id, created) VALUES (?1, 1)",
-                [&a[..]],
-            )
-            .unwrap();
-            db.execute(
-                "INSERT INTO devices (id, account, public_key, name, added, last_seen) \
-                 VALUES (?1, ?2, ?3, 'Mac', 1, 1)",
-                params![&d[..], &a[..], &[1u8; 65][..]],
-            )
-            .unwrap();
-            db.execute(
-                "INSERT INTO challenges (nonce, device, expires) VALUES (?1, ?2, ?3)",
-                params![&[5u8; 32][..], &d[..], 4_000_000_000_i64],
-            )
-            .unwrap();
-            db.execute(
-                "INSERT INTO vaults (id, account, version, size, hash, updated) \
-                 VALUES (?1, ?2, 1, 3, ?3, 1)",
-                params![&v[..], &a[..], &[9u8; 32][..]],
-            )
-            .unwrap();
+    fn syn02_2_an_older_schema_is_refused_and_folder_unchanged() {
+        for (version, schema) in [(1, SCHEMA_1.to_owned()), (2, TABLES.replace("3;", "2;"))] {
+            let scratch = Scratch::new();
+            let path = scratch.0.join("store.sqlite");
+            {
+                let db = Connection::open(&path).unwrap();
+                db.execute_batch(&format!("PRAGMA journal_mode = WAL; {schema}"))
+                    .unwrap();
+                db.execute(
+                    "INSERT INTO accounts (id, created) VALUES (?1, 1)",
+                    [&[1u8; 16][..]],
+                )
+                .unwrap();
+            }
+            let tree = || -> Vec<(String, Vec<u8>)> {
+                let mut all: Vec<_> = fs::read_dir(&scratch.0)
+                    .unwrap()
+                    .map(|e| {
+                        let p = e.unwrap().path();
+                        (p.display().to_string(), fs::read(&p).unwrap())
+                    })
+                    .collect();
+                all.sort();
+                all
+            };
+            let before = tree();
+            let err = open(&path).unwrap_err().to_string();
+            assert!(
+                err.contains(&format!("was made by an older server (schema {version})")),
+                "{err}"
+            );
+            assert!(err.contains("has no migration"), "{err}");
+            assert_eq!(tree(), before, "schema {version}: the folder is unchanged");
         }
-        let db = open(&path).unwrap();
-        let version: i64 = db
-            .pragma_query_value(None, "user_version", |r| r.get(0))
+    }
+
+    /// SYN-02.3, SYN-05.6, SYN-06.11 (E17-S2's ruling (8)): an approval row
+    /// holds the code's SHA-256 only, each stage once and in order; the row
+    /// goes when the request ends, with the device its seal registered
+    /// before N took it; a request past its 15 minutes goes at the next
+    /// `POST /v1/approvals`.
+    #[test]
+    fn syn02_3_syn05_6_the_approval_row_and_its_end() {
+        let scratch = Scratch::new();
+        let mut db = open(&scratch.0.join("store.sqlite")).unwrap();
+        let me = account(&mut db, 1);
+        let t0 = 1_800_000_000;
+        let (id, hash) = (Id::from_bytes([7; 16]), [8u8; 32]);
+        assert!(create_approval(&mut db, &id, &me, &hash, t0 + 900, t0).unwrap());
+        let again = Id::from_bytes([9; 16]);
+        assert!(!create_approval(&mut db, &again, &me, &hash, t0 + 900, t0).unwrap());
+        let row = approval_by_code(&db, &hash).unwrap().unwrap();
+        assert_eq!((row.id, row.account, row.stage), (id, me, Stage::Open));
+        assert_eq!(row.state.expires, t0 + 900);
+        assert_eq!(approval_by_code(&db, &[9; 32]).unwrap(), None);
+        assert_eq!(
+            approval_of(&db, &id, &AccountId::from_bytes([2; 16])).unwrap(),
+            None
+        );
+        // Each stage once, and only from the one before.
+        assert!(
+            !commit_approval(&db, &id, &[3; 32]).unwrap(),
+            "no commit before the claim"
+        );
+        assert!(claim_approval(&db, &id, &[60; 65], "New Mac").unwrap());
+        assert!(
+            !claim_approval(&db, &id, &[61; 65], "Other").unwrap(),
+            "one claim"
+        );
+        assert!(commit_approval(&db, &id, &[3; 32]).unwrap());
+        assert!(
+            !commit_approval(&db, &id, &[4; 32]).unwrap(),
+            "one commitment"
+        );
+        assert!(keys_approval(&db, &id, &[5; 2057], &[6; 32]).unwrap());
+        assert!(reveal_approval(&db, &id, &[7; 1289], &[8; 32]).unwrap());
+        let device = DeviceId::from_bytes([60; 16]);
+        let sealed = seal_approval(&mut db, &id, &me, &device, &[60; 65], "New Mac", b"s", t0);
+        assert_eq!(sealed.unwrap(), Sealed::Done);
+        let row = approval_of(&db, &id, &me).unwrap().unwrap();
+        assert_eq!(row.stage, Stage::Sealed);
+        assert_eq!(row.state.commit, Some([3; 32]));
+        assert_eq!(row.state.keys_r, Some((vec![5; 2057], [6; 32])));
+        assert_eq!(row.state.keys_c, Some((vec![7; 1289], [8; 32])));
+        assert_eq!(row.state.seal, Some((b"s".to_vec(), device)));
+        assert!(device_key(&db, &device).unwrap().is_some());
+        // Ended before N took the seal: the device goes too.
+        end_approval(&mut db, &id).unwrap();
+        assert_eq!(approval_of(&db, &id, &me).unwrap(), None);
+        assert_eq!(device_key(&db, &device).unwrap(), None);
+        let rows: i64 = db
+            .query_row("SELECT count(*) FROM approvals", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 2);
-        let (account, vault) = (AccountId::from_bytes(a), VaultId::from_bytes(v));
-        assert_eq!(account_keys(&db, &account).unwrap(), None);
+        assert_eq!(rows, 0, "no nonce, commitment or key list is left");
+        // Handed over: the row goes, the device stays.
+        let id2 = Id::from_bytes([10; 16]);
+        assert!(create_approval(&mut db, &id2, &me, &[11; 32], t0 + 900, t0).unwrap());
+        assert!(claim_approval(&db, &id2, &[62; 65], "New Mac").unwrap());
+        assert!(commit_approval(&db, &id2, &[3; 32]).unwrap());
+        assert!(keys_approval(&db, &id2, &[5; 2057], &[6; 32]).unwrap());
+        assert!(reveal_approval(&db, &id2, &[7; 1289], &[8; 32]).unwrap());
+        let d2 = DeviceId::from_bytes([62; 16]);
+        let sealed = seal_approval(&mut db, &id2, &me, &d2, &[62; 65], "New Mac", b"s", t0);
+        assert_eq!(sealed.unwrap(), Sealed::Done);
+        hand_over(&db, &id2).unwrap();
+        assert_eq!(approval_of(&db, &id2, &me).unwrap(), None);
+        assert!(device_key(&db, &d2).unwrap().is_some());
+        // A taken key registers nothing and leaves the request at its reveal.
+        let id3 = Id::from_bytes([12; 16]);
+        assert!(create_approval(&mut db, &id3, &me, &[13; 32], t0 + 900, t0).unwrap());
+        assert!(claim_approval(&db, &id3, &[62; 65], "Same key").unwrap());
+        assert!(commit_approval(&db, &id3, &[3; 32]).unwrap());
+        assert!(keys_approval(&db, &id3, &[5; 2057], &[6; 32]).unwrap());
+        assert!(reveal_approval(&db, &id3, &[7; 1289], &[8; 32]).unwrap());
+        let d3 = DeviceId::from_bytes([63; 16]);
+        let taken = seal_approval(&mut db, &id3, &me, &d3, &[62; 65], "Same key", b"s", t0);
+        assert_eq!(taken.unwrap(), Sealed::Taken);
         assert_eq!(
-            take_challenge(&db, &[5; 32]).unwrap(),
-            Some((DeviceId::from_bytes(d), 4_000_000_000)),
-            "a schema 1 challenge is a device's"
+            approval_of(&db, &id3, &me).unwrap().unwrap().stage,
+            Stage::Revealed
         );
-        let row = current(&db, &vault).unwrap().unwrap();
-        assert_eq!((row.version, row.signed), (1, None));
-        assert!(put_keypart(&db, &account, &vault, b"{}").unwrap());
-        assert!(put_account_keys(&db, &account, &keys(1)).unwrap());
-        drop(db);
-        let db = open(&path).unwrap();
-        assert_eq!(account_keys(&db, &account).unwrap(), Some(keys(1)));
-        assert_eq!(
-            keypart(&db, &account, &vault).unwrap(),
-            Some(b"{}".to_vec())
-        );
+        // Past its 15 minutes, the next request's sweep ends it.
+        let id4 = Id::from_bytes([14; 16]);
+        assert!(create_approval(&mut db, &id4, &me, &[15; 32], t0 + 1800, t0 + 900).unwrap());
+        assert_eq!(approval_of(&db, &id3, &me).unwrap(), None);
+        assert!(approval_of(&db, &id4, &me).unwrap().is_some());
     }
 
     /// SYN-06.6: the keys are stored once; a second set changes nothing

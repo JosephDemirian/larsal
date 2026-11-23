@@ -50,6 +50,9 @@ larsal-sync = { workspace = true, features = ["test-server"] }
 # E17-S1 (CRY-05.17): the probe allocator of tests/account_wipe.rs (test tools
 # only).
 larsal-platform = { workspace = true, features = ["test-memory"] }
+# E17-S2 (SYN-02 T14 for approvals): the X-Wing shared secret of an approval's
+# seal, a needle of the stored-bytes search (test builds only).
+larsal-crypto = { workspace = true, features = ["test-kem-secret"] }
 
 [lints]
 workspace = true

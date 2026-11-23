@@ -21,7 +21,8 @@
 //! the session of SYN-01.5 (401, `auth.rs`); then the route. The vault
 //! routes (SYN-01.6) are in `vaults.rs`, the account and sign-in routes
 //! (SYN-04) in `accounts.rs`, the account keys, key-file part and recovery
-//! routes (SYN-06) in `keys.rs`.
+//! routes (SYN-06) in `keys.rs`, the approval routes (SYN-06.11, SYN-05) in
+//! `approvals.rs`.
 //!
 //! Every request Larsal answers gets one log line (SYN-01.13): the method,
 //! the route's name, the status, the reply's size and the time taken.
@@ -30,6 +31,7 @@
 
 use crate::Error;
 use crate::accounts;
+use crate::approvals;
 use crate::auth::{self, Auth, Bucket, rate_limited, unauthorized};
 use crate::blobs::Blobs;
 use crate::keys;
@@ -302,6 +304,14 @@ async fn run(
         (Route::KeyPartGet(id), Some(c)) => keys::get_part(id, c.account, blobs).await,
         (Route::RecoveryChallenge, _) => keys::recovery_challenge(body, blobs, auth).await,
         (Route::RecoverySignIn, _) => keys::recovery_sign_in(body, blobs, auth).await,
+        (Route::Approvals, Some(c)) => approvals::create(body, c, blobs, auth).await,
+        (Route::ApprovalClaim, _) => approvals::claim(headers, body, blobs, auth).await,
+        (Route::ApprovalGet(id), _) => approvals::get(headers, id, blobs, auth).await,
+        (Route::ApprovalCommit(id), _) => approvals::commit(headers, body, id, blobs, auth).await,
+        (Route::ApprovalKeys(id), Some(c)) => approvals::keys(body, id, c, blobs, auth).await,
+        (Route::ApprovalReveal(id), _) => approvals::reveal(headers, body, id, blobs, auth).await,
+        (Route::ApprovalSeal(id), Some(c)) => approvals::seal(body, id, c, blobs, auth).await,
+        (Route::ApprovalDelete(id), _) => approvals::delete(headers, id, blobs, auth).await,
         // A session route always has its caller here.
         (_, None) => unauthorized(),
     }

@@ -2,7 +2,8 @@
 //! SYN-01.6). E16-S3 serves the health route, E16-S4 the vault routes,
 //! E16-S5 the account, sign-in, sign-out and revoke routes (SYN-04), E17-S1
 //! the account keys, key-file part and recovery routes (SYN-06.6, SYN-06.9,
-//! SYN-06.12); each later story adds its routes to [`find`].
+//! SYN-06.12), E17-S2 the approval routes (SYN-06.11, SYN-05); each later
+//! story adds its routes to [`find`].
 //!
 //! The ETag rules of SYN-01.6 (RFC 9110 sections 8.8.3, 13.1.1, 13.1.2): an
 //! ETag is always strong, `"` + the version in decimal + `"`, and is
@@ -10,7 +11,7 @@
 //! needs exactly one precondition: [`put_precondition`]. A GET answers 304
 //! when its `If-None-Match` names the current version: [`not_modified`].
 
-use crate::messages::{DeviceId, VaultId};
+use crate::messages::{DeviceId, Id, VaultId};
 use larsal_crypto::base64::{self, Form};
 use larsal_crypto::secret::SecretBytes;
 
@@ -34,6 +35,10 @@ pub const RECOVERY_CHALLENGE: &str = "/v1/recovery/challenge";
 pub const RECOVERY_SIGNIN: &str = "/v1/recovery/signin";
 /// The last segment of a vault's key-file part path (SYN-06.9).
 pub const KEYPART: &str = "/keypart";
+/// A new approval request (SYN-06.11 step 1); its routes are under it.
+pub const APPROVALS: &str = "/v1/approvals";
+/// The claim of an approval code (SYN-06.11 step 2).
+pub const APPROVAL_CLAIM: &str = "/v1/approvals/claim";
 
 /// A route the server serves.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,6 +74,26 @@ pub enum Route {
     /// `POST /v1/recovery/signin`, no session: a new device by the
     /// recovery key.
     RecoverySignIn,
+    /// `POST /v1/approvals`: a new approval request (SYN-06.11 step 1).
+    Approvals,
+    /// `POST /v1/approvals/claim`, approval code: N claims the request.
+    ApprovalClaim,
+    /// `GET /v1/approvals/{approval_id}`, a session or the approval code.
+    ApprovalGet(Id),
+    /// `POST /v1/approvals/{approval_id}/commit`, approval code: SYN-05's
+    /// message (1).
+    ApprovalCommit(Id),
+    /// `POST /v1/approvals/{approval_id}/keys`: SYN-05's message (2).
+    ApprovalKeys(Id),
+    /// `POST /v1/approvals/{approval_id}/reveal`, approval code: SYN-05's
+    /// message (3).
+    ApprovalReveal(Id),
+    /// `POST /v1/approvals/{approval_id}/seal`: the sealed `S_acct` and the
+    /// device signature (SYN-06.11 step 5).
+    ApprovalSeal(Id),
+    /// `DELETE /v1/approvals/{approval_id}`, a session or the approval
+    /// code: the request ends.
+    ApprovalDelete(Id),
 }
 
 impl Route {
@@ -92,10 +117,20 @@ impl Route {
             Route::KeyPartGet(_) => "keypart_get",
             Route::RecoveryChallenge => "recovery_challenge",
             Route::RecoverySignIn => "recovery_signin",
+            Route::Approvals => "approvals",
+            Route::ApprovalClaim => "approval_claim",
+            Route::ApprovalGet(_) => "approval_get",
+            Route::ApprovalCommit(_) => "approval_commit",
+            Route::ApprovalKeys(_) => "approval_keys",
+            Route::ApprovalReveal(_) => "approval_reveal",
+            Route::ApprovalSeal(_) => "approval_seal",
+            Route::ApprovalDelete(_) => "approval_delete",
         }
     }
 
-    /// True when the route needs `Authorization: Bearer` (SYN-01.4).
+    /// True when the route needs `Authorization: Bearer` (SYN-01.4). The
+    /// approval routes that take the approval code (`Authorization:
+    /// Approval`), alone or in place of a session, check it themselves.
     #[must_use]
     pub fn needs_session(&self) -> bool {
         !matches!(
@@ -106,6 +141,11 @@ impl Route {
                 | Route::SignIn
                 | Route::RecoveryChallenge
                 | Route::RecoverySignIn
+                | Route::ApprovalClaim
+                | Route::ApprovalGet(_)
+                | Route::ApprovalCommit(_)
+                | Route::ApprovalReveal(_)
+                | Route::ApprovalDelete(_)
         )
     }
 
@@ -120,6 +160,7 @@ impl Route {
                 | Route::SignIn
                 | Route::RecoveryChallenge
                 | Route::RecoverySignIn
+                | Route::ApprovalClaim
         )
     }
 }
@@ -151,12 +192,17 @@ pub fn find(method: &str, path: &str) -> Match {
         SIGNOUT => post(method, Route::SignOut),
         RECOVERY_CHALLENGE => post(method, Route::RecoveryChallenge),
         RECOVERY_SIGNIN => post(method, Route::RecoverySignIn),
+        APPROVALS => post(method, Route::Approvals),
+        APPROVAL_CLAIM => post(method, Route::ApprovalClaim),
         ACCOUNT_KEYS => match method {
             "GET" => Match::Route(Route::KeysGet),
             "PUT" => Match::Route(Route::KeysPut),
             _ => Match::MethodNotAllowed("GET, PUT"),
         },
         _ => {
+            if let Some(rest) = path.strip_prefix("/v1/approvals/") {
+                return approval(method, rest);
+            }
             if let Some(id) = path.strip_prefix("/v1/devices/") {
                 return match VaultId::parse(id) {
                     Some(id) if method == "DELETE" => Match::Route(Route::DeviceDelete(id)),
@@ -180,6 +226,30 @@ pub fn find(method: &str, path: &str) -> Match {
                 None => Match::NotFound,
             }
         }
+    }
+}
+
+/// The routes under `/v1/approvals/{approval_id}`: `rest` is the path
+/// after `/v1/approvals/`. An id that is not 32 lowercase hex digits names
+/// no route.
+fn approval(method: &str, rest: &str) -> Match {
+    let (id, tail) = rest
+        .split_once('/')
+        .map_or((rest, None), |(a, b)| (a, Some(b)));
+    let Some(id) = Id::parse(id) else {
+        return Match::NotFound;
+    };
+    match tail {
+        None => match method {
+            "GET" => Match::Route(Route::ApprovalGet(id)),
+            "DELETE" => Match::Route(Route::ApprovalDelete(id)),
+            _ => Match::MethodNotAllowed("GET, DELETE"),
+        },
+        Some("commit") => post(method, Route::ApprovalCommit(id)),
+        Some("keys") => post(method, Route::ApprovalKeys(id)),
+        Some("reveal") => post(method, Route::ApprovalReveal(id)),
+        Some("seal") => post(method, Route::ApprovalSeal(id)),
+        Some(_) => Match::NotFound,
     }
 }
 
@@ -476,6 +546,14 @@ mod tests {
             (Route::KeyPartGet(id), true, false, "keypart_get"),
             (Route::RecoveryChallenge, false, true, "recovery_challenge"),
             (Route::RecoverySignIn, false, true, "recovery_signin"),
+            (Route::Approvals, true, false, "approvals"),
+            (Route::ApprovalClaim, false, true, "approval_claim"),
+            (Route::ApprovalGet(id), false, false, "approval_get"),
+            (Route::ApprovalCommit(id), false, false, "approval_commit"),
+            (Route::ApprovalKeys(id), true, false, "approval_keys"),
+            (Route::ApprovalReveal(id), false, false, "approval_reveal"),
+            (Route::ApprovalSeal(id), true, false, "approval_seal"),
+            (Route::ApprovalDelete(id), false, false, "approval_delete"),
         ];
         for (route, session, signin, name) in all {
             assert_eq!(
@@ -603,6 +681,63 @@ mod tests {
         ] {
             assert_eq!(find("GET", bad), Match::NotFound, "{bad}");
             assert_eq!(find("PUT", bad), Match::NotFound, "{bad}");
+        }
+    }
+
+    /// SYN-01.4 with ruling (2) of E17-S2: the approval routes and their
+    /// methods; an id that is not 32 lowercase hex digits names no route.
+    #[test]
+    fn syn06_11_approval_routes_and_their_methods() {
+        let id = Id::parse(ID).unwrap();
+        assert_eq!(
+            find("POST", "/v1/approvals"),
+            Match::Route(Route::Approvals)
+        );
+        assert_eq!(
+            find("POST", "/v1/approvals/claim"),
+            Match::Route(Route::ApprovalClaim)
+        );
+        for path in ["/v1/approvals", "/v1/approvals/claim"] {
+            for method in ["GET", "PUT", "DELETE", "post"] {
+                assert_eq!(
+                    find(method, path),
+                    Match::MethodNotAllowed("POST"),
+                    "{path}"
+                );
+            }
+        }
+        let path = format!("/v1/approvals/{ID}");
+        assert_eq!(find("GET", &path), Match::Route(Route::ApprovalGet(id)));
+        assert_eq!(
+            find("DELETE", &path),
+            Match::Route(Route::ApprovalDelete(id))
+        );
+        for method in ["POST", "PUT", "get"] {
+            assert_eq!(find(method, &path), Match::MethodNotAllowed("GET, DELETE"));
+        }
+        for (tail, route) in [
+            ("commit", Route::ApprovalCommit(id)),
+            ("keys", Route::ApprovalKeys(id)),
+            ("reveal", Route::ApprovalReveal(id)),
+            ("seal", Route::ApprovalSeal(id)),
+        ] {
+            let p = format!("/v1/approvals/{ID}/{tail}");
+            assert_eq!(find("POST", &p), Match::Route(route));
+            for method in ["GET", "PUT", "DELETE"] {
+                assert_eq!(find(method, &p), Match::MethodNotAllowed("POST"), "{p}");
+            }
+        }
+        for bad in [
+            "/v1/approvals/",
+            "/v1/approvals/0123456789ABCDEF0123456789ABCDEF",
+            "/v1/approvals/0123456789abcdef0123456789abcde",
+            "/v1/approvals/0123456789abcdef0123456789abcdef/",
+            "/v1/approvals/0123456789abcdef0123456789abcdef/claim",
+            "/v1/approvals/0123456789abcdef0123456789abcdef/commit/",
+            "/v1/approvals/claim/x",
+        ] {
+            assert_eq!(find("GET", bad), Match::NotFound, "{bad}");
+            assert_eq!(find("POST", bad), Match::NotFound, "{bad}");
         }
     }
 

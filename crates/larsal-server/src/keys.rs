@@ -11,8 +11,10 @@
 //! classical record reaches a reader through this server. A recovery
 //! challenge gets the same reply for an unknown account, and a failed
 //! recovery sign-in 401 with one body for every reason after the same work
-//! (an unknown account is checked against [`DECOY`]); its nonce is gone all
-//! the same and passes no device sign-in (LD-327 (7)).
+//! (a keyless or unknown account is checked against the decoy the server
+//! drew at start, `Auth::decoy`, whose private key nobody holds, and the
+//! result is never used); its nonce is gone all the same and passes no
+//! device sign-in (LD-327 (7)).
 
 use crate::Error;
 use crate::accounts::{bad_request, new_id, read_json};
@@ -31,17 +33,8 @@ use larsal_proto::limits::{CHALLENGE_SECONDS, SESSION_IDLE_SECONDS, SESSION_MAX_
 use larsal_proto::messages::{AccountId, Challenge, DeviceId, ErrorCode, Session, VaultId};
 use larsal_proto::routes::{self, Precondition, PreconditionError};
 use larsal_proto::{signin, wrap};
+use rusqlite::Connection;
 use std::sync::Arc;
-
-/// The key an unknown account's recovery sign-in is checked against, for
-/// the time only: its result is never used. The Ed25519 base point B
-/// (RFC 8032 section 5.1), whose encoding is a valid point, so the check
-/// does all the work of a real one. Its private scalar is 1, so anyone can
-/// sign for it: its result must never register a device.
-const DECOY: [u8; 32] = [
-    0x58, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
-    0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
-];
 
 fn lines<'a>(headers: &'a HeaderMap, name: &HeaderName) -> Vec<&'a [u8]> {
     headers
@@ -210,45 +203,8 @@ pub(crate) async fn recovery_sign_in(
     else {
         return bad_request();
     };
-    let (b, now, origin) = (blobs.clone(), auth.now(), auth.origin.clone());
-    let done = blocking(move || {
-        b.store(|db| {
-            let Some((bound, expires)) = store::take_recovery(db, &record.nonce)? else {
-                return Ok(Recovery::Refused);
-            };
-            if bound != record.account_id || now >= expires {
-                return Ok(Recovery::Refused);
-            }
-            let check = |key: &[u8; 32]| {
-                signin::recovery_verify(
-                    key,
-                    &origin,
-                    &record.nonce,
-                    &bound,
-                    &record.device_public_key,
-                    &record.signature,
-                )
-            };
-            let Some(keys) = store::account_keys(db, &bound)? else {
-                std::hint::black_box(check(&DECOY));
-                return Ok(Recovery::Refused);
-            };
-            if !check(&keys.recovery_public_key) {
-                return Ok(Recovery::Refused);
-            }
-            let device = new_id()?;
-            let token =
-                random::bytes(32).map_err(|e| Error::new(format!("cannot draw a token: {e}")))?;
-            let hash = token_hash(token.expose())?;
-            let key = record.device_public_key;
-            let name = record.device_name.as_str();
-            if !store::recover_device(db, &bound, &device, &key, name, &hash, now)? {
-                return Ok(Recovery::Taken);
-            }
-            Ok(Recovery::Done(device, token))
-        })
-    })
-    .await;
+    let (b, now, origin, decoy) = (blobs.clone(), auth.now(), auth.origin.clone(), auth.decoy);
+    let done = blocking(move || b.store(|db| recover(db, &record, now, &origin, &decoy))).await;
     match done {
         Ok(Recovery::Done(device_id, token)) => {
             let session = Session {
@@ -264,20 +220,156 @@ pub(crate) async fn recovery_sign_in(
     }
 }
 
+/// The checks of [`recovery_sign_in`] on the store, in its order; a keyless
+/// or unknown account is checked against `decoy` for the time only, and
+/// that result is never used.
+fn recover(
+    db: &mut Connection,
+    record: &RecoverySignIn,
+    now: u64,
+    origin: &str,
+    decoy: &[u8; 32],
+) -> Result<Recovery, Error> {
+    let Some((bound, expires)) = store::take_recovery(db, &record.nonce)? else {
+        return Ok(Recovery::Refused);
+    };
+    if bound != record.account_id || now >= expires {
+        return Ok(Recovery::Refused);
+    }
+    let check = |key: &[u8; 32]| {
+        signin::recovery_verify(
+            key,
+            origin,
+            &record.nonce,
+            &bound,
+            &record.device_public_key,
+            &record.signature,
+        )
+    };
+    let Some(keys) = store::account_keys(db, &bound)? else {
+        std::hint::black_box(check(decoy));
+        return Ok(Recovery::Refused);
+    };
+    if !check(&keys.recovery_public_key) {
+        return Ok(Recovery::Refused);
+    }
+    let device = new_id()?;
+    let token = random::bytes(32).map_err(|e| Error::new(format!("cannot draw a token: {e}")))?;
+    let hash = token_hash(token.expose())?;
+    let key = record.device_public_key;
+    let name = record.device_name.as_str();
+    if !store::recover_device(db, &bound, &device, &key, name, &hash, now)? {
+        return Ok(Recovery::Taken);
+    }
+    Ok(Recovery::Done(device, token))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// SYN-06.12: the decoy is an Ed25519 point (B, RFC 8032 section 5.1),
-    /// so an unknown account's check runs the whole verify; a signature by
-    /// some seed never verifies with it.
+    use crate::data::tests::Scratch;
+
+    /// RFC 8032 section 5.1's base point B, whose private scalar is 1: the
+    /// decoy of E17-S1, kept here to show the drawn one is not it.
+    const B: [u8; 32] = [
+        0x58, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+        0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+        0x66, 0x66,
+    ];
+
+    fn hex(text: &str) -> Vec<u8> {
+        text.as_bytes()
+            .chunks(2)
+            .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect()
+    }
+
+    /// Checker 2's scalar-1 signature over its demo message
+    /// (e17s1 c2/scripts/decoy.py, RFC 8032 arithmetic, no Larsal code).
+    const C2_MESSAGE: &[u8] = b"sync-recovery-signin-v1 demo message for the decoy proof";
+    const C2_SIGNATURE: &str = "8f5b037474d0c5a271d7ed32fd9ca87d31b366f2f5bc993b740b2fdd74c236cb\
+                                85f977ff4867f6a816b0eb7f2d90ba5946822e330dcddd83ec0354a7b096d900";
+
+    /// The fixed inputs of the scalar-1 recovery signatures below, which
+    /// proof/decoy-scalar-one.py made over SYN-06.12's message.
+    const ORIGIN: &str = "https://127.0.0.1:1";
+    const NONCE: [u8; 32] = [0x37; 32];
+    /// The P-256 generator, 65 SEC1 bytes (SEC 2 v2 section 2.4.2): a point.
+    const DEVICE: &str = "046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296\
+                          4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
+    /// For account [1; 16] (keyless) and [9; 16] (unknown).
+    const KEYLESS_SIGNATURE: &str = "84adc36018c28326e3b2b7addf77689b5e602bc7837703af5b41681f5a228cc6\
+                                     05757e43d30d987367810e6b8aa04655affe790560a84bf85159aa86474f8600";
+    const UNKNOWN_SIGNATURE: &str = "bd2e783079a6a277f08c54225e29149ed9c5ab0bd74b776beb5ebef11beea656\
+                                     0803df0f96b1c5203a4cdf7721d1cac6e353540c07ceddd18d3505a7f2d3c10d";
+
+    /// E17-S1's finding C2-F2 (ruling (13)(b)): the decoy is drawn at each
+    /// start, is a point (a seed's public key, so the check runs the whole
+    /// verify), is never B, and a signature by scalar 1, which verifies
+    /// with B, does not verify with it.
     #[test]
-    fn syn06_12_decoy_is_an_ed25519_point() {
-        let mut one = vec![0u8; 32];
-        one[0] = 1;
-        let signed = sign::ed25519_sign(&SecretBytes::new(one), b"m").unwrap();
-        assert!(sign::ed25519_verify(&DECOY, b"m", &signed).is_err());
-        assert_eq!(DECOY[0], 0x58);
-        assert!(DECOY[1..].iter().all(|b| *b == 0x66));
+    fn syn06_12_c2_f2_the_decoy_is_drawn_at_start_and_nobody_holds_its_key() {
+        let (one, two) = (
+            Auth::new(String::new()).unwrap(),
+            Auth::new(String::new()).unwrap(),
+        );
+        assert_ne!(one.decoy, two.decoy, "drawn at each start");
+        assert_ne!(one.decoy, B);
+        let signature = hex(C2_SIGNATURE);
+        assert!(
+            sign::ed25519_verify(&B, C2_MESSAGE, &signature).is_ok(),
+            "control: the vector is a scalar-1 signature"
+        );
+        assert!(sign::ed25519_verify(&one.decoy, C2_MESSAGE, &signature).is_err());
+        let seed = SecretBytes::new(vec![5; 32]);
+        let signed = sign::ed25519_sign(&seed, b"m").unwrap();
+        let public = sign::ed25519_public(&seed).unwrap();
+        assert!(sign::ed25519_verify(&public, b"m", &signed).is_ok());
+        assert!(sign::ed25519_verify(&one.decoy, b"m", &signed).is_err());
+    }
+
+    /// Checker 2's test (mutant S06, ruling (13)(b)): a recovery sign-in
+    /// with a signature by scalar 1 for a keyless account and for an
+    /// unknown one is refused (401) and writes no device, even with B as
+    /// the decoy, where that signature verifies: the decoy's result is
+    /// never used.
+    #[test]
+    fn syn06_12_c2_a_scalar_one_signature_for_a_keyless_or_unknown_account_registers_nothing() {
+        let scratch = Scratch::new();
+        let mut db = store::open(&scratch.0.join("store.sqlite")).unwrap();
+        let keyless = AccountId::from_bytes([1; 16]);
+        let first = DeviceId::from_bytes([101; 16]);
+        assert!(store::create_account(&mut db, &keyless, &first, &[1; 65], "Mac", 1).unwrap());
+        let unknown = AccountId::from_bytes([9; 16]);
+        let t0 = 1_800_000_000;
+        let device: [u8; 65] = hex(DEVICE).try_into().unwrap();
+        assert!(sign::p256_public_ok(&device));
+        let devices = |db: &Connection| -> i64 {
+            db.query_row("SELECT count(*) FROM devices", [], |r| r.get(0))
+                .unwrap()
+        };
+        let before = devices(&db);
+        for (account, signature) in [(keyless, KEYLESS_SIGNATURE), (unknown, UNKNOWN_SIGNATURE)] {
+            let signature = hex(signature);
+            let message = signin::recovery_message(ORIGIN, &NONCE, &account, &device).unwrap();
+            assert!(
+                sign::ed25519_verify(&B, &message, &signature).is_ok(),
+                "control: a scalar-1 signature over this sign-in"
+            );
+            let record = RecoverySignIn {
+                account_id: account,
+                nonce: NONCE,
+                device_public_key: device,
+                device_name: "Mac".to_owned(),
+                signature: signature.try_into().unwrap(),
+            };
+            for decoy in [B, Auth::new(String::new()).unwrap().decoy] {
+                store::recovery_challenge(&db, &NONCE, &account, t0 + 300, t0).unwrap();
+                let done = recover(&mut db, &record, t0 + 1, ORIGIN, &decoy).unwrap();
+                assert!(matches!(done, Recovery::Refused), "401");
+                assert_eq!(devices(&db), before, "no device row");
+            }
+        }
     }
 }

@@ -45,11 +45,16 @@ struct Window {
     count: u32,
 }
 
-/// The server's sign-in state that is not in the store: its origin, its
-/// clock and the rate limit windows.
+/// The server's sign-in state that is not in the store: its origin, the
+/// recovery decoy, its clock and the rate limit windows.
 pub(crate) struct Auth {
     /// The origin a sign-in signs (SYN-04.4): `https://127.0.0.1:<port>`.
     pub(crate) origin: String,
+    /// The Ed25519 public key a keyless or unknown account's recovery
+    /// sign-in is checked against, for the time only (SYN-06.12): drawn
+    /// at start from larsal-crypto's random source, its seed wiped at once,
+    /// so nobody holds its private key (E17-S1's finding C2-F2).
+    pub(crate) decoy: [u8; 32],
     windows: Mutex<HashMap<(IpAddr, Bucket), Window>>,
     /// Test seam: when not 0, the clock reads this second.
     #[cfg(any(test, feature = "test-seams"))]
@@ -57,13 +62,21 @@ pub(crate) struct Auth {
 }
 
 impl Auth {
-    pub(crate) fn new(origin: String) -> Self {
-        Self {
+    /// # Errors
+    /// The random source fails.
+    pub(crate) fn new(origin: String) -> Result<Self, Error> {
+        let seed = larsal_crypto::random::bytes(32)
+            .map_err(|e| Error::new(format!("cannot draw the decoy: {e}")))?;
+        let decoy = larsal_crypto::sign::ed25519_public(&seed)
+            .map_err(|e| Error::new(format!("cannot make the decoy: {e}")))?;
+        drop(seed);
+        Ok(Self {
             origin,
+            decoy,
             windows: Mutex::new(HashMap::new()),
             #[cfg(any(test, feature = "test-seams"))]
             fixed: std::sync::atomic::AtomicU64::new(0),
-        }
+        })
     }
 
     /// The server's clock, in whole seconds since 1970 (UTC).
@@ -170,7 +183,7 @@ mod tests {
     /// in one minute, the wait in `Retry-After`, then a new window.
     #[test]
     fn syn01_12_t19_window_limit_retry_after_and_reset() {
-        let auth = Auth::new(String::new());
+        let auth = Auth::new(String::new()).unwrap();
         let t0 = 1_800_000_000;
         auth.fixed.store(t0, Ordering::SeqCst);
         let ip = IpAddr::V4(Ipv4Addr::LOCALHOST);
@@ -194,7 +207,7 @@ mod tests {
     /// bounded; a live one is kept with its count.
     #[test]
     fn syn01_12_ended_windows_are_pruned() {
-        let auth = Auth::new(String::new());
+        let auth = Auth::new(String::new()).unwrap();
         let t0 = 1_800_000_000;
         auth.fixed.store(t0, Ordering::SeqCst);
         for n in 0..PRUNE_AT {

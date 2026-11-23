@@ -14,8 +14,9 @@
 //! `auth.rs`; SYN-04, SYN-01.5, SYN-01.12) and the request log line
 //! (SYN-01.13). E17-S1 adds the account keys, the key-file part wraps and
 //! the recovery sign-in (`keys.rs`; SYN-06.6, SYN-06.9, SYN-06.12) and the
-//! upload signature of every vault version (`vaults.rs`, SYN-01.7). The
-//! sharing routes come with E18.
+//! upload signature of every vault version (`vaults.rs`, SYN-01.7). E17-S2
+//! adds a new Mac by approval (`approvals.rs`; SYN-06.11, SYN-05), which
+//! replaces SYN-04.11's test helper. The sharing routes come with E18.
 //!
 //! Guarantees: the server listens on 127.0.0.1 only (architecture "Rules for
 //! this part" 5); every request is untrusted, and no reply holds text from
@@ -34,6 +35,7 @@
 #![deny(missing_docs)]
 
 mod accounts;
+mod approvals;
 mod auth;
 mod blobs;
 pub mod data;
@@ -118,7 +120,7 @@ impl Server {
             certificate,
             config: Arc::new(config),
             blobs,
-            auth: Arc::new(auth::Auth::new(origin)),
+            auth: Arc::new(auth::Auth::new(origin)?),
         })
     }
 
@@ -160,10 +162,11 @@ impl Server {
 }
 
 /// Tests only: built with the `test-seams` feature, which only larsal-server's
-/// own tests turn on (a dev-dependency on itself), so a release server has
-/// none of this. The test clock, SYN-04.11's helper that registers a
-/// second device before E17-S2 brings the approval, and the switch that lets
-/// an account with no keys row upload unsigned (E16's tests).
+/// own tests and larsal-sync's test server turn on, so a release server has
+/// none of this. The test clock and the switch that lets an account with no
+/// keys row upload unsigned (E16's tests). No seam writes a device row: a
+/// second device joins only by approval (SYN-06.11) or by Recovery Kit
+/// (SYN-06.12), as on a release server (E17-S2's ruling (7)).
 #[cfg(any(test, feature = "test-seams"))]
 pub struct TestSeams {
     blobs: Arc<blobs::Blobs>,
@@ -178,28 +181,6 @@ impl TestSeams {
         self.auth
             .fixed
             .store(seconds, std::sync::atomic::Ordering::SeqCst);
-    }
-
-    /// SYN-04.11: registers `public_key` (65 SEC1 bytes) as another device
-    /// of `account`. `Ok(None)` when the key is registered already.
-    ///
-    /// # Errors
-    /// The account does not exist, or the store fails.
-    pub fn add_device(
-        &self,
-        account: &larsal_proto::messages::AccountId,
-        public_key: &[u8; 65],
-        name: &str,
-    ) -> Result<Option<larsal_proto::messages::DeviceId>, Error> {
-        let mut id = [0u8; 16];
-        larsal_crypto::random::fill(&mut id)
-            .map_err(|e| Error::new(format!("cannot draw an id: {e}")))?;
-        let device = larsal_proto::messages::DeviceId::from_bytes(id);
-        let now = self.auth.now();
-        let added = self
-            .blobs
-            .store(|db| store::add_device(db, account, &device, public_key, name, now))?;
-        Ok(added.then_some(device))
     }
 
     /// SYN-01.7 for the tests of E16 only: with `on`, an account with no
@@ -225,5 +206,48 @@ mod tests {
             rusqlite::ffi::SQLITE_VERSION_NUMBER
         );
         assert_eq!(rusqlite::version(), "3.53.2");
+    }
+
+    /// SYN-04 T14 as E17-S2 rewrites it (ruling (7)): no seam writes a
+    /// device row. The seams are the clock and the unsigned switch, and
+    /// neither opens the store or names a device; the store writes a device
+    /// row in one place, which only sign-up, the recovery sign-in and the
+    /// approval's seal call.
+    #[test]
+    fn syn04_t14_no_seam_writes_a_device_row() {
+        let lib = include_str!("lib.rs");
+        let seams = lib
+            .split("impl TestSeams {")
+            .nth(1)
+            .and_then(|rest| rest.split("\n}\n").next())
+            .unwrap();
+        let names: Vec<&str> = seams
+            .split("pub fn ")
+            .skip(1)
+            .map(|f| f.split('(').next().unwrap_or(""))
+            .collect();
+        assert_eq!(names, ["set_clock", "allow_unsigned"], "the seams");
+        for word in [
+            "store(|",
+            "store::",
+            "INSERT",
+            "insert_device",
+            "add_device",
+            "device",
+        ] {
+            assert!(!seams.contains(word), "a seam names {word}");
+        }
+        let store = include_str!("store.rs");
+        assert_eq!(store.matches("INSERT INTO devices").count(), 1);
+        let callers: Vec<&str> = store
+            .split("\npub(crate) fn ")
+            .filter(|f| f.contains("insert_device(&tx"))
+            .map(|f| f.split('(').next().unwrap_or(""))
+            .collect();
+        assert_eq!(
+            callers,
+            ["create_account", "recover_device", "seal_approval"],
+            "the only writers of a device row"
+        );
     }
 }

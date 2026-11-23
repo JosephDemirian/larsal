@@ -12,7 +12,10 @@
 //! LD-305 (5): 4 KiB, then 16 KiB for E25-S3's hybrid record, CRY-05.14).
 //! E17-S1 adds [`account`]: the account keys and recovery records, the
 //! upload signature's message and header, and the key-file part's wrap info
-//! (SYN-06, SYN-01.7). Later stories add their routes and records here.
+//! (SYN-06, SYN-01.7). E17-S2 adds [`approval`] (the approval code, the
+//! compare's field lists and the approval records of SYN-05 and SYN-06.11)
+//! and [`base32`] (the kit's and the approval code's text). Later stories
+//! add their routes and records here.
 //!
 //! Guarantees: every reader takes untrusted bytes and never panics; a record
 //! over its size limit is refused before it is parsed. This crate never
@@ -30,6 +33,8 @@
 #![deny(missing_docs)]
 
 pub mod account;
+pub mod approval;
+pub mod base32;
 pub mod limits;
 pub mod messages;
 pub mod routes;

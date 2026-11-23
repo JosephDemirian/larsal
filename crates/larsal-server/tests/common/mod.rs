@@ -2,11 +2,17 @@
 //! on 127.0.0.1:0 with a fresh data folder under the system's temp folder,
 //! TLS clients that trust only its certificate, raw HTTP/1.1 requests, and
 //! a device that signs in with a software P-256 key (larsal-crypto's
-//! `P256TestKey`, tests only). Every client connects to 127.0.0.1 only;
-//! nothing reaches another host.
+//! `P256TestKey`, tests only). A second device of an account joins as on a
+//! release server, by approval (SYN-06.11, E17-S2): [`second_device`] runs
+//! the code compare by raw HTTP with E and N both answering Codes match.
+//! Every client connects to 127.0.0.1 only; nothing reaches another host.
 #![allow(dead_code)]
 
 use larsal_crypto::sign::P256TestKey;
+use larsal_proto::approval::{
+    self as approval, ApprovalClaim, ApprovalClaimed, ApprovalCreate, ApprovalSeal, ApprovalStart,
+    ApprovalState, CompareCommit, CompareKeys,
+};
 use larsal_proto::messages::{
     AccountCreate, AccountCreated, AccountId, Challenge, ChallengeRequest, DeviceId, Session,
     SignIn,
@@ -263,19 +269,189 @@ pub async fn sign_up(s: &Running) -> Device {
     }
 }
 
-/// SYN-04.11's helper: another device of `account`, with a new key.
-pub fn second_device(s: &Running, account: &AccountId) -> Device {
+/// E17-S2: new account keys for `device`'s account, stored with
+/// `PUT /v1/account/keys` while `device` is signed in (201); the session
+/// is ended again, so the test's session rows stay as they were.
+pub async fn keys_for(s: &Running, device: &Device) -> larsal_crypto::account::AccountKeys {
+    let auth = bearer(&sign_in(s, device).await);
+    let (keys, record) = account_keys(&device.account);
+    let pre = format!("{auth}If-None-Match: *\r\n");
+    let r = exchange(
+        s,
+        &request("PUT", "/v1/account/keys", &pre, &record.to_json()),
+    )
+    .await;
+    assert_eq!(r.status, 201, "{r:?}");
+    sign_out(s, &auth).await;
+    keys
+}
+
+/// `POST /v1/signout` with the `Authorization` line `auth`: 204.
+pub async fn sign_out(s: &Running, auth: &str) {
+    let r = exchange(s, &request("POST", "/v1/signout", auth, b"")).await;
+    assert_eq!(r.status, 204, "{r:?}");
+}
+
+/// The `Authorization` line of N's approval routes for `code`.
+pub fn approval_line(code: &larsal_crypto::secret::SecretBytes) -> String {
+    format!(
+        "Authorization: {}\r\n",
+        approval::authorization(code).expose()
+    )
+}
+
+/// SYN-06.11 by raw HTTP, in place of SYN-04.11's helper (E17-S2's ruling
+/// (7)): `approver` (E, of the account whose keys are `keys`) adds a new
+/// device N with a new key named "Mac 2". E makes the request with the
+/// code's SHA-256; N claims it and commits (SYN-05's message (1)); E sends
+/// `K_R` and `n_R`; N reveals `K_C` and `n_C`; both compute one code and
+/// answer Codes match; E seals `S_acct` to N's one-request X-Wing key and
+/// signs N's device; N reads the seal and its device id, and opens the seal
+/// with the info it builds itself, checked against the identity key it
+/// compared. Every step's reply is checked; E's session is ended at the
+/// end, and N has none, so the test's session rows stay as they were.
+pub async fn second_device(
+    s: &Running,
+    approver: &Device,
+    keys: &larsal_crypto::account::AccountKeys,
+) -> Device {
+    second_device_with(s, approver, keys, &|_| {}).await
+}
+
+/// [`second_device`], calling `after` with each step's name ("create",
+/// "claim", "commit", "keys", "reveal", "seal", "taken") once its reply
+/// is in, so a test can read the store between the steps.
+pub async fn second_device_with(
+    s: &Running,
+    approver: &Device,
+    keys: &larsal_crypto::account::AccountKeys,
+    after: &dyn Fn(&'static str),
+) -> Device {
+    let e = bearer(&sign_in(s, approver).await);
+    let account = approver.account;
+    let post = async |path: String, auth: &str, body: Vec<u8>| {
+        exchange(s, &request("POST", &path, auth, &body)).await
+    };
+    // Step 1.
+    let code = larsal_crypto::random::bytes(approval::CODE_BYTES).unwrap();
+    let create = ApprovalCreate {
+        code_hash: approval::code_hash(&code).unwrap(),
+    };
+    let r = post("/v1/approvals".to_owned(), &e, create.to_json()).await;
+    assert_eq!(r.status, 201, "{r:?}");
+    let start = ApprovalStart::read(&r.body).unwrap();
+    after("create");
+    // Step 2.
+    let n = approval_line(&code);
     let key = P256TestKey::new().unwrap();
-    let public: [u8; 65] = key.public().try_into().unwrap();
-    let seams = s.seams.as_ref().unwrap();
-    let id = seams
-        .add_device(account, &public, "Mac 2")
+    let device: [u8; 65] = key.public().try_into().unwrap();
+    let claim = ApprovalClaim {
+        device_public_key: device,
+        device_name: "Mac 2".to_owned(),
+    };
+    let r = post("/v1/approvals/claim".to_owned(), &n, claim.to_json()).await;
+    assert_eq!(r.status, 201, "{r:?}");
+    let claimed = ApprovalClaimed::read(&r.body).unwrap();
+    assert_eq!(
+        (claimed.approval_id, claimed.account_id),
+        (start.approval_id, account)
+    );
+    after("claim");
+    let id = claimed.approval_id;
+    let ctx = approval::ctx(&account, &id).unwrap();
+    let (seed, xwing) = larsal_crypto::pq::xwing_keypair().unwrap();
+    let keys_c = approval::keys_c(&device, &xwing).unwrap();
+    let n_c: [u8; 32] = larsal_crypto::random::bytes(32)
         .unwrap()
+        .expose()
+        .try_into()
         .unwrap();
+    let commit = approval::commitment(&ctx, &keys_c, &n_c).unwrap();
+    let commit = CompareCommit {
+        commit: commit.expose().try_into().unwrap(),
+    };
+    let r = post(format!("/v1/approvals/{id}/commit"), &n, commit.to_json()).await;
+    assert_eq!(r.status, 204, "{r:?}");
+    after("commit");
+    // Step 3.
+    let r = exchange(s, &request("GET", &format!("/v1/approvals/{id}"), &e, b"")).await;
+    assert_eq!(r.status, 200, "{r:?}");
+    let seen = ApprovalState::read(&r.body).unwrap();
+    assert_eq!(seen.device_public_key, Some(device));
+    assert_eq!(seen.commit, Some(commit.commit));
+    let mine: [u8; 65] = approver.key.public().try_into().unwrap();
+    let keys_r = approval::keys_r(keys.identity_public_key(), &mine).unwrap();
+    let n_r: [u8; 32] = larsal_crypto::random::bytes(32)
+        .unwrap()
+        .expose()
+        .try_into()
+        .unwrap();
+    let message = CompareKeys {
+        keys: keys_r.clone(),
+        nonce: n_r,
+    };
+    let r = post(format!("/v1/approvals/{id}/keys"), &e, message.to_json()).await;
+    assert_eq!(r.status, 204, "{r:?}");
+    after("keys");
+    // Step 4.
+    let r = exchange(s, &request("GET", &format!("/v1/approvals/{id}"), &n, b"")).await;
+    assert_eq!(r.status, 200, "{r:?}");
+    let seen = ApprovalState::read(&r.body).unwrap();
+    assert_eq!(seen.keys_r, Some((keys_r.clone(), n_r)));
+    let reveal = CompareKeys {
+        keys: keys_c.clone(),
+        nonce: n_c,
+    };
+    let r = post(format!("/v1/approvals/{id}/reveal"), &n, reveal.to_json()).await;
+    assert_eq!(r.status, 204, "{r:?}");
+    after("reveal");
+    // E checks the reveal against the commitment; both codes agree.
+    let r = exchange(s, &request("GET", &format!("/v1/approvals/{id}"), &e, b"")).await;
+    let seen = ApprovalState::read(&r.body).unwrap();
+    let (k, nonce) = seen.keys_c.unwrap();
+    let again = approval::commitment(&ctx, &k, &nonce).unwrap();
+    assert!(larsal_crypto::secret::ct_eq(again.expose(), &commit.commit));
+    let on_e = approval::code(&ctx, &keys_r, &k, &n_r, &nonce).unwrap();
+    let on_n = approval::code(&ctx, &keys_r, &keys_c, &n_r, &n_c).unwrap();
+    assert_eq!(on_e, on_n, "Codes match");
+    // Step 5.
+    let info = approval::seal_info(&account, &id, &device).unwrap();
+    let seal = larsal_crypto::wrap_record::make(
+        &xwing,
+        &info,
+        keys.account_secret().expose(),
+        *account.as_bytes(),
+        keys.identity_private_key(),
+    )
+    .unwrap();
+    let message = approval::device_message(&account, &device, &id).unwrap();
+    let device_signature =
+        larsal_crypto::pq::composite_sign(keys.identity_private_key(), &message).unwrap();
+    let body = ApprovalSeal {
+        seal,
+        device_signature,
+    };
+    let r = post(format!("/v1/approvals/{id}/seal"), &e, body.to_json()).await;
+    assert_eq!(r.status, 204, "{r:?}");
+    after("seal");
+    // Step 6.
+    let r = exchange(s, &request("GET", &format!("/v1/approvals/{id}"), &n, b"")).await;
+    assert_eq!(r.status, 200, "{r:?}");
+    let (sealed, device_id) = ApprovalState::read(&r.body).unwrap().seal.unwrap();
+    let record = larsal_proto::wrap::read(&sealed).unwrap();
+    let opened =
+        larsal_crypto::wrap_record::open(&record, keys.identity_public_key(), &info, &seed)
+            .unwrap();
+    assert!(larsal_crypto::secret::ct_eq(
+        opened.expose(),
+        keys.account_secret().expose()
+    ));
+    after("taken");
+    sign_out(s, &e).await;
     Device {
         key,
-        id,
-        account: *account,
+        id: device_id,
+        account,
     }
 }
 

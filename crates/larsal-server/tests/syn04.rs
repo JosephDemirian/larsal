@@ -9,12 +9,13 @@
 mod common;
 
 use common::{
-    Device, Reply, Running, Scratch, bearer, block_on, challenge, exchange, origin, post_sign_in,
-    read_all, request, scratch, second_device, set_clock, sign_in, sign_up, signed, start,
-    start_bare, tls,
+    Device, Reply, Running, Scratch, bearer, block_on, challenge, exchange, keys_for, origin,
+    post_sign_in, read_all, request, scratch, second_device, set_clock, sign_in, sign_up, signed,
+    start, start_bare, tls,
 };
 use larsal_crypto::base64::{self, Form};
 use larsal_crypto::sign::P256TestKey;
+use larsal_proto::approval;
 use larsal_proto::limits::MAX_SIGNATURE;
 use larsal_proto::messages::{AccountCreate, AccountCreated, ChallengeRequest, DeviceId, SignIn};
 use larsal_proto::signin;
@@ -262,7 +263,8 @@ fn syn04_4_t05_each_failure_gets_the_same_401() {
         let s = start_bare(signin_limit(100)).await;
         set_clock(&s, T0);
         let d1 = sign_up(&s).await;
-        let d2 = second_device(&s, &d1.account);
+        let keys = keys_for(&s, &d1).await;
+        let d2 = second_device(&s, &d1, &keys).await;
         let o = origin(&s);
         let port = s.addr.port();
         let mut refused = Vec::new();
@@ -461,7 +463,8 @@ fn syn04_8_t10_revoke_ends_the_device_and_keeps_the_last() {
         let s = start_bare(signin_limit(100)).await;
         let d1 = sign_up(&s).await;
         let a1 = bearer(&sign_in(&s, &d1).await);
-        let d2 = second_device(&s, &d1.account);
+        let keys = keys_for(&s, &d1).await;
+        let d2 = second_device(&s, &d1, &keys).await;
         let a2 = bearer(&sign_in(&s, &d2).await);
         let open = challenge(&s, &d2.id).await;
         let other = sign_up(&s).await;
@@ -499,7 +502,7 @@ fn syn04_8_t10_revoke_ends_the_device_and_keeps_the_last() {
         revoke(&s, &a1, &d1.id).await.assert_error(409, "conflict");
         assert_eq!(vaults(&s, &a1).await.status, 200, "d1 is unchanged");
 
-        let d3 = second_device(&s, &d1.account);
+        let d3 = second_device(&s, &d1, &keys).await;
         let a3 = bearer(&sign_in(&s, &d3).await);
         assert_eq!(revoke(&s, &a3, &d3.id).await.status, 204, "itself");
         vaults(&s, &a3).await.assert_unauthorized();
@@ -539,7 +542,8 @@ fn syn01_5_t05_bad_tokens_get_one_401() {
         set_clock(&s, T0 + 901);
         let live = sign_in(&s, &d1).await;
         let auth = bearer(&live);
-        let d2 = second_device(&s, &d1.account);
+        let keys = keys_for(&s, &d1).await;
+        let d2 = second_device(&s, &d1, &keys).await;
         let revoked = bearer(&sign_in(&s, &d2).await);
         assert_eq!(revoke(&s, &auth, &d2.id).await.status, 204);
 
@@ -910,7 +914,9 @@ fn is_request_line(line: &str) -> bool {
 /// a revoke and a sign-out, writes one request line per request on its
 /// standard error and nothing else; no line holds the `Authorization`
 /// header, a token, a nonce, a signature, a device key or a body. Every
-/// reply has `Cache-Control: no-store`.
+/// reply has `Cache-Control: no-store`. E17-S2 (ruling (4)): the run also
+/// starts an approval and claims it, and no line holds its code, raw, in
+/// base32 (either case), hex or base64.
 #[test]
 fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
     use std::io::{BufRead, Read};
@@ -937,6 +943,7 @@ fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
     assert!(first.starts_with("Larsal sync server (demo)"), "{first}");
     let mut err = server.0.stderr.take().unwrap();
     let der = std::fs::read(data.0.join("tls").join("cert.der")).unwrap();
+    let code = larsal_crypto::random::bytes(approval::CODE_BYTES).unwrap();
     let mut s = Running {
         addr: SocketAddr::from((Ipv4Addr::LOCALHOST, port)),
         cert: CertificateDer::from(der),
@@ -976,6 +983,26 @@ fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
             200
         );
         assert_eq!(vaults(&s, &s.auth).await.status, 200);
+        let start = approval::ApprovalCreate {
+            code_hash: approval::code_hash(&code).unwrap(),
+        };
+        let r = exchange(
+            &s,
+            &request("POST", "/v1/approvals", &s.auth, &start.to_json()),
+        )
+        .await;
+        assert_eq!(r.status, 201, "{r:?}");
+        let claim = approval::ApprovalClaim {
+            device_public_key: P256TestKey::new().unwrap().public().try_into().unwrap(),
+            device_name: "New Mac".to_owned(),
+        };
+        let line = common::approval_line(&code);
+        let r = exchange(
+            &s,
+            &request("POST", "/v1/approvals/claim", &line, &claim.to_json()),
+        )
+        .await;
+        assert_eq!(r.status, 201, "{r:?}");
         let random = format!("Authorization: Bearer {}\r\n", "A".repeat(43));
         vaults(&s, &random).await.assert_unauthorized();
         let r = exchange(&s, &request("GET", "/v1/secret-path-words", "", b"")).await;
@@ -1009,6 +1036,9 @@ fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
             if let Some(token) = line.strip_prefix("Authorization: Bearer ") {
                 secrets.push(token.as_bytes().to_vec());
             }
+            if let Some(code) = line.strip_prefix("Authorization: Approval ") {
+                secrets.push(code.as_bytes().to_vec());
+            }
             if let Some(signature) = line.strip_prefix("Upload-Signature: ") {
                 secrets.push(signature.as_bytes().to_vec());
             }
@@ -1033,6 +1063,17 @@ fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
         }
     }
     assert!(secrets.len() > 15, "{}", secrets.len());
+    let base32 = larsal_proto::base32::encode(code.expose(), false);
+    for form in [
+        code.expose().to_vec(),
+        base32.expose().as_bytes().to_vec(),
+        base32.expose().to_lowercase().into_bytes(),
+        hex(code.expose()).into_bytes(),
+        base64::encode(Form::Padded, code.expose()).into_bytes(),
+        base64::encode(Form::Url, code.expose()).into_bytes(),
+    ] {
+        secrets.push(form);
+    }
     for secret in &secrets {
         assert!(
             !holds(log.as_bytes(), secret),

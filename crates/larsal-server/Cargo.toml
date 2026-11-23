@@ -29,9 +29,10 @@ rcgen = { workspace = true }
 rusqlite = { workspace = true, features = ["bundled"] }
 
 [features]
-# E16-S5: the test clock and SYN-04.11's second-device helper (lib.rs
-# `TestSeams`). Only larsal-server's own tests turn it on, through the
-# dev-dependency on itself below; a release server has neither.
+# E16-S5: the test clock and the unsigned-upload switch of E16's tests (lib.rs
+# `TestSeams`); E17-S2 removed SYN-04.11's second-device helper, so no seam
+# writes a device row. Only larsal-server's own tests and larsal-sync's test
+# server turn it on; a release server has none of it.
 test-seams = []
 
 [dev-dependencies]

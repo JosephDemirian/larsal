@@ -1,22 +1,28 @@
 //! E16-S7a's full runs: two Macs (two sessions, two devices of one account,
 //! each with its own settings folder and test clock) against Larsal's server
 //! in process on 127.0.0.1:0 with its first-start certificate, pinned
-//! (LD-327 (6)). The second device comes from the server's test helper
-//! (SYN-04.11); the device keys are test-seam keys (LD-317 (2)). Timing
-//! runs on the test clocks; no test sleeps.
+//! (LD-327 (6)). Mac A's cached client holds its account's keys from its
+//! sign-up on (SYN-06.1 to SYN-06.7, made by the test: the app loads no
+//! account keys yet, E17-S4), so its uploads are signed; the second device
+//! is approved by A through SYN-06.11 with the code compare (E17-S2), and
+//! its client holds the account's keys too: no seam adds a device. The
+//! device keys are test-seam keys (LD-317 (2)). Timing runs on the test
+//! clocks; no test sleeps.
 
 use super::*;
 use crate::edit::EditText;
 use crate::saving::{DiskChoice, DiskEvent};
 use crate::test_dir::TempDir;
 use crate::views::ListView;
-use larsal_sync::test_server::{LarsalServer, Scripted, TestClock, larsal_server};
+use larsal_sync::test_server::{LarsalServer, Memory, Scripted, TestClock, approve, larsal_server};
 
 const DEMO: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../testdata/option-a-personal.larsalvault"
 );
 const PASSWORD: &str = "demo-pass-7";
+/// The demo account password of every test account (SYN-06.2).
+const ACCOUNT_PASSWORD: &str = "demo-account-pw";
 /// The key-file part of a vault a test links by hand to a scripted server.
 const TEST_PART: [u8; 32] = [0x5a; 32];
 
@@ -195,31 +201,130 @@ impl Mac {
     }
 }
 
-/// LD-266 (2), tests only: the parts reach `to`'s device store; E17-S1 replaces
-/// this with the wrap through the server.
-fn copy_parts(from: &Mac, to: &Mac) {
-    let store: Vec<(String, Vec<u8>)> = from.s.sync_with(|i| {
-        i.device_store
+/// SYN-06.9, LD-266 (2) (E17-S2, ruling (13) (f)): the key-file part of each
+/// vault `from` links on `address` reaches `to` through the server, never
+/// by a copy of `from`'s device store: `from`'s client wraps the part to
+/// the account's receiving key (`PUT …/keypart`), `to`'s client opens the
+/// wrap with the account's keys, and the part goes into `to`'s device store
+/// under its part label, as the app will do once it holds account keys
+/// (E17-S4).
+fn parts_through_server(from: &Mac, to: &Mac, address: &str) {
+    let parts: Vec<(VaultId, SecretBytes)> = from.s.sync_with(|i| {
+        i.state
+            .links
             .iter()
-            .map(|(label, part)| (label.clone(), part.expose().to_vec()))
+            .filter(|l| l.server == address)
+            .filter_map(|l| {
+                let part = i.device_store.get(&part_label(address, l.vault_id))?;
+                Some((l.vault_id, SecretBytes::new(part.expose().to_vec())))
+            })
             .collect()
     });
-    to.s.sync_with(|i| {
-        for (label, part) in store {
-            i.device_store.insert(label, SecretBytes::new(part));
-        }
-    });
+    assert!(!parts.is_empty(), "a linked vault with its part");
+    let e = from
+        .s
+        .sync_with(|i| i.servers.get(address).cloned())
+        .unwrap();
+    let n = to.s.sync_with(|i| i.servers.get(address).cloned()).unwrap();
+    let keep = Memory::default();
+    for (vault, part) in &parts {
+        e.lock().unwrap().put_keypart(vault, part).unwrap();
+        let got = n.lock().unwrap().get_keypart(vault, &keep).unwrap();
+        assert_eq!(got.expose(), part.expose());
+    }
+    let taken = std::mem::take(&mut *keep.0.lock().unwrap());
+    to.s.sync_with(|i| i.device_store.extend(taken));
 }
 
-/// Mac A: adds the server after comparing its fingerprint, signs up and
-/// puts its demo vault on the server (version 1).
+/// Mac A: adds the server after comparing its fingerprint, signs up, and
+/// gets its account's keys ([`with_account_keys`]).
 fn first(app_address: &str, pin: [u8; 32], tag: &str) -> Mac {
+    first_with(app_address, pin, None, tag)
+}
+
+/// [`first`] through the test proxy at `address`: A's client signs for
+/// the origin of the server behind it, on `port` (SYN-04.4).
+fn first_proxied(address: &str, pin: [u8; 32], port: u16, tag: &str) -> Mac {
+    first_with(address, pin, Some(port), tag)
+}
+
+fn first_with(app_address: &str, pin: [u8; 32], port: Option<u16>, tag: &str) -> Mac {
     let a = Mac::new(tag, true);
     let shown = a.s.sync_fingerprint(app_address.to_owned()).unwrap();
     assert_eq!(client::read_printed(&shown), Some(pin));
     a.s.sync_add_server(app_address.to_owned(), shown).unwrap();
     a.s.sync_sign_up(app_address.to_owned()).unwrap();
+    if let Some(port) = port {
+        a.s.sync_with(|i| {
+            i.servers[app_address].lock().unwrap().sign_for_port(port);
+        });
+    }
+    with_account_keys(&a, app_address);
     a
+}
+
+/// E17-S2: the keys of `m`'s account on `address` (SYN-06.1 to SYN-06.7),
+/// made on `m`'s cached client with a test device store, so `m` signs its
+/// uploads and can approve another Mac (SYN-06.11). The app loads no
+/// account keys yet (E17-S4).
+fn with_account_keys(m: &Mac, address: &str) {
+    let account = m.s.sync_with(|i| {
+        i.state
+            .server(address)
+            .unwrap()
+            .account
+            .as_ref()
+            .unwrap()
+            .account
+    });
+    let c = m.s.sync_with(|i| i.servers.get(address).cloned()).unwrap();
+    let password = SecretString::new(ACCOUNT_PASSWORD.to_owned());
+    c.lock()
+        .unwrap()
+        .sign_up_account(&account, &password, &Memory::default())
+        .unwrap();
+}
+
+/// E17-S2 (SYN-06.11): a second device of `from`'s account on `address`,
+/// approved by `from` with the code compare: `from`'s cached client is E,
+/// a new client of this server (signing for `port`) is N, and both users
+/// choose Codes match. N's client, which then holds the account's keys and
+/// the device the seal registered, and the state's entry for that device.
+fn approved(port: u16, address: &str, pin: [u8; 32], from: &Mac) -> (Client, Account) {
+    let account = from.s.sync_with(|i| {
+        i.state
+            .server(address)
+            .unwrap()
+            .account
+            .as_ref()
+            .unwrap()
+            .account
+    });
+    let key = DeviceKey::test_seam().unwrap();
+    let public_key = key.public_key().unwrap();
+    let mut c = Client::new(address, pin).unwrap();
+    c.sign_for_port(port);
+    let e = from
+        .s
+        .sync_with(|i| i.servers.get(address).cloned())
+        .unwrap();
+    let password = SecretString::new(ACCOUNT_PASSWORD.to_owned());
+    let device = approve(
+        &mut e.lock().unwrap(),
+        &mut c,
+        key,
+        &*TestClock::at(0),
+        &password,
+        &Memory::default(),
+    )
+    .unwrap();
+    let entry = Account {
+        account,
+        device,
+        label: random_hex().unwrap(),
+        public_key,
+    };
+    (c, entry)
 }
 
 fn put(a: &Mac, address: &str) {
@@ -227,39 +332,20 @@ fn put(a: &Mac, address: &str) {
     assert_eq!(st.status, SyncStatus::Synced);
 }
 
-/// Mac B: the server added, a second device of A's account registered by
-/// the server's test helper (SYN-04.11), the vault downloaded and
-/// unlocked.
+/// Mac B: the server added, a second device of A's account approved by A
+/// ([`approved`], SYN-06.11), the vault downloaded and unlocked.
 fn second(app: &LarsalServer, address: &str, pin: [u8; 32], a: &Mac, tag: &str) -> Mac {
     let mut b = Mac::new(tag, false);
     b.s.sync_add_server(address.to_owned(), client::printed(&pin))
         .unwrap();
-    let account =
-        a.s.sync_with(|i| i.state.servers[0].account.clone())
-            .unwrap()
-            .account;
-    let key = DeviceKey::test_seam().unwrap();
-    let public_key = key.public_key().unwrap();
-    let device = app
-        .seams
-        .add_device(&account, &public_key, "Mac")
-        .unwrap()
-        .unwrap();
-    let mut c = Client::new(address, pin).unwrap();
-    c.sign_for_port(app.port);
-    c.set_device(device, key);
+    let (c, entry) = approved(app.port, address, pin, a);
     b.s.sync_with(|i| {
-        i.state.servers[0].account = Some(Account {
-            account,
-            device,
-            label: random_hex().unwrap(),
-            public_key,
-        });
+        i.state.servers[0].account = Some(entry);
         i.servers
             .insert(address.to_owned(), Arc::new(Mutex::new(c)));
         i.save();
     });
-    copy_parts(a, &b);
+    parts_through_server(a, &b, address);
     let listed = b.s.sync_server_vaults(address.to_owned()).unwrap();
     assert_eq!(listed.len(), 1);
     assert!(!listed[0].linked);
@@ -437,10 +523,7 @@ fn syn04_t13_t08_syn03_t24_no_password_in_any_request_and_no_token_in_any_file()
     let app = larsal_server();
     let proxy = Scripted::proxy(&app);
     let address = proxy.address();
-    let a = first(&address, proxy.pin, "t13-a");
-    a.s.sync_with(|i| {
-        i.servers[&address].lock().unwrap().sign_for_port(app.port);
-    });
+    let a = first_proxied(&address, proxy.pin, app.port, "t13-a");
     put(&a, &address);
     a.tick(0);
     let b = second(&app, &address, proxy.pin, &a, "t13-b");
@@ -500,9 +583,12 @@ fn syn04_t13_t08_syn03_t24_no_password_in_any_request_and_no_token_in_any_file()
         }
     }
 
+    // B's approval requests carry the approval code, not a session
+    // (SYN-06.11, E17-S2).
     let tokens: BTreeSet<String> = seen
         .iter()
         .filter_map(|(r, _)| r.header("authorization"))
+        .filter(|h| !h.starts_with("Approval "))
         .map(|h| h.strip_prefix("Bearer ").unwrap().to_owned())
         .collect();
     assert_eq!(tokens.len(), 2, "one session per Mac");
@@ -1995,28 +2081,13 @@ fn f284_downloaded_alias_cannot_link_an_existing_root_across_servers() {
     put(&b, &two.address());
     a.s.sync_add_server(two.address(), client::printed(&two.pin))
         .unwrap();
-    let account =
-        b.s.sync_with(|i| i.state.servers[0].account.as_ref().unwrap().account);
-    let key = DeviceKey::test_seam().unwrap();
-    let public = key.public_key().unwrap();
-    let device = two
-        .seams
-        .add_device(&account, &public, "Mac")
-        .unwrap()
-        .unwrap();
-    let mut c = Client::new(&two.address(), two.pin).unwrap();
-    c.set_device(device, key);
+    let (c, entry) = approved(two.port, &two.address(), two.pin, &b);
     a.s.sync_with(|i| {
-        i.state.server_mut(&two.address()).unwrap().account = Some(Account {
-            account,
-            device,
-            label: random_hex().unwrap(),
-            public_key: public,
-        });
+        i.state.server_mut(&two.address()).unwrap().account = Some(entry);
         i.servers.insert(two.address(), Arc::new(Mutex::new(c)));
         i.save();
     });
-    copy_parts(&b, &a);
+    parts_through_server(&b, &a, &two.address());
     let listed = a.s.sync_server_vaults(two.address()).unwrap();
     assert_eq!(listed.len(), 1);
     assert!(!listed[0].linked);
@@ -2081,10 +2152,7 @@ impl Linked {
         let app = larsal_server();
         let proxy = Scripted::proxy(&app);
         let address = proxy.address();
-        let a = first(&address, proxy.pin, tag);
-        a.s.sync_with(|i| {
-            i.servers[&address].lock().unwrap().sign_for_port(app.port);
-        });
+        let a = first_proxied(&address, proxy.pin, app.port, tag);
         put(&a, &address);
         a.tick(0);
         assert_eq!(a.status(), Some(SyncStatus::Synced));
@@ -2245,10 +2313,7 @@ fn syn03_14_t35_first_upload_of_a_plain_file_another_vault_or_a_corrupt_copy_is_
         let app = larsal_server();
         let proxy = Scripted::proxy(&app);
         let address = proxy.address();
-        let a = first(&address, proxy.pin, &format!("t35-{n}"));
-        a.s.sync_with(|i| {
-            i.servers[&address].lock().unwrap().sign_for_port(app.port);
-        });
+        let a = first_proxied(&address, proxy.pin, app.port, &format!("t35-{n}"));
         let path = a.dir.join("Personal.larsalvault");
         std::fs::write(&path, &bad).unwrap();
         let puts = proxy.count("PUT");
@@ -2451,10 +2516,7 @@ fn unlinked(tag: &str) -> (LarsalServer, Scripted, String, Mac) {
     let app = larsal_server();
     let proxy = Scripted::proxy(&app);
     let address = proxy.address();
-    let a = first(&address, proxy.pin, tag);
-    a.s.sync_with(|i| {
-        i.servers[&address].lock().unwrap().sign_for_port(app.port);
-    });
+    let a = first_proxied(&address, proxy.pin, app.port, tag);
     (app, proxy, address, a)
 }
 
@@ -3653,10 +3715,7 @@ impl KeyChange {
         let app = larsal_server();
         let proxy = Scripted::proxy(&app);
         let address = proxy.address();
-        let a = first(&address, proxy.pin, &format!("{tag}-a"));
-        a.s.sync_with(|i| {
-            i.servers[&address].lock().unwrap().sign_for_port(app.port);
-        });
+        let a = first_proxied(&address, proxy.pin, app.port, &format!("{tag}-a"));
         put(&a, &address);
         a.tick(0);
         let b = second(&app, &address, proxy.pin, &a, &format!("{tag}-b"));
@@ -5438,30 +5497,12 @@ fn syn03_2_a_download_replaces_an_older_pointer_for_its_file() {
     });
     b.s.sync_add_server(address.clone(), client::printed(&app.pin))
         .unwrap();
-    let account =
-        a.s.sync_with(|i| i.state.servers[0].account.clone())
-            .unwrap()
-            .account;
-    let key = DeviceKey::test_seam().unwrap();
-    let public_key = key.public_key().unwrap();
-    let device = app
-        .seams
-        .add_device(&account, &public_key, "Mac")
-        .unwrap()
-        .unwrap();
-    let mut c = Client::new(&address, app.pin).unwrap();
-    c.sign_for_port(app.port);
-    c.set_device(device, key);
+    let (c, entry) = approved(app.port, &address, app.pin, &a);
     b.s.sync_with(|i| {
-        i.state.servers[0].account = Some(Account {
-            account,
-            device,
-            label: random_hex().unwrap(),
-            public_key,
-        });
+        i.state.servers[0].account = Some(entry);
         i.servers.insert(address.clone(), Arc::new(Mutex::new(c)));
     });
-    copy_parts(&a, &b);
+    parts_through_server(&a, &b, &address);
     let listed = b.s.sync_server_vaults(address.clone()).unwrap();
     b.s.sync_download(address, listed[0].id.clone(), path.display().to_string())
         .unwrap();
@@ -6357,7 +6398,7 @@ fn syn03_2_c1r2_03_a_put_at_the_path_of_a_download_gone_before_its_first_run() {
     put(&a, &address);
     a.tick(0);
     let (mut b, path, _) = second_without_the_part(&app, &address, &a, "c1r2-03-put-b");
-    copy_parts(&a, &b);
+    parts_through_server(&a, &b, &address);
     std::fs::remove_file(&path).unwrap();
     let root = Uuid([0x43; 16]);
     std::fs::write(&path, resaved_with(PASSWORD, None, |v| v.root.uuid = root)).unwrap();
@@ -6754,9 +6795,10 @@ fn syn03_3_c1r3b_05_a_key_file_this_mac_never_kept_is_not_the_part() {
     );
 }
 
-/// B as `second` makes it, but its device store has no part: a real second Mac
-/// before E17-S1. The download is made; nothing is opened. B, the file and the
-/// server vault's id.
+/// B as `second` makes it, but its device store has no part: a second Mac
+/// whose app does not yet take the part from the server's wrap (E17-S4).
+/// The download is made; nothing is opened. B, the file and the server
+/// vault's id.
 fn second_without_the_part(
     app: &LarsalServer,
     address: &str,
@@ -6766,27 +6808,9 @@ fn second_without_the_part(
     let b = Mac::new(tag, false);
     b.s.sync_add_server(address.to_owned(), client::printed(&app.pin))
         .unwrap();
-    let account =
-        a.s.sync_with(|i| i.state.servers[0].account.clone())
-            .unwrap()
-            .account;
-    let key = DeviceKey::test_seam().unwrap();
-    let public_key = key.public_key().unwrap();
-    let device = app
-        .seams
-        .add_device(&account, &public_key, "Mac")
-        .unwrap()
-        .unwrap();
-    let mut c = Client::new(address, app.pin).unwrap();
-    c.sign_for_port(app.port);
-    c.set_device(device, key);
+    let (c, entry) = approved(app.port, address, app.pin, a);
     b.s.sync_with(|i| {
-        i.state.servers[0].account = Some(Account {
-            account,
-            device,
-            label: random_hex().unwrap(),
-            public_key,
-        });
+        i.state.servers[0].account = Some(entry);
         i.servers
             .insert(address.to_owned(), Arc::new(Mutex::new(c)));
         i.save();
@@ -6875,7 +6899,7 @@ fn syn03_2_c1r3b_03_a_file_unreadable_for_a_moment_keeps_its_link() {
     put(&a, &address);
     a.tick(0);
     let (mut b, path, _) = second_without_the_part(&app, &address, &a, "c1r3b-03-b");
-    copy_parts(&a, &b);
+    parts_through_server(&a, &b, &address);
     let bytes = std::fs::read(&path).unwrap();
     let mode = |m| std::fs::set_permissions(&path, std::fs::Permissions::from_mode(m)).unwrap();
     let listed_linked = |b: &Mac| b.s.sync_server_vaults(address.clone()).unwrap()[0].linked;
@@ -6909,7 +6933,7 @@ fn syn03_2_c1r3b_04_a_list_and_another_run_before_the_first_unlock_keep_the_down
     put(&a, &address);
     a.tick(0);
     let (mut b, path, _) = second_without_the_part(&app, &address, &a, "c1r3b-04-b");
-    copy_parts(&a, &b);
+    parts_through_server(&a, &b, &address);
     let listed = b.s.sync_server_vaults(address.clone()).unwrap();
     assert!(listed[0].linked);
     let other = b.dir.join("Other.larsalvault");
@@ -7730,7 +7754,7 @@ fn syn03_2_c1r4_03_a_refused_second_download_keeps_the_waiting_link() {
     put(&a, &address);
     a.tick(0);
     let (mut b, path, id) = second_without_the_part(&app, &address, &a, "c1r4-03-b");
-    copy_parts(&a, &b);
+    parts_through_server(&a, &b, &address);
     let again =
         b.s.sync_download(address.clone(), id, path.display().to_string());
     assert!(again.is_err(), "the file exists");

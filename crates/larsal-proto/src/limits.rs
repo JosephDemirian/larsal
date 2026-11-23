@@ -40,6 +40,10 @@ pub const CHALLENGE_SECONDS: u64 = 300;
 pub const SESSION_IDLE_SECONDS: u64 = 15 * 60;
 /// A session ends this long after it was made, used or not (SYN-04.5).
 pub const SESSION_MAX_SECONDS: u64 = 8 * 60 * 60;
+/// An approval request lives this long from its creation, on the server's
+/// clock and on each Mac's own (SYN-06.11, SYN-05.6; Bitwarden's Log in
+/// with device: 15 minutes).
+pub const APPROVAL_SECONDS: u64 = 15 * 60;
 
 /// Requests per IP address and minute to the sign-in routes (SYN-01.12).
 pub const SIGNIN_PER_MINUTE: u32 = 10;
@@ -92,6 +96,7 @@ mod tests {
             (CHALLENGE_SECONDS, SESSION_IDLE_SECONDS, SESSION_MAX_SECONDS),
             (300, 900, 28_800)
         );
+        assert_eq!(APPROVAL_SECONDS, 900);
         assert_eq!(
             (SIGNIN_PER_MINUTE, WRITES_PER_MINUTE, READS_PER_MINUTE),
             (10, 60, 200)

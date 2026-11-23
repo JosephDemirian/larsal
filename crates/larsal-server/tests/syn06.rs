@@ -2,15 +2,19 @@
 //! (SYN-06.6), the upload signature (SYN-01.7, SYN-01 T12), the key-file
 //! part routes (SYN-06.9), the recovery sign-in (SYN-06.12) and no email
 //! anywhere (SYN-06.13, T15), against a release server's rule: every server
-//! here is strict (`start_strict`), so no upload passes unsigned. The keys
-//! are larsal-crypto's; the blob is demo bytes the server never reads. Every
-//! client connects to 127.0.0.1 only; expiry runs on the test clock.
+//! here is strict (`start_strict`), so no upload passes unsigned. E17-S2
+//! adds the approval routes (SYN-06.11 with SYN-05's code compare): every
+//! route's statuses, one claim and one commitment, the order, the 15
+//! minutes, the seal's checks and the device row only after E's seal. The
+//! keys are larsal-crypto's; the blob is demo bytes the server never reads.
+//! Every client connects to 127.0.0.1 only; expiry runs on the test clock.
 
 mod common;
 
 use common::{
-    Device, Reply, Running, account_keys, bearer, block_on, challenge, exchange, origin, put_keys,
-    recovery_seed, request, set_clock, sign_in, sign_up, signed, start_strict, upload_header,
+    Device, Reply, Running, account_keys, approval_line, bearer, block_on, challenge, exchange,
+    origin, put_keys, recovery_seed, request, second_device_with, set_clock, sign_in, sign_up,
+    signed, start_strict, upload_header,
 };
 use larsal_crypto::base64::{self, Form};
 use larsal_crypto::sign::P256TestKey;
@@ -18,7 +22,11 @@ use larsal_crypto::{pq, sign, wrap_record};
 use larsal_proto::account::{
     AccountKeys, Recovered, RecoveryChallengeRequest, RecoverySignIn, keypart_info, upload_message,
 };
-use larsal_proto::messages::{AccountId, Challenge, Session, VaultId};
+use larsal_proto::approval::{
+    self as approval, ApprovalClaim, ApprovalCreate, ApprovalSeal, ApprovalStart, ApprovalState,
+    CompareCommit, CompareKeys,
+};
+use larsal_proto::messages::{AccountId, Challenge, Id, Session, VaultId};
 use larsal_proto::{signin, wrap};
 use larsal_server::http::{Config, RateLimits};
 
@@ -303,10 +311,12 @@ fn syn06_9_keypart_put_and_get() {
             204
         );
         assert_eq!(wrap::read(&get(&s, &part_path).await.body).unwrap(), second);
-        // CRY-05.7: a classical suite's record is refused before it is stored.
-        let mut classical = second.clone();
-        classical.suite = [0x0020, 0x0001, 0x0003];
-        send(&s, &part_path, wrap::to_json(&classical))
+        // CRY-05.7: a record of any suite but CRY-05.3's (here [32, 1, 3],
+        // which no card names) is refused before it is stored; the classical
+        // suite [32, 1, 2] is c1_keypart_refuses_the_classical_suite's.
+        let mut other_suite = second.clone();
+        other_suite.suite = [0x0020, 0x0001, 0x0003];
+        send(&s, &part_path, wrap::to_json(&other_suite))
             .await
             .assert_error(400, "bad_request");
         send(&s, &part_path, b"{}".to_vec())
@@ -337,6 +347,62 @@ fn syn06_9_keypart_put_and_get() {
         assert_eq!(wrap::read(&get(&s, &part_path).await.body).unwrap(), second);
         s.auth.clear();
         get(&s, &part_path).await.assert_unauthorized();
+    });
+}
+
+/// E17-S1's Checker 1 test, adopted by E17-S2 (ruling (13)(e)): SYN-06.9,
+/// CRY-05.7: a keypart record in CRY-04.5's classical form (suite
+/// [32,1,2], a 32-byte enc, a 64-byte Ed25519 signature) and a hybrid
+/// record labelled [32,1,2] (the suite CRY-04.6 names) get 400 and nothing
+/// is stored.
+#[test]
+fn c1_keypart_refuses_the_classical_suite() {
+    block_on(async {
+        let (s, d) = strict().await;
+        let (k, record) = account_keys(&d.account);
+        assert_eq!(put_keys(&s, &record).await.status, 201);
+        let v1 = b"c1 demo bytes 1";
+        let r = call(
+            &s,
+            "PUT",
+            &path(&X),
+            &format!("If-None-Match: *\r\n{}", upload_header(&k, &X, 1, v1)),
+            v1,
+        )
+        .await;
+        assert_eq!(r.status, 201, "{r:?}");
+        let part = format!("{}/keypart", path(&X));
+        let info = keypart_info(&d.account, &X).unwrap();
+        // The classical form's sizes: a 32-byte X25519 enc, a 48-byte ct.
+        let (enc, ct) = ([0x20u8; 32], [0x21u8; 48]);
+        let seed = larsal_crypto::secret::SecretBytes::new(vec![0x5a; 32]);
+        let classical = format!(
+            r#"{{"suite":[32,1,2],"enc":"{}","ct":"{}","info":"{}","signer":"{}","signature":"{}"}}"#,
+            base64::encode(Form::Url, &enc),
+            base64::encode(Form::Url, &ct),
+            base64::encode(Form::Url, &info),
+            d.account,
+            base64::encode(Form::Url, &sign::ed25519_sign(&seed, b"c1").unwrap())
+        );
+        let mut relabelled = wrap_record::make(
+            k.kem_public_key(),
+            &info,
+            &[0x45; 32],
+            *d.account.as_bytes(),
+            k.identity_private_key(),
+        )
+        .unwrap();
+        relabelled.suite = [32, 1, 2];
+        for (what, body) in [
+            ("classical", classical.into_bytes()),
+            ("hybrid labelled [32,1,2]", wrap::to_json(&relabelled)),
+        ] {
+            let r = call(&s, "PUT", &part, "", &body).await;
+            assert_eq!(r.status, 400, "{what}: {r:?}");
+            call(&s, "GET", &part, "", b"")
+                .await
+                .assert_error(404, "not_found");
+        }
     });
 }
 
@@ -606,5 +672,654 @@ fn syn01_12_the_recovery_routes_count_in_the_sign_in_bucket() {
         set_clock(&s, T0 + 60);
         let r = recovery_challenge(&s, &account).await;
         assert_eq!(r.status, 200, "a new minute: {r:?}");
+    });
+}
+
+/// Rows of `table` in the server's store, read beside the server.
+fn rows(s: &Running, table: &str) -> i64 {
+    rusqlite::Connection::open(s.data.0.join("store.sqlite"))
+        .unwrap()
+        .query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))
+        .unwrap()
+}
+
+/// One approval request driven by raw HTTP for the edge cases: E is `d`
+/// (signed in as `s.auth`, its account's keys `keys`), N a new key.
+struct Approval {
+    code: larsal_crypto::secret::SecretBytes,
+    n: String,
+    id: Id,
+    key: P256TestKey,
+    device: [u8; 65],
+    seed: larsal_crypto::secret::SecretBytes,
+    xwing: Vec<u8>,
+    ctx: Vec<u8>,
+    keys_c: Vec<u8>,
+    n_c: [u8; 32],
+    keys_r: Vec<u8>,
+    n_r: [u8; 32],
+}
+
+fn nonce() -> [u8; 32] {
+    larsal_crypto::random::bytes(32)
+        .unwrap()
+        .expose()
+        .try_into()
+        .unwrap()
+}
+
+impl Approval {
+    /// Step 1 (201).
+    async fn create(s: &Running, d: &Device, keys: &larsal_crypto::account::AccountKeys) -> Self {
+        let code = larsal_crypto::random::bytes(approval::CODE_BYTES).unwrap();
+        let body = ApprovalCreate {
+            code_hash: approval::code_hash(&code).unwrap(),
+        };
+        let r = call(s, "POST", "/v1/approvals", "", &body.to_json()).await;
+        assert_eq!(r.status, 201, "{r:?}");
+        let start = ApprovalStart::read(&r.body).unwrap();
+        let key = P256TestKey::new().unwrap();
+        let device: [u8; 65] = key.public().try_into().unwrap();
+        let (seed, xwing) = pq::xwing_keypair().unwrap();
+        let keys_c = approval::keys_c(&device, &xwing).unwrap();
+        let mine: [u8; 65] = d.key.public().try_into().unwrap();
+        Self {
+            n: approval_line(&code),
+            code,
+            id: start.approval_id,
+            key,
+            device,
+            seed,
+            xwing,
+            ctx: approval::ctx(&d.account, &start.approval_id).unwrap(),
+            keys_c,
+            n_c: nonce(),
+            keys_r: approval::keys_r(keys.identity_public_key(), &mine).unwrap(),
+            n_r: nonce(),
+        }
+    }
+
+    fn path(&self, tail: &str) -> String {
+        format!("/v1/approvals/{}{tail}", self.id)
+    }
+
+    async fn as_n(&self, s: &Running, method: &str, tail: &str, body: &[u8]) -> Reply {
+        exchange(s, &request(method, &self.path(tail), &self.n, body)).await
+    }
+
+    async fn claim(&self, s: &Running) -> Reply {
+        let body = ApprovalClaim {
+            device_public_key: self.device,
+            device_name: "New Mac".to_owned(),
+        };
+        exchange(
+            s,
+            &request("POST", "/v1/approvals/claim", &self.n, &body.to_json()),
+        )
+        .await
+    }
+
+    fn commitment(&self) -> [u8; 32] {
+        approval::commitment(&self.ctx, &self.keys_c, &self.n_c)
+            .unwrap()
+            .expose()
+            .try_into()
+            .unwrap()
+    }
+
+    async fn commit(&self, s: &Running) -> Reply {
+        let body = CompareCommit {
+            commit: self.commitment(),
+        };
+        self.as_n(s, "POST", "/commit", &body.to_json()).await
+    }
+
+    async fn keys(&self, s: &Running) -> Reply {
+        let body = CompareKeys {
+            keys: self.keys_r.clone(),
+            nonce: self.n_r,
+        };
+        call(s, "POST", &self.path("/keys"), "", &body.to_json()).await
+    }
+
+    async fn reveal(&self, s: &Running) -> Reply {
+        let body = CompareKeys {
+            keys: self.keys_c.clone(),
+            nonce: self.n_c,
+        };
+        self.as_n(s, "POST", "/reveal", &body.to_json()).await
+    }
+
+    /// E's seal of `S_acct` and its device signature, made with `keys`.
+    fn seal_body(&self, d: &Device, keys: &larsal_crypto::account::AccountKeys) -> ApprovalSeal {
+        let info = approval::seal_info(&d.account, &self.id, &self.device).unwrap();
+        let seal = wrap_record::make(
+            &self.xwing,
+            &info,
+            keys.account_secret().expose(),
+            *d.account.as_bytes(),
+            keys.identity_private_key(),
+        )
+        .unwrap();
+        let message = approval::device_message(&d.account, &self.device, &self.id).unwrap();
+        ApprovalSeal {
+            seal,
+            device_signature: pq::composite_sign(keys.identity_private_key(), &message).unwrap(),
+        }
+    }
+
+    async fn seal(&self, s: &Running, body: &ApprovalSeal) -> Reply {
+        call(s, "POST", &self.path("/seal"), "", &body.to_json()).await
+    }
+
+    /// Steps 2 to 4 (the claim, the commitment, `K_R` and the reveal).
+    async fn to_reveal(&self, s: &Running) {
+        assert_eq!(self.claim(s).await.status, 201);
+        assert_eq!(self.commit(s).await.status, 204);
+        assert_eq!(self.keys(s).await.status, 204);
+        assert_eq!(self.reveal(s).await.status, 204);
+    }
+}
+
+/// A strict server with one signed-in account E that has its keys.
+async fn with_keys() -> (Running, Device, larsal_crypto::account::AccountKeys) {
+    let (s, d) = strict().await;
+    let (keys, record) = account_keys(&d.account);
+    assert_eq!(put_keys(&s, &record).await.status, 201);
+    (s, d, keys)
+}
+
+/// SYN-06 T09 (server half), T19's approval half, SYN-05 T09 (rows), and
+/// ruling (6): through SYN-06.11 by raw HTTP, no device row exists before
+/// E's seal (the store is read after every step); the seal is a
+/// `[25722, 1, 3]` record with a 3,373-byte composite signature that N
+/// opens with the info it builds itself; N's read takes it and the row
+/// goes (no nonce, commitment or key list left); N signs in with its new
+/// device key. Ruling (10)'s proxy view: `POST /v1/approvals` carries only
+/// the code's SHA-256, and the code, in any form, is only in the
+/// `Authorization` line of N's routes.
+#[test]
+fn syn06_11_t09_t19_n_is_registered_only_after_e_seals() {
+    block_on(async {
+        let (s, d, keys) = with_keys().await;
+        let devices = rows(&s, "devices");
+        let seen = std::cell::RefCell::new(Vec::new());
+        let n = second_device_with(&s, &d, &keys, &|step| {
+            let want = if matches!(step, "seal" | "taken") {
+                devices + 1
+            } else {
+                devices
+            };
+            assert_eq!(rows(&s, "devices"), want, "after {step}");
+            let left = if step == "taken" { 0 } else { 1 };
+            assert_eq!(rows(&s, "approvals"), left, "after {step}");
+            seen.borrow_mut().push(step);
+        })
+        .await;
+        assert_eq!(
+            *seen.borrow(),
+            [
+                "create", "claim", "commit", "keys", "reveal", "seal", "taken"
+            ]
+        );
+        let session = sign_in(&s, &n).await;
+        assert_eq!(session.idle_seconds, 900);
+        // The seal N took: CRY-05.4's record, a composite signature.
+        let sent = s.sent.lock().unwrap().clone();
+        let taken = sent
+            .iter()
+            .filter(|(q, r)| q.starts_with(b"GET /v1/approvals/") && r.status == 200)
+            .filter_map(|(_, r)| ApprovalState::read(&r.body).unwrap().seal)
+            .next_back()
+            .unwrap();
+        let record = wrap::read(&taken.0).unwrap();
+        assert_eq!(record.suite, [25722, 1, 3]);
+        assert_eq!(record.signature.len(), 3373);
+        assert_eq!(taken.1, n.id);
+        // The proxy view: the create body is the code's SHA-256 only, and
+        // no form of the code is anywhere but N's Authorization line.
+        let claim = sent
+            .iter()
+            .find(|(q, _)| q.starts_with(b"POST /v1/approvals/claim "))
+            .unwrap();
+        let claim = String::from_utf8_lossy(&claim.0).into_owned();
+        let typed = claim
+            .split("\r\n")
+            .find_map(|l| l.strip_prefix("Authorization: Approval "))
+            .unwrap()
+            .to_owned();
+        let code = approval::read_code(&typed).unwrap();
+        let hex: String = code.expose().iter().map(|b| format!("{b:02x}")).collect();
+        let forms = [
+            code.expose().to_vec(),
+            typed.clone().into_bytes(),
+            typed.to_ascii_lowercase().into_bytes(),
+            hex.clone().into_bytes(),
+            hex.to_ascii_uppercase().into_bytes(),
+            base64::encode(Form::Url, code.expose()).into_bytes(),
+            base64::encode(Form::Padded, code.expose()).into_bytes(),
+        ];
+        let holds = |hay: &[u8], needle: &[u8]| hay.windows(needle.len()).any(|w| w == needle);
+        for (q, r) in &sent {
+            let text = String::from_utf8_lossy(q);
+            let rest: Vec<&str> = text
+                .split("\r\n")
+                .filter(|l| !l.starts_with("Authorization: Approval "))
+                .collect();
+            let rest = rest.join("\r\n");
+            for form in &forms {
+                assert!(
+                    !holds(rest.as_bytes(), form),
+                    "{}",
+                    text.lines().next().unwrap()
+                );
+                assert!(!holds(&r.body, form), "{}", text.lines().next().unwrap());
+            }
+        }
+        let create = sent
+            .iter()
+            .find(|(q, _)| q.starts_with(b"POST /v1/approvals HTTP"))
+            .unwrap();
+        let body_at = create.0.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+        let sent_hash = ApprovalCreate::read(&create.0[body_at..])
+            .unwrap()
+            .code_hash;
+        assert_eq!(sent_hash, approval::code_hash(&code).unwrap());
+        for (q, _) in &sent {
+            let text = String::from_utf8_lossy(q);
+            for line in text.split("\r\n") {
+                if let Some(code) = line.strip_prefix("Authorization: Approval ") {
+                    assert_eq!(code.len(), 26);
+                    assert!(
+                        text.starts_with("POST /v1/approvals/claim ")
+                            || text.contains("/commit ")
+                            || text.contains("/reveal ")
+                            || text.starts_with("GET /v1/approvals/"),
+                        "{}",
+                        text.lines().next().unwrap()
+                    );
+                }
+            }
+        }
+    });
+}
+
+/// SYN-05 T05, SYN-06 T11 (the claim and the commitment twice): a second
+/// claim gets 409 and ends the request (the commitment then gets 401); a
+/// second commitment gets 409 and ends it too (N's read then gets 401);
+/// a second request with a code hash already in use gets 409.
+#[test]
+fn syn05_t05_syn06_11_t11_one_claim_and_one_commitment() {
+    block_on(async {
+        let (s, d, keys) = with_keys().await;
+        let a = Approval::create(&s, &d, &keys).await;
+        assert_eq!(a.claim(&s).await.status, 201);
+        let r = a.claim(&s).await;
+        r.assert_error(409, "conflict");
+        assert_eq!(rows(&s, "approvals"), 0, "the request ended");
+        assert_eq!(a.commit(&s).await.status, 401);
+
+        let b = Approval::create(&s, &d, &keys).await;
+        assert_eq!(b.claim(&s).await.status, 201);
+        assert_eq!(b.commit(&s).await.status, 204);
+        let mut other = Approval::create(&s, &d, &keys).await;
+        other.n = b.n.clone();
+        other.id = b.id;
+        other.n_c = nonce();
+        other.commit(&s).await.assert_error(409, "conflict");
+        assert_eq!(b.as_n(&s, "GET", "", b"").await.status, 401);
+        assert_eq!(rows(&s, "approvals"), 1, "the third request only");
+
+        let same = ApprovalCreate {
+            code_hash: approval::code_hash(&other.code).unwrap(),
+        };
+        call(&s, "POST", "/v1/approvals", "", &same.to_json())
+            .await
+            .assert_error(409, "conflict");
+    });
+}
+
+/// SYN-05 T06 and SYN-05.2: a message out of its order gets 409 and ends
+/// the request: the commitment before the claim, `K_R` before the
+/// commitment, the reveal before `K_R`, the seal before the reveal.
+#[test]
+fn syn05_t06_a_message_out_of_order_ends_the_request() {
+    block_on(async {
+        let (s, d, keys) = with_keys().await;
+        let a = Approval::create(&s, &d, &keys).await;
+        a.commit(&s).await.assert_error(409, "conflict");
+        assert_eq!(rows(&s, "approvals"), 0);
+        let a = Approval::create(&s, &d, &keys).await;
+        assert_eq!(a.claim(&s).await.status, 201);
+        a.keys(&s).await.assert_error(409, "conflict");
+        assert_eq!(rows(&s, "approvals"), 0);
+        let a = Approval::create(&s, &d, &keys).await;
+        assert_eq!(a.claim(&s).await.status, 201);
+        assert_eq!(a.commit(&s).await.status, 204);
+        a.reveal(&s).await.assert_error(409, "conflict");
+        assert_eq!(rows(&s, "approvals"), 0);
+        let a = Approval::create(&s, &d, &keys).await;
+        assert_eq!(a.claim(&s).await.status, 201);
+        assert_eq!(a.commit(&s).await.status, 204);
+        assert_eq!(a.keys(&s).await.status, 204);
+        let devices = rows(&s, "devices");
+        a.seal(&s, &a.seal_body(&d, &keys))
+            .await
+            .assert_error(409, "conflict");
+        assert_eq!((rows(&s, "approvals"), rows(&s, "devices")), (0, devices));
+    });
+}
+
+/// SYN-06 T11 (expired) and ruling (9): each route of a request made at T0
+/// gets 401 at T0 + 15 min 1 s (the claim, the commitment, `K_R`, the
+/// reveal, and N's `GET` and `DELETE` by the code) or 404 (the seal, as
+/// SYN-06's edge case says, and E's `GET` and `DELETE` by its session),
+/// the row goes and no device is registered; at T0 + 14 min 59 s the same
+/// route passes.
+#[test]
+fn syn06_11_t11_a_request_older_than_15_minutes_is_refused() {
+    block_on(async {
+        let (mut s, d, keys) = with_keys().await;
+        let devices = rows(&s, "devices");
+        for stage in 0..9 {
+            for (at, live) in [(T0 + 899, true), (T0 + 901, false)] {
+                // A session live at each clock time, so only the request's
+                // own 15 minutes decide.
+                set_clock(&s, T0);
+                s.auth = bearer(&sign_in(&s, &d).await);
+                let a = Approval::create(&s, &d, &keys).await;
+                if stage > 0 {
+                    assert_eq!(a.claim(&s).await.status, 201);
+                }
+                if stage > 1 {
+                    assert_eq!(a.commit(&s).await.status, 204);
+                }
+                if stage > 2 {
+                    assert_eq!(a.keys(&s).await.status, 204);
+                }
+                if stage > 3 {
+                    assert_eq!(a.reveal(&s).await.status, 204);
+                }
+                set_clock(&s, at);
+                s.auth = bearer(&sign_in(&s, &d).await);
+                let r = match stage {
+                    0 => a.claim(&s).await,
+                    1 => a.commit(&s).await,
+                    2 => a.keys(&s).await,
+                    3 => a.reveal(&s).await,
+                    4 => a.seal(&s, &a.seal_body(&d, &keys)).await,
+                    5 => a.as_n(&s, "GET", "", b"").await,
+                    6 => a.as_n(&s, "DELETE", "", b"").await,
+                    7 => call(&s, "GET", &a.path(""), "", b"").await,
+                    _ => call(&s, "DELETE", &a.path(""), "", b"").await,
+                };
+                if live {
+                    assert!(matches!(r.status, 200 | 201 | 204), "stage {stage}: {r:?}");
+                    call(&s, "DELETE", &a.path(""), "", b"").await;
+                } else {
+                    let want = if matches!(stage, 4 | 7 | 8) { 404 } else { 401 };
+                    assert_eq!(r.status, want, "stage {stage}: {r:?}");
+                    assert_eq!(rows(&s, "approvals"), 0, "stage {stage}: the row went");
+                }
+                assert_eq!(rows(&s, "devices"), devices, "stage {stage}");
+            }
+        }
+    });
+}
+
+/// SYN-06 T12 (the server's own check): a seal whose device signature is
+/// by another identity key, or over another device, gets 403, ends the
+/// request and registers nothing; an account with no keys row gets 403
+/// too. SYN-06 T19 (server half): a seal record of another suite
+/// ([32, 1, 2]) gets 400 and the request stays for the right one.
+#[test]
+fn syn06_11_t12_t19_the_server_registers_only_a_device_the_identity_key_signed() {
+    block_on(async {
+        let (s, d, keys) = with_keys().await;
+        let devices = rows(&s, "devices");
+        let a = Approval::create(&s, &d, &keys).await;
+        a.to_reveal(&s).await;
+        let (other, _) = account_keys(&d.account);
+        let mut forged = a.seal_body(&d, &keys);
+        let message = approval::device_message(&d.account, &a.device, &a.id).unwrap();
+        forged.device_signature =
+            pq::composite_sign(other.identity_private_key(), &message).unwrap();
+        a.seal(&s, &forged).await.assert_error(403, "forbidden");
+        assert_eq!((rows(&s, "approvals"), rows(&s, "devices")), (0, devices));
+
+        let a = Approval::create(&s, &d, &keys).await;
+        a.to_reveal(&s).await;
+        let mut wrong = a.seal_body(&d, &keys);
+        let message = approval::device_message(&d.account, &[4; 65], &a.id).unwrap();
+        wrong.device_signature = pq::composite_sign(keys.identity_private_key(), &message).unwrap();
+        a.seal(&s, &wrong).await.assert_error(403, "forbidden");
+        assert_eq!((rows(&s, "approvals"), rows(&s, "devices")), (0, devices));
+
+        let a = Approval::create(&s, &d, &keys).await;
+        a.to_reveal(&s).await;
+        let mut classical = a.seal_body(&d, &keys);
+        classical.seal.suite = [32, 1, 2];
+        a.seal(&s, &classical)
+            .await
+            .assert_error(400, "bad_request");
+        assert_eq!(rows(&s, "approvals"), 1, "a 400 leaves the request");
+        let r = a.seal(&s, &a.seal_body(&d, &keys)).await;
+        assert_eq!(r.status, 204, "{r:?}");
+        assert_eq!(rows(&s, "devices"), devices + 1);
+        // N takes the seal, opens it with its own info and signs in.
+        let r = a.as_n(&s, "GET", "", b"").await;
+        assert_eq!(r.status, 200, "{r:?}");
+        let (sealed, id) = ApprovalState::read(&r.body).unwrap().seal.unwrap();
+        let record = wrap::read(&sealed).unwrap();
+        assert_eq!(record.suite, [25722, 1, 3]);
+        let info = approval::seal_info(&d.account, &a.id, &a.device).unwrap();
+        let opened =
+            wrap_record::open(&record, keys.identity_public_key(), &info, &a.seed).unwrap();
+        assert_eq!(opened.expose(), keys.account_secret().expose());
+        assert_eq!(rows(&s, "approvals"), 0, "taken");
+        let n = Device {
+            key: a.key,
+            id,
+            account: d.account,
+        };
+        assert_eq!(sign_in(&s, &n).await.idle_seconds, 900);
+
+        // An account with no keys row: 403, nothing registered.
+        let (t, e) = strict().await;
+        let none = rows(&t, "devices");
+        let b = Approval::create(&t, &e, &keys).await;
+        b.to_reveal(&t).await;
+        b.seal(&t, &b.seal_body(&e, &keys))
+            .await
+            .assert_error(403, "forbidden");
+        assert_eq!((rows(&t, "approvals"), rows(&t, "devices")), (0, none));
+    });
+}
+
+/// SYN-05 T08 and SYN-05.6 on the server: Codes differ on N after E's seal
+/// (N's `DELETE` by code) ends the request and removes the device the seal
+/// registered; on E (`DELETE` by session) before the seal, the row goes.
+/// Then the code and the id name nothing: 401 and 404.
+#[test]
+fn syn05_t08_codes_differ_ends_the_request_and_registers_nothing() {
+    block_on(async {
+        let (s, d, keys) = with_keys().await;
+        let devices = rows(&s, "devices");
+        let a = Approval::create(&s, &d, &keys).await;
+        a.to_reveal(&s).await;
+        assert_eq!(a.seal(&s, &a.seal_body(&d, &keys)).await.status, 204);
+        assert_eq!(rows(&s, "devices"), devices + 1);
+        assert_eq!(a.as_n(&s, "DELETE", "", b"").await.status, 204);
+        assert_eq!((rows(&s, "approvals"), rows(&s, "devices")), (0, devices));
+        assert_eq!(a.as_n(&s, "GET", "", b"").await.status, 401);
+
+        let b = Approval::create(&s, &d, &keys).await;
+        assert_eq!(b.claim(&s).await.status, 201);
+        assert_eq!(b.commit(&s).await.status, 204);
+        let r = call(&s, "DELETE", &b.path(""), "", b"").await;
+        assert_eq!(r.status, 204, "{r:?}");
+        assert_eq!(rows(&s, "approvals"), 0);
+        call(&s, "GET", &b.path(""), "", b"")
+            .await
+            .assert_error(404, "not_found");
+        assert_eq!(b.as_n(&s, "DELETE", "", b"").await.status, 401);
+    });
+}
+
+/// Every status of the approval routes not reached above: 400 for records
+/// that do not read (and a device key that is not a P-256 point), 401
+/// without a session or code (and with `WWW-Authenticate: Approval` for
+/// the code routes), 404 for a code of another request and for another
+/// account's request.
+#[test]
+fn syn06_11_every_approval_route_status() {
+    block_on(async {
+        let (mut s, d, keys) = with_keys().await;
+        let a = Approval::create(&s, &d, &keys).await;
+        let b = Approval::create(&s, &d, &keys).await;
+        // 400.
+        call(&s, "POST", "/v1/approvals", "", b"{}")
+            .await
+            .assert_error(400, "bad_request");
+        let not_a_point = ApprovalClaim {
+            device_public_key: [4; 65],
+            device_name: "New Mac".to_owned(),
+        };
+        exchange(
+            &s,
+            &request("POST", "/v1/approvals/claim", &a.n, &not_a_point.to_json()),
+        )
+        .await
+        .assert_error(400, "bad_request");
+        assert_eq!(a.claim(&s).await.status, 201);
+        a.as_n(&s, "POST", "/commit", b"{}")
+            .await
+            .assert_error(400, "bad_request");
+        assert_eq!(a.commit(&s).await.status, 204);
+        let short = CompareKeys {
+            keys: vec![1; 10],
+            nonce: [2; 32],
+        };
+        call(&s, "POST", &a.path("/keys"), "", &short.to_json())
+            .await
+            .assert_error(400, "bad_request");
+        assert_eq!(a.keys(&s).await.status, 204);
+        a.as_n(&s, "POST", "/reveal", &short.to_json())
+            .await
+            .assert_error(400, "bad_request");
+        // 404: the code is another request's.
+        let mut cross = Approval::create(&s, &d, &keys).await;
+        cross.id = a.id;
+        cross.n = b.n.clone();
+        cross.reveal(&s).await.assert_error(404, "not_found");
+        cross
+            .as_n(&s, "GET", "", b"")
+            .await
+            .assert_error(404, "not_found");
+        cross.commit(&s).await.assert_error(404, "not_found");
+        cross
+            .as_n(&s, "DELETE", "", b"")
+            .await
+            .assert_error(404, "not_found");
+        assert_eq!(a.reveal(&s).await.status, 204);
+        call(&s, "POST", &a.path("/seal"), "", b"{}")
+            .await
+            .assert_error(400, "bad_request");
+        // 404: another account's request.
+        let other = sign_up(&s).await;
+        let theirs = bearer(&sign_in(&s, &other).await);
+        let mine = std::mem::replace(&mut s.auth, theirs);
+        let keys_body = CompareKeys {
+            keys: a.keys_r.clone(),
+            nonce: a.n_r,
+        }
+        .to_json();
+        let seal_body = a.seal_body(&d, &keys).to_json();
+        for (method, tail, body) in [
+            ("GET", "", Vec::new()),
+            ("POST", "/keys", keys_body),
+            ("POST", "/seal", seal_body),
+            ("DELETE", "", Vec::new()),
+        ] {
+            call(&s, method, &a.path(tail), "", &body)
+                .await
+                .assert_error(404, "not_found");
+        }
+        s.auth = mine;
+        assert_eq!(call(&s, "GET", &a.path(""), "", b"").await.status, 200);
+        // 401: no session, no code, a malformed code.
+        let keep = std::mem::take(&mut s.auth);
+        for (method, path) in [
+            ("POST", "/v1/approvals".to_owned()),
+            ("POST", a.path("/keys")),
+            ("POST", a.path("/seal")),
+            ("GET", a.path("")),
+            ("DELETE", a.path("")),
+        ] {
+            call(&s, method, &path, "", b"{}")
+                .await
+                .assert_unauthorized();
+        }
+        for line in [
+            "",
+            "Authorization: Approval AAAA\r\n",
+            "Authorization: Approval aaaqeayeaudaocajbifqydiob4\r\n",
+        ] {
+            let r = exchange(&s, &request("POST", "/v1/approvals/claim", line, b"{}")).await;
+            r.assert_error(401, "unauthorized");
+            assert_eq!(r.header("www-authenticate"), Some("Approval"));
+            let r = exchange(&s, &request("POST", &a.path("/commit"), line, b"{}")).await;
+            assert_eq!(r.status, 401);
+        }
+        s.auth = keep;
+    });
+}
+
+/// SYN-01.12 (ruling (4)): the claim counts in the sign-in bucket (10 a
+/// minute per address in the card; here a limit of 3): after 3 claims, the
+/// fourth gets 429 with `Retry-After`, whatever its code, and so does a
+/// sign-in challenge; in the next minute a challenge and 2 claims fill it.
+#[test]
+fn syn01_12_the_claim_counts_in_the_sign_in_bucket() {
+    block_on(async {
+        let rate = RateLimits {
+            signin: 3,
+            writes: 1000,
+            reads: 1000,
+        };
+        let s = start_strict(Config {
+            rate,
+            ..Config::default()
+        })
+        .await;
+        set_clock(&s, T0);
+        let code = larsal_crypto::random::bytes(approval::CODE_BYTES).unwrap();
+        let line = approval_line(&code);
+        for _ in 0..3 {
+            let r = exchange(&s, &request("POST", "/v1/approvals/claim", &line, b"{}")).await;
+            assert_eq!(r.status, 400, "{r:?}");
+        }
+        let r = exchange(&s, &request("POST", "/v1/approvals/claim", &line, b"{}")).await;
+        r.assert_error(429, "rate_limited");
+        assert!(r.header("retry-after").is_some());
+        // The same bucket: the claims leave no sign-in challenge this minute,
+        // and a new minute takes a challenge and a claim again.
+        let ask = larsal_proto::messages::ChallengeRequest {
+            device_id: larsal_proto::messages::DeviceId::from_bytes([9; 16]),
+        }
+        .to_json();
+        exchange(&s, &request("POST", "/v1/signin/challenge", "", &ask))
+            .await
+            .assert_error(429, "rate_limited");
+        set_clock(&s, T0 + 60);
+        let r = exchange(&s, &request("POST", "/v1/signin/challenge", "", &ask)).await;
+        assert_eq!(r.status, 200, "{r:?}");
+        for _ in 0..2 {
+            let r = exchange(&s, &request("POST", "/v1/approvals/claim", &line, b"{}")).await;
+            assert_eq!(r.status, 400, "{r:?}");
+        }
+        exchange(&s, &request("POST", "/v1/approvals/claim", &line, b"{}"))
+            .await
+            .assert_error(429, "rate_limited");
     });
 }

@@ -3,18 +3,26 @@
 //! the sync tests, and a clock that moves only when told.
 //!
 //! - [`larsal_server`]: Larsal's own server in process on 127.0.0.1:0 with its
-//!   first-start certificate, its test clock and SYN-04.11's second-device
-//!   helper (LD-327 (6)). It lets an account with no keys row upload
-//!   unsigned, as E16's callers do (`TestSeams::allow_unsigned`);
-//!   [`larsal_server_strict`] keeps a release server's rule (E17-S1).
+//!   first-start certificate and its test clock (LD-327 (6)). It lets an
+//!   account with no keys row upload unsigned, as E16's callers do
+//!   (`TestSeams::allow_unsigned`); [`larsal_server_strict`] keeps a release
+//!   server's rule (E17-S1). No seam writes a device row (E17-S2): a second
+//!   device comes only through the approval ([`approve`], SYN-06.11) or the
+//!   Recovery Kit.
 //! - [`Memory`]: the device store of `account.rs` as a map, never a
 //!   keychain (LD-317 (2)).
 //! - [`Scripted`]: a TLS server on 127.0.0.1:0 with its own self-signed
 //!   certificate that answers each request as the test says, for the
 //!   replies Larsal's server never gives (endless 412, a rolled-back
-//!   version, 429). As [`Scripted::proxy`] it passes every request on to
-//!   an [`LarsalServer`] and keeps each request and reply as read: the test
-//!   proxy of SYN-04 T13 and SYN-03 T24.
+//!   version, 429); it answers `GET /v1/account/keys` with 404 unless the
+//!   script says otherwise, as an account of E16 without keys. As
+//!   [`Scripted::proxy`] it passes every request on to an [`LarsalServer`]
+//!   and keeps each request and reply as read: the test proxy of SYN-04 T13
+//!   and SYN-03 T24. As [`Scripted::relay`] it may change a request's or a
+//!   reply's body on the way: the relay in the middle of SYN-05 T03 and T04
+//!   and SYN-06 T10 (E17-S2).
+//! - [`approve`]: SYN-06.11 between two clients, both users choosing Codes
+//!   match after comparing the codes (E17-S2).
 //!
 //! Every socket is on 127.0.0.1; nothing reaches another host.
 #![allow(
@@ -27,8 +35,11 @@
 )]
 
 use crate::account::{AccountFail, Keep};
+use crate::approval::{NSealed, Polled};
+use crate::client::{Server, Signer};
 use crate::sync::Clock;
-use larsal_crypto::secret::SecretBytes;
+use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_proto::messages::DeviceId;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName};
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore, ServerConfig, ServerConnection, StreamOwned,
@@ -262,18 +273,29 @@ impl Scripted {
             .collect()
     }
 
-    /// The requests read so far with this method.
+    /// The requests read so far with this method, but for the account
+    /// routes of E17: `PUT /v1/account/keys` (SYN-06.1) and
+    /// `PUT …/keypart` (SYN-06.9). E16's counts are of the vault uploads,
+    /// and since E17-S2 larsal-ffi's test Macs get account keys at sign-up
+    /// and pass a vault's part through the server.
     pub fn count(&self, method: &str) -> usize {
         self.requests()
             .iter()
-            .filter(|r| r.method == method)
+            .filter(|r| {
+                r.method == method && r.path != "/v1/account/keys" && !r.path.ends_with("/keypart")
+            })
             .count()
     }
 
-    /// A server whose every reply is `script`'s.
+    /// A server whose every reply is `script`'s, except `GET
+    /// /v1/account/keys`, which is 404 (an account without keys, as E16's;
+    /// E17-S2's fail-closed download asks for it).
     pub fn new(script: impl Fn(&Request) -> Response + Send + Sync + 'static) -> Self {
         let script: Arc<Script> = Arc::new(script);
         Self::serve(move |request: &Request| {
+            if request.method == "GET" && request.path == "/v1/account/keys" {
+                return Ok(Response::new(404, br#"{"error":"not_found"}"#).bytes());
+            }
             let reply = script(request).bytes();
             Ok(reply)
         })
@@ -292,44 +314,44 @@ impl Scripted {
         to: &LarsalServer,
         answer: impl Fn(&Request) -> Option<Response> + Send + Sync + 'static,
     ) -> Self {
-        let mut roots = RootCertStore::empty();
-        roots.add(CertificateDer::from(to.der.clone())).unwrap();
-        let provider = Arc::new(rustls::crypto::ring::default_provider());
-        let config = Arc::new(
-            ClientConfig::builder_with_provider(provider)
-                .with_safe_default_protocol_versions()
-                .unwrap()
-                .with_root_certificates(roots)
-                .with_no_client_auth(),
-        );
+        let config = trusting(to);
         let port = to.port;
         Self::serve(move |request: &Request| {
             if let Some(reply) = answer(request) {
                 return Ok(reply.bytes());
             }
-            let name = ServerName::try_from("127.0.0.1").unwrap();
-            let conn = ClientConnection::new(config.clone(), name).map_err(io::Error::other)?;
-            let tcp = TcpStream::connect(("127.0.0.1", port))?;
-            let mut tls = StreamOwned::new(conn, tcp);
-            tls.write_all(&request.raw)?;
-            tls.flush()?;
-            let (head, _) = read_head(&mut tls)?;
-            let text = String::from_utf8_lossy(&head).into_owned();
-            let status: u16 = text
-                .split(' ')
-                .nth(1)
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
-            let length = if status == 304 || status == 204 {
-                0
-            } else {
-                content_length(&text)
-            };
+            let (head, body) = forward(&config, port, &request.raw)?;
             let mut reply = head;
-            let mut body = vec![0u8; length];
-            tls.read_exact(&mut body)?;
             reply.extend_from_slice(&body);
             Ok(reply)
+        })
+    }
+
+    /// E17-S2: a relay in the middle. `request` may give a request a new
+    /// body before it goes on to `to`; `reply` may give the reply a new body
+    /// before the client reads it (status and other fields as `to` sent
+    /// them). Each request and reply is kept as the client sent and read it.
+    pub fn relay(
+        to: &LarsalServer,
+        request: impl Fn(&Request) -> Option<Vec<u8>> + Send + Sync + 'static,
+        reply: impl Fn(&Request, &[u8]) -> Option<Vec<u8>> + Send + Sync + 'static,
+    ) -> Self {
+        let config = trusting(to);
+        let port = to.port;
+        Self::serve(move |q: &Request| {
+            let raw = match request(q) {
+                Some(body) => with_body(&q.raw[..q.raw.len() - q.body.len()], &body),
+                None => q.raw.clone(),
+            };
+            let (head, body) = forward(&config, port, &raw)?;
+            Ok(match reply(q, &body) {
+                Some(body) => with_body(&head, &body),
+                None => {
+                    let mut out = head;
+                    out.extend_from_slice(&body);
+                    out
+                }
+            })
         })
     }
 
@@ -380,6 +402,116 @@ impl Scripted {
         });
         Self { port, pin, seen }
     }
+}
+
+/// A TLS client that trusts only `to`'s certificate.
+fn trusting(to: &LarsalServer) -> Arc<ClientConfig> {
+    let mut roots = RootCertStore::empty();
+    roots.add(CertificateDer::from(to.der.clone())).unwrap();
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    Arc::new(
+        ClientConfig::builder_with_provider(provider)
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_root_certificates(roots)
+            .with_no_client_auth(),
+    )
+}
+
+/// Sends `raw` to 127.0.0.1:`port` over a new TLS connection: the reply's
+/// head and body.
+fn forward(config: &Arc<ClientConfig>, port: u16, raw: &[u8]) -> io::Result<(Vec<u8>, Vec<u8>)> {
+    let name = ServerName::try_from("127.0.0.1").unwrap();
+    let conn = ClientConnection::new(config.clone(), name).map_err(io::Error::other)?;
+    let tcp = TcpStream::connect(("127.0.0.1", port))?;
+    let mut tls = StreamOwned::new(conn, tcp);
+    tls.write_all(raw)?;
+    tls.flush()?;
+    let (head, _) = read_head(&mut tls)?;
+    let text = String::from_utf8_lossy(&head).into_owned();
+    let status: u16 = text
+        .split(' ')
+        .nth(1)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let length = if status == 304 || status == 204 {
+        0
+    } else {
+        content_length(&text)
+    };
+    let mut body = vec![0u8; length];
+    tls.read_exact(&mut body)?;
+    Ok((head, body))
+}
+
+/// `head` (a request's or a reply's, ending in an empty line) with its
+/// `Content-Length` set for `body`, then `body`.
+fn with_body(head: &[u8], body: &[u8]) -> Vec<u8> {
+    let text = String::from_utf8_lossy(head).into_owned();
+    let mut out = String::new();
+    for line in text.trim_end_matches("\r\n").split("\r\n") {
+        if !line.to_ascii_lowercase().starts_with("content-length:") {
+            out.push_str(line);
+            out.push_str("\r\n");
+        }
+    }
+    out.push_str(&format!("Content-Length: {}\r\n\r\n", body.len()));
+    let mut out = out.into_bytes();
+    out.extend_from_slice(body);
+    out
+}
+
+/// SYN-06.11 between `e` (holding the account's keys) and `n` (a client of
+/// the same server with no device): N claims with the code E shows for
+/// the device `key`, both poll until the codes are in, the codes are
+/// compared (they must be equal), both users choose Codes match, E seals,
+/// and N opens the seal. N's device is `n`'s from then on; N has not yet
+/// read the account keys.
+pub fn approve_to_seal<K1: Signer, K2: Signer>(
+    e: &mut Server<K1>,
+    n: &mut Server<K2>,
+    key: K2,
+    clock: &dyn Clock,
+) -> Result<NSealed, AccountFail> {
+    let approver = e.approval_start(clock)?;
+    let typed = approver.code();
+    let claimant = n.approval_claim(&typed, key, clock)?;
+    drop(typed);
+    // E answers the commitment; N reveals; E checks the reveal.
+    let Polled::Waiting(approver) = approver.poll(e, clock)? else {
+        panic!("E had a code before N revealed");
+    };
+    let Polled::Ready(n_compared) = claimant.poll(n, clock)? else {
+        panic!("N saw no message (2)");
+    };
+    let Polled::Ready(e_compared) = approver.poll(e, clock)? else {
+        panic!("E saw no reveal");
+    };
+    assert_eq!(
+        e_compared.code(),
+        n_compared.code(),
+        "both screens show one code"
+    );
+    e_compared.codes_match().seal(e, clock)?;
+    match n_compared.codes_match().poll(n, clock)? {
+        Polled::Ready(sealed) => Ok(sealed),
+        Polled::Waiting(_) => panic!("N saw no seal"),
+    }
+}
+
+/// [`approve_to_seal`], then N's last step with `password` and `keep`
+/// (SYN-06.11 step 6): N's device id.
+pub fn approve<K1: Signer, K2: Signer>(
+    e: &mut Server<K1>,
+    n: &mut Server<K2>,
+    key: K2,
+    clock: &dyn Clock,
+    password: &SecretString,
+    keep: &dyn Keep,
+) -> Result<DeviceId, AccountFail> {
+    let sealed = approve_to_seal(e, n, key, clock)?;
+    sealed.finish(n, password, keep)?;
+    Ok(sealed.device_id())
 }
 
 fn read_head(s: &mut impl Read) -> io::Result<(Vec<u8>, ())> {

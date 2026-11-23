@@ -29,7 +29,13 @@
 //!   it is opened, as a rollback is (SYN-03.11). An account stopped by
 //!   `MSG-ACCOUNT-KEYS-CHANGED` runs nothing: no download, no upload signed
 //!   (SYN-06.6).
+//! - E17-S2 (fail closed): a Mac that holds no account keys merges no
+//!   download while the server holds keys for its account: the version is
+//!   refused as a rollback is, with `MSG-ACCOUNT-RESTORE-NEEDED`. Only an
+//!   account without keys (`GET /v1/account/keys` 404, an account of E16)
+//!   keeps the version and hash guard alone.
 
+use crate::account::AccountFail;
 use crate::client::{Fail, Reply, Server, Signer};
 use crate::state::{Link, Measures};
 use larsal_core::guard::kdf_lower;
@@ -268,6 +274,15 @@ pub enum Message {
     /// `MSG-ACCOUNT-NEEDS-UPDATE` (SYN-06.4's edge case: a blob of another
     /// version).
     NeedsUpdate,
+    /// `MSG-CODE-FAILED` (SYN-05.3, SYN-06.11): the approval ended with
+    /// nothing shared.
+    CodeFailed,
+    /// `MSG-ACCOUNT-OTHER-PASSWORD` (E17-S2): sign-up met this Mac's keys
+    /// sealed with another account password; no kit.
+    OtherPassword,
+    /// `MSG-ACCOUNT-RESTORE-NEEDED` (E17-S2): the account has keys on the
+    /// server that this Mac does not hold; nothing is merged or uploaded.
+    RestoreNeeded,
 }
 
 impl Message {
@@ -294,6 +309,9 @@ impl Message {
             Self::KeysChanged => "MSG-ACCOUNT-KEYS-CHANGED",
             Self::RestoreFailed => "MSG-ACCOUNT-RESTORE-FAILED",
             Self::NeedsUpdate => "MSG-ACCOUNT-NEEDS-UPDATE",
+            Self::CodeFailed => "MSG-CODE-FAILED",
+            Self::OtherPassword => "MSG-ACCOUNT-OTHER-PASSWORD",
+            Self::RestoreNeeded => "MSG-ACCOUNT-RESTORE-NEEDED",
         }
     }
 
@@ -356,6 +374,17 @@ impl Message {
                 "The Recovery Kit or the account password is not right.".into()
             }
             Self::NeedsUpdate => "Larsal needs an update to use this account.".into(),
+            Self::CodeFailed => {
+                "The check did not work. Nothing was shared. Start again on both Macs.".into()
+            }
+            Self::OtherPassword => "This account was made with another account password. \
+                 Type that password to see the Recovery Kit."
+                .into(),
+            Self::RestoreNeeded => format!(
+                "This Mac does not have the keys of your account on \"{address}\" yet. \
+                 Add this Mac with a code from your other Mac or with your Recovery Kit. \
+                 Nothing was merged or uploaded."
+            ),
         }
     }
 }
@@ -551,6 +580,18 @@ fn one_try<K: Signer>(
                 return Try::Done(Report::error(Message::Error));
             };
             let sha = sha256(&r.body);
+            // E17-S2 (fail closed): a Mac without the account's keys merges
+            // nothing while the server holds keys for the account; only an
+            // account without keys (404) keeps the version and hash guard
+            // alone.
+            if server.account_id().is_none() {
+                match server.keys_on_server() {
+                    Ok(false) => {}
+                    Ok(true) => return Try::Done(Report::error(Message::RestoreNeeded)),
+                    Err(AccountFail::Net(f)) => return failed(f),
+                    Err(_) => return Try::Done(Report::error(Message::Error)),
+                }
+            }
             // SYN-03.7: before opening, only local state stops a rollback;
             // SYN-03.11: and a version this account did not sign is refused
             // the same way.

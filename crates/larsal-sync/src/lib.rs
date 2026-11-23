@@ -9,7 +9,9 @@
 //! (larsal-ffi), behind [`sync::Local`]. [`account`] (E17-S1, SYN-06) is the
 //! account's keys on this Mac: sign-up with the account password and the
 //! Recovery Kit, the pins, the device store, the key-file part through the
-//! server and a restore by kit.
+//! server and a restore by kit. [`approval`] (E17-S2, SYN-05, SYN-06.11)
+//! is a new Mac by approval: the code compare with its commitment first,
+//! E's seal of the account secret and N's checks before it pins anything.
 //!
 //! Guarantees: nothing runs by itself (no thread, no timer); the session
 //! token lives only in memory, in a `SecretString`; no reply text from the
@@ -31,6 +33,7 @@
 #![deny(missing_docs)]
 
 pub mod account;
+pub mod approval;
 pub mod client;
 pub mod state;
 pub mod sync;

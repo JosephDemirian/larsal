@@ -6,8 +6,10 @@
 #![allow(clippy::arithmetic_side_effects)]
 
 use super::*;
-use crate::test_server::{Request, Response, Scripted, larsal_server};
-use larsal_crypto::secret::SecretBytes;
+use crate::test_server::{
+    Memory, Request, Response, Scripted, TestClock, approve_to_seal, larsal_server,
+};
+use larsal_crypto::secret::{SecretBytes, SecretString};
 use larsal_platform::device_key::DeviceKey;
 use larsal_proto::messages::{VaultId, VaultVersion};
 
@@ -62,7 +64,9 @@ pub(crate) fn client(s: &Scripted) -> Server<DeviceKey> {
 
 /// E16-S7a check 1, SYN-04.4, SYN-04 T04: a client signs up and signs in
 /// through `device_key.rs` (the test-seam key) against Larsal's server, and
-/// a changed signature gets 401: signed out, no session.
+/// a changed signature gets 401: signed out, no session. The second device
+/// is A's approval of B through SYN-06.11 with the code compare (E17-S2):
+/// no seam adds a device.
 #[test]
 fn syn04_4_signs_in_through_device_key_and_a_changed_signature_gets_401() {
     let app = larsal_server();
@@ -71,17 +75,16 @@ fn syn04_4_signs_in_through_device_key_and_a_changed_signature_gets_401() {
     a.sign_in().unwrap();
     assert!(a.signed_in());
     assert!(a.list().unwrap().is_empty());
-
-    // The same device, with every signature changed in one bit.
-    let key = DeviceKey::test_seam().unwrap();
-    let account = made.account_id;
-    let second = app
-        .seams
-        .add_device(&account, &key.public_key().unwrap(), "Mac")
-        .unwrap()
+    let password = SecretString::new("demo-account-pw".to_owned());
+    a.sign_up_account(&made.account_id, &password, &Memory::default())
         .unwrap();
+
+    // A second device approved by A, its every signature changed in one bit.
     let mut b = Server::new(&app.address(), app.pin).unwrap();
-    b.set_device(second, Changed(key));
+    let key = Changed(DeviceKey::test_seam().unwrap());
+    let sealed = approve_to_seal(&mut a, &mut b, key, &*TestClock::at(0)).unwrap();
+    assert_eq!(sealed.account_id(), made.account_id);
+    assert_ne!(sealed.device_id(), made.device_id);
     assert_eq!(b.sign_in(), Err(Fail::SignedOut));
     assert!(!b.signed_in());
     assert_eq!(b.list().unwrap_err(), Fail::SignedOut);

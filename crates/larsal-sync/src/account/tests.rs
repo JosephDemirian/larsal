@@ -235,6 +235,15 @@ impl Run {
     fn label(&self) -> String {
         format!("{} account {}", self.kit.address(), self.made.account_id)
     }
+
+    /// The user's action after `MSG-ACCOUNT-KEYS-CHANGED` (E17-S4's
+    /// screens; here the stop mark taken out of A's device store), so the
+    /// next restart starts unstopped. E17-S2 keeps the stop across a
+    /// restart: `load_account` alone never clears it.
+    fn unstop(&self) {
+        let label = self.a.c.stop_label(&self.made.account_id);
+        self.a.keep.0.lock().unwrap().remove(&label);
+    }
 }
 
 fn account_with(proxy_of: impl FnOnce(&LarsalServer) -> Scripted) -> Run {
@@ -580,7 +589,7 @@ fn syn06_6_t05_swapped_keys_stop_the_account() {
     assert_eq!(first_upload(&mut r.a.c, &vault, VAULT), Ok(1));
     let part = SecretBytes::new(vec![0x46; 32]);
     r.a.c.put_keypart(&vault, &part).unwrap();
-    r.a.c.check_keys().unwrap();
+    r.a.c.check_keys(&r.a.keep).unwrap();
     assert!(!r.a.c.stopped(), "the real keys pass");
 
     let real = r.a.c.get_keys().unwrap();
@@ -636,9 +645,14 @@ fn syn06_6_t05_swapped_keys_stop_the_account() {
         let (id, key) = r.a.c.device.take().unwrap();
         r.a.c = client_of(&r.proxy, r.app.port);
         r.a.c.set_device(id, key);
+        r.unstop();
         r.a.c.load_account(&account, &r.a.keep).unwrap();
         assert!(!r.a.c.stopped());
-        assert_eq!(r.a.c.check_keys(), Err(AccountFail::KeysChanged), "{what}");
+        assert_eq!(
+            r.a.c.check_keys(&r.a.keep),
+            Err(AccountFail::KeysChanged),
+            "{what}"
+        );
         assert!(r.a.c.stopped(), "{what}");
         assert_eq!(
             AccountFail::KeysChanged.message().id(),
@@ -668,7 +682,7 @@ fn syn06_6_t05_swapped_keys_stop_the_account() {
             "{what}: not one request more"
         );
         *lie.lock().unwrap() = None;
-        assert_eq!(r.a.c.check_keys(), Ok(()));
+        assert_eq!(r.a.c.check_keys(&r.a.keep), Ok(()));
         assert!(r.a.c.stopped(), "{what}: stopped until the user acts");
         assert_eq!(run(&mut r.a.c, &mut l, &Untouched, &*clock), keys_changed());
     }
@@ -687,9 +701,10 @@ fn syn06_6_t05_swapped_keys_stop_the_account() {
         let (id, key) = r.a.c.device.take().unwrap();
         r.a.c = client_of(&r.proxy, r.app.port);
         r.a.c.set_device(id, key);
+        r.unstop();
         r.a.c.load_account(&account, &r.a.keep).unwrap();
         assert_eq!(
-            r.a.c.check_keys(),
+            r.a.c.check_keys(&r.a.keep),
             Err(AccountFail::Net(Fail::Protocol)),
             "{what}"
         );
@@ -701,8 +716,9 @@ fn syn06_6_t05_swapped_keys_stop_the_account() {
     let (id, key) = r.a.c.device.take().unwrap();
     r.a.c = client_of(&r.proxy, r.app.port);
     r.a.c.set_device(id, key);
+    r.unstop();
     r.a.c.load_account(&account, &r.a.keep).unwrap();
-    r.a.c.check_keys().unwrap();
+    r.a.c.check_keys(&r.a.keep).unwrap();
     assert_eq!(
         r.a.c.get_keypart(&vault, &r.a.keep).unwrap().expose(),
         part.expose()
@@ -762,7 +778,7 @@ fn syn06_8_t18_after_a_restart_this_mac_signs_and_opens_with_no_password() {
     );
     assert_eq!(c.account_id(), None);
     c.load_account(&account, &r.a.keep).unwrap();
-    c.check_keys().unwrap();
+    c.check_keys(&r.a.keep).unwrap();
     let vault = VaultId::from_bytes([0x51; 16]);
     assert_eq!(
         first_upload(&mut c, &vault, VAULT),
@@ -934,7 +950,7 @@ fn syn06_12_t13_e17s1_the_kit_and_the_password_restore_into_an_empty_demo_app_st
         r.a.keep.get(&label).unwrap().expose(),
         "N keeps the account's keys"
     );
-    n.check_keys().unwrap();
+    n.check_keys(&keep).unwrap();
     let listed: Vec<(VaultId, u64)> = n
         .list()
         .unwrap()
@@ -1082,8 +1098,9 @@ fn syn06_12_t14_a_wrong_kit_or_password_gives_one_message() {
 /// `keypart`, account, vault), signed by the identity key; Mac B, restored
 /// by kit with an empty device store (no copy of A's items: the test
 /// helper's copy is gone), gets F from the server's wrap. A wrap signed by
-/// another key, with info naming another vault, of the classical suite,
-/// naming another signer or with a changed byte is refused.
+/// another key, with info naming another vault, of another suite (the ids
+/// [32, 1, 3]) or of the classical suite's ids ([32, 1, 2]), naming
+/// another signer or with a changed byte is refused.
 #[test]
 #[allow(clippy::too_many_lines)]
 fn syn06_9_t07_the_part_reaches_the_second_mac_through_the_server() {
@@ -1162,8 +1179,10 @@ fn syn06_9_t07_the_part_reaches_the_second_mac_through_the_server() {
     };
     let other = AccountKeys::new().unwrap();
     let other_vault = VaultId::from_bytes([0x52; 16]);
+    let mut other_suite = make(&info, *me.as_bytes(), &private);
+    other_suite.suite = [0x0020, 0x0001, 0x0003];
     let mut classical = make(&info, *me.as_bytes(), &private);
-    classical.suite = [0x0020, 0x0001, 0x0003];
+    classical.suite = [32, 1, 2];
     let mut changed = make(&info, *me.as_bytes(), &private);
     changed.ct[0] ^= 1;
     let mut changed_info = make(&info, *me.as_bytes(), &private);
@@ -1181,7 +1200,8 @@ fn syn06_9_t07_the_part_reaches_the_second_mac_through_the_server() {
                 &private,
             ),
         ),
-        ("the classical suite", classical),
+        ("another suite, [32, 1, 3]", other_suite),
+        ("the classical suite's ids, [32, 1, 2]", classical),
         ("another signer id", make(&info, [0x0b; 16], &private)),
         ("a changed ciphertext", changed),
         ("a changed info byte", changed_info),
@@ -1503,4 +1523,384 @@ fn syn02_t14_cry05_t29_no_secret_in_any_stored_byte_after_a_full_run() {
         found.len()
     );
     assert!(found.is_empty(), "{found:?}");
+}
+
+/// A proxy before `app` that answers `GET /v1/account/keys` with the
+/// record `lie` holds, when it holds one.
+fn keys_lie(app: &LarsalServer, lie: &Arc<Mutex<Option<Vec<u8>>>>) -> Scripted {
+    let served = lie.clone();
+    Scripted::proxy_with(app, move |q| {
+        let body = served.lock().unwrap().clone()?;
+        (q.method == "GET" && q.path == "/v1/account/keys")
+            .then(|| Response::new(200, &body).with("Content-Type", "application/json"))
+    })
+}
+
+/// SYN-06.6, E17-S2 (ruling (13) (d)): the stop after
+/// `MSG-ACCOUNT-KEYS-CHANGED` is kept in the device store. After a restart
+/// `load_account` stops the account again and a check of the right keys
+/// does not start it, restart after restart; only the user's action (here
+/// a restore with the kit and the password) does, and after that a
+/// restart keeps it started.
+#[test]
+fn syn06_6_the_stop_is_kept_across_a_restart() {
+    let lie: Arc<Mutex<Option<Vec<u8>>>> = Arc::default();
+    let held = lie.clone();
+    let mut r = account_with(move |app| keys_lie(app, &held));
+    let account = r.made.account_id;
+    let vault = VaultId::from_bytes([0x53; 16]);
+    assert_eq!(first_upload(&mut r.a.c, &vault, VAULT), Ok(1));
+    let mut binding = r.a.c.get_keys().unwrap();
+    *binding.kem_signature.last_mut().unwrap() ^= 1;
+    *lie.lock().unwrap() = Some(binding.to_json());
+    assert_eq!(r.a.c.check_keys(&r.a.keep), Err(AccountFail::KeysChanged));
+    *lie.lock().unwrap() = None;
+    let clock = TestClock::at(0);
+    for restart in 0..2 {
+        r.later();
+        let (id, key) = r.a.c.device.take().unwrap();
+        r.a.c = client_of(&r.proxy, r.app.port);
+        r.a.c.set_device(id, key);
+        r.a.c.load_account(&account, &r.a.keep).unwrap();
+        assert!(r.a.c.stopped(), "restart {restart}: the kept stop holds");
+        assert_eq!(r.a.c.check_keys(&r.a.keep), Ok(()), "the right keys");
+        assert!(
+            r.a.c.stopped(),
+            "restart {restart}: a check does not start it"
+        );
+        let mut l = link(&r.a.c, vault, 1, VAULT);
+        assert_eq!(run(&mut r.a.c, &mut l, &Untouched, &*clock), keys_changed());
+    }
+    // The user's action: a restore with the kit and the password.
+    r.later();
+    let (id, key) = r.a.c.device.take().unwrap();
+    r.a.c = client_of(&r.proxy, r.app.port);
+    r.a.c.set_device(id, key);
+    r.a.c.restore(&r.kit, &password(), &r.a.keep).unwrap();
+    assert!(!r.a.c.stopped());
+    r.later();
+    let (id, key) = r.a.c.device.take().unwrap();
+    r.a.c = client_of(&r.proxy, r.app.port);
+    r.a.c.set_device(id, key);
+    r.a.c.load_account(&account, &r.a.keep).unwrap();
+    assert!(!r.a.c.stopped(), "started after the user's action");
+    let open = OpenVault::new(VAULT);
+    let mut l = link(&r.a.c, vault, 1, VAULT);
+    let report = run(&mut r.a.c, &mut l, &open, &*clock);
+    assert_eq!(report.status, Some(Status::Synced(0)), "{report:?}");
+}
+
+/// SYN-06.7, E17-S2 (ruling (13) (c), E17-S1's F4): a second sign-up call
+/// with another account password meets the server's keys (412): they are
+/// this Mac's, but the server's blob opens only with the first password,
+/// so no kit is given (`MSG-ACCOUNT-OTHER-PASSWORD`) and the account goes
+/// on; the first password then gives the kit, which restores.
+#[test]
+fn syn06_7_a_412_with_another_password_gives_no_kit() {
+    let mut r = account();
+    let other = SecretString::new("demo-account-other".to_owned());
+    assert_eq!(
+        r.a.c
+            .sign_up_account(&r.made.account_id, &other, &r.a.keep)
+            .err(),
+        Some(AccountFail::OtherPassword)
+    );
+    assert_eq!(
+        AccountFail::OtherPassword.message().id(),
+        "MSG-ACCOUNT-OTHER-PASSWORD"
+    );
+    assert!(!r.a.c.stopped(), "this Mac's own keys: not stopped");
+    let kit =
+        r.a.c
+            .sign_up_account(&r.made.account_id, &password(), &r.a.keep)
+            .unwrap();
+    assert_eq!(kit.secret.expose(), r.kit.secret.expose());
+    let n = recovered(&r);
+    assert_eq!(n.c.account_id(), Some(r.made.account_id));
+}
+
+/// SYN-06.6 at sign-up (adopted from E17-S1's Checker 2, its survivor
+/// M19): a 412 from a server whose keys for this account are another
+/// account's stops the account; no kit is given.
+#[test]
+fn c2_a_412_over_other_keys_stops_the_account() {
+    let lie: Arc<Mutex<Option<Vec<u8>>>> = Arc::default();
+    let serve = lie.clone();
+    let app = larsal_server_strict();
+    app.seams.set_clock(now_seconds());
+    let proxy = Scripted::proxy_with(&app, move |q| {
+        let record = serve.lock().unwrap().clone()?;
+        match (q.method.as_str(), q.path.as_str()) {
+            ("PUT", "/v1/account/keys") => {
+                Some(Response::new(412, b"{\"error\":\"precondition_failed\"}"))
+            }
+            ("GET", "/v1/account/keys") => Some(Response::new(200, &record)),
+            _ => None,
+        }
+    });
+    // Account C's real record: the keys the lying server shows to A.
+    let mut c = client_of(&proxy, app.port);
+    let c_account = c
+        .sign_up(DeviceKey::test_seam().unwrap())
+        .unwrap()
+        .account_id;
+    let c_kit = c
+        .sign_up_account(&c_account, &password(), &Memory::default())
+        .unwrap();
+    let c_record = c.get_keys().unwrap();
+    *lie.lock().unwrap() = Some(c_record.to_json());
+    let mut a = client_of(&proxy, app.port);
+    let account = a
+        .sign_up(DeviceKey::test_seam().unwrap())
+        .unwrap()
+        .account_id;
+    let keep = Memory::default();
+    let got = a.sign_up_account(&account, &password(), &keep);
+    assert_eq!(got.err(), Some(AccountFail::KeysChanged));
+    assert!(a.stopped());
+    assert_eq!(
+        keep.get(&a.stop_label(&account)).unwrap().expose(),
+        [1],
+        "the stop is kept"
+    );
+    drop(c_kit);
+}
+
+/// SYN-06.12 (adopted from E17-S1's Checker 1): the server serves the real
+/// blob with another identity key (bound by that key), with both public
+/// keys another account's, or with this account's keys and a binding that
+/// does not verify with them: the blob opens, but the unwrapped keys are
+/// not the record's, so nothing is pinned or kept; the real record then
+/// restores.
+#[test]
+fn c1_restore_pins_only_the_unwrapped_keys() {
+    let lie: Arc<Mutex<Option<Vec<u8>>>> = Arc::default();
+    let held = lie.clone();
+    let mut r = account_with(move |app| keys_lie(app, &held));
+    let me = r.made.account_id;
+    let real = r.a.c.get_keys().unwrap();
+    r.later();
+    let mut n = Server::new(r.kit.address(), r.kit.pin()).unwrap();
+    n.sign_for_port(r.app.port);
+    n.recover(&r.kit, DeviceKey::test_seam().unwrap()).unwrap();
+    let attacker = AccountKeys::new().unwrap();
+    let bind = |key: &SecretBytes, kem: &[u8]| {
+        let signed = sign::field_list(&[&b"sync-kem-key-v1"[..], me.as_bytes(), kem]).unwrap();
+        pq::composite_sign(key, &signed).unwrap()
+    };
+    let swapped_identity = KeysRecord {
+        identity_public_key: attacker.identity_public_key().to_vec(),
+        kem_signature: bind(attacker.identity_private_key(), &real.kem_public_key),
+        ..real.clone()
+    };
+    let swapped_both = KeysRecord {
+        identity_public_key: attacker.identity_public_key().to_vec(),
+        kem_public_key: attacker.kem_public_key().to_vec(),
+        kem_signature: attacker.kem_signature(me.as_bytes()).unwrap(),
+        ..real.clone()
+    };
+    let unbound = KeysRecord {
+        kem_signature: attacker.kem_signature(me.as_bytes()).unwrap(),
+        ..real.clone()
+    };
+    let keep = Memory::default();
+    for (what, record) in [
+        ("another identity key", swapped_identity),
+        ("both public keys another's", swapped_both),
+        ("a binding that does not verify", unbound),
+    ] {
+        *lie.lock().unwrap() = Some(record.to_json());
+        assert_eq!(
+            n.restore(&r.kit, &password(), &keep),
+            Err(AccountFail::KeysChanged),
+            "{what}"
+        );
+        assert!(keep.0.lock().unwrap().is_empty(), "{what}");
+        assert_eq!(n.account_id(), None, "{what}");
+    }
+    *lie.lock().unwrap() = None;
+    n.restore(&r.kit, &password(), &keep).unwrap();
+    assert_eq!(n.account_id(), Some(me));
+}
+
+/// SYN-06.6 at SYN-06.12's GET (adopted from E17-S1's Checker 2, its
+/// survivors M07 and M08): a restore refuses a record whose public keys
+/// are not the blob's (another set, bound to this account) and a record
+/// whose binding does not verify; nothing is kept; the real record
+/// restores.
+#[test]
+fn c2_restore_refuses_keys_that_are_not_the_blobs() {
+    let lie: Arc<Mutex<Option<Vec<u8>>>> = Arc::default();
+    let held = lie.clone();
+    let mut r = account_with(move |app| keys_lie(app, &held));
+    let account = r.made.account_id;
+    let real = r.a.c.get_keys().unwrap();
+    r.later();
+    let mut b = Server::new(r.kit.address(), r.kit.pin()).unwrap();
+    b.sign_for_port(r.app.port);
+    b.recover(&r.kit, DeviceKey::test_seam().unwrap()).unwrap();
+    let other = AccountKeys::new().unwrap();
+    let swapped = KeysRecord {
+        identity_public_key: other.identity_public_key().to_vec(),
+        kem_public_key: other.kem_public_key().to_vec(),
+        kem_signature: other.kem_signature(account.as_bytes()).unwrap(),
+        recovery_public_key: real.recovery_public_key,
+        blob: real.blob.clone(),
+    };
+    let mut unbound = real.clone();
+    unbound.kem_signature[100] ^= 1;
+    let keep = Memory::default();
+    for (what, record) in [("other keys", &swapped), ("a broken binding", &unbound)] {
+        *lie.lock().unwrap() = Some(record.to_json());
+        assert_eq!(
+            b.restore(&r.kit, &password(), &keep),
+            Err(AccountFail::KeysChanged),
+            "{what}"
+        );
+    }
+    assert!(keep.0.lock().unwrap().is_empty());
+    *lie.lock().unwrap() = None;
+    assert_eq!(b.restore(&r.kit, &password(), &keep), Ok(()));
+}
+
+/// SYN-06.12 (adopted from E17-S1's Checker 2, its survivor M18): a kit
+/// with this server's address and another fingerprint is not this
+/// server's: refused before any request.
+#[test]
+fn c2_a_kit_with_another_fingerprint_is_refused() {
+    let r = account();
+    let mut pin = r.kit.pin();
+    pin[0] ^= 1;
+    let other_pin = Kit {
+        address: r.kit.address().to_owned(),
+        pin,
+        account: r.kit.account_id(),
+        secret: SecretBytes::new(r.kit.secret.expose().to_vec()),
+    };
+    let mut b = Server::new(r.kit.address(), r.kit.pin()).unwrap();
+    b.sign_for_port(r.app.port);
+    let seen = r.proxy.requests().len();
+    assert_eq!(
+        b.recover(&other_pin, DeviceKey::test_seam().unwrap()).err(),
+        Some(AccountFail::OtherServer)
+    );
+    assert_eq!(
+        b.restore(&other_pin, &password(), &Memory::default()),
+        Err(AccountFail::OtherServer)
+    );
+    assert_eq!(r.proxy.requests().len(), seen, "no request");
+}
+
+/// E17-S2, ruling (13) (a) (E17-S1's Checker 1 probe, now a refusal): N
+/// after `recover` and a failed `restore` holds no account keys, and the
+/// server plants an unsigned version 9. The account has keys on the server
+/// (`GET /v1/account/keys` 200), so the download is refused:
+/// `MSG-ACCOUNT-RESTORE-NEEDED`, nothing merged, the link unchanged, no
+/// PUT.
+#[test]
+fn c1_a_mac_without_keys_merges_nothing_while_the_account_has_keys() {
+    let planted: Arc<Mutex<Option<String>>> = Arc::default();
+    let serve = planted.clone();
+    let mut r = account_with(move |app| {
+        Scripted::proxy_with(app, move |q| {
+            let path = serve.lock().unwrap().clone()?;
+            (q.method == "GET" && q.path == path).then(|| {
+                Response::new(200, b"forged, unsigned")
+                    .with("Content-Type", "application/octet-stream")
+                    .with("ETag", "\"9\"")
+            })
+        })
+    });
+    let x = VaultId::from_bytes([0xc1; 16]);
+    assert_eq!(first_upload(&mut r.a.c, &x, VAULT), Ok(1));
+    r.later();
+    let mut n = Server::new(r.kit.address(), r.kit.pin()).unwrap();
+    n.sign_for_port(r.app.port);
+    n.recover(&r.kit, DeviceKey::test_seam().unwrap()).unwrap();
+    let keep = Memory::default();
+    assert_eq!(
+        n.restore(
+            &r.kit,
+            &SecretString::new("wrong-password".to_owned()),
+            &keep
+        ),
+        Err(AccountFail::RestoreFailed)
+    );
+    assert_eq!(n.account_id(), None);
+    *planted.lock().unwrap() = Some(format!("/v1/vaults/{x}"));
+    let seen = r.proxy.requests().len();
+    let open = OpenVault::new(b"");
+    let mut l = link(&n, x, 0, b"");
+    let before = l.clone();
+    let report = run(&mut n, &mut l, &open, &*TestClock::at(1));
+    assert_eq!(
+        report,
+        Report {
+            status: Some(Status::Error),
+            messages: vec![Message::RestoreNeeded]
+        }
+    );
+    assert_eq!(Message::RestoreNeeded.id(), "MSG-ACCOUNT-RESTORE-NEEDED");
+    assert_eq!(open.merges(), 0, "nothing merged");
+    assert_eq!(l, before, "the link unchanged");
+    assert!(
+        !r.proxy.requests()[seen..].iter().any(|q| q.method == "PUT"),
+        "no PUT"
+    );
+}
+
+/// E17-S2, ruling (13) (a) (E17-S1's Checker 2 finding F1, now a
+/// refusal): a server plants an unsigned version 2. A Mac with the keys
+/// held refuses it as a rollback; the same Mac after a restart, its keys in
+/// its store but not loaded, refuses it too, with
+/// `MSG-ACCOUNT-RESTORE-NEEDED`: nothing merged, the link unchanged, no
+/// PUT.
+#[test]
+fn c2_a_mac_without_loaded_keys_refuses_an_unsigned_version() {
+    // The version and body the proxy serves, once planted.
+    type Planted = Arc<Mutex<Option<(u64, Vec<u8>)>>>;
+    let planted: Planted = Arc::default();
+    let serve = planted.clone();
+    let mut r = account_with(move |app| {
+        Scripted::proxy_with(app, move |q| {
+            let (version, body) = serve.lock().unwrap().clone()?;
+            (q.method == "GET"
+                && q.path.starts_with("/v1/vaults/")
+                && !q.path.ends_with("/keypart"))
+            .then(|| Response::new(200, &body).with("ETag", &format!("\"{version}\"")))
+        })
+    });
+    let vault = VaultId::from_bytes([0x72; 16]);
+    assert_eq!(first_upload(&mut r.a.c, &vault, VAULT), Ok(1));
+    *planted.lock().unwrap() = Some((2, b"version 2, planted by the server, unsigned".to_vec()));
+
+    let open = OpenVault::new(VAULT);
+    let mut l = link(&r.a.c, vault, 1, VAULT);
+    let held = run(&mut r.a.c, &mut l, &open, &*TestClock::at(5));
+    assert_eq!(held.messages, vec![Message::Rollback]);
+    assert_eq!(open.merges(), 0);
+
+    r.later();
+    let (id, key) = r.a.c.device.take().unwrap();
+    let mut a2 = client_of(&r.proxy, r.app.port);
+    a2.set_device(id, key);
+    let open2 = OpenVault::new(VAULT);
+    let mut l2 = link(&a2, vault, 1, VAULT);
+    let before = l2.clone();
+    let seen = r.proxy.requests().len();
+    let keyless = run(&mut a2, &mut l2, &open2, &*TestClock::at(6));
+    assert_eq!(
+        keyless,
+        Report {
+            status: Some(Status::Error),
+            messages: vec![Message::RestoreNeeded]
+        }
+    );
+    assert_eq!(open2.merges(), 0, "nothing merged");
+    assert_eq!(open2.file(), VAULT, "the open vault unchanged");
+    assert_eq!(l2, before, "the link unchanged");
+    assert!(
+        !r.proxy.requests()[seen..].iter().any(|q| q.method == "PUT"),
+        "no PUT"
+    );
 }

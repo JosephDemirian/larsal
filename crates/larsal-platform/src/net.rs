@@ -271,6 +271,13 @@ impl Client {
                 }
                 request.send(body)
             }
+            Method::Delete => {
+                let mut request = self.agent.delete(uri);
+                for (name, value) in headers {
+                    request = request.header(*name, *value);
+                }
+                request.call()
+            }
         };
         let mut response = sent.map_err(classify)?;
         let headers = response
@@ -360,6 +367,9 @@ pub enum Method<'a> {
     /// POST with this body (a JSON record, SYN-01.8), sent with its
     /// `Content-Length` (SYN-04).
     Post(&'a [u8]),
+    /// DELETE, with no body (E17-S2: the end of an approval request,
+    /// SYN-06.11).
+    Delete,
 }
 
 /// One reply of [`Client::send`], whatever its status.

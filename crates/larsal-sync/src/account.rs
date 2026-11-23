@@ -27,6 +27,12 @@
 //!   CHANGED`).
 //! - A wrong kit or a wrong password gives one [`AccountFail::RestoreFailed`],
 //!   whose words never say which was wrong (`MSG-ACCOUNT-RESTORE-FAILED`).
+//! - E17-S2: the stop of `MSG-ACCOUNT-KEYS-CHANGED` is kept in the device
+//!   store, so [`Server::load_account`] after a restart stops the account
+//!   again; only the user's restore (SYN-06.12) or approval (SYN-06.11,
+//!   `approval.rs`) clears it. A 412 at sign-up gives a kit only when the
+//!   server's blob opens with this `S_acct` and the password just typed
+//!   (`MSG-ACCOUNT-OTHER-PASSWORD` otherwise).
 //!
 //! Secrets (CRY-05.17, rule 4): `S_acct`, the private keys, the recovery
 //! seed, `A`, `K_wrap`, the blob's plaintext and the kit's text live only in
@@ -45,7 +51,7 @@ use larsal_proto::account::{
 };
 use larsal_proto::limits::MAX_JSON;
 use larsal_proto::messages::{AccountCreated, AccountId, Challenge, VaultId};
-use larsal_proto::{routes, signin, wrap as wire};
+use larsal_proto::{base32, routes, signin, wrap as wire};
 use std::fmt;
 
 /// SYN-06.2: the shortest account password, in characters.
@@ -62,8 +68,6 @@ const RECOVERY_INFO: &[u8] = b"sync-recovery-key-v1";
 const SECRET: usize = 32;
 /// The device store item of one account: `S_acct` ‖ the blob's plaintext.
 const KEPT: usize = SECRET + BLOB_PLAINTEXT;
-/// RFC 4648 section 6's alphabet.
-const BASE32: &[u8; 32] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 /// `S_acct` in the kit: 52 characters, 12 hyphens.
 const SECRET_TEXT: usize = 64;
 
@@ -96,6 +100,15 @@ pub enum AccountFail {
     OtherServer,
     /// The device store refused, or larsal-crypto's random source failed.
     Store,
+    /// `MSG-CODE-FAILED` (SYN-05.3, SYN-06.11): the approval ended, by a
+    /// failed check, a code the server does not know, a second message,
+    /// Codes differ on the other Mac or its 15 minutes; nothing was sealed,
+    /// signed, registered or pinned.
+    CodeFailed,
+    /// `MSG-ACCOUNT-OTHER-PASSWORD` (E17-S2, E17-S1's F4): sign-up met keys
+    /// that are this Mac's, but the server's blob does not open with the
+    /// password just typed; no kit is given.
+    OtherPassword,
 }
 
 impl AccountFail {
@@ -106,6 +119,8 @@ impl AccountFail {
             Self::RestoreFailed => Message::RestoreFailed,
             Self::KeysChanged => Message::KeysChanged,
             Self::NeedsUpdate => Message::NeedsUpdate,
+            Self::CodeFailed => Message::CodeFailed,
+            Self::OtherPassword => Message::OtherPassword,
             Self::Net(Fail::CertChanged) => Message::CertChanged,
             Self::Net(Fail::SignedOut) => Message::SignedOut,
             _ => Message::Error,
@@ -201,7 +216,7 @@ impl Kit {
         );
         let mut text = String::with_capacity(head.len().saturating_add(SECRET_TEXT + 1));
         text.push_str(&head);
-        push_base32(&mut text, self.secret.expose());
+        base32::push(&mut text, self.secret.expose(), true);
         text.push('\n');
         SecretString::new(text)
     }
@@ -248,62 +263,9 @@ impl Kit {
             address,
             pin: read_printed(fingerprint).ok_or(fail)?,
             account: AccountId::parse(&account.to_ascii_lowercase()).ok_or(fail)?,
-            secret: read_base32(secret).ok_or(fail)?,
+            secret: base32::read(secret, SECRET).ok_or(fail)?,
         })
     }
-}
-
-/// Pushes the base32 of `bytes` in groups of 4 joined by `-`.
-fn push_base32(out: &mut String, bytes: &[u8]) {
-    let (mut acc, mut bits, mut n) = (0u16, 0u32, 0usize);
-    let mut put = |out: &mut String, value: u16| {
-        if n != 0 && n.is_multiple_of(4) {
-            out.push('-');
-        }
-        let c = BASE32.get(usize::from(value & 31)).copied().unwrap_or(b'A');
-        out.push(char::from(c));
-        n = n.wrapping_add(1);
-    };
-    for b in bytes {
-        acc = acc.wrapping_shl(8) | u16::from(*b);
-        bits = bits.wrapping_add(8);
-        while bits >= 5 {
-            bits = bits.wrapping_sub(5);
-            put(out, acc.wrapping_shr(bits));
-            acc &= 1u16.wrapping_shl(bits).wrapping_sub(1);
-        }
-    }
-    if bits > 0 {
-        put(out, acc.wrapping_shl(5u32.wrapping_sub(bits)));
-    }
-}
-
-/// `S_acct` from the kit's base32: 52 characters of RFC 4648 section 6's
-/// alphabet in either case, hyphens and spaces ignored, the 4 unused bits
-/// zero. `None` for anything else.
-fn read_base32(text: &str) -> Option<SecretBytes> {
-    let mut out = SecretBytes::zeroed(SECRET);
-    let (mut acc, mut bits, mut n, mut chars) = (0u16, 0u32, 0usize, 0usize);
-    for c in text.bytes() {
-        if matches!(c, b'-' | b' ' | b'\t') {
-            continue;
-        }
-        let value = match c.to_ascii_uppercase() {
-            u @ b'A'..=b'Z' => u.wrapping_sub(b'A'),
-            d @ b'2'..=b'7' => d.wrapping_sub(b'2').wrapping_add(26),
-            _ => return None,
-        };
-        chars = chars.wrapping_add(1);
-        acc = acc.wrapping_shl(5) | u16::from(value);
-        bits = bits.wrapping_add(5);
-        if bits >= 8 {
-            bits = bits.wrapping_sub(8);
-            *out.expose_mut().get_mut(n)? = u8::try_from(acc.wrapping_shr(bits)).ok()?;
-            n = n.wrapping_add(1);
-            acc &= 1u16.wrapping_shl(bits).wrapping_sub(1);
-        }
-    }
-    (chars == 52 && n == SECRET && bits == 4 && acc == 0).then_some(out)
 }
 
 /// SYN-06.4's associated data: the field list (`sync-account-blob-v1`,
@@ -315,7 +277,7 @@ fn blob_aad(account: &AccountId, version: u16, salt: &[u8; 32]) -> Result<Vec<u8
 
 /// SYN-06.4: the blob of `keys` for `account` under `password`, with a
 /// fresh 32-byte salt from larsal-crypto's random source.
-fn make_blob(
+pub(crate) fn make_blob(
     keys: &AccountKeys,
     account: &AccountId,
     password: &SecretString,
@@ -349,7 +311,7 @@ fn make_blob_with(
 /// [`AccountFail::NeedsUpdate`] before any Argon2id run; any other failure
 /// (a length, a changed byte, the wrong secret or password) is
 /// [`AccountFail::RestoreFailed`].
-fn open_blob(
+pub(crate) fn open_blob(
     blob: &[u8],
     account: &AccountId,
     secret: &SecretBytes,
@@ -377,12 +339,15 @@ fn open_blob(
 
 /// SYN-06.5: the recovery key's seed: HKDF-SHA256 with salt `account`,
 /// input key material `S_acct` and info `sync-recovery-key-v1`.
-fn recovery_seed(account: &AccountId, secret: &SecretBytes) -> Result<SecretBytes, AccountFail> {
+pub(crate) fn recovery_seed(
+    account: &AccountId,
+    secret: &SecretBytes,
+) -> Result<SecretBytes, AccountFail> {
     wrap::hkdf_sha256(account.as_bytes(), secret, RECOVERY_INFO).map_err(|_| AccountFail::Store)
 }
 
 /// The device store item of `keys`: `S_acct` ‖ the blob's plaintext.
-fn kept(keys: &AccountKeys) -> SecretBytes {
+pub(crate) fn kept(keys: &AccountKeys) -> SecretBytes {
     let mut out = SecretBytes::zeroed(KEPT);
     let (secret, rest) = out.expose_mut().split_at_mut(SECRET);
     secret.copy_from_slice(keys.account_secret().expose());
@@ -405,7 +370,7 @@ fn from_kept(item: &SecretBytes) -> Result<AccountKeys, AccountFail> {
 }
 
 /// A JSON route's status other than its success (SYN-03.10).
-fn status_fail(status: u16, retry_after: u64) -> AccountFail {
+pub(crate) fn status_fail(status: u16, retry_after: u64) -> AccountFail {
     AccountFail::Net(match status {
         401 => Fail::SignedOut,
         429 => Fail::Limited(retry_after),
@@ -415,12 +380,35 @@ fn status_fail(status: u16, retry_after: u64) -> AccountFail {
 }
 
 /// The type of a JSON body (F-285).
-const JSON: (&str, &str) = ("content-type", "application/json");
+pub(crate) const JSON: (&str, &str) = ("content-type", "application/json");
+
+/// The device store item that marks a stopped account: `[1]` stopped,
+/// `[0]` cleared by the user's restore or approval.
+const STOPPED: [u8; 1] = [1];
 
 impl<K: Signer> Server<K> {
     /// The device store label of `account`'s secrets on this server.
-    fn label(&self, account: &AccountId) -> String {
+    pub(crate) fn label(&self, account: &AccountId) -> String {
         format!("{} account {account}", self.base)
+    }
+
+    /// The device store label of the stop of `account` on this server
+    /// (SYN-06.6, E17-S2): kept apart from the secrets.
+    pub(crate) fn stop_label(&self, account: &AccountId) -> String {
+        format!("{} account {account} stopped", self.base)
+    }
+
+    /// SYN-06.6: stops the account until the user acts, here and in the
+    /// device store, so a restart keeps the stop.
+    fn stop(&mut self, keep: &dyn Keep) {
+        self.stopped = true;
+        if let Some(account) = self.account_id() {
+            // The stop holds in memory even when the store refuses.
+            let _ = keep.put(
+                &self.stop_label(&account),
+                &SecretBytes::new(STOPPED.to_vec()),
+            );
+        }
     }
 
     /// Whether `kit` names this client's server: its address and its
@@ -446,12 +434,14 @@ impl<K: Signer> Server<K> {
     /// characters and is used exactly as typed. The secrets go into `keep`
     /// before the PUT, so a lost reply loses nothing; a second call reuses
     /// them. A 412 means the server has keys already: they must be these
-    /// (a PUT whose reply was lost), else the account is stopped.
+    /// (a PUT whose reply was lost), else the account is stopped; and the
+    /// server's blob must open with this `S_acct` and `password`, else no
+    /// kit is given (E17-S1's F4: a second call with another password).
     ///
     /// # Errors
     /// [`AccountFail::ShortPassword`] before anything is drawn;
-    /// [`AccountFail::Store`]; [`AccountFail::KeysChanged`]; else
-    /// [`AccountFail::Net`].
+    /// [`AccountFail::Store`]; [`AccountFail::KeysChanged`];
+    /// [`AccountFail::OtherPassword`]; else [`AccountFail::Net`].
     pub fn sign_up_account(
         &mut self,
         account: &AccountId,
@@ -500,8 +490,13 @@ impl<K: Signer> Server<K> {
             201 => {}
             412 => {
                 self.account = Some((*account, keys));
-                self.check_keys()?;
-                return Ok(kit);
+                let record = self.checked_keys(keep)?;
+                let (_, keys) = self.usable()?;
+                return match open_blob(&record.blob, account, keys.account_secret(), password) {
+                    Ok(_) => Ok(kit),
+                    Err(AccountFail::RestoreFailed) => Err(AccountFail::OtherPassword),
+                    Err(e) => Err(e),
+                };
             }
             s => return Err(status_fail(s, r.retry_after)),
         }
@@ -511,7 +506,8 @@ impl<K: Signer> Server<K> {
     }
 
     /// SYN-06.8, T18's this-Mac half: after a restart, the keys of
-    /// `account` from `keep`, with no password.
+    /// `account` from `keep`, with no password. A stop kept in `keep`
+    /// (SYN-06.6) holds again: loading never clears it.
     ///
     /// # Errors
     /// [`AccountFail::NoKeys`] when the store has none for this server.
@@ -522,11 +518,33 @@ impl<K: Signer> Server<K> {
     ) -> Result<(), AccountFail> {
         let item = keep.get(&self.label(account)).ok_or(AccountFail::NoKeys)?;
         self.account = Some((*account, from_kept(&item)?));
+        if keep
+            .get(&self.stop_label(account))
+            .is_some_and(|mark| mark.expose() == STOPPED)
+        {
+            self.stopped = true;
+        }
         Ok(())
     }
 
+    /// E17-S2 (E17-S1's C1-F2, C2-F1): whether the server holds account keys
+    /// for this Mac's account, asked by a Mac that holds none: a 200 means a
+    /// download must wait for them (`MSG-ACCOUNT-RESTORE-NEEDED`), a 404 is
+    /// an account without keys, whose versions the version and hash guard
+    /// checks alone.
+    ///
+    /// # Errors
+    /// [`AccountFail::Net`].
+    pub(crate) fn keys_on_server(&mut self) -> Result<bool, AccountFail> {
+        match self.get_keys() {
+            Ok(_) => Ok(true),
+            Err(AccountFail::NoKeys) => Ok(false),
+            Err(e) => Err(e),
+        }
+    }
+
     /// `GET /v1/account/keys` (SYN-06.6).
-    fn get_keys(&mut self) -> Result<KeysRecord, AccountFail> {
+    pub(crate) fn get_keys(&mut self) -> Result<KeysRecord, AccountFail> {
         let r = self
             .call(Method::Get, routes::ACCOUNT_KEYS, &[], MAX_JSON as u64)
             .map_err(AccountFail::Net)?;
@@ -541,12 +559,18 @@ impl<K: Signer> Server<K> {
     /// checks them: the binding verifies with the record's identity key,
     /// and both public keys equal this Mac's pin, whole, in constant time.
     /// A failure stops the account until the user acts: no upload signed,
-    /// no wrap opened (T05).
+    /// no wrap opened (T05); the stop is kept in `keep` too, so a restart
+    /// keeps it (E17-S2).
     ///
     /// # Errors
     /// [`AccountFail::KeysChanged`]; [`AccountFail::NoKeys`] without keys
     /// held or on the server; else [`AccountFail::Net`].
-    pub fn check_keys(&mut self) -> Result<(), AccountFail> {
+    pub fn check_keys(&mut self, keep: &dyn Keep) -> Result<(), AccountFail> {
+        self.checked_keys(keep).map(drop)
+    }
+
+    /// [`Server::check_keys`], giving the record that passed.
+    fn checked_keys(&mut self, keep: &dyn Keep) -> Result<KeysRecord, AccountFail> {
         let account = self.account_id().ok_or(AccountFail::NoKeys)?;
         let record = self.get_keys()?;
         let (_, keys) = self.account.as_ref().ok_or(AccountFail::NoKeys)?;
@@ -564,9 +588,9 @@ impl<K: Signer> Server<K> {
             &record.kem_public_key,
         );
         if bound && pinned {
-            Ok(())
+            Ok(record)
         } else {
-            self.stopped = true;
+            self.stop(keep);
             Err(AccountFail::KeysChanged)
         }
     }
@@ -601,7 +625,7 @@ impl<K: Signer> Server<K> {
 
     /// The account and keys of a call that signs or opens: none while the
     /// account is stopped (SYN-06.6).
-    fn usable(&self) -> Result<(&AccountId, &AccountKeys), AccountFail> {
+    pub(crate) fn usable(&self) -> Result<(&AccountId, &AccountKeys), AccountFail> {
         if self.stopped {
             return Err(AccountFail::KeysChanged);
         }
@@ -774,11 +798,41 @@ impl<K: Signer> Server<K> {
         }
         let account = kit.account;
         let record = self.get_keys()?;
-        let plaintext = open_blob(&record.blob, &account, &kit.secret, password)?;
-        let secret = SecretBytes::new(kit.secret.expose().to_vec());
+        self.adopt(&account, &kit.secret, &record, password, None, keep)
+    }
+
+    /// The tail of SYN-06.12 and of SYN-06.11 step 6: unwraps `record`'s
+    /// blob with `secret` (`S_acct`) and `password`; with `compared`
+    /// (SYN-06.11), checks that the unwrapped identity seed gives the
+    /// identity public key both Macs compared, whole, in constant time;
+    /// checks that the unwrapped keys are the record's and its binding
+    /// verifies; only then keeps the secrets in `keep`, pins the keys and
+    /// clears a kept stop (the user's action, SYN-06.6).
+    ///
+    /// # Errors
+    /// [`AccountFail::RestoreFailed`], [`AccountFail::NeedsUpdate`],
+    /// [`AccountFail::KeysChanged`], [`AccountFail::Store`]; nothing is kept
+    /// or pinned.
+    pub(crate) fn adopt(
+        &mut self,
+        account: &AccountId,
+        secret: &SecretBytes,
+        record: &KeysRecord,
+        password: &SecretString,
+        compared: Option<&[u8]>,
+        keep: &dyn Keep,
+    ) -> Result<(), AccountFail> {
+        let account = *account;
+        let plaintext = open_blob(&record.blob, &account, secret, password)?;
+        let secret = SecretBytes::new(secret.expose().to_vec());
         let keys =
             AccountKeys::from_blob(secret, &plaintext).map_err(|_| AccountFail::RestoreFailed)?;
         drop(plaintext);
+        if let Some(identity) = compared
+            && !ct_eq(keys.identity_public_key(), identity)
+        {
+            return Err(AccountFail::KeysChanged);
+        }
         let bound = check_kem_binding(
             &record.identity_public_key,
             account.as_bytes(),
@@ -796,6 +850,12 @@ impl<K: Signer> Server<K> {
             return Err(AccountFail::KeysChanged);
         }
         keep.put(&self.label(&account), &kept(&keys))?;
+        let stop = self.stop_label(&account);
+        if keep.get(&stop).is_some() {
+            keep.put(&stop, &SecretBytes::new(vec![0]))?;
+        }
+        #[cfg(test)]
+        crate::approval::probe::pinned();
         self.account = Some((account, keys));
         self.stopped = false;
         Ok(())
