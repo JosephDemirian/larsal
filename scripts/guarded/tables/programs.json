@@ -85,7 +85,7 @@
 "workspace:larsal-crypto/cipher_large": {"classes": [], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-crypto/hash": {"classes": [], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-crypto/kdf": {"classes": [], "profile": "harness-runtime-base.sb"},
-"workspace:larsal-crypto/larsal_crypto": {"classes": [], "profile": "harness-runtime-base.sb"},
+"workspace:larsal-crypto/larsal_crypto": {"classes": [], "ignored": ["pq::tests::cry05_17_pq_stack_depth"], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-crypto/mac": {"classes": [], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-crypto/pq_wipe": {"classes": [], "profile": "harness-runtime-base.sb"},
 "workspace:larsal-crypto/random": {"classes": [], "profile": "harness-runtime-base.sb"},

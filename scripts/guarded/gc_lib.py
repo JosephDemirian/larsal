@@ -9,7 +9,22 @@ TC = XCODE + '/Toolchains/XcodeDefault.xctoolchain/usr/bin'
 NM = TC + '/llvm-nm'
 SANDBOX = '/usr/bin/sandbox-exec'
 SMALL_ENV = dict(PATH='/usr/bin:/bin', LC_ALL='C')
-OWNER = pwd.getpwuid(os.getuid()).pw_dir
+
+
+def owner_home(lookup=pwd.getpwuid, wait=60):
+    """The owner's home from the user database, which can be away while the owner's session restarts: asked again each second for at most 60 s, then one plain line and exit 2, before any run root is made. No fallback to HOME or a variable. lookup and wait are the controls' seam."""
+    end = time.monotonic() + wait
+    while True:
+        try:
+            return lookup(os.getuid()).pw_dir
+        except (KeyError, OSError):
+            if time.monotonic() >= end:
+                print('the user database did not answer for uid %d: try again' % os.getuid(), file=sys.stderr, flush=True)
+                raise SystemExit(2)
+            time.sleep(1)
+
+
+OWNER = owner_home()
 TOTAL_CAP = 3540  # The owner's cap is 3600 s; 60 s stay for the last reads and the summary.
 
 deadline = None   # monotonic second of the total alarm
@@ -342,6 +357,55 @@ def start_time(pid):
     """The kernel's start time of a pid, [seconds, microseconds], or None when it is gone. exec keeps it and a reused pid does not share it: proc_bsdinfo, flavor 3, holds it at byte 120."""
     buf = ctypes.create_string_buffer(136)
     return list(struct.unpack_from('<QQ', buf.raw, 120)) if LIB.proc_pidinfo(pid, 3, 0, buf, 136) == 136 else None
+
+
+LIBC = ctypes.CDLL('/usr/lib/libSystem.B.dylib', use_errno=True)
+
+
+def boot_time():
+    """kern.boottime, [seconds, microseconds]: a timeval, 8 bytes of seconds and 4 of microseconds."""
+    buf, size = ctypes.create_string_buffer(16), ctypes.c_size_t(16)
+    if LIBC.sysctlbyname(b'kern.boottime', buf, ctypes.byref(size), None, ctypes.c_size_t(0)) != 0:
+        raise OSError(ctypes.get_errno(), 'kern.boottime unreadable')
+    return list(struct.unpack_from('<qi', buf.raw))
+
+
+LIBC.renamex_np.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+
+
+def swap(a, b):
+    """Exchanges two names in one step (renamex_np, RENAME_SWAP): at no instant is either name missing. Both must exist."""
+    if LIBC.renamex_np(os.fsencode(str(a)), os.fsencode(str(b)), 2) != 0:
+        e = ctypes.get_errno()
+        raise OSError(e, os.strerror(e), str(b))
+
+
+SIM_DEVICES = 'Library/Developer/CoreSimulator/Devices'
+
+
+def sim_devices(owner=OWNER):
+    """The owner's simulator folder, read only: its uid, and every name under it with its kind, size, inode and times, the SHA-256 of a regular file and the text of a link. Nothing is followed; only regular files are opened.
+    xcodebuild has launchd start Apple's simulator service outside every sandbox, and it rewrites device_set.plist there at each native run."""
+    top = owner + '/' + SIM_DEVICES
+    try:
+        st = os.lstat(top)
+    except FileNotFoundError:
+        return dict(path=top, absent=True, files={})
+    files = {}
+    for d, ns, fs in os.walk(top, onerror=lambda e: files.update({os.path.relpath(e.filename, top) + '/': dict(error=e.errno)})):  # A folder that cannot be listed is a row, never a silent gap.
+        for n in ns + fs:
+            p = os.path.join(d, n)
+            try:
+                s = os.lstat(p)
+                row = dict(kind=stat.S_IFMT(s.st_mode), inode=s.st_ino, mtime_ns=s.st_mtime_ns, ctime_ns=s.st_ctime_ns)
+                if stat.S_ISREG(s.st_mode):
+                    row.update(size=s.st_size, sha256=sha(p))
+                elif stat.S_ISLNK(s.st_mode):
+                    row['link'] = os.readlink(p)
+            except OSError as e:
+                row = dict(error=e.errno)
+            files[os.path.relpath(p, top)] = row
+    return dict(path=top, absent=False, uid=st.st_uid, owners=st.st_uid == os.getuid(), kind=stat.S_IFMT(st.st_mode), files=files)
 
 
 def images_under(root):

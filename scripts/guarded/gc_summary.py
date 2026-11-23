@@ -61,10 +61,31 @@ def parse_tests(raw):
     return totals, states
 
 
+def ignored_run(folder, t, name):
+    """One ignored test run alone after its program (ruling 4): ('ok', seconds) only when its receipt says exit 0 and its stdout runs exactly that one test, ok. Else the state and why."""
+    receipt = folder / (t + '-receipt.json')
+    if not receipt.exists():
+        return 'did not run', 'no receipt (%s)' % t
+    rec = load(receipt)
+    raw = text(folder / (t + '.stdout'))
+    totals, states = parse_tests(raw)
+    running = [int(x) for x in re.findall(r'^running (\d+) tests?$', raw, re.M)]
+    if rec.get('helper_refusal') or rec.get('stopped') or not totals['result_lines']:
+        return 'did not run', 'exit %s, %s, result lines %s' % (rec.get('exit'), (rec.get('helper_refusal') or {}).get('error') or rec.get('stopped') or 'no refusal', totals['result_lines'])
+    if running == [0] and not states:
+        return 'does not exist', 'no ignored test of that exact name: running 0 tests'
+    if states == {name: 'ok'} and running == [1] and (totals['passed'], totals['failed'], totals['ignored'], totals['not_ok_lines']) == (1, 0, 0, 0) and rec.get('exit') == 0:
+        return 'ok', rec.get('seconds')
+    return 'failed', 'exit %s, states %s, result lines %s' % (rec.get('exit'), states, totals)
+
+
 def rust(R, withheld=()):
-    """Lanes, programs, passes and names from each program's stdout and receipt, by the plan. The failures of a row at base because its grant is withheld are labelled."""
+    """Lanes, programs, passes and names from each program's stdout and receipt, by the plan. The failures of a row at base because its grant is withheld are labelled.
+    Each test the run's own table lists as ignored for a program is recounted apart, on its own line: it must exist, run and pass."""
     out, names, all_fails = {}, {}, []
     r = Path(R, 'r/state/replay')
+    table = load(Path(R, 'tool/tables/programs.json'))
+    alone = dict(named=0, passed=0, rows=[])
     for lane in RUST_LANES:
         plan_file = r / (lane + '-replay-plan.json')
         if not plan_file.exists():
@@ -98,11 +119,20 @@ def rust(R, withheld=()):
                 fails.append('%s recount differs: names %s, result lines %s' % (key, counted, totals))
             if totals['filtered']:
                 fails.append('%s filtered out %d tests' % (key, totals['filtered']))
+        for x in plan:
+            key = x['binding']['key']
+            for i, name in enumerate(table.get(key, {}).get('ignored', [])):
+                state, why = ignored_run(r / (lane + '-runtime'), '%s-ignored-%d' % (x['target'], i), name)
+                alone['named'] += 1
+                alone['passed'] += state == 'ok'
+                alone['rows'].append(dict(test='%s::%s' % (key, name), state=state, seconds=why if state == 'ok' else None, why=None if state == 'ok' else why))
+                if state != 'ok':
+                    _Labelled(all_fails, WITHHELD if key in withheld else '').append('ignored test %s %s::%s: %s' % (state, key, name, why))
         if row['ran'] != row['planned']:
             all_fails.append('rust lane %s ran %d of %d' % (lane, row['ran'], row['planned']))
         out[lane] = row
     totals = {k: sum(x[k] for x in out.values()) for k in ('planned', 'ran', 'passed', 'failed', 'ignored')}
-    return dict(lanes=out, total=totals), names, all_fails
+    return dict(lanes=out, total=totals, ignored_alone=alone), names, all_fails
 
 
 def swift(R, want_swift, want_app09):
@@ -401,6 +431,8 @@ def summarize(R, baseline=None, waivers=None):
             counts['native']['attempts'] = {k: dict(exit=v['exit'], seconds=v['seconds'], window_samples=v['window_samples'], guard_requests=(v.get('guard') or {}).get('requests'), gate_failures=len(v['gate_failures'] or [])) for k, v in row.get('attempts', {}).items()}
             counts['native']['fork_window_once'] = {k: v.get('fork_window_once') or [] for k, v in row.get('attempts', {}).items()}
             counts['native']['reports_not_ours'] = {k: v.get('diagnostic_reports_not_ours') or [] for k, v in row.get('attempts', {}).items()}
+            counts['native']['kernel_rows'] = {k: v.get('kernel_rows') for k, v in row.get('attempts', {}).items()}
+            counts['native']['owner_simulator'] = {k: v.get('owner_simulator') for k, v in row.get('attempts', {}).items()}
             for k in row.get('attempts', {}):
                 try:
                     fails += ['native: %s gate: %s' % (k, x) for x in load(Path(R, 'runs', k, 'gates.json'))['failures'] if ('%s: %s' % (k, x)) not in row['reasons']]
@@ -426,13 +458,25 @@ def summarize(R, baseline=None, waivers=None):
     # The commit's manifest against the tool the run took.
     drift = gc_pins.tool_drift(load(Path(R, 'manifest.json'))['rows'], run.get('tool_sha256') or {}) if Path(R, 'manifest.json').exists() else []
     overall = 'NEEDS_REVIEW' if withheld or drift else 'PASS' if not failures else 'FAIL'
-    out = dict(tool_drift=drift, grant_withheld=withheld, grants_read=(run.get('grants') or {}).get('rows'), overall=overall, partial=partial, requested=requested, commit=run['commit'], tree=run['tree'], root=R, steps=steps, counts=counts, baseline=base_row, failures=failures, total_seconds=end.get('total_seconds'), hold_wait_seconds=end.get('hold_wait_seconds'), custody=end.get('custody'), crash_listing=end.get('diagnostic_reports_new'), native_copy_new_names=end.get('native_copy_new_names'), where=dict(summary_json=R + '/summary.json', summary_text=R + '/summary.txt', test_names=R + '/test-names.json', static_logs=R + '/g/logs', rust_programs=R + '/r/state/replay', rust_lanes=R + '/r/state/run-lanes', native_receipts=R + '/runs', native_logs=R + '/lane-out', fuzz_logs=R + '/g/logs/artifacts'))
+    out = dict(tool_drift=drift, grant_withheld=withheld, grants_read=(run.get('grants') or {}).get('rows'), overall=overall, partial=partial, requested=requested, commit=run['commit'], tree=run['tree'], root=R, steps=steps, counts=counts, baseline=base_row, failures=failures, total_seconds=end.get('total_seconds'), hold_wait_seconds=end.get('hold_wait_seconds'), custody=end.get('custody'), crash_listing=end.get('diagnostic_reports_new'), busy_marks=run.get('busy_marks') or [], part_of=run.get('part_of'), native_copy_new_names=end.get('native_copy_new_names'), where=dict(summary_json=R + '/summary.json', summary_text=R + '/summary.txt', test_names=R + '/test-names.json', static_logs=R + '/g/logs', rust_programs=R + '/r/state/replay', rust_lanes=R + '/r/state/run-lanes', native_receipts=R + '/runs', native_logs=R + '/lane-out', fuzz_logs=R + '/g/logs/artifacts'))
     return out, names
+
+
+def kernel_line(k, x):
+    """F2: only rows of the run's own processes (pids the sampler read) count for the gate; rows kept by a name alone are listed apart and never count. F1: both sentinels in both readers, each reader's exit after SIGINT, the end record."""
+    if not x:
+        return '  %s: no kernel rows record' % k
+    both = lambda row: ','.join(n for n, v in sorted((row or {}).items()) if v) or 'none'
+    return '  %s: own %s (these count); kept by name only %s (never count); stream %s, log show %s, read by both %s; start sentinel in %s, end sentinel in %s; exits %s; finished %s; loss %s, dropped notices %s, missed %s' % (
+        k, x.get('own'), x.get('by_name_only'), x.get('stream_rows'), x.get('show_rows'), x.get('read_by_both'), both(x.get('sentinel_row')), both(x.get('end_sentinel_row')), x.get('exits'), x.get('finished'), x.get('loss'), x.get('dropped_notices'), x.get('missed'))
 
 
 def plain(s):
     lines = ['Overall %s%s, commit %s, root %s' % (s['overall'], ' (only %s)' % ','.join(s['requested']) if s['partial'] else '', s['commit'], s['root'])]
     lines.append('grants: %s rows read, %d withheld' % (s.get('grants_read'), len(s['grant_withheld'])))
+    if s.get('part_of'):
+        a = s['part_of']
+        lines.append('part B of a two-part run; part A: root %s, %s s of the owner cap (hold wait %s s), its line: %s' % (a['root'], a['total_seconds'], a['hold_wait_seconds'], a['overall']))
     if s['grant_withheld']:
         lines.append('grant withheld: needs review (%d). Each runs at base with no grant; a table change in a reviewed commit is the only way back:' % len(s['grant_withheld']))
         lines += ['  %s: %s' % (k, '; '.join(v)) for k, v in sorted(s['grant_withheld'].items())]
@@ -450,6 +494,8 @@ def plain(s):
         x = c['rust']
         lines.append('rust: %(passed)d passed, %(failed)d failed, %(ignored)d ignored, %(ran)d of %(planned)d programs' % x['total'])
         lines += ['  %s: %d passed, %d failed, %d ignored, %d of %d programs' % (k, v['passed'], v['failed'], v['ignored'], v['ran'], v['planned']) for k, v in x['lanes'].items()]
+        y = x.get('ignored_alone') or dict(named=0, passed=0, rows=[])
+        lines.append('rust ignored tests run alone (--ignored --exact, one thread), not in the totals above: %d named, %d passed%s' % (y['named'], y['passed'], ''.join('; %(test)s %(state)s' % r + (' %s s' % r['seconds'] if r['state'] == 'ok' else ': %s' % r['why']) for r in y['rows'])))
         lines.append('rust new programs (base profile only): %s' % (x.get('new_programs') or 'none'))
         lines.append('rust guard library, by lane: %s' % x.get('guard'))
     if c.get('native'):
@@ -459,6 +505,9 @@ def plain(s):
         lines.append('native binaries: %s; images outside the tree (information): %s' % (x.get('pins'), x.get('images_outside_tree')))
         lines.append('native pids read once with the parent\'s image, what they became unseen (README, limit 28): %s' % {k: ['pid %(pid)s %(path)s grants %(grants)s' % r for r in v] for k, v in x.get('fork_window_once', {}).items()})
         lines.append('native crash reports of an own name, not this run\'s (information, README, limit 18): %s' % {k: ['%(report)s pid %(pid)s parent %(parent)s %(path)s' % r for r in v] for k, v in x.get('reports_not_ours', {}).items()})
+        lines.append('native kernel rows by attempt (README, Live kernel rows):')
+        lines += [kernel_line(k, v) for k, v in (x.get('kernel_rows') or {}).items()]
+        lines.append('native owner simulator folder by attempt (README, ruling 5; a time or inode alone is information): %s' % {k: v and dict(names=v.get('names'), changed=v.get('changed'), times_or_inodes_only=len(v.get('times_or_inodes_only') or [])) for k, v in (x.get('owner_simulator') or {}).items()})
     if c.get('docs'):
         lines.append('docs: %d passed, %d failed, %d result lines' % (c['docs']['total_passed'], c['docs']['total_failed'], c['docs']['result_lines']))
     if c.get('fuzz'):
@@ -466,6 +515,7 @@ def plain(s):
     b = s['baseline']
     lines.append('baseline: %s, made from %s: %d compared, %d lost, %d newly ignored, %d waived, %d new tests' % (b['file'] or 'none given', b['made_from'] or 'no named commit', b['compared'], len(b['lost']), len(b['newly_ignored']), len(b['waived']), b['new_tests']))
     lines.append('time: %s s of the owner cap, hold wait %s s' % (s['total_seconds'], s['hold_wait_seconds']))
+    lines += ['busy mark %(event)s: %(why)s, mark %(mark)s, moved to %(moved_to)s' % dict(dict(why='', mark=None, moved_to=None), **m) for m in s.get('busy_marks', [])]
     on_purpose = (s['counts'].get('rust') or {}).get('crash_reports') or {}
     lines.append('crash reports new during the run: %s; on purpose: %s; own and not on purpose: %s. A report outside these belongs to another process on this Mac; a failing lane says so itself.' % (s.get('crash_listing'), ['%(child)s %(report)s' % x for x in on_purpose.get('on_purpose_children', [])], on_purpose.get('other_own_reports')))
     lines.append('native copy new names, the build\'s own: %s' % s.get('native_copy_new_names'))
@@ -565,6 +615,40 @@ def self_test():
     out = {7: dict(path='/r/x', parent=9, started=[1, 0]), 8: dict(path='/r/x', parent=9, started=[1, 0]), 10: dict(path='/r/x', parent=9), 11: dict(path='/r/x', parent=9)}
     inside = {7: dict(parent=9, started=[1, 0]), 8: dict(parent=9, started=[2, 0]), 10: dict(parent=9)}
     assert [f.split()[11] for f in N.gate_outside(out, {}, '/r', inside)] == ['8', '11']
+    live = dict(not_reading=[], ended_early=[], sentinel=dict(denied=True, exit=1, stderr='Operation not permitted'), sentinel_row=dict(ndjson='t', default='t'), loss=[], dropped_notices=0, missed=[],
+                sentinel_end=dict(denied=True, exit=1, stderr='Operation not permitted'), end_sentinel_row=dict(ndjson='t', default='t'), closed=dict(ndjson=dict(exit=0), default=dict(exit=0)), finished={'count': 3, 'finished': 1})
+    assert N.gate_stream(live) == []
+    for k, v in (('not_reading', ['ndjson exited']), ('ended_early', ['default']), ('sentinel', dict(denied=False, exit=0, stderr='')), ('sentinel_row', dict(ndjson='t', default=None)), ('loss', ['{}']), ('dropped_notices', 2), ('missed', ['row']),
+                 ('sentinel_end', dict(denied=False, exit=0, stderr='')), ('end_sentinel_row', dict(ndjson=None, default='t')), ('closed', dict(ndjson=dict(exit=-9), default=dict(exit=0))), ('finished', None)):
+        assert len(N.gate_stream(dict(live, **{k: v}))) == 1, k
+    log = dict(stream_rows=9, show_rows=9, exit=0, own=0, by_name_only=4)
+    assert N.gate_rows('A', log) and not N.gate_rows('A', dict(log, own=1)) and N.gate_rows('B', dict(log, own=1, exit=1))
+    f = dict(kind=0o100000, inode=1, mtime_ns=1, ctime_ns=1, size=3, sha256='a')
+    sim = dict(path='/o/Devices', absent=False, uid=501, kind=0o040000, files={'x': f})
+    assert N.gate_sim(sim, sim) == ([], []) and N.gate_sim(sim, dict(sim, files={'x': dict(f, inode=2, mtime_ns=2)})) == ([], ['x'])
+    assert N.gate_sim(sim, dict(sim, files={'x': dict(f, sha256='b')}))[0] and N.gate_sim(sim, dict(sim, files={}))[0] and N.gate_sim(sim, dict(sim, files={'x': f, 'y': f}))[0] and N.gate_sim(sim, dict(sim, uid=0))[0]
+    sent = dict(pid=7, path='/r/runs/A1/sentinel')
+    assert N.is_sentinel('Sandbox: touch(7) deny(1) file-write-create /r/runs/A1/sentinel', sent) and not N.is_sentinel('Sandbox: touch(8) deny(1) file-write-create /r/runs/A1/sentinel', sent) and not N.is_sentinel('Sandbox: touch(7) deny(1) file-write-create /r/runs/A1/sentinel2', sent)
+    import tempfile
+    with tempfile.TemporaryDirectory() as t:  # Other programs' rows leave the readers' files; the rest stays.
+        d = Path(t)
+        own, foreign, mine = 'Sandbox: tee(5) deny(1) file-write-create /r/x', 'Sandbox: other(9) deny(1) file-read-data /o/y', 'Sandbox: touch(7) deny(1) file-write-create /r/runs/A1/sentinel'
+        (d / N.STREAMS[0][1]).write_text('Filtering the log data using "p"\n' + ''.join(json.dumps(dict(processID=0, eventMessage=m)) + '\n' for m in (own, foreign, mine)) + '{"count":3,"finished":1}\n')
+        (d / N.STREAMS[1][1]).write_text('Filtering the log data using "p"\nTimestamp\n' + ''.join('2026-11-12 18:00:00.000001+0100 0x1 Default 0x0 0 0 kernel: %s\n' % m for m in (own, foreign, mine)) + N.DROPPED + '\n')
+        assert N.scrub_streams(d, {own}, [sent]) == dict(ndjson=1, default=1)
+        left = (d / N.STREAMS[0][1]).read_text() + (d / N.STREAMS[1][1]).read_text()
+        assert 'other(9)' not in left and left.count(own) == 2 and left.count(mine) == 2 and left.count('Filtering') == 2 and 'finished' in left and N.DROPPED in left
+    with tempfile.TemporaryDirectory() as t:  # Ruling 4: the reader of one ignored test run alone.
+        d = Path(t)
+        def one(tag, out, **rec):
+            (d / (tag + '.stdout')).write_text(out)
+            (d / (tag + '-receipt.json')).write_text(json.dumps(dict(dict(exit=0, seconds=4.2, helper_refusal=None, stopped=None), **rec)))
+            return ignored_run(d, tag, 'm::t')
+        ok = 'running 1 test\ntest m::t ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 80 filtered out; finished in 4.1s\n'
+        assert one('a', ok) == ('ok', 4.2) and ignored_run(d, 'none', 'm::t')[0] == 'did not run'
+        assert one('b', 'running 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 81 filtered out; finished in 0s\n')[0] == 'does not exist'
+        assert one('c', ok.replace('... ok', '... FAILED').replace('ok. 1 passed; 0 failed', 'FAILED. 0 passed; 1 failed'), exit=101)[0] == 'failed'
+        assert one('d', 'running 1 test\n', exit=-9, stopped='cap')[0] == 'did not run' and one('e', ok, exit=101)[0] == 'failed'
     print('self-test passed')
 
 

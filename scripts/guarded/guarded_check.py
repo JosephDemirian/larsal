@@ -1,8 +1,8 @@
 #!/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python -B -I
 """One guarded check of one commit: guarded_check.py <git-commit-or-tree-path> [--only static,rust,native,docs,fuzz]
-    [--repo PATH] [--baseline FILE] [--waivers FILE] [--hold FILE] [--busy FILE]
+    [--repo PATH] [--baseline FILE] [--waivers FILE] [--hold FILE] [--busy FILE [--busy-from WORDS] [--busy-to WORDS]] [--part-of ROOT]
 See README.md. Exit 0 only for a full run where every step passed and every grant held; 1 FAIL, 3 NEEDS_REVIEW, 4 a part passed."""
-import argparse, contextlib, hashlib, json, os, shutil, stat, subprocess, sys, time, traceback
+import argparse, contextlib, fcntl, hashlib, json, os, shutil, stat, subprocess, sys, time, traceback
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -178,10 +178,11 @@ def executables(toolchain):
 
 
 class Run:
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, args, R=None, commit=None):
+        self.args, self.R, self.commit = args, R, commit
         self.hold_seconds = 0
         self.hold_ran_out = False
+        self.marks = []  # What this run did at the busy mark beyond its own take and remove: run.json and summary.txt.
 
     def hold(self):
         """Wait while the hold file exists. The wait is idle time: it does not spend the total alarm, so the alarm cannot end it. Only a stop signal or HOLD_MAX does, and neither starts the step."""
@@ -200,28 +201,160 @@ class Run:
         self.hold_seconds += waited
         L.extend_deadline(waited)
 
+    def stale(self, b):
+        """Why a mark found at b is a dead run's, or None: then it is someone's hold. Only one JSON line naming a pid can be stale: that pid gone, or now another process by its start time.
+        The boot time counts only beside one of those (F4): a live pid with its own start time is a live run, whatever its boot field holds. Words, an empty mark, or anything unreadable is a hold."""
+        try:
+            st, raw = os.lstat(b), L.read_regular(b)
+            mark = json.loads(raw)
+            pid, start, boot = mark['pid'], mark['start'], mark['boot']
+            if not (raw.endswith(b'\n') and raw.count(b'\n') == 1 and isinstance(pid, int) and pid > 0 and {'commit', 'root'} <= set(mark)):
+                return None
+            now = L.start_time(pid)
+            why = ('its pid %d is gone' % pid if now is None else
+                   'its pid %d is now another process: start time %s, the mark holds %s' % (pid, now, start) if now != start else None)
+            if why and L.boot_time() != boot:
+                why += '; the Mac booted since: boot time %s, the mark holds %s' % (L.boot_time(), boot)
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        return why and dict(event='removed as stale', mark=mark, why=why, inode=(st.st_dev, st.st_ino), raw=raw)
+
+    def words(self, b):
+        """--busy-from: the mark holds exactly that one line of words, the lead's mark handed to this run. Any other content is a hold."""
+        w = self.args.busy_from
+        try:
+            st, raw = os.lstat(b), L.read_regular(b)
+        except OSError:
+            return None
+        if not w or raw != w.encode() + b'\n':
+            return None
+        return dict(event='taken over from words', mark=w, why='the mark held exactly the --busy-from line', inode=(st.st_dev, st.st_ino), raw=raw)
+
+    @contextlib.contextmanager
+    def locked(self, b):
+        """F5: the tool changes a mark only under an exclusive flock on one fixed file beside it, <mark>.lock, made once and never removed. Two runs never act on one reading."""
+        fd = os.open(b + '.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            os.close(fd)
+
+    def put(self, b, data, found):
+        """Under the lock: data goes in at b by swapping names with a new file beside it (renamex_np RENAME_SWAP), so a mark exists at every instant.
+        What came out must be the file read as found, by inode and bytes: then returns (the new mark's stat, the name that now holds what came out).
+        Otherwise the swap is undone and None returned; nothing else is touched, so no run's mark is ever removed by a reading that went stale (F5)."""
+        tmp = '%s.%s.new' % (b, Path(self.R).name)
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        try:
+            os.write(fd, data)
+            made = os.fstat(fd)
+        finally:
+            os.close(fd)
+        L.swap(tmp, b)
+        st = os.lstat(tmp)
+        if (st.st_dev, st.st_ino) == found['inode'] and L.read_regular(tmp) == found['raw']:
+            return made, tmp
+        L.swap(tmp, b)
+        st = os.lstat(tmp)
+        if (st.st_dev, st.st_ino) == (made.st_dev, made.st_ino):
+            os.unlink(tmp)  # The new file, back beside the mark.
+        self.marks.append(dict(event='changed between reading and taking: put back as it was', why=found['why'], at=time.time()))
+        return None
+
+    def take(self, b, mine):
+        """One try, under the lock: made exclusively when the path is free, or swapped in for a dead run's line or the --busy-from words, which move into this root. Returns this run's mark's stat, or None for a hold."""
+        with self.locked(b):
+            try:
+                fd = os.open(b, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            except FileExistsError:
+                fd = None
+            if fd is not None:
+                try:
+                    os.write(fd, mine)
+                    return os.fstat(fd)
+                finally:
+                    os.close(fd)
+            found = self.stale(b) or self.words(b)
+            got = found and self.put(b, mine, found)
+            if not got:
+                return None
+            dest = Path(self.R, 'busy-mark-%d-%s.txt' % (len(self.marks), 'stale' if found['event'] == 'removed as stale' else 'words'))
+            os.rename(got[1], dest)
+            self.marks.append(dict(event=found['event'], why=found['why'], mark=found['mark'], moved_to=str(dest), at=time.time()))
+            L.say('busy mark', found['event'] + ':', found['why'])
+            return got[0]
+
+    def leave(self, b, mine, made):
+        """On every way out, under the lock, and only while the mark is still this run's by inode and bytes: with --busy-to it is swapped for that one line of words, else removed. Not this run's: left alone and recorded."""
+        with self.locked(b):
+            try:
+                st = os.lstat(b)
+                ours = (st.st_dev, st.st_ino) == (made.st_dev, made.st_ino) and L.read_regular(b) == mine
+            except OSError:
+                ours = False
+            if not ours:
+                self.marks.append(dict(event='not this run\'s on the way out: left alone', at=time.time()))
+                return
+            if not self.args.busy_to:
+                os.unlink(b)
+                return
+            got = self.put(b, self.args.busy_to.encode() + b'\n', dict(inode=(made.st_dev, made.st_ino), raw=mine, why='--busy-to'))
+            if got:
+                os.unlink(got[1])  # This run's own mark, swapped out.
+                self.marks.append(dict(event='left as words', why='--busy-to', mark=self.args.busy_to, at=time.time()))
+
     @contextlib.contextmanager
     def busy(self):
-        """The busy mark exists only around a native attempt. Created exclusively; only this run's mark is removed, on every way out."""
+        """The busy mark names this run in one JSON line, from before the native step's first attempt through its end compare (ruling 3). Taken by take(); a hold is waited on, polled every HOLD_POLL s for at most HOLD_MAX s; given up by leave() on every way out."""
         b = self.args.busy
         if not b:
             yield
             return
+        mine = (json.dumps(dict(pid=os.getpid(), start=L.start_time(os.getpid()), commit=self.commit, root=str(self.R), boot=L.boot_time()), sort_keys=True) + '\n').encode()
         t0 = time.monotonic()
         while True:
-            try:
-                os.close(os.open(b, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
+            made = self.take(b, mine)
+            if made:
                 break
-            except FileExistsError:
-                assert time.monotonic() - t0 < HOLD_MAX, 'busy mark held by another run'
-                time.sleep(HOLD_POLL)
+            assert time.monotonic() - t0 < HOLD_MAX, 'busy mark held by another run'
+            time.sleep(HOLD_POLL)
         waited = time.monotonic() - t0
         self.hold_seconds += waited
         L.extend_deadline(waited)
         try:
             yield
         finally:
-            os.unlink(b)
+            self.leave(b, mine, made)
+
+
+def words_line(w):
+    """--busy-from and --busy-to: one line of words, never a JSON mark, so no run can read it as a dead run's."""
+    if w is not None and (not w.strip() or '\n' in w or '\r' in w or w.lstrip().startswith('{')):
+        raise ValueError('not one line of words: %r' % w)
+    return w
+
+
+def part_of(path, commit, tool, steps):
+    """Ruling 6: part B names part A's root. Part A ran this commit with this very tool copy (the tool's own file hashes), steps static and rust only, and reads PASS; part B runs native, docs and fuzz. Returns what part B prints, or raises ValueError naming each mismatch."""
+    if steps != ['native', 'docs', 'fuzz']:
+        raise ValueError('part B runs --only native,docs,fuzz, not %s' % ','.join(steps))
+    A = Path(path).resolve()
+    run, s = L.load(A / 'run.json'), L.load(A / 'summary.json')
+    bad = []
+    if run.get('commit') != commit or s.get('commit') != commit:
+        bad.append('part A ran commit %s, not %s' % (run.get('commit'), commit))
+    theirs = run.get('tool_sha256') or {}
+    if theirs != tool:
+        bad.append('part A ran another tool copy: %s differ' % sorted(n for n in set(tool) | set(theirs) if tool.get(n) != theirs.get(n))[:10])
+    if run.get('steps') != ['static', 'rust'] or s.get('requested') != ['static', 'rust']:
+        bad.append('part A ran steps %s, not static,rust' % run.get('steps'))
+    if s.get('overall') != 'PASS':
+        bad.append('part A reads %s, not PASS' % s.get('overall'))
+    if bad:
+        raise ValueError('; '.join(bad))
+    first = L.read_regular(A / 'summary.txt').decode('utf-8', 'replace').splitlines()[0]
+    return dict(root=str(A), overall=first, total_seconds=s.get('total_seconds'), hold_wait_seconds=s.get('hold_wait_seconds'), baseline=(s.get('baseline') or {}).get('file'))
 
 
 def main():
@@ -233,7 +366,12 @@ def main():
     ap.add_argument('--waivers')
     ap.add_argument('--hold')
     ap.add_argument('--busy')
+    ap.add_argument('--busy-from', type=words_line)
+    ap.add_argument('--busy-to', type=words_line)
+    ap.add_argument('--part-of')
     a = ap.parse_args()
+    if (a.busy_from or a.busy_to) and not a.busy:
+        ap.error('--busy-from and --busy-to need --busy')
     steps = a.only.split(',')
     assert steps and set(steps) <= set(ORDER), 'steps are ' + ','.join(ORDER)
     steps = [s for s in ORDER if s in steps]
@@ -248,6 +386,12 @@ def main():
                 gc_summary.waiver_rows(a.waivers)
     except (OSError, ValueError) as e:
         sys.exit('refused: the baseline %s or its waivers %s: %s' % (a.baseline, a.waivers, e))
+    part = None
+    if a.part_of:  # Ruling 6: before the root and before any step.
+        try:
+            part = part_of(a.part_of, commit, tool_hashes(HERE), steps)
+        except (OSError, ValueError, KeyError, IndexError, AttributeError) as e:
+            sys.exit('refused: --part-of %s: %s' % (a.part_of, e))
     R = Path(subprocess.run(['/usr/bin/mktemp', '-d', '/private/tmp/larsal-gc-%s-XXXX' % commit[:7]], env=L.SMALL_ENV, capture_output=True, check=True).stdout.decode().strip())
     os.chmod(R, 0o700)
     assert len(str(R / 's')) <= 37, 'W-15: source root too long: ' + str(R / 's')
@@ -256,9 +400,9 @@ def main():
     copy_tool(R)
     (R / 'results').mkdir(mode=0o700)
     assert tool_hashes(R / 'tool') == tool_before
-    run = Run(a)
+    run = Run(a, R, commit)
     ctx = dict(R=R, tool=R / 'tool', T=L.user_temp(), hold=run.hold, busy=run.busy)
-    row = dict(commit=commit, tree=tree, given=str(given), steps=steps, argv=sys.argv, baseline=a.baseline, waivers=a.waivers, T=ctx['T'], tool_sha256=tool_before, started=wall)
+    row = dict(commit=commit, tree=tree, given=str(given), steps=steps, argv=sys.argv, baseline=a.baseline, waivers=a.waivers, T=ctx['T'], tool_sha256=tool_before, started=wall, part_of=part)
     L.say('root', R, 'commit', commit, 'steps', ','.join(steps))
     # 1. Source.
     source_row = dict(step='source', reasons=[])
@@ -341,6 +485,7 @@ def main():
         L.check_sealed()
     except L.Custody as e:
         custody_changed.append(str(e))
+    row['busy_marks'] = run.marks
     row['end'] = dict(custody_changed=custody_changed, source_changed=source_changed, native_copy_new_names=native_new, sentinels_changed=changed, left_under_root=L.images_under(R), alarm=L.stopping(), diagnostic_reports_new=new_reports, total_seconds=round(time.monotonic() - started - run.hold_seconds, 1), wall_seconds=round(time.time() - wall, 1), hold_wait_seconds=round(run.hold_seconds, 1), custody=dict(tool_files=len(tool_before), executables=len(row.get('executables_before', {})), changed=len(custody_changed)))
     L.save(R / 'run.json', row)
     s = gc_summary.write(R)

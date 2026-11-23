@@ -442,10 +442,10 @@ def refusal(B, pid, since):
 
 
 def denials(pid, began, ended):
-    """Kernel sandbox rows for a failed program's own PID: the reason a reader needs."""
+    """Kernel sandbox rows for a failed program's own PID: the reason a reader needs. LOGRC=/dev/null: log reads no .logrc of the owner's."""
     stamp = lambda t: time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
     try:
-        q = subprocess.run(['/usr/bin/log', 'show', '--style', 'ndjson', '--start', stamp(began - 2), '--end', stamp(ended + 2), '--predicate', '(processIdentifier == 0) AND (eventMessage BEGINSWITH "Sandbox: ") AND (eventMessage CONTAINS "(%d)")' % pid], env=L.SMALL_ENV, capture_output=True, stdin=subprocess.DEVNULL, timeout=max(5, L.time_left(120)))
+        q = subprocess.run(['/usr/bin/log', 'show', '--style', 'ndjson', '--start', stamp(began - 2), '--end', stamp(ended + 2), '--predicate', '(processIdentifier == 0) AND (eventMessage BEGINSWITH "Sandbox: ") AND (eventMessage CONTAINS "(%d)")' % pid], env=dict(L.SMALL_ENV, LOGRC='/dev/null'), capture_output=True, stdin=subprocess.DEVNULL, timeout=max(5, L.time_left(120)))
     except subprocess.TimeoutExpired:
         return dict(log_timed_out=True, rows=[])
     rows = set()
@@ -468,15 +468,19 @@ def guard_gate(plan, pid):
     return L.gate_guard(raw.decode('utf-8', 'replace'), [pid])
 
 
-def run_lane(r, lane, cap, B, rows):
-    """Every program, one at a time. A failing test or a helper refusal is a result: the lane goes on. Only a safety reason stops it."""
+def run_lane(r, lane, cap, B, rows, ignored=None):
+    """Every program, one at a time. A failing test or a helper refusal is a result: the lane goes on. Only a safety reason stops it.
+    After a program, each test its table row lists as ignored runs alone in the same lane and profile: --ignored --exact <name> --test-threads 1."""
     O = r / 'state/replay' / (lane + '-runtime')
     O.mkdir(mode=0o700)
     entered = time.monotonic()
     deadline = entered + cap
     results, safety, not_run = [], None, []
+    runs = []
     for plan in rows:
-        t = plan['target']
+        runs.append((plan, plan['target'], None))
+        runs += [(plan, '%s-ignored-%d' % (plan['target'], i), name) for i, name in enumerate((ignored or {}).get(plan['binding']['key'], []))]
+    for plan, t, test in runs:
         why = safety or L.stopping() or ('lane cap' if time.monotonic() >= deadline - 2 else None)
         if why:
             not_run.append(dict(target=t, why=why))
@@ -493,10 +497,11 @@ def run_lane(r, lane, cap, B, rows):
             not_run.append(dict(target=t, why=safety))
             continue
         began = time.time()
-        row = L.held(plan['argv'], plan['cwd'], plan['environment'], O / (t + '.stdout'), O / (t + '.stderr'), max(1, deadline - time.monotonic()), grace=2, on_start=lambda pid: L.save(O / (t + '-started.json'), dict(pid=pid, target=t, key=plan['binding']['key'])))
+        argv = plan['argv'] + (['--ignored', '--exact', test, '--test-threads', '1'] if test else [])
+        row = L.held(argv, plan['cwd'], plan['environment'], O / (t + '.stdout'), O / (t + '.stderr'), max(1, deadline - time.monotonic()), grace=2, on_start=lambda pid: L.save(O / (t + '-started.json'), dict(pid=pid, target=t, key=plan['binding']['key'], ignored_test=test)))
         refused = refusal(B, row['pid'], since)
         seen = watch(B) if watched is not None else None
-        result = dict(target=t, key=plan['binding']['key'], pid=row['pid'], exit=row['exit'], seconds=row['seconds'], cap=row['cap'], stopped=row['stopped'], helper_refusal=refused, ssh_watch_before=watched, ssh_watch_after=seen, ssh_watch_unchanged=None if watched is None else watched == seen, timed_out=bool(row['stopped']), group_absent=row['group_absent'], survivors=row['survivors'], left_after_kill=row['left_after_kill'], surviving_descendants_cleaned=not row['stopped'] and row['survivor_signaled'], stdout_sha256=L.sha(O / (t + '.stdout')), stderr_sha256=L.sha(O / (t + '.stderr')), executable_identity_unchanged=L.identity(plan['executable']) == plan['identity'], executable_hash_unchanged=L.sha(plan['executable']) == plan['executable_sha256'])
+        result = dict(target=t, key=plan['binding']['key'], ignored_test=test, argv=argv[2:], pid=row['pid'], exit=row['exit'], seconds=row['seconds'], cap=row['cap'], stopped=row['stopped'], helper_refusal=refused, ssh_watch_before=watched, ssh_watch_after=seen, ssh_watch_unchanged=None if watched is None else watched == seen, timed_out=bool(row['stopped']), group_absent=row['group_absent'], survivors=row['survivors'], left_after_kill=row['left_after_kill'], surviving_descendants_cleaned=not row['stopped'] and row['survivor_signaled'], stdout_sha256=L.sha(O / (t + '.stdout')), stderr_sha256=L.sha(O / (t + '.stderr')), executable_identity_unchanged=L.identity(plan['executable']) == plan['identity'], executable_hash_unchanged=L.sha(plan['executable']) == plan['executable_sha256'])
         if row['exit'] != 0 or refused or result['surviving_descendants_cleaned']:
             result['denials'] = denials(row['pid'], began, time.time())
         if plan.get('guard') and not refused:
@@ -658,6 +663,7 @@ def run(ctx):
     L.save(r / 'proof/target-baseline.json', sorted(target_base.values(), key=lambda x: x['path']))
     L.save(r / 'proof/source-baseline.json', sorted(source_base.values(), key=lambda x: x['path']))
     stems = {x['target'].split('-', 1)[1] for rows_ in plans.values() for x in rows_}
+    ignored = {k: v['ignored'] for k, v in L.load(tool / 'tables/programs.json').items() if v.get('ignored')}  # Ruling 4: run alone after their program, withheld or not.
     for lane, cap in RUN_CAPS:
         if out['safety'] or L.stopping():
             out['lanes'][lane] = dict(not_started=out['safety'] or L.stopping())
@@ -667,7 +673,7 @@ def run(ctx):
         L.check_sealed()
         check_plan(r, lane, B, binding_sha)
         custody(B)
-        results, not_run, safety = run_lane(r, lane, cap, B, plans[lane])
+        results, not_run, safety = run_lane(r, lane, cap, B, plans[lane], ignored)
         custody(B)
         procs = processes(r, lane_start)
         rec = reconcile(r, target_base, source_base, remove=False)
@@ -691,7 +697,7 @@ def run(ctx):
         if rec['status'] != 'PASS':
             reasons.append('reconcile')
         guarded = [x for x in results if x.get('guard')]
-        row = dict(guard=dict(programs=len(guarded), requests=sum(x['guard']['requests'] for x in guarded), loaded=sum(len(x['guard']['loaded_pids']) for x in guarded)), programs=len(results), planned=len(plans[lane]), seconds=round(time.monotonic() - t2, 1), program_seconds=round(sum(x['seconds'] for x in results), 1), reasons=reasons, processes=procs, reconcile=rec['status'], target_records=rec['target']['records'], source_records=rec['source']['records'], finite_leftovers=len(rec['finite']['leftovers']))
+        row = dict(guard=dict(programs=len(guarded), requests=sum(x['guard']['requests'] for x in guarded), loaded=sum(len(x['guard']['loaded_pids']) for x in guarded)), programs=sum(1 for x in results if not x['ignored_test']), ignored_runs=sum(1 for x in results if x['ignored_test']), planned=len(plans[lane]), seconds=round(time.monotonic() - t2, 1), program_seconds=round(sum(x['seconds'] for x in results), 1), reasons=reasons, processes=procs, reconcile=rec['status'], target_records=rec['target']['records'], source_records=rec['source']['records'], finite_leftovers=len(rec['finite']['leftovers']))
         L.save(r / 'state/run-lanes' / (lane + '.json'), row)
         out['lanes'][lane] = row
         out['reasons'] += [lane + ': ' + x for x in reasons]

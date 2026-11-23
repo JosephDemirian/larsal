@@ -315,31 +315,182 @@ class Sampler(threading.Thread):
             time.sleep(0.1)
 
 
-# ---- Kernel rows.
+# ---- Kernel rows: two live readers per attempt and a sentinel, log show as a second reader, merged. README, "Live kernel rows".
 ROW = re.compile(r'Sandbox: (?:(\d+) duplicate reports? for )?([^()\n]+?)(?:\((\d+)\))? (allow|deny)(?:\(\d+\))? (\S+)(?: (.*))?', re.S)
-def query_log(d, started, ended, names, pids):
+PREDICATE = '(processIdentifier == 0) AND (eventMessage BEGINSWITH "Sandbox: ")'
+STREAM_PREDICATE = '(%s) OR (type == lossEvent)' % PREDICATE  # logd's "lost N unreliable messages" rows reach the reader too.
+STREAMS = (('ndjson', 'kernel-stream.ndjson'), ('default', 'kernel-stream-default.txt'))  # ndjson for the rows; the default style only for its notice of dropped messages, which ndjson never prints.
+HEADER = b'Filtering the log data using '
+DROPPED = '=== Messages dropped during live streaming'
+DEFAULT_ROW = re.compile(r'(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{6}[+-]\d{4}) 0x([0-9a-f]+) .*? kernel: (?:\([^)]*\) )?(Sandbox: .*)$')
+
+
+def log_env():
+    """log(1) reads $LOGRC, else <the user database's home>/.logrc, and never HOME: LOGRC=/dev/null keeps any owner's .logrc out of every log call."""
+    return dict(PATH='/usr/bin:/bin', HOME=str(R / 'home'), TMPDIR=str(R / 'tmp'), LC_ALL='C', LOGRC='/dev/null')
+
+
+def alive(p):
+    """Not exited, read without reaping: the leader stays unreaped until its group is closed."""
+    return L.wait_exit(p, time.monotonic() + .1, obey_alarm=False) is not None
+
+
+def start_streams(d, cap):
+    """Both readers in their own groups, before the attempt. Reading: alive, and the header printed within 30 s. --timeout ends them if the driver dies first."""
+    procs = {}
+    for style, name in STREAMS:
+        with (d / name).open('xb') as o, (d / (name + '.stderr')).open('xb') as e:
+            procs[style] = subprocess.Popen(['/usr/bin/log', 'stream', '--style', style, '--timeout', str(int(cap) + 600), '--predicate', STREAM_PREDICATE], env=log_env(), stdin=subprocess.DEVNULL, stdout=o, stderr=e, start_new_session=True)
+    t0, header = time.monotonic(), {}
+    while len(header) < len(STREAMS) and time.monotonic() - t0 < 30:
+        time.sleep(.05)
+        header.update({s: round(time.monotonic() - t0, 2) for s, name in STREAMS if s not in header and L.head(d / name, len(HEADER)) == HEADER})
+    gone = [s for s, p in procs.items() if not alive(p)]
+    not_reading = ['%s %s' % (s, 'exited' if s in gone else 'printed no header in 30 s') for s, _ in STREAMS if s in gone or s not in header]
+    return procs, dict(argv=procs['ndjson'].args, pids={s: p.pid for s, p in procs.items()}, header_seconds=header, not_reading=not_reading)
+
+
+def is_sentinel(message, sent):
+    g = ROW.fullmatch(message.strip())
+    return bool(g) and g[2] == 'touch' and g[3] == str(sent['pid']) and g[5] == 'file-write-create' and (g[6] or '').strip() == sent['path']
+
+
+def stamp(text):
+    return datetime.datetime.strptime(text, '%Y-%m-%d %H:%M:%S.%f%z').timestamp()
+
+
+def read_streams(d, sent, window=(0, 0), end=None):
+    """Both readers' files. The ndjson reader's kernel rows timed in the window, without the sentinels'; its loss rows and end record; each sentinel's row in each reader; the default reader's notices of dropped messages; and the rows the default reader read that the ndjson reader lacks, from the sentinel's row to the window's end."""
+    out = dict(rows=[], loss=[], finished=None, sentinel_row={}, end_sentinel_row={}, dropped_notices=0, missed=[])
+    keys, t_sent = set(), None
+    for line in L.read_regular(d / STREAMS[0][1]).decode('utf-8', 'replace').splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue  # The header.
+        if not isinstance(e, dict):
+            continue
+        m = e.get('eventMessage') or ''
+        if 'finished' in e:
+            out['finished'] = e
+        elif e.get('eventType') == 'lossEvent':
+            out['loss'].append(line[:400])
+        elif e.get('processID') == 0 and m.startswith('Sandbox: ') and e.get('timestamp'):
+            keys.add((e['timestamp'], e.get('threadID')))
+            if is_sentinel(m, sent):
+                out['sentinel_row']['ndjson'], t_sent = e['timestamp'], stamp(e['timestamp'])
+            elif end and is_sentinel(m, end):
+                out['end_sentinel_row']['ndjson'] = e['timestamp']
+            elif window[0] <= stamp(e['timestamp']) < window[1]:
+                out['rows'].append(e)
+    for k in ('sentinel_row', 'end_sentinel_row'):
+        out[k] = dict(ndjson=out[k].get('ndjson'), default=None)
+    for line in L.read_regular(d / STREAMS[1][1]).decode('utf-8', 'replace').splitlines():
+        g = DEFAULT_ROW.match(line)
+        if line.startswith(DROPPED):
+            out['dropped_notices'] += 1
+        elif g:
+            if is_sentinel(g[3], sent):
+                out['sentinel_row']['default'] = g[1]
+            elif end and is_sentinel(g[3], end):
+                out['end_sentinel_row']['default'] = g[1]
+            elif t_sent and t_sent <= stamp(g[1]) < window[1] and (g[1], int(g[2], 16)) not in keys:
+                x = ROW.fullmatch(g[3].strip())
+                out['missed'].append('%s %s(%s)' % (g[1], x[2], x[3]) if x else g[1])  # Time, name and pid: no other program's row is kept.
+    return out
+
+
+def scrub_streams(d, keep, sents):
+    """Once read, other programs' rows leave the attempt's folder: as with log show, only their names and counts stay. Each reader's file keeps its header, notices, end record and loss rows, the sentinels' rows and the kept rows."""
+    mine = lambda m: m in keep or any(is_sentinel(m, s) for s in sents)
+    def ours(style, line):
+        if style == 'ndjson':
+            try:
+                e = json.loads(line)
+            except ValueError:
+                return True  # The header.
+            m = e.get('eventMessage') if isinstance(e, dict) and e.get('processID') == 0 else None
+            return m is None or not m.startswith('Sandbox: ') or mine(m)
+        g = DEFAULT_ROW.match(line.rstrip('\n'))
+        return line.startswith((HEADER.decode(), 'Timestamp', DROPPED)) or bool(g) and mine(g[3])
+    removed = {}
+    for style, name in STREAMS:
+        lines = L.read_regular(d / name).splitlines(True)
+        out = [b for b in lines if ours(style, b.decode('utf-8', 'replace'))]
+        (d / name).write_bytes(b''.join(out))
+        removed[style] = len(lines) - len(out)
+    return removed
+
+
+def sentinel(d, name='sentinel'):
+    """One denied write of the tool's own: touch on a fresh path in this attempt's folder, under a profile that denies only that path. Its row is waited for up to 15 s. The first comes right after both readers read, before the lane; the end sentinel after the late-row wait, before the stop."""
+    sent = dict(path=str(d / name))
+    profile = '(version 1)(allow default)(deny file-write* (literal %s))' % json.dumps(sent['path'])
+    row = L.held([L.SANDBOX, '-p', profile, '/usr/bin/touch', sent['path']], d, log_env(), d / (name + '.stdout'), d / (name + '.stderr'), 30)
+    err = L.read_regular(d / (name + '.stderr')).decode('utf-8', 'replace')
+    sent.update(pid=row['pid'], exit=row['exit'], stderr=err[:300], denied=row['exit'] == 1 and 'Operation not permitted' in err and not os.path.lexists(sent['path']))
+    t0 = time.monotonic()
+    while sent['denied'] and time.monotonic() - t0 < 15 and not all(read_streams(d, sent)['sentinel_row'].values()):
+        time.sleep(.1)
+    sent['row_wait_seconds'] = round(time.monotonic() - t0, 2)
+    return sent
+
+
+def stop_streams(procs):
+    """After the late-row wait, by their own handles. One that exited before this ended early. SIGINT ends the ndjson reader with its "finished" record; the group is closed as every group is."""
+    early = [s for s, p in procs.items() if not alive(p)]
+    for s, p in procs.items():
+        if s not in early:
+            L.signal_group(p, signal.SIGINT)
+    closed = {}
+    for s, p in procs.items():
+        L.wait_exit(p, time.monotonic() + 20, obey_alarm=False)
+        c = L.close_group(p)
+        closed[s] = dict(exit=c['exit'], survivors=c['survivors'], left_after_kill=c['left_after_kill'], group_absent=c['group_absent'])
+    return dict(ended_early=early, closed=closed)
+
+
+def query_log(d, started, ended, names, pids, live, sents):
+    """Merges the live rows with log show's, keeps the run's rows, writes the evidence and scrubs the readers' files. A row is the run's own when its pid is one the sampler read in the tree; a row kept for its name only (a tool name or a test program's name, its pid not sampled) is listed apart."""
     lo = datetime.datetime.fromtimestamp(int(started) - 2).strftime('%Y-%m-%d %H:%M:%S')
     hi = datetime.datetime.fromtimestamp(int(ended) + 3).strftime('%Y-%m-%d %H:%M:%S')
-    argv = ['/usr/bin/log', 'show', '--style', 'ndjson', '--start', lo, '--end', hi, '--predicate', '(processIdentifier == 0) AND (eventMessage BEGINSWITH "Sandbox: ")']
-    r = subprocess.run(argv, env=dict(PATH='/usr/bin:/bin', HOME=str(R / 'home'), TMPDIR=str(R / 'tmp'), LC_ALL='C'), capture_output=True, timeout=max(5, L.time_left(240)))
-    kept, other, sensitive = [], {}, []
+    argv = ['/usr/bin/log', 'show', '--style', 'ndjson', '--start', lo, '--end', hi, '--predicate', PREDICATE]
+    r = subprocess.run(argv, env=log_env(), capture_output=True, timeout=max(5, L.time_left(240)))
+    show = []
     for line in r.stdout.decode('utf-8', 'replace').splitlines():
         try:
-            m = json.loads(line).get('eventMessage', '')
+            e = json.loads(line)
         except ValueError:
             continue
+        if isinstance(e, dict) and 'eventMessage' in e:
+            show.append(e)
+    # One event read by both readers holds the same three; log show's timestamp text differs from the stream's by milliseconds, so it is no key.
+    events, both = {}, 0
+    for e in live + show:
+        k = (e.get('machTimestamp'), e.get('threadID'), e.get('eventMessage'))
+        both += k in events
+        events.setdefault(k, e)
+    kept, other, sensitive, keep = [], {}, [], set()
+    for e in events.values():
+        m = e.get('eventMessage') or ''
         g = ROW.fullmatch(m.strip())
-        if not g:
+        if not g or any(is_sentinel(m, s) for s in sents):
             continue
         name, pid = g[2], int(g[3]) if g[3] else None
         if g[4] == 'allow' and g[5] == 'mach-lookup' and (g[6] or '').strip() in SENSITIVE:
             sensitive.append(dict(process=name, pid=pid, target=g[6].strip(), count=int(g[1]) if g[1] else 1, in_tree=pid in pids))
         if name in names or pid in pids or re.fullmatch(r'app09-[0-9a-f]+|[a-z0-9_]+-[0-9a-f]{16}', name):
             kept.append(dict(process=name, pid=pid, verdict=g[4], operation=g[5], target=(g[6] or '').strip(), count=int(g[1]) if g[1] else 1, in_tree=pid in pids, raw=m[:600]))
+            keep.add(m)
         else:
             other[name] = other.get(name, 0) + 1  # Other programs on this Mac: name and count only, no row kept.
     (d / 'kernel-rows.ndjson').write_text(''.join(json.dumps(k) + '\n' for k in kept))
     save(d / 'kernel-other-process-names.json', other)
+    removed = scrub_streams(d, keep, sents)
+    by_name = {}
+    for k in kept:
+        if not k['in_tree']:
+            by_name[k['process']] = by_name.get(k['process'], 0) + 1
     tally = {}
     for k in kept:
         if k['verdict'] == 'deny':
@@ -354,7 +505,7 @@ def query_log(d, started, ended, names, pids):
     save(d / 'sensitive-rows.json', sensitive)
     created = {k['target'] for k in kept if k['verdict'] == 'allow' and k['operation'] == 'file-write-create' and k['in_tree']}
     named = {k['target'] for k in kept if k['verdict'] == 'allow' and k['operation'] == 'file-write-create'}
-    return dict(argv=argv, exit=r.returncode, stderr=r.stderr.decode('utf-8', 'replace')[:400], kept=len(kept), deny_keys=len(rows)), created, named, sensitive
+    return dict(argv=argv, exit=r.returncode, stderr=r.stderr.decode('utf-8', 'replace')[:400], stream_rows=len(live), show_rows=len(show), read_by_both=both, merged=len(events), kept=len(kept), own=len(kept) - sum(by_name.values()), by_name_only=sum(by_name.values()), by_name_only_names=by_name, deny_keys=len(rows), other_rows_removed=removed), created, named, sensitive
 
 
 # ---- Gates. Pure functions over evidence, each returning failures as stated reasons, so a control can break one condition at a time.
@@ -370,6 +521,55 @@ XCTEST_IMAGE = L.XCODE + '/Platforms/MacOSX.platform/Developer/Library/Xcode/Age
 TESTMANAGERD = '/usr/libexec/testmanagerd'
 CLOCK_SLACK = 2  # Seconds. A report's launch time and the kernel's start time are one clock read two ways; a pid is not reused inside this.
 LANE_TREES = []  # Each attempt's tree and when it was read: a report can land after its own attempt's read.
+
+
+def gate_stream(s):
+    """The live readers: each condition its own stated reason."""
+    fails = ['the live kernel stream was not reading before the attempt: ' + '; '.join(s['not_reading'])] if s['not_reading'] else []
+    if s['ended_early']:
+        fails.append('the live kernel stream ended before it was stopped: ' + ', '.join(s['ended_early']))
+    x = s['sentinel']
+    if not x['denied']:
+        fails.append('the sentinel write was not denied: exit %s, %s' % (x['exit'], x['stderr'].strip()[:160] or 'no error text'))
+    elif not all(s['sentinel_row'].values()):
+        fails.append('the sentinel row is missing from the live stream: ' + ', '.join(k for k, v in sorted(s['sentinel_row'].items()) if not v))
+    if s['loss']:
+        fails.append('the live stream reports lost messages: %d loss rows, first %s' % (len(s['loss']), s['loss'][0][:200]))
+    if s['dropped_notices']:
+        fails.append('the live stream reports dropped messages: %d notices in the default-style reader' % s['dropped_notices'])
+    if s['missed']:
+        fails.append('the ndjson reader dropped rows without a word: %d rows the default-style reader read, first %s' % (len(s['missed']), s['missed'][0][:200]))
+    # The end of the stream: a row made after the late-row wait reached both readers, each reader ended on SIGINT, and the ndjson reader wrote its end record.
+    y = s['sentinel_end']
+    if not y['denied']:
+        fails.append('the end sentinel write was not denied: exit %s, %s' % (y['exit'], y['stderr'].strip()[:160] or 'no error text'))
+    elif not all(s['end_sentinel_row'].values()):
+        fails.append('the end sentinel row is missing from the live stream: ' + ', '.join(k for k, v in sorted(s['end_sentinel_row'].items()) if not v))
+    bad = ['%s exit %s' % (k, v['exit']) for k, v in sorted(s['closed'].items()) if k not in s['ended_early'] and v['exit'] != 0]
+    if bad:
+        fails.append('the live kernel stream did not end on SIGINT: ' + ', '.join(bad))
+    if not s['finished']:
+        fails.append('the ndjson reader wrote no finished record')
+    return fails
+
+
+def gate_rows(kind, log):
+    """Every attempt kind expects rows of the run's own processes, the pids the sampler read in its tree, from either reader. Rows kept by name only never count. A failed log show still fails, as before."""
+    return ['no kernel rows read: no row of the run\'s own processes (pids the sampler read) from %(stream_rows)s stream rows and %(show_rows)s log show rows; %(by_name_only)s rows kept by name only do not count; log show exit %(exit)s' % log] if kind in 'ABG' and (log['exit'] != 0 or not log['own']) else []
+
+
+def gate_sim(before, after):
+    """The owner's simulator folder before and after an attempt: a name, a kind, a size, a link's text or a file's bytes that differ fail, and so does the folder's own uid or kind. An inode or a time alone is information."""
+    changed, info = [], []
+    if [before.get(k) for k in ('absent', 'uid', 'kind')] != [after.get(k) for k in ('absent', 'uid', 'kind')]:
+        changed.append('.')
+    for n in sorted(set(before['files']) | set(after['files'])):
+        x, y = before['files'].get(n), after['files'].get(n)
+        if x is None or y is None or any(x.get(k) != y.get(k) for k in ('kind', 'size', 'sha256', 'link', 'error')):
+            changed.append(n)
+        elif x != y:
+            info.append(n)
+    return (['owner simulator folder changed: %s: %s' % (before['path'], ', '.join(changed[:20]))] if changed else []), info
 
 
 def gate_sensitive(rows):
@@ -610,62 +810,79 @@ def attempt(name, stage):
     guard_log = OUT / 'guard' / 'general-board.log'
     guard_start = os.lstat(guard_log).st_size if os.path.lexists(guard_log) else 0
     diag_before = L.diag_names(OWNER)
+    sim_before = L.sim_devices(OWNER)  # Read only, before the readers and the lane.
+    save(d / 'owner-simulator-before.json', sim_before)
     kind = stage[0]
     L.check_sealed()
-    argv = ['/usr/bin/sandbox-exec', '-f', str(L.sealed(d / 'profile.sb')), '/bin/bash', str(L.sealed(TOOL_DIR / 'native-lane.sh')), stage, str(out)]
-    rec = dict(attempt=name, stage=stage, argv=argv, cwd=str(S), cap=cap, sentinels_before=L.sentinels(OWNER), stopped=None, needs_at_start=len(needs()))
-    rec['started'] = time.time()
-    so = (d / 'lane.stdout').open('xb')
-    se = (d / 'lane.stderr').open('xb')
-    p = subprocess.Popen(argv, cwd=S, env=env, stdin=subprocess.DEVNULL, stdout=so, stderr=se, start_new_session=True)
-    rec['pid'] = p.pid
-    save(d / 'started.json', rec)
-    sampler = Sampler(p.pid, d, kind != 'A')
-    sampler.start()
-    t0 = time.monotonic()
-    state = dict(size=0, change=t0, read=t0)
-    stall = STALL.get(kind, 600)
+    streams, live = start_streams(d, cap)
+    read = False
+    try:  # F6: whatever ends this attempt early, the finally stops both readers and scrubs their files.
+        live['sentinel'] = sentinel(d)
+        argv = ['/usr/bin/sandbox-exec', '-f', str(L.sealed(d / 'profile.sb')), '/bin/bash', str(L.sealed(TOOL_DIR / 'native-lane.sh')), stage, str(out)]
+        rec = dict(attempt=name, stage=stage, argv=argv, cwd=str(S), cap=cap, sentinels_before=L.sentinels(OWNER), stopped=None, needs_at_start=len(needs()), stream=live)
+        rec['started'] = time.time()
+        so = (d / 'lane.stdout').open('xb')
+        se = (d / 'lane.stderr').open('xb')
+        p = subprocess.Popen(argv, cwd=S, env=env, stdin=subprocess.DEVNULL, stdout=so, stderr=se, start_new_session=True)
+        rec['pid'] = p.pid
+        save(d / 'started.json', rec)
+        sampler = Sampler(p.pid, d, kind != 'A')
+        sampler.start()
+        t0 = time.monotonic()
+        state = dict(size=0, change=t0, read=t0)
+        stall = STALL.get(kind, 600)
 
-    def check():
-        now = time.monotonic()
-        if sampler.window_seen.is_set():
-            return 'a window from this run listed on screen'
-        if now - state['read'] >= 1:
-            state['read'] = now
-            size = sum(f.stat().st_size for f in out.glob('*.std*') if f.is_file())
-            if size != state['size']:
-                state['size'], state['change'] = size, now
-        return 'no output for %d seconds' % stall if now - state['change'] > stall else None
+        def check():
+            now = time.monotonic()
+            if sampler.window_seen.is_set():
+                return 'a window from this run listed on screen'
+            if now - state['read'] >= 1:
+                state['read'] = now
+                size = sum(f.stat().st_size for f in out.glob('*.std*') if f.is_file())
+                if size != state['size']:
+                    state['size'], state['change'] = size, now
+            return 'no output for %d seconds' % stall if now - state['change'] > stall else None
 
-    rec['stopped'] = L.wait_exit(p, t0 + cap, check)
-    if rec['stopped']:
-        L.stop_group(p, 20)
-    rec['ended'] = time.time()
-    rec['seconds'] = round(rec['ended'] - rec['started'], 1)
-    so.close()
-    se.close()
-    time.sleep(2)
-    sampler.stop_flag.set()
-    sampler.join(timeout=10)
-    # The leader stays unreaped until its group is named and has had the SIGKILL. Group first; only then the log and T.
-    closed = L.close_group(p)
-    rec['exit'] = closed['exit']
-    rec['group_survivors'], rec['group_left_after_kill'] = closed['survivors'], closed['left_after_kill']
-    rec['group_after_exit'] = 'gone' if closed['group_absent'] else 'still present'
-    # Read after the kill. Any image counts, so a tracked process that exec'd is seen; its image and parent are the receipt's, and nothing here signals it.
-    alive = {q: image(q) for q in sampler.tree if q != p.pid}
-    parents = {x['pid']: x for x in L.group_rows_any(sorted(q for q, a in alive.items() if a))}
-    rec['descendants_alive_after_exit'] = [dict(pid=q, image=a, first_image=sampler.tree[q]['path'], parent=parents.get(q, {}).get('parent')) for q, a in sorted(alive.items()) if a]
-    save(d / 'process-tree.json', sorted(sampler.tree.values(), key=lambda r: r['seconds']))
-    save(d / 'process-outside-tree.json', sorted(sampler.other.values(), key=lambda r: r['seconds']))
-    arg_rows = list(sampler.args.values()) + sampler.later_args
-    save(d / 'process-args.json', arg_rows)
-    save(d / 'window-rows.json', sampler.window_rows)
-    rec['sampler_errors'] = sampler.__dict__.get('errors', [])[:10]
-    rec['window_listed_on_screen'] = sampler.window_seen.is_set()
-    time.sleep(8)  # Rows reach log show up to about 5 seconds late.
-    names = set(TOOLS) | {os.path.basename(p) for r in list(sampler.tree.values()) + list(sampler.other.values()) for p in images_of(r)}
-    rec['log'], created, named, sensitive = query_log(d, rec['started'], rec['ended'], names, set(sampler.tree))
+        rec['stopped'] = L.wait_exit(p, t0 + cap, check)
+        if rec['stopped']:
+            L.stop_group(p, 20)
+        rec['ended'] = time.time()
+        rec['seconds'] = round(rec['ended'] - rec['started'], 1)
+        so.close()
+        se.close()
+        time.sleep(2)
+        sampler.stop_flag.set()
+        sampler.join(timeout=10)
+        # The leader stays unreaped until its group is named and has had the SIGKILL. Group first; only then the log and T.
+        closed = L.close_group(p)
+        rec['exit'] = closed['exit']
+        rec['group_survivors'], rec['group_left_after_kill'] = closed['survivors'], closed['left_after_kill']
+        rec['group_after_exit'] = 'gone' if closed['group_absent'] else 'still present'
+        # Read after the kill. Any image counts, so a tracked process that exec'd is seen; its image and parent are the receipt's, and nothing here signals it.
+        alive = {q: image(q) for q in sampler.tree if q != p.pid}
+        parents = {x['pid']: x for x in L.group_rows_any(sorted(q for q, a in alive.items() if a))}
+        rec['descendants_alive_after_exit'] = [dict(pid=q, image=a, first_image=sampler.tree[q]['path'], parent=parents.get(q, {}).get('parent')) for q, a in sorted(alive.items()) if a]
+        save(d / 'process-tree.json', sorted(sampler.tree.values(), key=lambda r: r['seconds']))
+        save(d / 'process-outside-tree.json', sorted(sampler.other.values(), key=lambda r: r['seconds']))
+        arg_rows = list(sampler.args.values()) + sampler.later_args
+        save(d / 'process-args.json', arg_rows)
+        save(d / 'window-rows.json', sampler.window_rows)
+        rec['sampler_errors'] = sampler.__dict__.get('errors', [])[:10]
+        rec['window_listed_on_screen'] = sampler.window_seen.is_set()
+        time.sleep(8)  # Rows reach both readers up to about 5 seconds late.
+        live['sentinel_end'] = sentinel(d, 'sentinel-end')  # F1: a row made after the late-row wait must reach both readers: they still deliver at the end.
+        live.update(stop_streams(streams))
+        got = read_streams(d, live['sentinel'], (int(rec['started']) - 2, int(rec['ended']) + 4), live['sentinel_end'])
+        live.update({k: got[k] for k in ('loss', 'finished', 'sentinel_row', 'end_sentinel_row', 'dropped_notices', 'missed')})
+        names = set(TOOLS) | {os.path.basename(p) for r in list(sampler.tree.values()) + list(sampler.other.values()) for p in images_of(r)}
+        rec['log'], created, named, sensitive = query_log(d, rec['started'], rec['ended'], names, set(sampler.tree), got['rows'], [live['sentinel'], live['sentinel_end']])
+        read = True
+    finally:
+        if not read:
+            if 'closed' not in live:
+                live.update(stop_streams(streams))
+            scrub_streams(d, set(), [s for s in (live.get('sentinel'), live.get('sentinel_end')) if s and 'pid' in s])
+    rec['kernel_rows'] = dict({k: rec['log'][k] for k in ('stream_rows', 'show_rows', 'read_by_both', 'merged', 'kept', 'own', 'by_name_only', 'other_rows_removed')}, sentinel_row=live['sentinel_row'], end_sentinel_row=live['end_sentinel_row'], exits={k: v['exit'] for k, v in live['closed'].items()}, finished=bool(live['finished']), loss=len(live['loss']), dropped_notices=live['dropped_notices'], missed=len(live['missed']))
     rec['t_cleanup'] = t_cleanup(before, (rec['started'], rec['ended']), created, set(sampler.tree))
     after = t_listing()
     save(d / 't-after.json', after)
@@ -674,6 +891,10 @@ def attempt(name, stage):
     rec['t_foreign_gone_or_changed'] = [k for k, v in was.items() if not any(r['path'].lower() == k and r['inode'] == v for r in after)]
     rec['sentinels_after'] = L.sentinels(OWNER)
     rec['sentinels_changed'] = [k for k in rec['sentinels_before'] if rec['sentinels_before'][k] != rec['sentinels_after'][k]]
+    sim_after = L.sim_devices(OWNER)
+    save(d / 'owner-simulator-after.json', sim_after)
+    sim_fails, sim_info = gate_sim(sim_before, sim_after)
+    rec['owner_simulator'] = dict(path=sim_before['path'], owners=sim_before.get('owners'), names=len(sim_before['files']), changed=sim_fails, times_or_inodes_only=sim_info)
     rec['window_samples'] = sampler.window_samples
     guard_text, guard_unread = b'', []
     if os.path.lexists(guard_log):
@@ -689,8 +910,8 @@ def attempt(name, stage):
     failures = []
     if rec['exit'] != 0:
         failures.append('step exit %s' % rec['exit'])
-    if kind in 'ABG' and (rec['log']['exit'] != 0 or not rec['log']['kept']):
-        failures.append('no kernel rows read: log exit %s, %s rows' % (rec['log']['exit'], rec['log']['kept']))
+    failures += gate_stream(rec['stream'])
+    failures += gate_rows(kind, rec['log'])
     if kind == 'B' and not xctest:
         failures.append('xctest was never sampled')
     failures += gate_windows(rec, sampler.window_samples, stage)
@@ -703,13 +924,14 @@ def attempt(name, stage):
     failures += gate_env(arg_rows, kind == 'B')
     failures += gate_counts(stage, out)
     failures += gate_t(rec, named)
+    failures += sim_fails
     LANE_TREES.append(dict(tree=sampler.tree, started=rec['started'], read=time.time()))
     new_reports = L.diag_names(OWNER) - diag_before
     failures += gate_host(rec, new_reports, own_name_reports(new_reports, names, OWNER), L.images_under(R), var_tmp_session_names(), LANE_TREES, str(R))
     rec['gate_failures'] = failures
-    save(d / 'gates.json', dict(failures=failures, guard=rec['guard'], window_samples=sampler.window_samples, sensitive_totals={t: sum(r['count'] for r in sensitive if r['target'] == t) for t in SENSITIVE}, sensitive_processes=sorted({(r['target'], r['process']) for r in sensitive}), t_new_foreign=rec['t_new_foreign'], diagnostic_reports_new=rec['diagnostic_reports_new'], diagnostic_reports_own=rec['diagnostic_reports_own'], diagnostic_reports_not_ours=rec['diagnostic_reports_not_ours']))
+    save(d / 'gates.json', dict(failures=failures, guard=rec['guard'], window_samples=sampler.window_samples, sensitive_totals={t: sum(r['count'] for r in sensitive if r['target'] == t) for t in SENSITIVE}, sensitive_processes=sorted({(r['target'], r['process']) for r in sensitive}), t_new_foreign=rec['t_new_foreign'], diagnostic_reports_new=rec['diagnostic_reports_new'], diagnostic_reports_own=rec['diagnostic_reports_own'], diagnostic_reports_not_ours=rec['diagnostic_reports_not_ours'], owner_simulator=rec['owner_simulator']))
     save(d / 'receipt.json', rec)
-    rec['safety'] = [x for x in failures if x.startswith(('a window', 'stopped: a window', 'owner sentinel', 'general board', 'the guard failed', 'sensitive grant', 'process left', 'same-group process still', 'foreign T object', 'a process outside', 'a test bundle'))]
+    rec['safety'] = [x for x in failures if x.startswith(('a window', 'stopped: a window', 'owner sentinel', 'general board', 'the guard failed', 'sensitive grant', 'process left', 'same-group process still', 'foreign T object', 'a process outside', 'a test bundle', 'owner simulator folder'))]
     L.say('native attempt', name, 'exit', rec['exit'], 'seconds', rec['seconds'], 'gate failures', len(failures))
     return rec
 
@@ -735,7 +957,7 @@ def setup():
 
 
 def run(ctx, attempts=(('G1', 'G'), ('A1', 'A'), ('B1', 'B'))):
-    """Setup, then G, A and B, one attempt each, no retry. Only a safety reason skips what is left."""
+    """Setup, then G, A and B, one attempt each, no retry, under one busy mark. Only a safety reason skips what is left."""
     root = ctx['R']
     subprocess.run(['/bin/cp', '-cRp', str(root / 'e'), str(root / 's')], check=True, env=L.SMALL_ENV)
     expected = [int(x) for x in L.read_regular(Path(ctx['tool'], 'tables/native-expected.txt')).split()]
@@ -743,27 +965,27 @@ def run(ctx, attempts=(('G1', 'G'), ('A1', 'A'), ('B1', 'B'))):
     configure(root, ctx['tool'], ctx['T'], ctx.get('owner', L.OWNER), L.rust_toolchain(root / 's'), expected, ctx.get('withheld'))
     pins = setup()
     out = dict(step='native', reasons=[], safety=None, attempts={}, pins=pins, expected=dict(swift=expected[0], app09=expected[1]))
-    for name, stage in attempts:
-        if out['safety'] or L.stopping():
-            out['reasons'].append(name + ' not started: ' + str(out['safety'] or L.stopping()))
-            continue
-        if stage == 'B':  # The last read before the tests start. A plan that moved is not run.
-            bad = gate_xctestrun(S / 'target/xcode/Build/Products')
-            if bad:
-                out['reasons'] += [name + ' not started: ' + x for x in bad]
-                out['safety'] = bad
+    with ctx['busy']():  # Ruling 3: one mark from before the first attempt through the end compare, so no other run starts between attempts. The hold is still read before each attempt.
+        for name, stage in attempts:
+            if out['safety'] or L.stopping():
+                out['reasons'].append(name + ' not started: ' + str(out['safety'] or L.stopping()))
                 continue
-        ctx['hold']()
-        bad = L.compare_copy(S, R, ignore=('target',))[0]  # New names are the build's own; the end compare reads them.
-        if bad:
-            raise L.Custody('native copy changed before attempt %s: %s' % (name, bad[:5]))
-        L.stop_on_configs(S, R / 'home/.cargo', 'attempt ' + name)
-        with ctx['busy']():
+            if stage == 'B':  # The last read before the tests start. A plan that moved is not run.
+                bad = gate_xctestrun(S / 'target/xcode/Build/Products')
+                if bad:
+                    out['reasons'] += [name + ' not started: ' + x for x in bad]
+                    out['safety'] = bad
+                    continue
+            ctx['hold']()
+            bad = L.compare_copy(S, R, ignore=('target',))[0]  # New names are the build's own; the end compare reads them.
+            if bad:
+                raise L.Custody('native copy changed before attempt %s: %s' % (name, bad[:5]))
+            L.stop_on_configs(S, R / 'home/.cargo', 'attempt ' + name)
             rec = attempt(name, stage)
-        out['attempts'][name] = {k: rec.get(k) for k in ('exit', 'seconds', 'stopped', 'gate_failures', 'window_samples', 'group_after_exit', 'group_survivors', 'descendants_alive_after_exit', 'guard', 'diagnostic_reports_new', 'diagnostic_reports_not_ours', 'sentinels_changed', 't_new_foreign', 'safety', 'fork_window_once')}
-        out['reasons'] += [name + ': ' + x for x in rec['gate_failures']]
-        out['safety'] = rec['safety'] or None
-    moved = {p: h for p, h in pins.items() if L.sha(p) != h}
-    if moved:
-        out['reasons'].append('SwiftLint or guard library changed during the run: %s' % sorted(moved))
+            out['attempts'][name] = {k: rec.get(k) for k in ('exit', 'seconds', 'stopped', 'gate_failures', 'window_samples', 'group_after_exit', 'group_survivors', 'descendants_alive_after_exit', 'guard', 'diagnostic_reports_new', 'diagnostic_reports_not_ours', 'sentinels_changed', 't_new_foreign', 'safety', 'fork_window_once', 'kernel_rows', 'owner_simulator')}
+            out['reasons'] += [name + ': ' + x for x in rec['gate_failures']]
+            out['safety'] = rec['safety'] or None
+        moved = {p: h for p, h in pins.items() if L.sha(p) != h}
+        if moved:
+            out['reasons'].append('SwiftLint or guard library changed during the run: %s' % sorted(moved))
     return out
