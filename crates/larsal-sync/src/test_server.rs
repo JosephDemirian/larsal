@@ -4,7 +4,11 @@
 //!
 //! - [`larsal_server`]: Larsal's own server in process on 127.0.0.1:0 with its
 //!   first-start certificate, its test clock and SYN-04.11's second-device
-//!   helper (LD-327 (6)).
+//!   helper (LD-327 (6)). It lets an account with no keys row upload
+//!   unsigned, as E16's callers do (`TestSeams::allow_unsigned`);
+//!   [`larsal_server_strict`] keeps a release server's rule (E17-S1).
+//! - [`Memory`]: the device store of `account.rs` as a map, never a
+//!   keychain (LD-317 (2)).
 //! - [`Scripted`]: a TLS server on 127.0.0.1:0 with its own self-signed
 //!   certificate that answers each request as the test says, for the
 //!   replies Larsal's server never gives (endless 412, a rolled-back
@@ -22,7 +26,9 @@
     clippy::arithmetic_side_effects
 )]
 
+use crate::account::{AccountFail, Keep};
 use crate::sync::Clock;
+use larsal_crypto::secret::SecretBytes;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName};
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore, ServerConfig, ServerConnection, StreamOwned,
@@ -103,8 +109,17 @@ impl LarsalServer {
 }
 
 /// Starts larsal-server on 127.0.0.1:0 with a fresh data folder and its
-/// first-start certificate.
+/// first-start certificate; an account with no keys row may upload with no
+/// signature (E16's tests, which make no account keys).
 pub fn larsal_server() -> LarsalServer {
+    let s = larsal_server_strict();
+    s.seams.allow_unsigned(true);
+    s
+}
+
+/// [`larsal_server`] with a release server's rule: every vault upload is
+/// signed by the account's identity key (SYN-01.7, E17-S1).
+pub fn larsal_server_strict() -> LarsalServer {
     let data = scratch("server");
     let root = data.0.clone();
     let (tx, rx) = mpsc::channel();
@@ -141,6 +156,25 @@ pub fn larsal_server() -> LarsalServer {
 
 pub fn sha256(bytes: &[u8]) -> [u8; 32] {
     crate::sync::hash(bytes)
+}
+
+/// `account.rs`'s device store as a map (LD-317 (2)): every value is a
+/// `SecretBytes`, wiped on drop.
+#[derive(Default)]
+pub struct Memory(pub Mutex<std::collections::BTreeMap<String, SecretBytes>>);
+
+impl Keep for Memory {
+    fn put(&self, label: &str, secret: &SecretBytes) -> Result<(), AccountFail> {
+        let copy = SecretBytes::new(secret.expose().to_vec());
+        self.0.lock().unwrap().insert(label.to_owned(), copy);
+        Ok(())
+    }
+
+    fn get(&self, label: &str) -> Option<SecretBytes> {
+        let map = self.0.lock().unwrap();
+        map.get(label)
+            .map(|s| SecretBytes::new(s.expose().to_vec()))
+    }
 }
 
 /// One request as the server read it.
@@ -249,6 +283,15 @@ impl Scripted {
     /// own TLS connection that trusts only `to`'s certificate; the client
     /// pins this proxy's certificate.
     pub fn proxy(to: &LarsalServer) -> Self {
+        Self::proxy_with(to, |_| None)
+    }
+
+    /// [`Scripted::proxy`], except that a request `answer` answers gets
+    /// that reply and does not reach `to` (a server that lies, E17-S1).
+    pub fn proxy_with(
+        to: &LarsalServer,
+        answer: impl Fn(&Request) -> Option<Response> + Send + Sync + 'static,
+    ) -> Self {
         let mut roots = RootCertStore::empty();
         roots.add(CertificateDer::from(to.der.clone())).unwrap();
         let provider = Arc::new(rustls::crypto::ring::default_provider());
@@ -261,6 +304,9 @@ impl Scripted {
         );
         let port = to.port;
         Self::serve(move |request: &Request| {
+            if let Some(reply) = answer(request) {
+                return Ok(reply.bytes());
+            }
             let name = ServerName::try_from("127.0.0.1").unwrap();
             let conn = ClientConnection::new(config.clone(), name).map_err(io::Error::other)?;
             let tcp = TcpStream::connect(("127.0.0.1", port))?;

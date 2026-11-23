@@ -15,7 +15,7 @@
 //! (P16).
 
 use crate::data::{self, DataFolder};
-use crate::store::{self, Cas, Row};
+use crate::store::{self, Cas, Row, Signed};
 use crate::{Error, log};
 use larsal_proto::messages::{AccountId, VaultId, VaultVersion};
 use larsal_proto::routes::Precondition;
@@ -35,6 +35,12 @@ pub(crate) struct Blobs {
     db: Mutex<Connection>,
     blobs: PathBuf,
     tmp: PathBuf,
+    /// Test seam (`TestSeams::allow_unsigned`): an account with no keys row
+    /// may upload with no `Upload-Signature`, as before E17-S1, so the
+    /// E16 tests of larsal-ffi run unchanged. Off unless a test turns it
+    /// on; a product build has no such field (SYN-01.7).
+    #[cfg(any(test, feature = "test-seams"))]
+    pub(crate) unsigned: std::sync::atomic::AtomicBool,
     /// Test seam: where a commit stops as if the server had crashed.
     #[cfg(test)]
     pub(crate) crash: Mutex<Option<Crash>>,
@@ -116,6 +122,8 @@ impl Blobs {
             db: Mutex::new(db),
             blobs,
             tmp,
+            #[cfg(any(test, feature = "test-seams"))]
+            unsigned: std::sync::atomic::AtomicBool::new(false),
             #[cfg(test)]
             crash: Mutex::new(None),
         };
@@ -126,6 +134,16 @@ impl Blobs {
             ));
         }
         Ok(opened)
+    }
+
+    /// Whether an account with no keys row may upload unsigned
+    /// (`TestSeams::allow_unsigned`); always false in a product build.
+    pub(crate) fn allows_unsigned(&self) -> bool {
+        #[cfg(any(test, feature = "test-seams"))]
+        let on = self.unsigned.load(std::sync::atomic::Ordering::SeqCst);
+        #[cfg(not(any(test, feature = "test-seams")))]
+        let on = false;
+        on
     }
 
     fn writer(&self) -> Result<MutexGuard<'_, Connection>, Error> {
@@ -233,11 +251,13 @@ impl Blobs {
     /// Steps 3 to 5 of SYN-02.4 for a temp file already flushed to the
     /// device (step 2): rename it to its hash's name, or drop it when that
     /// file exists (the same bytes), and sync the folder; move the row with
-    /// [`store::cas`]; then delete each file no row names any more (the
+    /// [`store::cas`], the new version with its uploader and signature
+    /// `signed` (SYN-01.7); then delete each file no row names any more (the
     /// pruned versions', and this upload's when it lost).
     ///
     /// # Errors
     /// A file or the store fails; the old version stays served.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn commit(
         &self,
         id: &VaultId,
@@ -246,6 +266,7 @@ impl Blobs {
         mut temp: Temp,
         hash: [u8; 32],
         size: u64,
+        signed: Option<&Signed>,
     ) -> Result<Cas, Error> {
         let mut db = self.writer()?;
         let path = self.path(&hash);
@@ -279,7 +300,7 @@ impl Blobs {
         let result = if fails {
             Err(Error::new("the commit failed (test)"))
         } else {
-            store::cas(&mut db, id, account, want, size, &hash)
+            store::cas(&mut db, id, account, want, size, &hash, signed)
         };
         #[cfg(test)]
         if self.crashes(Crash::AfterCommit) {
@@ -358,6 +379,7 @@ mod tests {
             temp,
             sha(bytes),
             u64::try_from(bytes.len()).unwrap(),
+            None,
         )
     }
 

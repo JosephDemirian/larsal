@@ -47,6 +47,9 @@ rcgen = { workspace = true, optional = true }
 
 [dev-dependencies]
 larsal-sync = { workspace = true, features = ["test-server"] }
+# E17-S1 (CRY-05.17): the probe allocator of tests/account_wipe.rs (test tools
+# only).
+larsal-platform = { workspace = true, features = ["test-memory"] }
 
 [lints]
 workspace = true

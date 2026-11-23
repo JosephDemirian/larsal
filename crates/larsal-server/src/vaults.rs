@@ -7,23 +7,31 @@
 //!
 //! A PUT, in this order: no `Content-Length` (none, or a chunked body)
 //! gets 411; then the precondition (428 or 400,
-//! [`routes::put_precondition`]); then a cheap look at the current version,
-//! so a stale upload gets 412 before one body byte is read; then the body
-//! streams into a temp file, counted and hashed as it arrives, and is
-//! flushed to the device; then the commit's compare-and-swap decides
-//! (SYN-02.4). A body cut off, timed out or longer than it said stores
-//! nothing. Each store call runs on tokio's blocking pool, so the one
-//! writer lock never stops the event loop.
+//! [`routes::put_precondition`]); then `Upload-Signature` (SYN-01.7): none,
+//! or one that is not 4,498 base64url characters, gets 400 before the store
+//! is asked; then a cheap look at the current version, so a stale upload
+//! gets 412 before one body byte is read; then the body streams into a temp
+//! file, counted and hashed as it arrives, and is flushed to the device;
+//! then the signature must verify with the account's identity key over
+//! (`sync-upload-v1`, the vault id, the new version, the body's SHA-256),
+//! else 403 and nothing is stored (an account with no keys row has no key,
+//! so it cannot upload); then the commit's compare-and-swap decides
+//! (SYN-02.4) and keeps the signature with the version (SYN-02.3). A body
+//! cut off, timed out or longer than it said stores nothing. Each store
+//! call runs on tokio's blocking pool, so the one writer lock never stops
+//! the event loop. A GET of a signed version returns `Upload-Signature`
+//! and `Upload-Signer` (SYN-01.7).
 
 use crate::Error;
 use crate::blobs::Blobs;
 use crate::http::{Body, blocking, error, failed, reply};
-use crate::store::Cas;
+use crate::store::{self, Cas, Signed};
 use http_body_util::{BodyExt, Either};
 use hyper::body::{Body as _, Bytes, Frame, Incoming, SizeHint};
 use hyper::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper::{Response, StatusCode};
 use larsal_crypto::hash::{Algorithm, Hasher};
+use larsal_proto::account::{UPLOAD_SIGNATURE, UPLOAD_SIGNER, upload_message, upload_signature};
 use larsal_proto::messages::{AccountId, ErrorCode, VaultId, VaultVersion, vault_list};
 use larsal_proto::routes::{self, Precondition, PreconditionError};
 use std::io;
@@ -90,6 +98,17 @@ pub(crate) async fn get(
         HeaderValue::from_static("application/octet-stream"),
     );
     h.insert(header::CONTENT_LENGTH, HeaderValue::from(row.size));
+    if let Some(signed) = &row.signed {
+        let sig =
+            larsal_crypto::base64::encode(larsal_crypto::base64::Form::Url, &signed.signature);
+        if let (Ok(sig), Ok(signer)) = (
+            HeaderValue::from_str(&sig),
+            HeaderValue::from_str(&signed.uploader.to_string()),
+        ) {
+            h.insert(HeaderName::from_static(UPLOAD_SIGNATURE), sig);
+            h.insert(HeaderName::from_static(UPLOAD_SIGNER), signer);
+        }
+    }
     with_etag(r, row.version)
 }
 
@@ -128,6 +147,13 @@ pub(crate) async fn put(
             return error(StatusCode::BAD_REQUEST, ErrorCode::BadRequest);
         }
     };
+    // SYN-01.7: read before the store is asked; a field that does not read
+    // is refused like a missing one.
+    let sig_name = HeaderName::from_static(UPLOAD_SIGNATURE);
+    let signature = upload_signature(&lines(headers, &sig_name));
+    if signature.is_none() && (headers.contains_key(&sig_name) || !blobs.allows_unsigned()) {
+        return error(StatusCode::BAD_REQUEST, ErrorCode::BadRequest);
+    }
     let b = blobs.clone();
     let now = match blocking(move || b.current(&id)).await {
         Ok(row) => row,
@@ -150,8 +176,24 @@ pub(crate) async fn put(
         Ok(None) => return error(StatusCode::BAD_REQUEST, ErrorCode::BadRequest),
         Err(e) => return failed(&e),
     };
+    // The version this upload makes: the If-Match version plus 1, or 1.
+    let new = match want {
+        Precondition::Create => Some(1),
+        Precondition::Update(old) => old.and_then(|v| v.checked_add(1)),
+    };
     let b = blobs.clone();
-    match blocking(move || b.commit(&id, &account, want, temp, hash, length)).await {
+    let signed = match blocking(move || {
+        b.store(|db| signed(db, &account, &id, new, &hash, signature))
+    })
+    .await
+    {
+        Ok(Ok(signed)) => signed,
+        Ok(Err(status)) => return error(status, code(status)),
+        Err(e) => return failed(&e),
+    };
+    let b = blobs.clone();
+    match blocking(move || b.commit(&id, &account, want, temp, hash, length, signed.as_ref())).await
+    {
         Ok(Cas::Done(version)) => {
             let status = match want {
                 Precondition::Create => StatusCode::CREATED,
@@ -166,6 +208,49 @@ pub(crate) async fn put(
         }
         Ok(Cas::Conflict) => precondition_failed(),
         Err(e) => failed(&e),
+    }
+}
+
+/// SYN-01.7: the uploader and signature the version is stored with, or why
+/// not: 403 when the account has no identity key (no keys row) or the
+/// signature does not verify with it over this vault, version `new` and
+/// `hash`; 400 for no signature from an account with keys. `None` only for
+/// no signature from an account with no keys row, which [`put`] lets
+/// through only under `TestSeams::allow_unsigned`.
+fn signed(
+    db: &mut rusqlite::Connection,
+    account: &AccountId,
+    vault: &VaultId,
+    new: Option<u64>,
+    hash: &[u8; 32],
+    signature: Option<Vec<u8>>,
+) -> Result<Result<Option<Signed>, StatusCode>, Error> {
+    let key = store::account_keys(db, account)?.map(|k| k.identity_public_key);
+    Ok(match (key, signature) {
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(StatusCode::BAD_REQUEST),
+        (None, Some(_)) => Err(StatusCode::FORBIDDEN),
+        (Some(key), Some(signature)) => {
+            let good = new
+                .and_then(|new| upload_message(vault, new, hash).ok())
+                .is_some_and(|m| larsal_crypto::pq::composite_verify(&key, &m, &signature).is_ok());
+            if good {
+                Ok(Some(Signed {
+                    uploader: *account,
+                    signature,
+                }))
+            } else {
+                Err(StatusCode::FORBIDDEN)
+            }
+        }
+    })
+}
+
+fn code(status: StatusCode) -> ErrorCode {
+    if status == StatusCode::FORBIDDEN {
+        ErrorCode::Forbidden
+    } else {
+        ErrorCode::BadRequest
     }
 }
 

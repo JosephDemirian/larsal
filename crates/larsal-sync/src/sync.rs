@@ -22,6 +22,13 @@
 //! - A copy under a key this Mac retired is never merged by a run
 //!   ([`Merge::OldKey`]); the caller's answer records its version.
 //! - A hash compared for trust is compared in constant time (CRY-04.11).
+//! - Once this Mac holds the account's keys (E17-S1), a downloaded version
+//!   whose `Upload-Signer` is not this account or whose `Upload-Signature`
+//!   does not verify with the pinned identity key over (`sync-upload-v1`,
+//!   the vault id, the version sent, the bytes' SHA-256) is refused before
+//!   it is opened, as a rollback is (SYN-03.11). An account stopped by
+//!   `MSG-ACCOUNT-KEYS-CHANGED` runs nothing: no download, no upload signed
+//!   (SYN-06.6).
 
 use crate::client::{Fail, Reply, Server, Signer};
 use crate::state::{Link, Measures};
@@ -254,6 +261,13 @@ pub enum Message {
     SaveFirst,
     /// `MSG-SYNC-ERROR`.
     Error,
+    /// `MSG-ACCOUNT-KEYS-CHANGED` (SYN-06.6).
+    KeysChanged,
+    /// `MSG-ACCOUNT-RESTORE-FAILED` (SYN-06.12): never which secret.
+    RestoreFailed,
+    /// `MSG-ACCOUNT-NEEDS-UPDATE` (SYN-06.4's edge case: a blob of another
+    /// version).
+    NeedsUpdate,
 }
 
 impl Message {
@@ -277,6 +291,9 @@ impl Message {
             Self::LocalFile => "MSG-SYNC-LOCAL-FILE",
             Self::SaveFirst => "MSG-SYNC-SAVE-FIRST",
             Self::Error => "MSG-SYNC-ERROR",
+            Self::KeysChanged => "MSG-ACCOUNT-KEYS-CHANGED",
+            Self::RestoreFailed => "MSG-ACCOUNT-RESTORE-FAILED",
+            Self::NeedsUpdate => "MSG-ACCOUNT-NEEDS-UPDATE",
         }
     }
 
@@ -332,6 +349,13 @@ impl Message {
             Self::Error => {
                 format!("Sync with \"{address}\" failed. Your copy on this Mac is unchanged.")
             }
+            Self::KeysChanged => "The server sent other account keys than this Mac knows. \
+                 Larsal stopped using this account."
+                .into(),
+            Self::RestoreFailed => {
+                "The Recovery Kit or the account password is not right.".into()
+            }
+            Self::NeedsUpdate => "Larsal needs an update to use this account.".into(),
         }
     }
 }
@@ -488,6 +512,10 @@ fn one_try<K: Signer>(
     local: &dyn Local,
     clock: &dyn Clock,
 ) -> Try {
+    // SYN-06.6: a stopped account downloads, merges and signs nothing.
+    if server.stopped() {
+        return Try::Done(Report::error(Message::KeysChanged));
+    }
     let r = match server.get(&link.vault_id, link.highest) {
         Ok(r) => r,
         Err(f) => return failed(f),
@@ -523,9 +551,12 @@ fn one_try<K: Signer>(
                 return Try::Done(Report::error(Message::Error));
             };
             let sha = sha256(&r.body);
-            // SYN-03.7: before opening, only local state stops a rollback.
-            if version < link.highest || (version == link.highest && !ct_eq(&sha, &link.server_sha))
-            {
+            // SYN-03.7: before opening, only local state stops a rollback;
+            // SYN-03.11: and a version this account did not sign is refused
+            // the same way.
+            let rolled_back = version < link.highest
+                || (version == link.highest && !ct_eq(&sha, &link.server_sha));
+            if rolled_back || !server.signed_by_account(&link.vault_id, version, &sha, &r) {
                 return Try::Done(Report::error(Message::Rollback));
             }
             match local.merge(&r.body, version) {
@@ -631,6 +662,9 @@ pub fn first_upload<K: Signer>(
     vault_id: &VaultId,
     bytes: &[u8],
 ) -> Result<u64, Report> {
+    if server.stopped() {
+        return Err(Report::error(Message::KeysChanged));
+    }
     let r = server
         .put(vault_id, bytes, None)
         .map_err(|f| match failed(f) {

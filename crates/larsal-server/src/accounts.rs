@@ -31,7 +31,7 @@ use std::sync::Arc;
 /// The body of a JSON route, at most [`MAX_JSON`] bytes; `None` when it is
 /// longer (refused from its `Content-Length` before one byte is read, or as
 /// soon as the bytes pass the limit) or cut off: 400 (SYN-01.8, SYN-01.10).
-async fn read_json(body: &mut Incoming) -> Option<Vec<u8>> {
+pub(crate) async fn read_json(body: &mut Incoming) -> Option<Vec<u8>> {
     let limit = u64::try_from(MAX_JSON).unwrap_or(u64::MAX);
     if body.size_hint().lower() > limit {
         return None;
@@ -62,12 +62,12 @@ const DECOY: [u8; 65] = [
     0xf5,
 ];
 
-fn bad_request() -> Response<Body> {
+pub(crate) fn bad_request() -> Response<Body> {
     error(StatusCode::BAD_REQUEST, ErrorCode::BadRequest)
 }
 
 /// 16 bytes from larsal-crypto's random source (SYN-02.3, P20).
-fn new_id() -> Result<AccountId, Error> {
+pub(crate) fn new_id() -> Result<AccountId, Error> {
     let mut id = [0u8; 16];
     random::fill(&mut id).map_err(|e| Error::new(format!("cannot draw an id: {e}")))?;
     Ok(AccountId::from_bytes(id))

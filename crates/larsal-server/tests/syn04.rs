@@ -955,8 +955,14 @@ fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
         );
         let d1: Device = sign_up(&s).await;
         s.auth = bearer(&sign_in(&s, &d1).await);
+        // E17-S1: the binary is a release server, so the upload is signed
+        // by the account's identity key (SYN-01.7).
+        let (keys, record) = common::account_keys(&d1.account);
+        assert_eq!(common::put_keys(&s, &record).await.status, 201);
         let path = "/v1/vaults/0123456789abcdef0123456789abcdef";
-        let create = format!("{}If-None-Match: *\r\n", s.auth);
+        let id = DeviceId::parse(&path[11..]).unwrap();
+        let signature = common::upload_header(&keys, &id, 1, &vault);
+        let create = format!("{}If-None-Match: *\r\n{signature}", s.auth);
         assert_eq!(
             exchange(&s, &request("PUT", path, &create, &vault))
                 .await
@@ -1002,6 +1008,9 @@ fn ld321_4_t20_log_line_never_holds_a_secret_and_every_reply_no_store() {
         for line in String::from_utf8_lossy(head).split("\r\n") {
             if let Some(token) = line.strip_prefix("Authorization: Bearer ") {
                 secrets.push(token.as_bytes().to_vec());
+            }
+            if let Some(signature) = line.strip_prefix("Upload-Signature: ") {
+                secrets.push(signature.as_bytes().to_vec());
             }
         }
         // An error body holds only its code, which may name a route too.

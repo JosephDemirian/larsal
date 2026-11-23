@@ -69,7 +69,18 @@ pub fn scratch() -> Scratch {
 }
 
 /// Starts a server in this runtime with a fresh data folder; no device.
+/// E16's tests upload with no `Upload-Signature`, so this server lets an
+/// account with no keys row do that (`TestSeams::allow_unsigned`);
+/// [`start_strict`] keeps a release server's rule (SYN-01.7, E17-S1).
 pub async fn start_bare(config: Config) -> Running {
+    let s = start_strict(config).await;
+    s.seams.as_ref().unwrap().allow_unsigned(true);
+    s
+}
+
+/// [`start_bare`] with a release server's rule: every vault upload is
+/// signed by the account's identity key (SYN-01.7).
+pub async fn start_strict(config: Config) -> Running {
     let data = scratch();
     let server = Server::start(&data.0, 0, config).await.unwrap();
     let addr = server.address().unwrap();
@@ -266,6 +277,70 @@ pub fn second_device(s: &Running, account: &AccountId) -> Device {
         id,
         account: *account,
     }
+}
+
+/// E17-S1: a new account's keys, drawn with larsal-crypto, and the record
+/// of `PUT /v1/account/keys` for `account`: the public keys, the binding,
+/// the recovery public key derived as SYN-06.5 says, and 158 demo bytes for
+/// the blob, which the server never reads (P6).
+pub fn account_keys(
+    account: &AccountId,
+) -> (
+    larsal_crypto::account::AccountKeys,
+    larsal_proto::account::AccountKeys,
+) {
+    let keys = larsal_crypto::account::AccountKeys::new().unwrap();
+    let record = larsal_proto::account::AccountKeys {
+        identity_public_key: keys.identity_public_key().to_vec(),
+        kem_public_key: keys.kem_public_key().to_vec(),
+        kem_signature: keys.kem_signature(account.as_bytes()).unwrap(),
+        recovery_public_key: larsal_crypto::sign::ed25519_public(&recovery_seed(&keys, account))
+            .unwrap(),
+        blob: vec![0xb1; 158],
+    };
+    (keys, record)
+}
+
+/// SYN-06.5: the recovery key's seed of `keys` for `account`.
+pub fn recovery_seed(
+    keys: &larsal_crypto::account::AccountKeys,
+    account: &AccountId,
+) -> larsal_crypto::secret::SecretBytes {
+    larsal_crypto::wrap::hkdf_sha256(
+        account.as_bytes(),
+        keys.account_secret(),
+        b"sync-recovery-key-v1",
+    )
+    .unwrap()
+}
+
+/// `PUT /v1/account/keys` with `If-None-Match: *` and `record`.
+pub async fn put_keys(s: &Running, record: &larsal_proto::account::AccountKeys) -> Reply {
+    let pre = format!("{}If-None-Match: *\r\n", s.auth);
+    exchange(
+        s,
+        &request("PUT", "/v1/account/keys", &pre, &record.to_json()),
+    )
+    .await
+}
+
+/// SYN-01.7: the `Upload-Signature` line (with its CRLF) of `body` as
+/// version `version` of `vault`, signed by `keys`' identity key.
+pub fn upload_header(
+    keys: &larsal_crypto::account::AccountKeys,
+    vault: &larsal_proto::messages::VaultId,
+    version: u64,
+    body: &[u8],
+) -> String {
+    let sha: [u8; 32] = larsal_crypto::hash::sha256(&[body])
+        .expose()
+        .try_into()
+        .unwrap();
+    let message = larsal_proto::account::upload_message(vault, version, &sha).unwrap();
+    let signature =
+        larsal_crypto::pq::composite_sign(keys.identity_private_key(), &message).unwrap();
+    let text = larsal_crypto::base64::encode(larsal_crypto::base64::Form::Url, &signature);
+    format!("Upload-Signature: {text}\r\n")
 }
 
 /// `POST /v1/signin/challenge` for `device`: 200.

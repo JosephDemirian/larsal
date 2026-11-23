@@ -589,6 +589,7 @@ fn syn01_13_t20_the_client_logs_nothing() {
         ("client.rs", include_str!("../client.rs")),
         ("state.rs", include_str!("../state.rs")),
         ("sync.rs", include_str!("../sync.rs")),
+        ("account.rs", include_str!("../account.rs")),
         ("test_server.rs", include_str!("../test_server.rs")),
     ] {
         for word in [
@@ -819,6 +820,7 @@ fn cry04_11_t19_hashes_and_pinned_keys_are_compared_in_constant_time() {
         ("sync.rs", include_str!("../sync.rs")),
         ("client.rs", include_str!("../client.rs")),
         ("state.rs", include_str!("../state.rs")),
+        ("account.rs", include_str!("../account.rs")),
         (
             "larsal-ffi sync.rs",
             include_str!("../../../larsal-ffi/src/sync.rs"),
@@ -862,4 +864,120 @@ fn cry04_11_t19_hashes_and_pinned_keys_are_compared_in_constant_time() {
         }
     }
     assert!(compares >= 5, "the compares moved: {compares}");
+}
+
+/// SYN-06.10, SYN-06 T08, SYN-03.11, SYN-03 T22 (E17-S1): once this Mac
+/// holds the account's keys, a downloaded version the account did not sign
+/// is refused as a rollback is (T10): no headers, one without the other, a
+/// signature by an unknown key, over another version or over other bytes,
+/// another signer, two signature lines. Nothing is merged or uploaded and
+/// the link does not move. A version the account signed is merged, and the
+/// merged upload carries the signature over the new version (SYN-01.7).
+#[test]
+fn syn06_10_t08_syn03_11_t22_a_version_the_account_did_not_sign_is_refused() {
+    use larsal_crypto::account::AccountKeys;
+    use larsal_crypto::base64::{Form, decode, encode};
+    use larsal_crypto::secret::SecretBytes;
+    use larsal_proto::account::upload_message;
+    use larsal_proto::messages::AccountId;
+
+    let account = AccountId::from_bytes([0x0a; 16]);
+    let keys = AccountKeys::new().unwrap();
+    let unknown = AccountKeys::new().unwrap();
+    let vault_id = link().vault_id;
+    let sign_by = |k: &AccountKeys, version: u64, body: &[u8]| {
+        let message = upload_message(&vault_id, version, &hash(body)).unwrap();
+        encode(
+            Form::Url,
+            &larsal_crypto::pq::composite_sign(k.identity_private_key(), &message).unwrap(),
+        )
+    };
+    let held = || {
+        let secret = SecretBytes::new(keys.account_secret().expose().to_vec());
+        (
+            account,
+            AccountKeys::from_blob(secret, &keys.blob_plaintext()).unwrap(),
+        )
+    };
+    let good = sign_by(&keys, 6, b"v6");
+    let me = account.to_string();
+    let signature = "Upload-Signature";
+    let signer = "Upload-Signer";
+    let cases: Vec<(&str, Vec<(&str, String)>)> = vec![
+        ("no signature", vec![]),
+        ("a signature and no signer", vec![(signature, good.clone())]),
+        ("a signer and no signature", vec![(signer, me.clone())]),
+        (
+            "an unknown key",
+            vec![
+                (signature, sign_by(&unknown, 6, b"v6")),
+                (signer, me.clone()),
+            ],
+        ),
+        (
+            "another version",
+            vec![(signature, sign_by(&keys, 5, b"v6")), (signer, me.clone())],
+        ),
+        (
+            "other bytes",
+            vec![
+                (signature, sign_by(&keys, 6, b"v6 other")),
+                (signer, me.clone()),
+            ],
+        ),
+        (
+            "another signer",
+            vec![
+                (signature, good.clone()),
+                (signer, AccountId::from_bytes([0x0b; 16]).to_string()),
+            ],
+        ),
+        (
+            "two signature lines",
+            vec![
+                (signature, good.clone()),
+                (signature, good.clone()),
+                (signer, me.clone()),
+            ],
+        ),
+    ];
+    for (what, headers) in cases {
+        let s = server(move |r| match r.method.as_str() {
+            "GET" => headers
+                .iter()
+                .fold(vault(6, b"v6"), |reply, (n, v)| reply.with(n, v)),
+            _ => Response::new(200, b"{}").with("ETag", "\"7\""),
+        });
+        let mut c = client(&s);
+        c.account = Some(held());
+        let local = Fake::changed(m(1_200, 4, 65_536));
+        let mut l = link();
+        let before = l.clone();
+        let report = run(&mut c, &mut l, &local, &*TestClock::at(0));
+        assert_eq!(report, Report::error(Message::Rollback), "{what}");
+        assert_eq!(local.merges(), 0, "{what}: nothing merged");
+        assert_eq!(s.count("PUT"), 0, "{what}: nothing uploaded");
+        assert_eq!(l, before, "{what}: the state does not move");
+    }
+
+    let me2 = me.clone();
+    let s = server(move |r| match r.method.as_str() {
+        "GET" => vault(6, b"v6").with(signature, &good).with(signer, &me2),
+        _ => Response::new(200, b"{}").with("ETag", "\"7\""),
+    });
+    let mut c = client(&s);
+    c.account = Some(held());
+    let local = Fake::changed(m(1_200, 4, 65_536));
+    let mut l = link();
+    let report = run(&mut c, &mut l, &local, &*TestClock::at(0));
+    assert_eq!(report.status, Some(Status::Synced(0)), "{report:?}");
+    assert_eq!((local.merges(), l.highest), (1, 7));
+    let puts: Vec<Request> = vault_requests(&s)
+        .into_iter()
+        .filter(|r| r.method == "PUT")
+        .collect();
+    assert_eq!(puts.len(), 1);
+    let sent = decode(Form::Url, puts[0].header("upload-signature").unwrap()).unwrap();
+    let message = upload_message(&vault_id, 7, &hash(b"merged")).unwrap();
+    larsal_crypto::pq::composite_verify(keys.identity_public_key(), &message, &sent).unwrap();
 }

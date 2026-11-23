@@ -10,7 +10,9 @@
 //! records, the session header (SYN-01.4, SYN-01.5, SYN-04), [`signin`] (the
 //! message a device key signs) and [`wrap`] (the wrap record and its limit,
 //! LD-305 (5): 4 KiB, then 16 KiB for E25-S3's hybrid record, CRY-05.14).
-//! Later stories add their routes and records here.
+//! E17-S1 adds [`account`]: the account keys and recovery records, the
+//! upload signature's message and header, and the key-file part's wrap info
+//! (SYN-06, SYN-01.7). Later stories add their routes and records here.
 //!
 //! Guarantees: every reader takes untrusted bytes and never panics; a record
 //! over its size limit is refused before it is parsed. This crate never
@@ -27,6 +29,7 @@
 )]
 #![deny(missing_docs)]
 
+pub mod account;
 pub mod limits;
 pub mod messages;
 pub mod routes;

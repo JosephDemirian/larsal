@@ -12,7 +12,10 @@
 //! SYN-01.6). E16-S5 adds accounts, devices, the one-time challenge, the
 //! signature check, sessions, revoke, 401 and 429 (`accounts.rs`,
 //! `auth.rs`; SYN-04, SYN-01.5, SYN-01.12) and the request log line
-//! (SYN-01.13). The sharing routes come with E18.
+//! (SYN-01.13). E17-S1 adds the account keys, the key-file part wraps and
+//! the recovery sign-in (`keys.rs`; SYN-06.6, SYN-06.9, SYN-06.12) and the
+//! upload signature of every vault version (`vaults.rs`, SYN-01.7). The
+//! sharing routes come with E18.
 //!
 //! Guarantees: the server listens on 127.0.0.1 only (architecture "Rules for
 //! this part" 5); every request is untrusted, and no reply holds text from
@@ -35,6 +38,7 @@ mod auth;
 mod blobs;
 pub mod data;
 pub mod http;
+mod keys;
 mod store;
 pub mod tls;
 mod vaults;
@@ -157,8 +161,9 @@ impl Server {
 
 /// Tests only: built with the `test-seams` feature, which only larsal-server's
 /// own tests turn on (a dev-dependency on itself), so a release server has
-/// none of this. The test clock, and SYN-04.11's helper that registers a
-/// second device before E17-S2 brings the approval.
+/// none of this. The test clock, SYN-04.11's helper that registers a
+/// second device before E17-S2 brings the approval, and the switch that lets
+/// an account with no keys row upload unsigned (E16's tests).
 #[cfg(any(test, feature = "test-seams"))]
 pub struct TestSeams {
     blobs: Arc<blobs::Blobs>,
@@ -195,6 +200,16 @@ impl TestSeams {
             .blobs
             .store(|db| store::add_device(db, account, &device, public_key, name, now))?;
         Ok(added.then_some(device))
+    }
+
+    /// SYN-01.7 for the tests of E16 only: with `on`, an account with no
+    /// keys row may upload with no `Upload-Signature`, as before E17-S1, and
+    /// the version is stored with no signature. An account with keys must
+    /// sign whatever this says. Off when the server starts.
+    pub fn allow_unsigned(&self, on: bool) {
+        self.blobs
+            .unsigned
+            .store(on, std::sync::atomic::Ordering::SeqCst);
     }
 }
 

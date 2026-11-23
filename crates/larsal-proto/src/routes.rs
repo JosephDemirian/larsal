@@ -1,7 +1,8 @@
 //! Paths, methods, preconditions and the session header (SYN-01.3 to
 //! SYN-01.6). E16-S3 serves the health route, E16-S4 the vault routes,
-//! E16-S5 the account, sign-in, sign-out and revoke routes (SYN-04); each
-//! later story adds its routes to [`find`].
+//! E16-S5 the account, sign-in, sign-out and revoke routes (SYN-04), E17-S1
+//! the account keys, key-file part and recovery routes (SYN-06.6, SYN-06.9,
+//! SYN-06.12); each later story adds its routes to [`find`].
 //!
 //! The ETag rules of SYN-01.6 (RFC 9110 sections 8.8.3, 13.1.1, 13.1.2): an
 //! ETag is always strong, `"` + the version in decimal + `"`, and is
@@ -25,6 +26,14 @@ pub const CHALLENGE: &str = "/v1/signin/challenge";
 pub const SIGNIN: &str = "/v1/signin";
 /// A sign-out (SYN-04.7).
 pub const SIGNOUT: &str = "/v1/signout";
+/// The account's keys (SYN-06.6).
+pub const ACCOUNT_KEYS: &str = "/v1/account/keys";
+/// A recovery sign-in challenge (SYN-06.12).
+pub const RECOVERY_CHALLENGE: &str = "/v1/recovery/challenge";
+/// A recovery sign-in (SYN-06.12).
+pub const RECOVERY_SIGNIN: &str = "/v1/recovery/signin";
+/// The last segment of a vault's key-file part path (SYN-06.9).
+pub const KEYPART: &str = "/keypart";
 
 /// A route the server serves.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +56,19 @@ pub enum Route {
     SignOut,
     /// `DELETE /v1/devices/{device_id}`: revokes a device of this account.
     DeviceDelete(DeviceId),
+    /// `PUT /v1/account/keys`: the account's keys, once.
+    KeysPut,
+    /// `GET /v1/account/keys`: the account's keys.
+    KeysGet,
+    /// `PUT /v1/vaults/{vault_id}/keypart`: the vault's key-file part wrap.
+    KeyPartPut(VaultId),
+    /// `GET /v1/vaults/{vault_id}/keypart`: the vault's key-file part wrap.
+    KeyPartGet(VaultId),
+    /// `POST /v1/recovery/challenge`, no session: a one-time nonce.
+    RecoveryChallenge,
+    /// `POST /v1/recovery/signin`, no session: a new device by the
+    /// recovery key.
+    RecoverySignIn,
 }
 
 impl Route {
@@ -64,6 +86,12 @@ impl Route {
             Route::SignIn => "signin",
             Route::SignOut => "signout",
             Route::DeviceDelete(_) => "device_delete",
+            Route::KeysPut => "keys_put",
+            Route::KeysGet => "keys_get",
+            Route::KeyPartPut(_) => "keypart_put",
+            Route::KeyPartGet(_) => "keypart_get",
+            Route::RecoveryChallenge => "recovery_challenge",
+            Route::RecoverySignIn => "recovery_signin",
         }
     }
 
@@ -72,7 +100,12 @@ impl Route {
     pub fn needs_session(&self) -> bool {
         !matches!(
             self,
-            Route::Health | Route::Accounts | Route::Challenge | Route::SignIn
+            Route::Health
+                | Route::Accounts
+                | Route::Challenge
+                | Route::SignIn
+                | Route::RecoveryChallenge
+                | Route::RecoverySignIn
         )
     }
 
@@ -80,7 +113,14 @@ impl Route {
     /// (SYN-01.12).
     #[must_use]
     pub fn is_signin(&self) -> bool {
-        matches!(self, Route::Accounts | Route::Challenge | Route::SignIn)
+        matches!(
+            self,
+            Route::Accounts
+                | Route::Challenge
+                | Route::SignIn
+                | Route::RecoveryChallenge
+                | Route::RecoverySignIn
+        )
     }
 }
 
@@ -109,6 +149,13 @@ pub fn find(method: &str, path: &str) -> Match {
         CHALLENGE => post(method, Route::Challenge),
         SIGNIN => post(method, Route::SignIn),
         SIGNOUT => post(method, Route::SignOut),
+        RECOVERY_CHALLENGE => post(method, Route::RecoveryChallenge),
+        RECOVERY_SIGNIN => post(method, Route::RecoverySignIn),
+        ACCOUNT_KEYS => match method {
+            "GET" => Match::Route(Route::KeysGet),
+            "PUT" => Match::Route(Route::KeysPut),
+            _ => Match::MethodNotAllowed("GET, PUT"),
+        },
         _ => {
             if let Some(id) = path.strip_prefix("/v1/devices/") {
                 return match VaultId::parse(id) {
@@ -117,7 +164,16 @@ pub fn find(method: &str, path: &str) -> Match {
                     None => Match::NotFound,
                 };
             }
-            match path.strip_prefix("/v1/vaults/").and_then(VaultId::parse) {
+            let vault = path.strip_prefix("/v1/vaults/");
+            if let Some(id) = vault.and_then(|v| v.strip_suffix(KEYPART)) {
+                return match VaultId::parse(id) {
+                    Some(id) if method == "GET" => Match::Route(Route::KeyPartGet(id)),
+                    Some(id) if method == "PUT" => Match::Route(Route::KeyPartPut(id)),
+                    Some(_) => Match::MethodNotAllowed("GET, PUT"),
+                    None => Match::NotFound,
+                };
+            }
+            match vault.and_then(VaultId::parse) {
                 Some(id) if method == "GET" => Match::Route(Route::VaultGet(id)),
                 Some(id) if method == "PUT" => Match::Route(Route::VaultPut(id)),
                 Some(_) => Match::MethodNotAllowed("GET, PUT"),
@@ -414,6 +470,12 @@ mod tests {
             (Route::Vaults, true, false, "vaults"),
             (Route::VaultGet(id), true, false, "vault_get"),
             (Route::VaultPut(id), true, false, "vault_put"),
+            (Route::KeysPut, true, false, "keys_put"),
+            (Route::KeysGet, true, false, "keys_get"),
+            (Route::KeyPartPut(id), true, false, "keypart_put"),
+            (Route::KeyPartGet(id), true, false, "keypart_get"),
+            (Route::RecoveryChallenge, false, true, "recovery_challenge"),
+            (Route::RecoverySignIn, false, true, "recovery_signin"),
         ];
         for (route, session, signin, name) in all {
             assert_eq!(
@@ -485,9 +547,59 @@ mod tests {
             "/v1/vaults/",
             "/v1/vaults//0123456789abcdef0123456789abcdef",
             "/v1/vaults/0123456789abcdef0123456789abcdef/",
-            "/v1/vaults/0123456789abcdef0123456789abcdef/keypart",
+            "/v1/vaults/0123456789abcdef0123456789abcdef/keypart/",
+            "/v1/vaults/0123456789ABCDEF0123456789ABCDEF/keypart",
+            "/v1/vaults/0123456789abcdef0123456789abcdef/keyparts",
+            "/v1/vaults/keypart",
             "/v1/vaults/../health",
             "/v1/vaults/%30123456789abcdef0123456789abcdef",
+        ] {
+            assert_eq!(find("GET", bad), Match::NotFound, "{bad}");
+            assert_eq!(find("PUT", bad), Match::NotFound, "{bad}");
+        }
+    }
+
+    /// SYN-01.4, SYN-06.6, SYN-06.9, SYN-06.12: E17-S1's routes and their
+    /// methods; a key-file part path whose id is not 32 lowercase hex digits
+    /// names no route.
+    #[test]
+    fn syn06_routes_and_their_methods() {
+        let id = VaultId::parse(ID).unwrap();
+        assert_eq!(
+            find("GET", "/v1/account/keys"),
+            Match::Route(Route::KeysGet)
+        );
+        assert_eq!(
+            find("PUT", "/v1/account/keys"),
+            Match::Route(Route::KeysPut)
+        );
+        for method in ["POST", "DELETE", "get", "put"] {
+            assert_eq!(
+                find(method, "/v1/account/keys"),
+                Match::MethodNotAllowed("GET, PUT")
+            );
+        }
+        let path = format!("/v1/vaults/{ID}/keypart");
+        assert_eq!(find("GET", &path), Match::Route(Route::KeyPartGet(id)));
+        assert_eq!(find("PUT", &path), Match::Route(Route::KeyPartPut(id)));
+        for method in ["POST", "DELETE", "put"] {
+            assert_eq!(find(method, &path), Match::MethodNotAllowed("GET, PUT"));
+        }
+        for (path, route) in [
+            ("/v1/recovery/challenge", Route::RecoveryChallenge),
+            ("/v1/recovery/signin", Route::RecoverySignIn),
+        ] {
+            assert_eq!(find("POST", path), Match::Route(route));
+            for method in ["GET", "PUT", "post"] {
+                assert_eq!(find(method, path), Match::MethodNotAllowed("POST"));
+            }
+        }
+        for bad in [
+            "/v1/account/keys/",
+            "/v1/account",
+            "/v1/recovery",
+            "/v1/recovery/",
+            "/v1/vaults/0123456789abcdef0123456789abcde/keypart",
         ] {
             assert_eq!(find("GET", bad), Match::NotFound, "{bad}");
             assert_eq!(find("PUT", bad), Match::NotFound, "{bad}");

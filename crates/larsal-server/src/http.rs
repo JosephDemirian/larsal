@@ -20,7 +20,8 @@
 //! `Retry-After`), the body limit (413), and for the routes that need one
 //! the session of SYN-01.5 (401, `auth.rs`); then the route. The vault
 //! routes (SYN-01.6) are in `vaults.rs`, the account and sign-in routes
-//! (SYN-04) in `accounts.rs`.
+//! (SYN-04) in `accounts.rs`, the account keys, key-file part and recovery
+//! routes (SYN-06) in `keys.rs`.
 //!
 //! Every request Larsal answers gets one log line (SYN-01.13): the method,
 //! the route's name, the status, the reply's size and the time taken.
@@ -31,6 +32,7 @@ use crate::Error;
 use crate::accounts;
 use crate::auth::{self, Auth, Bucket, rate_limited, unauthorized};
 use crate::blobs::Blobs;
+use crate::keys;
 use crate::vaults::{self, FileBody};
 use http_body_util::{Either, Full};
 use hyper::body::{Body as _, Bytes, Incoming};
@@ -294,6 +296,12 @@ async fn run(
         (Route::Vaults, Some(c)) => vaults::list(blobs, c.account).await,
         (Route::VaultGet(id), Some(c)) => vaults::get(headers, id, c.account, blobs).await,
         (Route::VaultPut(id), Some(c)) => vaults::put(headers, body, id, c.account, blobs).await,
+        (Route::KeysPut, Some(c)) => keys::put(headers, body, c.account, blobs).await,
+        (Route::KeysGet, Some(c)) => keys::get(c.account, blobs).await,
+        (Route::KeyPartPut(id), Some(c)) => keys::put_part(body, id, c.account, blobs).await,
+        (Route::KeyPartGet(id), Some(c)) => keys::get_part(id, c.account, blobs).await,
+        (Route::RecoveryChallenge, _) => keys::recovery_challenge(body, blobs, auth).await,
+        (Route::RecoverySignIn, _) => keys::recovery_sign_in(body, blobs, auth).await,
         // A session route always has its caller here.
         (_, None) => unauthorized(),
     }

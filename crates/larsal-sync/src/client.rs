@@ -17,15 +17,24 @@
 //! - Every reply is read with its route's limit (SYN-01.10): JSON records
 //!   1 MiB, a vault [`MAX_VAULT`]; a longer one is [`Fail::Protocol`].
 //! - No text from the server is kept or shown (SYN-01.9): only statuses,
-//!   the `ETag`, `Retry-After` and the records of SYN-01.8.
+//!   the `ETag`, `Retry-After`, `Upload-Signature`, `Upload-Signer` and the
+//!   records of SYN-01.8.
+//! - Once this Mac holds the account's keys (`account.rs`, E17-S1), every
+//!   vault upload carries `Upload-Signature`, the identity key's composite
+//!   signature over (`sync-upload-v1`, the vault id, the new version, the
+//!   body's SHA-256) (SYN-01.7, CRY-05.10); an account stopped by
+//!   `MSG-ACCOUNT-KEYS-CHANGED` signs nothing (SYN-06.6).
 
+use larsal_crypto::account::AccountKeys;
 use larsal_crypto::base64::{self, Form};
+use larsal_crypto::pq;
 use larsal_crypto::secret::{SecretBytes, SecretString};
 use larsal_platform::net::{self, Answer, Method, NetError, Timeouts};
+use larsal_proto::account::{UPLOAD_SIGNATURE, UPLOAD_SIGNER, upload_message, upload_signature};
 use larsal_proto::limits::{MAX_JSON, MAX_VAULT};
 use larsal_proto::messages::{
-    AccountCreate, AccountCreated, Challenge, ChallengeRequest, DeviceId, Health, Session, SignIn,
-    VaultId, VaultVersion, read_vault_list,
+    AccountCreate, AccountCreated, AccountId, Challenge, ChallengeRequest, DeviceId, Health,
+    Session, SignIn, VaultId, VaultVersion, read_vault_list,
 };
 use larsal_proto::{routes, signin};
 use std::fmt;
@@ -94,6 +103,11 @@ pub struct Reply {
     pub version: Option<u64>,
     /// The wait of a 429 in seconds (SYN-03.10).
     pub retry_after: u64,
+    /// `Upload-Signature`: one line of 4,498 base64url characters of a
+    /// 3,373-byte signature (SYN-01.7, CRY-05.10); `None` for anything else.
+    pub signature: Option<Vec<u8>>,
+    /// `Upload-Signer`, 32 lowercase hex digits (SYN-01.7).
+    pub signer: Option<AccountId>,
     /// The body, at most the route's limit.
     pub body: Vec<u8>,
 }
@@ -200,7 +214,7 @@ fn net_fail(e: &NetError) -> Fail {
 }
 
 /// The sign-in routes' replies other than their success (SYN-03.10).
-fn signin_fail(a: &Answer) -> Fail {
+pub(crate) fn signin_fail(a: &Answer) -> Fail {
     match a.status {
         401 => Fail::SignedOut,
         429 => Fail::Limited(retry_after(a.header("retry-after"))),
@@ -212,11 +226,19 @@ fn signin_fail(a: &Answer) -> Fail {
 /// Larsal's own server, pinned, with this Mac's device and session.
 pub struct Server<K: Signer> {
     net: net::Client,
-    base: String,
-    origin: String,
-    device: Option<(DeviceId, K)>,
+    pub(crate) base: String,
+    pub(crate) origin: String,
+    /// The certificate's SHA-256 this client trusts (SYN-01.2).
+    pub(crate) pin: [u8; 32],
+    pub(crate) device: Option<(DeviceId, K)>,
     /// `Bearer <token>` of the session (SYN-01.5), in memory only.
     bearer: Option<SecretString>,
+    /// This Mac's account keys, once signed up, restored or loaded
+    /// (SYN-06.8, `account.rs`); their public keys are this Mac's pin.
+    pub(crate) account: Option<(AccountId, AccountKeys)>,
+    /// SYN-06.6: the server sent other account keys than this Mac's. Until
+    /// the user acts, no upload is signed and no wrap is opened.
+    pub(crate) stopped: bool,
 }
 
 /// The base URL only: never the token or a key.
@@ -241,8 +263,11 @@ impl<K: Signer> Server<K> {
             net: net::Client::pinned(timeouts(), pin).map_err(|_| Fail::Offline)?,
             base,
             origin,
+            pin,
             device: None,
             bearer: None,
+            account: None,
+            stopped: false,
         })
     }
 
@@ -272,7 +297,7 @@ impl<K: Signer> Server<K> {
         self.bearer.is_some()
     }
 
-    fn send(
+    pub(crate) fn send(
         &self,
         method: Method<'_>,
         path: &str,
@@ -372,17 +397,23 @@ impl<K: Signer> Server<K> {
             return Err(signin_fail(&a));
         }
         let session = Session::read(body.expose()).map_err(|_| Fail::Protocol)?;
+        self.hold(&session);
+        Ok(())
+    }
+
+    /// Holds `session`'s token as the `Authorization` value, in a
+    /// `SecretString` only (LD-325 (5) (b)).
+    pub(crate) fn hold(&mut self, session: &Session) {
         let token = base64::encode_secret(Form::Url, session.token.expose());
         let mut bearer = String::with_capacity(token.len().saturating_add(7));
         bearer.push_str("Bearer ");
         bearer.push_str(token.expose());
         self.bearer = Some(SecretString::new(bearer));
-        Ok(())
     }
 
     /// A request that needs the session (SYN-01.5): signs in first when
     /// there is none, and once more on a 401 (SYN-04.6).
-    fn call(
+    pub(crate) fn call(
         &mut self,
         method: Method<'_>,
         path: &str,
@@ -402,12 +433,7 @@ impl<K: Signer> Server<K> {
                 self.send(method, path, &all, limit)?
             };
             if a.status != 401 {
-                return Ok(Reply {
-                    status: a.status,
-                    version: a.header("etag").and_then(routes::etag_version),
-                    retry_after: retry_after(a.header("retry-after")),
-                    body: a.body,
-                });
+                return Ok(reply(a));
             }
             self.bearer = None;
             if fresh {
@@ -450,22 +476,67 @@ impl<K: Signer> Server<K> {
 
     /// `PUT /v1/vaults/{vault}`: an update of version `base` with
     /// `If-Match`, or a new vault with `If-None-Match: *` when `base` is
-    /// `None` (SYN-01.6, SYN-03.1 step 3).
+    /// `None` (SYN-01.6, SYN-03.1 step 3). With the account's keys held, it
+    /// carries `Upload-Signature` over the new version, `base` plus 1 or 1
+    /// (SYN-01.7, CRY-05.10).
     ///
     /// # Errors
-    /// As [`Fail`]; every status is a [`Reply`].
+    /// [`Fail::Key`] for an account stopped by `MSG-ACCOUNT-KEYS-CHANGED`
+    /// (SYN-06.6) or a key that does not sign: nothing is sent; else as
+    /// [`Fail`]; every status is a [`Reply`].
     pub fn put(&mut self, vault: &VaultId, bytes: &[u8], base: Option<u64>) -> Result<Reply, Fail> {
+        if self.stopped {
+            return Err(Fail::Key);
+        }
         let tag = base.map(routes::etag);
         let header = match &tag {
             Some(tag) => ("if-match", tag.as_str()),
             None => ("if-none-match", "*"),
         };
+        let signature = match &self.account {
+            Some((_, keys)) => {
+                let new = base
+                    .map_or(Some(1), |b| b.checked_add(1))
+                    .ok_or(Fail::Protocol)?;
+                let message = upload_message(vault, new, &crate::sync::hash(bytes))
+                    .map_err(|_| Fail::Protocol)?;
+                let signed = pq::composite_sign(keys.identity_private_key(), &message)
+                    .map_err(|_| Fail::Key)?;
+                Some(base64::encode(Form::Url, &signed))
+            }
+            None => None,
+        };
+        let mut headers = vec![header];
+        if let Some(signature) = &signature {
+            headers.push((UPLOAD_SIGNATURE, signature.as_str()));
+        }
         self.call(
             Method::Put(bytes),
             &vault_path(vault),
-            &[header],
+            &headers,
             MAX_JSON as u64,
         )
+    }
+}
+
+/// A [`Reply`] of `a`: its status, `ETag`, `Retry-After`, the upload
+/// signature's two headers (SYN-01.7: every line of `Upload-Signature`, so
+/// two of them read as none) and its body.
+fn reply(a: Answer) -> Reply {
+    let lines: Vec<&[u8]> = a
+        .headers
+        .iter()
+        .filter(|(name, _)| name == UPLOAD_SIGNATURE)
+        .map(|(_, value)| value.as_bytes())
+        .collect();
+    let signature = upload_signature(&lines);
+    Reply {
+        status: a.status,
+        version: a.header("etag").and_then(routes::etag_version),
+        retry_after: retry_after(a.header("retry-after")),
+        signature,
+        signer: a.header(UPLOAD_SIGNER).and_then(AccountId::parse),
+        body: a.body,
     }
 }
 
