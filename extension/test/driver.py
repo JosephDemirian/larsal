@@ -52,7 +52,7 @@ Owner safety, checked on every run:
   bar's status items, location registration, Handoff, notifications with their
   alerts and banners, distributed notifications, the passkey and credential
   sheets of AuthenticationServices, macOS's own web browser's launch agent,
-  Spotlight's index agent, App Shortcuts, Quick Note's backlinks and the Dock's
+  Spotlight's index agent, app shortcuts, Quick Note's backlinks and the Dock's
   full-screen service); the names com.apple.SecurityAgent and com.openssh.ssh-agent
   are not published on this Mac, so denying them walls nothing here: ssh-agent's
   socket is walled as a unix-domain socket outside the run's folders;
@@ -225,7 +225,7 @@ TEST_FLAGS = {
 # and credential sheets (the browser asked it at every start), and macOS's own web browser's launch agent (asked
 # once per start). Round 4 (Checker 2's C2R3-03 and C2R3-04): every live name the browser asked, or that a password
 # prompt would use, denied one at a time, each with a single start, then the suites: Spotlight's index agent (the
-# browser sent it an index change), linkd's App Shortcuts, Quick Note's backlinks, the Dock's full-screen service,
+# browser sent it an index change), linkd's app shortcuts, Quick Note's backlinks, the Dock's full-screen service,
 # distributed notifications, CryptoTokenKit's token client, authd, the security agents and their authorization
 # host, SecurityServer and securityd. com.apple.SecurityAgent and com.openssh.ssh-agent are not published on this
 # Mac (denying them walls nothing here; ssh-agent's launchd socket is walled as a unix socket).
