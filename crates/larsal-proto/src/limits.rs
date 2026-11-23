@@ -16,8 +16,9 @@ pub const MAX_HEAD: usize = 32 * 1024;
 pub const MAX_HEADERS: usize = 100;
 /// A JSON body or reply, in bytes (nginx's `client_max_body_size 1m`).
 pub const MAX_JSON: usize = 1024 * 1024;
-/// A wrap record (CRY-04.6), in bytes.
-pub const MAX_WRAP: usize = 4 * 1024;
+/// A wrap record (CRY-04.6), in bytes: 16 KiB for the hybrid record
+/// (CRY-05.14, SYN-01.16; was 4 KiB).
+pub const MAX_WRAP: usize = 16 * 1024;
 /// A vault body, in bytes: FMT-01.31's vault file limit, 1 GiB + 64 MiB
 /// (LD-263 (13), LD-267 (7)). The largest body any route takes.
 pub const MAX_VAULT: u64 = 1_140_850_688;
@@ -75,7 +76,7 @@ mod tests {
             (MAX_REQUEST_LINE, MAX_HEADER_FIELD, MAX_HEAD, MAX_HEADERS),
             (8192, 8192, 32768, 100)
         );
-        assert_eq!((MAX_JSON, MAX_WRAP), (1_048_576, 4096));
+        assert_eq!((MAX_JSON, MAX_WRAP), (1_048_576, 16_384));
         assert_eq!(
             (MAX_RECORD_DEPTH, MAX_RECORD_NUMBER),
             (8, 9_007_199_254_740_991)

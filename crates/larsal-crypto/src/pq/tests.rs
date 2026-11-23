@@ -794,7 +794,10 @@ fn t08_weak_ed25519_half_is_refused() {
 }
 
 /// T09: the public functions of this module are exactly these, and no other
-/// module of larsal-crypto names ml_dsa or a composite half.
+/// module of larsal-crypto names ml_dsa or a composite half. E25-S3 adds one
+/// test-only function (CRY-05 T29's KEM shared secret, under its cfg line),
+/// makes T10's decapsulation count crate-wide in test builds only, and shares
+/// `seal`'s receiving key check crate-wide (the account keys' checks).
 #[test]
 fn t09_no_standalone_half_in_the_api() {
     let source = include_str!("../pq.rs");
@@ -810,13 +813,33 @@ fn t09_no_standalone_half_in_the_api() {
             "xwing_public",
             "seal",
             "open",
+            "kem_shared_secret",
             "identity_keypair",
             "identity_public",
             "composite_sign",
             "composite_verify"
         ]
     );
-    assert!(!source.contains("pub(crate) fn"), "a crate-wide seam");
+    assert!(
+        source.contains(
+            "#[cfg(any(test, feature = \"test-kem-secret\"))]\npub fn kem_shared_secret("
+        )
+    );
+    let crate_wide: Vec<&str> = source
+        .lines()
+        .filter(|l| l.contains("pub(crate)"))
+        .map(str::trim)
+        .collect();
+    assert_eq!(
+        crate_wide,
+        [
+            "pub(crate) fn receiving_key(recipient: &[u8]) -> Result<PublicKey, Error> {",
+            "pub(crate) mod probe {",
+            "pub(crate) fn take() -> usize {"
+        ],
+        "a crate-wide seam"
+    );
+    assert!(source.contains("#[cfg(test)]\npub(crate) mod probe {"));
     for line in source.lines().filter(|l| l.starts_with("pub ")) {
         assert!(
             line.starts_with("pub fn ") || line.starts_with("pub const "),

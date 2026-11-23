@@ -8,8 +8,9 @@
 //! E16-S4 adds the vault routes, their ETag and precondition rules and the
 //! vault records (SYN-01.6). E16-S5 adds the account and sign-in routes and
 //! records, the session header (SYN-01.4, SYN-01.5, SYN-04), [`signin`] (the
-//! message a device key signs) and [`wrap`] (the wrap record and its 4 KiB
-//! limit, LD-305 (5)). Later stories add their routes and records here.
+//! message a device key signs) and [`wrap`] (the wrap record and its limit,
+//! LD-305 (5): 4 KiB, then 16 KiB for E25-S3's hybrid record, CRY-05.14).
+//! Later stories add their routes and records here.
 //!
 //! Guarantees: every reader takes untrusted bytes and never panics; a record
 //! over its size limit is refused before it is parsed. This crate never

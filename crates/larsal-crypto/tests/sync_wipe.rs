@@ -1,10 +1,12 @@
 //! CRY-04.10, LD-261 (4), F-070 style: the E16-S2 secret calls wipe the
-//! stack they used, and no freed heap block holds a plaintext, the X25519
-//! private key, A or K_wrap after they return. One test only: the probes
-//! count every block the process frees and read this thread's stack.
+//! stack they used, and no freed heap block holds a plaintext, A or K_wrap
+//! after they return. One test only: the probes count every block the
+//! process frees and read this thread's stack. The classical HPKE calls and
+//! wrap records left the API in E25-S3 (CRY-04.15); the hybrid ones are
+//! tests/sync_pq_wipe.rs's.
 
 use larsal_crypto::secret::{SecretBytes, SecretString};
-use larsal_crypto::{hpke, kdf, sign, wrap};
+use larsal_crypto::{kdf, sign, wrap};
 use larsal_platform::memory::{Probe, Seen, set_needle, zero_stack_words_after};
 use std::alloc::System;
 use std::hint::black_box;
@@ -25,9 +27,7 @@ fn needle_blocks() -> usize {
 
 #[test]
 fn e16s2_secret_calls_wipe_stack_and_heap() {
-    let (sk, pk) = hpke::x25519_keypair().unwrap();
     let seed = SecretBytes::new(vec![0x11; 32]);
-    let spk = sign::ed25519_public(&seed).unwrap();
     let key = SecretBytes::new(vec![0x42; 32]);
     let password = || SecretString::new(String::from("E16demoP-demo-password"));
 
@@ -37,34 +37,8 @@ fn e16s2_secret_calls_wipe_stack_and_heap() {
         control < WIPED,
         "the probe saw a wipe where there is none: {control}"
     );
-    let (enc, ct) = hpke::seal(&pk, b"i", b"demo").unwrap();
-    let rec = hpke::make_wrap(&pk, b"i", b"demo", [3; 16], &seed).unwrap();
     let w = wrap::seal(&key, b"ad", b"demo").unwrap();
     let seen = [
-        (
-            "x25519_keypair",
-            zero_stack_words_after(|| drop(black_box(hpke::x25519_keypair()))),
-        ),
-        (
-            "hpke::seal",
-            zero_stack_words_after(|| drop(black_box(hpke::seal(&pk, b"i", b"demo")))),
-        ),
-        (
-            "hpke::open",
-            zero_stack_words_after(|| drop(black_box(hpke::open(&sk, &enc, b"i", &ct)))),
-        ),
-        (
-            "make_wrap",
-            zero_stack_words_after(|| {
-                drop(black_box(hpke::make_wrap(
-                    &pk, b"i", b"demo", [3; 16], &seed,
-                )))
-            }),
-        ),
-        (
-            "open_wrap",
-            zero_stack_words_after(|| drop(black_box(hpke::open_wrap(&rec, &spk, b"i", &sk)))),
-        ),
         (
             "ed25519_public",
             zero_stack_words_after(|| {
@@ -107,42 +81,21 @@ fn e16s2_secret_calls_wipe_stack_and_heap() {
         "calls that left their stack unwiped: {unwiped:?}"
     );
 
-    // Heap 1: a plaintext through every seal and open, a good and a bad one.
+    // Heap 1: a plaintext through the key wrap, a good and a bad one.
     set_needle(MARKER);
     SEEN.reset();
     {
         let pt = SecretBytes::new(MARKER.repeat(100));
-        let (enc, mut ct) = hpke::seal(&pk, b"i", pt.expose()).unwrap();
-        let a = hpke::open(&sk, &enc, b"i", &ct).unwrap();
-        ct[0] ^= 1;
-        assert!(hpke::open(&sk, &enc, b"i", &ct).is_err());
-        let rec = hpke::make_wrap(&pk, b"i", pt.expose(), [3; 16], &seed).unwrap();
-        let b = hpke::open_wrap(&rec, &spk, b"i", &sk).unwrap();
         let mut w = wrap::seal(&key, b"ad", pt.expose()).unwrap();
         let c = wrap::open(&key, b"ad", &w).unwrap();
         w[20] ^= 1;
         assert!(wrap::open(&key, b"ad", &w).is_err());
-        assert_eq!(
-            (a.expose(), b.expose(), c.expose()),
-            (pt.expose(), pt.expose(), pt.expose())
-        );
+        assert_eq!(c.expose(), pt.expose());
     }
     assert!(SEEN.freed.load(Relaxed) > 0);
     assert_eq!(needle_blocks(), 0, "a freed block still held the plaintext");
 
-    // Heap 2: the X25519 private key, used and dropped.
-    set_needle(sk.expose()[..8].try_into().unwrap());
-    SEEN.reset();
-    let (enc, ct) = hpke::seal(&pk, b"i", b"demo").unwrap();
-    drop(hpke::open(&sk, &enc, b"i", &ct).unwrap());
-    drop(sk);
-    assert_eq!(
-        needle_blocks(),
-        0,
-        "a freed block still held the private key"
-    );
-
-    // Heap 3: the password, A and K_wrap (learned in a first run, then
+    // Heap 2: the password, A and K_wrap (learned in a first run, then
     // looked for in a second).
     let a = kdf::import_argon2id(
         &SecretBytes::new(b"E16demoP-demo-password".to_vec()),

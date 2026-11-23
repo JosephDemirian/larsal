@@ -1,5 +1,7 @@
-//! HPKE base mode for one suite, and the signed wrap record (story E16-S2,
-//! CRY-04.5 and CRY-04.6).
+//! CRY-04.5's classical HPKE (story E16-S2), in test builds only (E25-S3,
+//! CRY-04.15): the suite stays only as E16-S2's known-answer test (T07), and
+//! builds the classical record that CRY-05 T12 and CRY-04 T20 show is
+//! refused. Larsal's wraps are `crate::wrap_record`'s (CRY-05.4).
 //!
 //! The suite is DHKEM(X25519, HKDF-SHA256), HKDF-SHA256 and AES-256-GCM
 //! (RFC 9180 section 7: 0x0020, 0x0001, 0x0002), single shot, with empty
@@ -8,14 +10,10 @@
 //! hpke key types live only inside one call (wiped on drop), with 32 KiB of
 //! stack below the call zeroed after it. Every random byte comes from
 //! `larsal-crypto::random`, drawn before any work (CRY-04.12).
-//!
-//! Base mode does not say who sent a wrap (RFC 9180 section 9.8), so a wrap
-//! that crosses the server is a [`WrapRecord`], signed by its sender.
 
 use crate::Error;
 use crate::random::{self, Prepared};
 use crate::secret::{SecretBytes, scrubbed};
-use crate::sign;
 use ::hpke::aead::{AeadTag, AesGcm256};
 use ::hpke::inout::InOutBuf;
 use ::hpke::kdf::HkdfSha256;
@@ -37,8 +35,6 @@ pub const MAX_INFO: usize = 512;
 const KEY: usize = 32;
 /// Nt of AES-256-GCM.
 const TAG: usize = 16;
-/// The label of a wrap record's signature (CRY-04.2).
-const WRAP_LABEL: &[u8] = b"sync-wrap-v1";
 
 /// Makes a new X25519 key pair (RFC 9180 section 7.1.3, DeriveKeyPair over
 /// 32 bytes from larsal-crypto's random source).
@@ -170,95 +166,6 @@ fn open_aad(
         .map_err(|_| Error::WrapInvalid)
     })?;
     Ok(out)
-}
-
-/// A signed wrap record (CRY-04.6): an HPKE wrap and its sender's Ed25519
-/// signature over the field list (`sync-wrap-v1`, the suite as three u16,
-/// enc, ct, info, signer id). Nothing in it is secret.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WrapRecord {
-    /// KEM, KDF and AEAD ids; [`open_wrap`] takes only [`SUITE`].
-    pub suite: [u16; 3],
-    /// The HPKE enc.
-    pub enc: Vec<u8>,
-    /// The HPKE ciphertext.
-    pub ct: Vec<u8>,
-    /// The HPKE info: a field list naming the wrap's purpose and identities.
-    pub info: Vec<u8>,
-    /// The signer's 16-byte id.
-    pub signer: [u8; 16],
-    /// The Ed25519 signature (64 bytes).
-    pub signature: Vec<u8>,
-}
-
-/// The bytes a wrap record's signature covers.
-fn signed_part(
-    suite: [u16; 3],
-    enc: &[u8],
-    ct: &[u8],
-    info: &[u8],
-    signer: &[u8; 16],
-) -> Result<Vec<u8>, Error> {
-    let [kem, kdf, aead] = suite.map(u16::to_be_bytes);
-    sign::field_list(&[WRAP_LABEL, &kem, &kdf, &aead, enc, ct, info, signer])
-}
-
-/// Seals `plaintext` to `recipient` with `info` ([`seal`]) and signs the
-/// record with the signer's Ed25519 seed (CRY-04.6).
-///
-/// # Errors
-/// Those of [`seal`], and [`Error::KeyLength`] for a seed that is not 32 bytes.
-pub fn make_wrap(
-    recipient: &[u8],
-    info: &[u8],
-    plaintext: &[u8],
-    signer: [u8; 16],
-    signer_seed: &SecretBytes,
-) -> Result<WrapRecord, Error> {
-    let (enc, ct) = seal(recipient, info, plaintext)?;
-    let signature =
-        sign::ed25519_sign(signer_seed, &signed_part(SUITE, &enc, &ct, info, &signer)?)?;
-    Ok(WrapRecord {
-        suite: SUITE,
-        enc: enc.to_vec(),
-        ct,
-        info: info.to_vec(),
-        signer,
-        signature: signature.to_vec(),
-    })
-}
-
-/// Opens a signed wrap record (CRY-04.6), in this order: (1) the suite is
-/// [`SUITE`]; (2) the record's info equals `expected_info`, which the caller
-/// builds for what it expects (never taken from the record); (3) the
-/// signature verifies with `signer_public`, the key the caller trusts for the
-/// record's signer; (4) HPKE open ([`open`]) with `expected_info`.
-///
-/// Guarantees: no step runs before the steps above it passed; the plaintext
-/// is only in the returned [`SecretBytes`].
-///
-/// # Errors
-/// [`Error::WrapInvalid`] for every failure, with no detail.
-pub fn open_wrap(
-    record: &WrapRecord,
-    signer_public: &[u8],
-    expected_info: &[u8],
-    private: &SecretBytes,
-) -> Result<SecretBytes, Error> {
-    if record.suite != SUITE || record.info.as_slice() != expected_info {
-        return Err(Error::WrapInvalid);
-    }
-    let signed = signed_part(
-        record.suite,
-        &record.enc,
-        &record.ct,
-        &record.info,
-        &record.signer,
-    )
-    .map_err(|_| Error::WrapInvalid)?;
-    sign::ed25519_verify(signer_public, &signed, &record.signature)
-        .map_err(|_| Error::WrapInvalid)?;
-    open(private, &record.enc, expected_info, &record.ct).map_err(|_| Error::WrapInvalid)
 }
 
 #[cfg(test)]
@@ -539,116 +446,6 @@ mod tests {
         assert_eq!(pks.len(), 100);
     }
 
-    fn signer() -> (SecretBytes, [u8; 32]) {
-        let seed = SecretBytes::new(vec![0x11; 32]);
-        let public = sign::ed25519_public(&seed).unwrap();
-        (seed, public)
-    }
-
-    #[test]
-    fn t09_record_checks_run_in_order() {
-        let (sk, pk) = x25519_keypair().unwrap();
-        let (seed, signer_pk) = signer();
-        let info = b"demo wrap info";
-        let record = make_wrap(&pk, info, b"demo key part", [3; 16], &seed).unwrap();
-        let _ = sign::probe::take();
-        assert_eq!(
-            open_wrap(&record, &signer_pk, info, &sk).unwrap().expose(),
-            b"demo key part"
-        );
-        assert_eq!(sign::probe::take(), 1);
-        // Another suite: refused at step 1, before any signature check.
-        let mut other = record.clone();
-        other.suite = [0x0020, 0x0001, 0x0003];
-        assert_eq!(
-            open_wrap(&other, &signer_pk, info, &sk).err(),
-            Some(Error::WrapInvalid)
-        );
-        assert_eq!(sign::probe::take(), 0);
-        // Another expected info (valid for another vault): step 2, no check.
-        assert_eq!(
-            open_wrap(&record, &signer_pk, b"demo wrap info for vault 2", &sk).err(),
-            Some(Error::WrapInvalid)
-        );
-        assert_eq!(sign::probe::take(), 0);
-        // Another trusted key: step 3.
-        let stranger = sign::ed25519_public(&SecretBytes::new(vec![0x22; 32])).unwrap();
-        assert_eq!(
-            open_wrap(&record, &stranger, info, &sk).err(),
-            Some(Error::WrapInvalid)
-        );
-        assert_eq!(sign::probe::take(), 1);
-        // One changed byte of ct: the signature fails first (step 3).
-        let mut changed = record.clone();
-        changed.ct[0] ^= 1;
-        assert_eq!(
-            open_wrap(&changed, &signer_pk, info, &sk).err(),
-            Some(Error::WrapInvalid)
-        );
-        assert_eq!(sign::probe::take(), 1);
-        // A record the right signer signed over a wrap to another key: step 4.
-        let (other_sk, _) = x25519_keypair().unwrap();
-        assert_eq!(
-            open_wrap(&record, &signer_pk, info, &other_sk).err(),
-            Some(Error::WrapInvalid)
-        );
-    }
-
-    #[test]
-    fn cry04_6_the_signature_covers_the_whole_field_list() {
-        // The signed bytes, built by hand from CRY-04.6 and CRY-04.2: the
-        // label, the suite as three u16, enc, ct, info and the signer id,
-        // each after its length as a u32 big endian.
-        let (_, pk) = x25519_keypair().unwrap();
-        let (seed, signer_pk) = signer();
-        let r = make_wrap(&pk, b"demo info", b"demo", [3; 16], &seed).unwrap();
-        let mut signed = Vec::new();
-        for f in [
-            &b"sync-wrap-v1"[..],
-            &[0, 0x20],
-            &[0, 1],
-            &[0, 2],
-            &r.enc,
-            &r.ct,
-            b"demo info",
-            &[3; 16],
-        ] {
-            signed.extend_from_slice(&(f.len() as u32).to_be_bytes());
-            signed.extend_from_slice(f);
-        }
-        assert_eq!(
-            sign::ed25519_verify(&signer_pk, &signed, &r.signature),
-            Ok(())
-        );
-    }
-
-    #[test]
-    fn t10_one_changed_byte_of_a_record_fails() {
-        let (sk, pk) = x25519_keypair().unwrap();
-        let (seed, signer_pk) = signer();
-        let info = b"demo wrap info";
-        let record = make_wrap(&pk, info, b"demo account secret", [3; 16], &seed).unwrap();
-        assert!(open_wrap(&record, &signer_pk, info, &sk).is_ok());
-        let lens = [record.enc.len(), record.ct.len(), record.info.len(), 16, 64];
-        for (part, len) in lens.into_iter().enumerate() {
-            for i in 0..len {
-                let mut r = record.clone();
-                match part {
-                    0 => r.enc[i] ^= 1,
-                    1 => r.ct[i] ^= 1,
-                    2 => r.info[i] ^= 1,
-                    3 => r.signer[i] ^= 1,
-                    _ => r.signature[i] ^= 1,
-                }
-                assert_eq!(
-                    open_wrap(&r, &signer_pk, info, &sk).err(),
-                    Some(Error::WrapInvalid),
-                    "part {part} byte {i}"
-                );
-            }
-        }
-    }
-
     #[test]
     fn cry04_10_secrets_print_nothing() {
         let (sk, pk) = x25519_keypair().unwrap();
@@ -671,13 +468,13 @@ mod tests {
         }
 
         /// Round trip (Rust rule 10): open(seal(x)) == x for every info and
-        /// plaintext within the limits, one flipped ciphertext byte gives
-        /// WrapInvalid, and open_wrap(make_wrap(x)) == x.
+        /// plaintext within the limits, and one flipped ciphertext byte gives
+        /// WrapInvalid. The wrap record's round trip is
+        /// `wrap_record::tests::cry05_4_wrap_round_trip` (E25-S3).
         #[test]
-        fn seal_open_and_wrap_round_trip(
+        fn seal_open_round_trip(
             info in proptest::collection::vec(0u8..=255, 0..=MAX_INFO),
             plaintext in proptest::collection::vec(0u8..=255, 0..=MAX_PLAINTEXT),
-            signer_id in proptest::array::uniform16(0u8..=255),
             flip in proptest::prelude::any::<proptest::sample::Index>(),
         ) {
             let (sk, pk) = x25519_keypair().unwrap();
@@ -690,12 +487,6 @@ mod tests {
             let i = flip.index(ct.len());
             ct[i] ^= 1;
             proptest::prop_assert_eq!(open(&sk, &enc, &info, &ct).err(), Some(Error::WrapInvalid));
-            let (seed, signer_pk) = signer();
-            let record = make_wrap(&pk, &info, &plaintext, signer_id, &seed).unwrap();
-            proptest::prop_assert_eq!(
-                open_wrap(&record, &signer_pk, &info, &sk).unwrap().expose().to_vec(),
-                plaintext
-            );
         }
     }
 }

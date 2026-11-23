@@ -63,6 +63,9 @@ larsal-format = { workspace = true, features = ["software-key"] }
 # E16-S7a: the sync tests' servers on 127.0.0.1 (larsal-server in process,
 # the test proxy), test clock and test-seam device key (LD-317 (2)).
 larsal-sync = { workspace = true, features = ["test-server"] }
+# E25-S3 (CRY-05 T29): the sync tests' zero-knowledge search looks for each
+# wrap's KEM shared secret (pq.rs `kem_shared_secret`); never in a product build.
+larsal-crypto = { workspace = true, features = ["test-kem-secret"] }
 # E22-S4: the file tests reach the unprotected-disk consent through the app's job;
 # never in a product build.
 larsal-files = { workspace = true, features = ["test-volume"] }

@@ -4171,6 +4171,204 @@ fn syn03_14_t24_nothing_in_plain_on_the_key_change_run() {
     }
 }
 
+/// CRY-05.19, CRY-05 T29 (E25-S3, LD-340): E13-S8's stored-bytes search after
+/// E25-S3, on T13's key-change run (SYN-03 T24's method and LD-426's needles: both
+/// master passwords and their UTF-16, the key-file part, every entry title and
+/// password of 6 bytes or more), with this story's needles added: an account's
+/// `S_acct`, its composite identity private key and each half of it, its X-Wing
+/// receiving seed and the blob's plaintext, the keys wrapped to it (the key-file
+/// part, P7, and a group key, P8) and the KEM shared secret of each wrap; each raw,
+/// in upper and lower hex, in padded and URL base64 (SYN-04 T13's forms) and, for
+/// this story's needles, as its SHA-256. A searches every request and reply of the
+/// run, every file the server stored, and the public bytes E17-S1's keys row and
+/// E18's wrap routes will store (each wrap record's fields, the identity and
+/// receiving keys, the binding, raw and in base64url). No route of this story sends
+/// them, so their run through Larsal's server, and `S_acct`'s through a real
+/// sign-up, is E17-S1's (T29's account needles run again there).
+#[test]
+fn cry05_19_t29_no_key_in_any_stored_byte_after_e25s3() {
+    use larsal_crypto::account::{AccountKeys, check_kem_binding};
+    use larsal_crypto::base64::{Form, encode};
+    use larsal_crypto::{pq, wrap_record};
+    let k = KeyChange::new("t29");
+    let (a, b) = (&k.a, &k.b);
+    let part = a.part();
+    let (mut titles, passwords): (Vec<String>, Vec<String>) =
+        a.s.with_vault(a.v, |v| {
+            Ok(v.root
+                .all_entries()
+                .flat_map(|e| std::iter::once(e).chain(&e.history))
+                .map(|e| (e.value("Title").to_owned(), e.value("Password").to_owned()))
+                .unzip())
+        })
+        .unwrap();
+
+    // This story's secrets, made as E17-S1 and E18-S2 will make them: A's account
+    // keys, their binding and blob, and hybrid wraps of the part and of a group
+    // key to the account's receiving key; B restores the keys from S_acct and the
+    // blob's plaintext, checks the binding and opens both wraps.
+    let account = AccountKeys::new().unwrap();
+    let account_id = [0x29; 16];
+    let binding = account.kem_signature(&account_id).unwrap();
+    let blob = account.blob_plaintext();
+    let group_key = larsal_crypto::random::bytes(32).unwrap();
+    let infos: [&[u8]; 2] = [
+        b"demo P7 info: the key-file part of vault 1",
+        b"demo P8 info: vault 1, epoch 1, reader 2",
+    ];
+    let wrapped: [&[u8]; 2] = [&part, group_key.expose()];
+    let wraps: Vec<wrap_record::WrapRecord> = infos
+        .iter()
+        .zip(wrapped)
+        .map(|(info, key)| {
+            let signer = account.identity_private_key();
+            wrap_record::make(account.kem_public_key(), info, key, account_id, signer).unwrap()
+        })
+        .collect();
+    let restored = AccountKeys::from_blob(
+        SecretBytes::new(account.account_secret().expose().to_vec()),
+        &blob,
+    )
+    .unwrap();
+    let (identity_key, kem_key) = (account.identity_public_key(), account.kem_public_key());
+    assert_eq!(
+        check_kem_binding(identity_key, &account_id, kem_key, &binding),
+        Ok(())
+    );
+    for ((w, info), key) in wraps.iter().zip(infos).zip(wrapped) {
+        let opened = wrap_record::open(w, identity_key, info, restored.kem_seed()).unwrap();
+        assert_eq!(opened.expose(), key);
+    }
+    let shared: Vec<SecretBytes> = wraps
+        .iter()
+        .map(|w| pq::kem_shared_secret(account.kem_seed(), &w.enc).unwrap())
+        .collect();
+
+    // T13's run, as SYN-03 T24 runs it.
+    k.changes();
+    k.to_old_key();
+    a.s.sync_old_key(a.v, true).unwrap();
+    a.tick(0);
+    k.b_asks();
+    b.s.sync_open_copy(b.v, DEMO2.into()).unwrap();
+    b.tick(0);
+    assert_eq!(b.status(), Some(SyncStatus::Synced));
+    b.rename("E2 by B", "E2 again by B");
+    b.tick(2_000);
+    assert_eq!(k.server_version(), 4);
+
+    // LD-426's needles.
+    let mut needles: Vec<(&str, Vec<u8>)> = Vec::new();
+    for password in [PASSWORD, DEMO2] {
+        needles.extend(
+            encoded(password.as_bytes())
+                .into_iter()
+                .map(|n| ("a password", n)),
+        );
+        let utf16: Vec<u8> = password.encode_utf16().flat_map(u16::to_le_bytes).collect();
+        needles.push(("a password in UTF-16", utf16));
+    }
+    titles.extend(["E1 by A", "E2 by B", "E2 again by B"].map(str::to_owned));
+    for s in titles.iter().chain(&passwords).filter(|s| s.len() >= 6) {
+        needles.extend(
+            encoded(s.as_bytes())
+                .into_iter()
+                .map(|n| ("a title or password", n)),
+        );
+    }
+    let ld426 = needles.len();
+    // This story's needles.
+    let identity = account.identity_private_key().expose();
+    let story: [(&str, &[u8]); 10] = [
+        ("the key-file part", &part),
+        ("S_acct", account.account_secret().expose()),
+        ("the identity private key", identity),
+        ("the ML-DSA-65 seed", &identity[..32]),
+        ("the Ed25519 seed", &identity[32..]),
+        ("the receiving seed", account.kem_seed().expose()),
+        ("the blob's plaintext", blob.expose()),
+        ("the group key", group_key.expose()),
+        ("a KEM shared secret", shared[0].expose()),
+        ("a KEM shared secret", shared[1].expose()),
+    ];
+    for (what, value) in story {
+        needles.extend(encoded(value).into_iter().map(|n| (what, n)));
+        needles.push((
+            what,
+            larsal_crypto::hash::sha256(&[value]).expose().to_vec(),
+        ));
+    }
+
+    // The stored bytes: every request and reply, every file of the server's data
+    // folder, and the public bytes the later routes will store.
+    let seen = k.proxy.seen.lock().unwrap().clone();
+    assert!(seen.iter().filter(|(r, _)| r.method == "PUT").count() >= 4);
+    let mut hays: Vec<(String, Vec<u8>)> = Vec::new();
+    for (request, reply) in &seen {
+        hays.push((
+            format!("{} {}", request.method, request.path),
+            request.raw.clone(),
+        ));
+        hays.push((
+            format!("the reply to {} {}", request.method, request.path),
+            reply.clone(),
+        ));
+    }
+    let mut files = Vec::new();
+    let mut dirs = vec![k._app._data.0.clone()];
+    while let Some(dir) = dirs.pop() {
+        for e in std::fs::read_dir(&dir).unwrap().flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                dirs.push(p);
+            } else {
+                files.push(p);
+            }
+        }
+    }
+    let mut stored = 0;
+    for f in &files {
+        let bytes = std::fs::read(f).unwrap();
+        stored += bytes.len();
+        hays.push((f.display().to_string(), bytes));
+    }
+    assert!(stored > 0, "the server stored nothing");
+    let mut public: Vec<(&str, &[u8])> = vec![
+        ("identity_public_key", identity_key),
+        ("kem_public_key", kem_key),
+        ("kem_signature", &binding[..]),
+    ];
+    for w in &wraps {
+        public.extend([
+            ("a wrap's enc", &w.enc[..]),
+            ("a wrap's ct", &w.ct[..]),
+            ("a wrap's info", &w.info[..]),
+            ("a wrap's signature", &w.signature[..]),
+        ]);
+    }
+    for (what, value) in &public {
+        hays.push(((*what).to_owned(), value.to_vec()));
+        hays.push((
+            format!("{what} in base64url"),
+            encode(Form::Url, value).into_bytes(),
+        ));
+    }
+    for (place, hay) in &hays {
+        for (what, n) in &needles {
+            assert!(!has(hay, n), "{place} holds {what}");
+        }
+    }
+    println!(
+        "CRY-05 T29: {} needles ({ld426} of LD-426, {} of this story's 10 values), \
+         {} requests and replies, {} stored files ({stored} bytes), {} public forms: none found",
+        needles.len(),
+        needles.len() - ld426,
+        seen.len() * 2,
+        files.len(),
+        public.len() * 2,
+    );
+}
+
 /// LD-267 (2), LD-269 (3), MOD-11.31, SYN-03 T14, the story's deletion check: B also
 /// deleted E4 for good under the old key, as its last change. A's Merge anyway takes
 /// no deletions, so E4 is in A's result. When B opens that result with `demo2` it

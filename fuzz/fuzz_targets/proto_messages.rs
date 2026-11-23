@@ -2,11 +2,12 @@
 //! larsal-proto's readers on arbitrary bytes, as a hostile client or server
 //! gives them: the record reader of SYN-01.8, the health record of
 //! SYN-01.14, the account and sign-in records of SYN-04 (E16-S5), the wrap
-//! record of CRY-04.6, and the route match of SYN-01.3 on a method and a
-//! path (the text before and after the first newline). Must never panic or
-//! hang. A record over the JSON limit is refused before it is parsed, a wrap
-//! record over 4 KiB before it is parsed (LD-305 (5)); each record that
-//! reads is written back and reads back the same.
+//! record of CRY-04.6 with CRY-05.4's sizes (E25-S3), and the route match of
+//! SYN-01.3 on a method and a path (the text before and after the first
+//! newline). Must never panic or hang. A record over the JSON limit is
+//! refused before it is parsed, a wrap record over 16 KiB before it is
+//! parsed (LD-305 (5), CRY-05.14); each record that reads is written back
+//! and reads back the same.
 #![no_main]
 
 use larsal_proto::Error;

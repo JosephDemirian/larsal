@@ -46,6 +46,12 @@
 //! let _ = (larsal_crypto::pq::seal, larsal_crypto::pq::composite_sign);
 //! let _ = (larsal_crypto::pq::open, larsal_crypto::pq::composite_verify);
 //! ```
+//! Tests only (E25-S3): [`open`]'s decapsulation count (T10) is readable
+//! crate-wide in test builds, for the wrap record's tests, and
+//! `kem_shared_secret` exists only in larsal-crypto's own tests and with the
+//! `test-kem-secret` feature, which only test builds turn on (CRY-05 T29).
+//! Crate-wide (E25-S3): `receiving_key`, [`seal`]'s check of another
+//! party's receiving key, which the account keys' checks share.
 
 use crate::random::{self, Prepared};
 use crate::secret::{SecretBytes, scrubbed_thread};
@@ -139,6 +145,22 @@ fn xwing_public_in(seed: &[u8], public: &mut [u8]) -> Result<(), Error> {
     Ok(())
 }
 
+/// Another party's receiving key, decoded (CRY-05.3; CRY-05's edge cases):
+/// exactly 1,216 bytes, and the vendored X-Wing decode, which runs FIPS 203
+/// section 7.2's encapsulation key check on the ML-KEM part (type check, and
+/// the modulus check ByteEncode12(ByteDecode12(ek)) = ek). [`seal`] and the
+/// account keys' binding check and pin compare (E25-S3) all go through it.
+///
+/// # Errors
+/// [`Error::KeyLength`] for a key that is not 1,216 bytes;
+/// [`Error::WrapInvalid`] for one whose ML-KEM part fails the check.
+pub(crate) fn receiving_key(recipient: &[u8]) -> Result<PublicKey, Error> {
+    if recipient.len() != PUBLIC_KEY {
+        return Err(Error::KeyLength);
+    }
+    PublicKey::from_bytes(recipient).map_err(|_| Error::WrapInvalid)
+}
+
 /// Seals `plaintext` to the X-Wing public key `recipient` with `info`
 /// (RFC 9180 `SealBase` with [`SUITE`]), and returns enc (1,120 bytes) and
 /// the ciphertext (plaintext plus a 16-byte tag).
@@ -169,11 +191,7 @@ fn seal_with(
     if plaintext.len() > MAX_PLAINTEXT || info.len() > MAX_INFO {
         return Err(Error::TooLarge);
     }
-    if recipient.len() != PUBLIC_KEY {
-        return Err(Error::KeyLength);
-    }
-    // The vendored decode runs FIPS 203 section 7.2's type and modulus check.
-    let recipient = PublicKey::from_bytes(recipient).map_err(|_| Error::WrapInvalid)?;
+    let recipient = receiving_key(recipient)?;
     let mut rng = Prepared::new(draw(ENCAP_RANDOMNESS)?);
     let mut ct = vec![0u8; plaintext.len()];
     // The ephemeral X-Wing keys and the shared secret are inline values.
@@ -281,6 +299,34 @@ fn open_in(
         tag,
     )
     .map_err(|_| Error::WrapInvalid)
+}
+
+/// Tests only (E25-S3, CRY-05 T29): the 32-byte X-Wing shared secret that
+/// `seed` decapsulates from `enc`, so a zero-knowledge search can look for
+/// it. Built in larsal-crypto's own tests and with the `test-kem-secret`
+/// feature, which only test builds turn on, through a dev-dependency.
+///
+/// Guarantees: the secret is only in the returned [`SecretBytes`]; the
+/// decapsulation runs on a worker thread of its own, as [`open`]'s does.
+///
+/// # Errors
+/// [`Error::KeyLength`] for a seed that is not 32 bytes;
+/// [`Error::WrapInvalid`] for an enc that is not 1,120 bytes, or when the
+/// system cannot start the call's worker thread.
+#[cfg(any(test, feature = "test-kem-secret"))]
+pub fn kem_shared_secret(seed: &SecretBytes, enc: &[u8]) -> Result<SecretBytes, Error> {
+    if seed.len() != SEED {
+        return Err(Error::KeyLength);
+    }
+    let enc = EncappedKey::from_bytes(enc).map_err(|_| Error::WrapInvalid)?;
+    let mut out = SecretBytes::zeroed(32);
+    scrubbed_thread(Error::WrapInvalid, || -> Result<(), Error> {
+        let sk = PrivateKey::from_bytes(seed.expose()).map_err(|_| Error::KeyLength)?;
+        let shared = XWing::decap(&sk, None, &enc).map_err(|_| Error::WrapInvalid)?;
+        out.expose_mut().copy_from_slice(&shared.0);
+        Ok(())
+    })??;
+    Ok(out)
 }
 
 /// Makes a new composite identity key (CRY-05.5): 64 bytes from
@@ -461,9 +507,9 @@ fn verify_ctx(public: &[u8], message: &[u8], ctx: &[u8], signature: &[u8]) -> Re
 }
 
 /// Test-only: how many times [`open`] reached the vendored decapsulation on
-/// this thread (CRY-05 T10).
+/// this thread (CRY-05 T10); the wrap record's tests read it too (E25-S3).
 #[cfg(test)]
-mod probe {
+pub(crate) mod probe {
     use core::cell::Cell;
 
     thread_local! {
@@ -475,7 +521,7 @@ mod probe {
     }
 
     /// Calls on this thread since the last `take`.
-    pub(super) fn take() -> usize {
+    pub(crate) fn take() -> usize {
         CALLS.with(Cell::take)
     }
 }

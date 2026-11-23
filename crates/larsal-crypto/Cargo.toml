@@ -41,8 +41,9 @@ p256 = { workspace = true, features = ["ecdsa"] }
 # E0-S7 R5 (LD-258 (2)): base64.rs, base64 for our crates (keys, imports, key files).
 base64ct.workspace = true
 # E16-S2 (CRY-04): hpke.rs, HPKE base mode with DHKEM(X25519, HKDF-SHA256),
-# HKDF-SHA256 and AES-256-GCM only (no ML-KEM, no getrandom: larsal-crypto::random
-# gives every random byte). wrap.rs: the AES-256-GCM key wrap. aes-gcm is named
+# HKDF-SHA256 and AES-256-GCM (no getrandom: larsal-crypto::random gives every
+# random byte); from E25-S3 in test builds only (CRY-04.15: T07 and the classical
+# record CRY-05 T12 refuses). wrap.rs: the AES-256-GCM key wrap. aes-gcm is named
 # here also to turn on its "zeroize", so the AES round keys inside hpke's
 # contexts are wiped too.
 hpke = { workspace = true, features = ["x25519", "aes", "alloc", "mlkem", "chacha"] }
@@ -71,6 +72,11 @@ unicode-normalization.workspace = true
 # client's device key in larsal-server's tests. Only test builds turn it on,
 # through a dev-dependency; a normal build has no P-256 signer for sync.
 test-p256-key = []
+# E25-S3 (CRY-05 T29): pq.rs `kem_shared_secret`, the X-Wing shared secret of a
+# wrap, so the sync suite's zero-knowledge search can look for it. Only test
+# builds turn it on, through larsal-ffi's dev-dependency; a normal build has
+# no way to a KEM shared secret.
+test-kem-secret = []
 
 [dev-dependencies]
 proptest.workspace = true
