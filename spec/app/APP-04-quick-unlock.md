@@ -1,6 +1,6 @@
 # APP-04 Quick unlock
 
-Status: reviewed
+Status: reviewed; APP-04.11's sentence on INT-04.56 as the slot's second reader added by INT-04's R04-1 rewrite, review R3 (2026-11-23), waiting for that rewrite's review
 Epics: E6-S3
 Parity rows: SR-04, SR-07
 
@@ -78,7 +78,7 @@ APP-04.10 **What starts a Touch ID attempt.**
 - Main window: only the user pressing the button (or Return). Larsal never starts the system prompt by itself there.
 - The unlock dialog that Larsal opens for a browser bridge or Auto-Type request (INT-01, INT-05): when it shows the Touch ID form and no unlock is running, the attempt starts by itself 0.1 seconds after the dialog appears.
 
-APP-04.11 **The attempt.** Larsal reads the item with an operation prompt in its own words, `MSG-QU-PROMPT` "unlock “<file name>”" (macOS shows it in its system sheet, after Larsal's name). Every attempt asks; Larsal never passes an earlier successful authentication context, so there is no grace period. The read runs off the main thread; while it waits, the form is disabled and the button reads "Checking…" (design/mockup.html). Only one attempt runs at a time; a second press while one runs does nothing.
+APP-04.11 **The attempt.** Larsal reads the item with an operation prompt in its own words, `MSG-QU-PROMPT` "unlock “<file name>”" (macOS shows it in its system sheet, after Larsal's name). Every attempt asks; Larsal never passes an earlier successful authentication context, so there is no grace period. The read runs off the main thread; while it waits, the form is disabled and the button reads "Checking…" (design/mockup.html). Only one attempt runs at a time; a second press while one runs does nothing. The slot has a second reader, INT-04.56 step 1 (passkeys, R04-1): it first evaluates the biometry-only policy on a fresh context of its own with its own reason (MI04-37, MI04-38), then reads the item with that context (`kSecUseAuthenticationContext`), so macOS asks once and no earlier context is ever passed, and a passkey use can delete the slot under APP-04.14's first row (review R3-08).
 
 APP-04.12 **Success.** Larsal gets `W`, decrypts the memory part (the tag must check), and rebuilds the components. If the vault uses a hardware key, Larsal asks it exactly as in a normal unlock: it must be present and is challenged with the file's current seed (FMT-04.8, INT-07). Then the normal open runs: the KDF (about 1 second by default), header check and so on (FMT-04, APP-06). `W` and the plain components are wiped right after they are used. The slot stays for the next lock; no new slot is made (APP-04.3). The key file is not read during a quick unlock (`F` is stored), so a quick unlock works while the key file's drive is unplugged.
 
