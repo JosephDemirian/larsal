@@ -9,7 +9,7 @@ Larsal of crates/larsal-browser/examples/test_larsal.rs):
 
 The programs are read from $CARGO_TARGET_DIR/debug (default: target/debug). The
 package checks need only Python and macOS's jsc. The browser checks run the
-installed Chrome through driver.py (headless, a test HOME under /tmp, the mock
+pinned test browser through driver.py (headless, a test HOME under /tmp, the mock
 keychain, the window guard), Larsal's own browser side as the test Larsal over
 one demo vault, and larsal-bridge as Chrome's native host with a test instance
 folder. No window, no network beyond 127.0.0.1, nothing outside /tmp (AGENTS.md
@@ -314,8 +314,9 @@ def setUpModule():
 
 
 def tearDownModule():
-    # LD-276, LD-278 (3): after the run, macOS's own log shows no keychain write by a PID of the run.
-    driver.check_keychain_log(RUN["start"])
+    # LD-276, LD-278 (3): after the run, macOS's own log shows no keychain write by a PID of the run; and no late
+    # crash report, menu bar item or location registration of the run (round 2 of the test browser: F1, F2, F5).
+    driver.check_run_end(RUN["start"])
 
 
 def banned(name, text, allowed=()):
@@ -583,11 +584,12 @@ class PackageChecks(unittest.TestCase):
         self.assertEqual(calls, [RUN["start"]])
 
     def test_the_loopback_check_reports_any_other_address(self):
+        # "*:5353" listens on every interface, so it is not loopback (round 2 of the test browser, F6).
         lsof = "p4242\nf5\nn127.0.0.1:50000->127.0.0.1:8443\nf6\nn[::1]:50001->[::1]:8443\nf7\nn*:5353\n" \
                "f8\nn192.168.1.20:50002->142.250.1.1:443\nf9\nn127.0.0.1:50003->10.0.0.1:53\n"
         with mock.patch.object(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, lsof)):
             self.assertEqual(outside_loopback([4242]),
-                             ["192.168.1.20:50002->142.250.1.1:443", "127.0.0.1:50003->10.0.0.1:53"])
+                             ["*:5353", "192.168.1.20:50002->142.250.1.1:443", "127.0.0.1:50003->10.0.0.1:53"])
 
     def test_pure_modules_pass_under_macos_jsc(self):
         run = subprocess.run([JSC, "-m", os.path.join(HERE, "pure_test.js")], capture_output=True, text=True,
@@ -670,13 +672,7 @@ def wait_for(check, timeout=10, step=0.1):
     return check()
 
 
-def outside_loopback(pids):
-    """Internet sockets of `pids` whose address is not loopback (lsof, read only)."""
-    rows = subprocess.run(["/usr/sbin/lsof", "-nP", "-a", "-i", "-p", ",".join(map(str, pids)), "-F", "n"],
-                          capture_output=True, text=True).stdout.splitlines()
-    names = [r[1:] for r in rows if r.startswith("n")]
-    local = re.compile(r"^(?:127\.0\.0\.1|\[::1\]|\*|localhost):[0-9*]+$")
-    return [n for n in names if not all(local.match(part) for part in n.split("->"))]
+outside_loopback = driver.outside_loopback  # the driver's: its close() checks every run with it too
 
 
 class ChromeWithLarsal(unittest.TestCase):
@@ -687,7 +683,7 @@ class ChromeWithLarsal(unittest.TestCase):
         for program in (BRIDGE, LARSAL):
             if not os.access(program, os.X_OK):
                 raise AssertionError("missing %s: build it first (see the module's text)" % program)
-        cls.folder = tempfile.mkdtemp(prefix="larsal-ext-", dir="/tmp")
+        cls.folder = driver.run_root("larsal-ext-")  # round 4 (C1R3-06): a run root of this driver process
         cls.home = driver.check_test_home(os.path.join(cls.folder, "home"))  # a new folder under /tmp
         cls.instance = os.path.join(cls.folder, "i")
         os.makedirs(cls.home)
@@ -1256,7 +1252,7 @@ class ChromeWithoutX25519(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.folder = tempfile.mkdtemp(prefix="larsal-ext-", dir="/tmp")
+        cls.folder = driver.run_root("larsal-ext-")  # round 4 (C1R3-06): a run root of this driver process
         cls.addClassCleanup(shutil.rmtree, cls.folder, True)
         cls.home = driver.check_test_home(os.path.join(cls.folder, "home"))
         os.makedirs(cls.home)

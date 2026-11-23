@@ -2,12 +2,12 @@
 
 Larsal's side computes the same values in larsal-crypto (crates/larsal-crypto/src/bridge.rs,
 t78_* and t79_channel_vectors_cv1_to_cv9); both must give INT-01.50's bytes. Runs in
-the installed Chrome, headless, in the driver's demo extension (service worker),
+the pinned test browser, headless, in the driver's demo extension (service worker),
 through E7-S7b's driver only (INT-11.43).
 
 Run: python3 -I extension/test/test_channel_vectors.py
-Needs /Applications/Google Chrome.app and Xcode's swiftc. No window, no network,
-nothing outside /tmp (AGENTS.md rules 7, 10, 11).
+Needs the pinned test browser ($LARSAL_TEST_CHROME, see driver.py) and Xcode's swiftc.
+No window, no network, nothing outside /tmp (AGENTS.md rules 7, 10, 11).
 """
 
 import os
@@ -135,8 +135,9 @@ def setUpModule():
 
 
 def tearDownModule():
-    # LD-276, LD-278 (3): after the run, macOS's own log shows no keychain write by a PID of the run.
-    driver.check_keychain_log(RUN["start"])
+    # LD-276, LD-278 (3): after the run, macOS's own log shows no keychain write by a PID of the run; and no late
+    # crash report, menu bar item or location registration of the run (round 2 of the test browser: F1, F2, F5).
+    driver.check_run_end(RUN["start"])
 
 
 class ChannelVectorsInWebCrypto(unittest.TestCase):

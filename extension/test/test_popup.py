@@ -5,7 +5,7 @@ Run as test_extension.py says (the same two test programs), then:
     python3 -I extension/test/test_popup.py
 
 PopupWithLarsal opens the real popup (`action.openPopup` from the service worker, through DevTools) in the
-installed Chrome, headless, through driver.py, over the test Larsal and larsal-bridge, and reads which frame
+pinned test browser, headless, through driver.py, over the test Larsal and larsal-bridge, and reads which frame
 it draws. PopupParity draws the three frames from fed demo states (the test package's "fed-state" seam) and
 compares each, light and dark, with the same frame of design/option-a/mockup.html rendered in the same
 Chrome: every part's colours and font (BUILD-AND-VERIFY.md item 3), its box within 2 pt (item 4), pixel by
@@ -220,7 +220,8 @@ def setUpModule():
 
 
 def tearDownModule():
-    driver.check_keychain_log(RUN["start"])  # LD-276: no keychain write by a PID of the run
+    # LD-276: no keychain write by a PID of the run; no late crash report, menu bar item or location registration.
+    driver.check_run_end(RUN["start"])
 
 
 def open_popup(chrome, extension_id, shown=None, timeout=10):
@@ -267,7 +268,7 @@ class PopupWithLarsal(unittest.TestCase):
         for program in (ext.BRIDGE, ext.LARSAL):
             if not os.access(program, os.X_OK):
                 raise AssertionError("missing %s: build it first (see test_extension.py)" % program)
-        cls.folder = tempfile.mkdtemp(prefix="larsal-popup-", dir="/tmp")
+        cls.folder = driver.run_root("larsal-popup-")  # round 4 (C1R3-06): a run root of this driver process
         cls.home = driver.check_test_home(os.path.join(cls.folder, "home"))
         cls.instance = os.path.join(cls.folder, "i")
         os.makedirs(cls.home)
@@ -564,7 +565,7 @@ class PopupParity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.folder = tempfile.mkdtemp(prefix="larsal-parity-", dir="/tmp")
+        cls.folder = driver.run_root("larsal-parity-")  # round 4 (C1R3-06): a run root of this driver process
         cls.addClassCleanup(shutil.rmtree, cls.folder, True)
         cls.out = os.environ.get("LARSAL_PARITY_DIR") or os.path.join(cls.folder, "parity")
         os.makedirs(cls.out, exist_ok=True)
