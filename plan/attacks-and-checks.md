@@ -78,7 +78,7 @@ Every attack here becomes a test where it can be automated, and a scripted manua
 | AT-F05 | Lookalike sites | Lookalike letters, punycode, attacker subdomains, http instead of https, other ports | No fill |
 | AT-F06 | Foreign frames | A credential request from a frame of another site | Handled per spec INT-02; no silent fill |
 | AT-F07 | Flood | Thousands of requests per second | The app stays responsive; no secret in any error |
-| AT-F08 | Wrong passkey | Ask for another site's passkey | Refused |
+| AT-F08 | Wrong passkey | Ask for another site's passkey: an RP ID the origin may not use, a `passkey.get` whose `entry` names another site's passkey, or a `passkey.create` whose `target` names another site's entry or a group the page may not use | Refused (error 28 or 18) before any prompt |
 | AT-F09 | Invisible extension UI | A test page hides or covers the in-page menu while it asks for a click: opacity 0 on the host, `html` or `body`; `filter:opacity(0)`; a full-page overlay with `pointer-events:none`; its own popover; an element added after the host (Toth's methods, spec/research/browser-and-web.md B10; INT-11.18, INT-11 T38 and T67) | No fill and no request to Larsal; the menu closes, the badge shows `!` and the next popup shows MI11-63 (INT-11.18, LD-274) |
 
 ### AT-G: Auto-Type
