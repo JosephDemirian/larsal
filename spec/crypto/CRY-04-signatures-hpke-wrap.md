@@ -74,7 +74,7 @@ CRY-04.6 **The signed wrap record** (P8; RFC 9180 section 9.1.1; the ETH paper's
 2. the record's info equals, byte for byte, the info the caller built for what it expects (the caller never takes the info from the record);
 3. the signature verifies with the public key the caller trusts for that signer (pinned: SYN-06.6, SHR-02);
 4. HPKE open (CRY-04.5).
-Records are at most 4 KiB (SYN-01.10). On the wire (SYN-01.8) a record is the JSON object `{"suite":[32,1,2],"enc":…,"ct":…,"info":…,"signer":…,"signature":…}`: the suite as three numbers, `enc`, `ct`, `info` and `signature` as base64url without padding, and `signer` as 32 lowercase hex digits (LD-327 (4)).
+Records are at most 4 KiB (SYN-01.10). On the wire (SYN-01.8) a record is the JSON object `{"suite":[32,1,2],"enc":…,"ct":…,"info":…,"signer":…,"signature":…}`: the suite as three numbers, `enc`, `ct`, `info` and `signature` as base64url without padding, and `signer` as 32 lowercase hex digits (LD-327 (4)). From E25-S3 this record's suite is CRY-05.4's hybrid suite; larsal-crypto's `wrap_record` makes and opens it, and the classical `[32, 1, 2]` record exists only in test builds (CRY-04.15: T07, and the record CRY-05 T12 and CRY-04 T20 refuse).
 
 CRY-04.7 **AES-256-GCM key wrap** (NIST SP 800-38D). A 32-byte key, a fresh 12-byte nonce from larsal-crypto's random source for every wrap (the random IV construction, section 8.2.2), a 16-byte tag, associated data given by the caller (SYN-06.4). Output: nonce ‖ ciphertext ‖ tag. A key wraps only a few blobs in its life, far below the 2^32 limit for random nonces (section 8.3). Unwrap fails with `WrapInvalid` on any change of the key, the nonce, the ciphertext, the tag or the associated data.
 
