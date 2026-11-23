@@ -1,5 +1,5 @@
 {
- "reviewed_commit": "b0cb1099a9894a6724421e4ab3b2c80cd5c6fb58",
+ "reviewed_commit": "76cf3d2cf1c976424a45cea4ddd71d700d0c89a9",
  "note": "Every row above base. Each hash is the path's git tree or blob hash at the reviewed commit, apart from the rows labelled F-334, whose hash is the one at that round's merge commit. A commit whose hash differs runs that row at base and the run ends NEEDS_REVIEW. A change to this table is part of a story's commit, and its C1 and C2 review it.",
  "reviews": {
   "R2b": {
@@ -101,6 +101,11 @@
    "what": "Pins moved by the picked diff of E17-S2, and the rows its Checkers reviewed: one new program row (larsal-sync approval_wipe, the key profile) and its pins row, as account_wipe's. Its proof: the lead's two-part run of record of candidate-m24.",
    "source": "commit b0cb1099a9894a6724421e4ab3b2c80cd5c6fb58",
    "limits": "Content equality to each reviewed diff, applied by levers/pick_patch.py (E17-S2 in same-context mode on E17-S1's approved head, whose paths m23 landed exactly); the other values by levers/m24_tables.py from the story's Tables list; not a new review of any grant."
+  },
+  "m25": {
+   "what": "Pins moved by the picked diff of E7-S6 (47 pins in 40 rows), the Swift count its Checkers reviewed (498 18: one new Swift test), and four grants that no test uses any more, dropped (the lead's m25 row 11): the six ffi_ classes of the two larsal_ffi programs, browser_int of larsal-browser/int01 and browser_unit of larsal-browser/larsal_browser, with the byte checks and the two browser rows that only they needed. Its proof: the lead's two-part run of record of candidate-m25.",
+   "source": "commit 76cf3d2cf1c976424a45cea4ddd71d700d0c89a9",
+   "limits": "Content equality to the reviewed diff, applied by levers/pick_patch.py (E7-S6 as a three-way pick from its base 7418b3d); the Swift count by levers/m25_tables.py from the story's tables result; the four grants dropped by levers/m25_tables.py after part A of 21522d3 ran those programs at base with no grant and their tests passed; no grant added; not a new review of any grant."
   }
  },
  "byte_checks": {
@@ -177,22 +182,10 @@
     "/tmp/larsal-bridge-"
    ]
   },
-  "class /tmp/larsal-browser-": {
-   "why": "R2b: this finite class stands for the names this program makes from its own PID.",
-   "require_bytes": [
-    "/tmp/larsal-browser-"
-   ]
-  },
   "class /tmp/larsal-e7s6-": {
    "why": "R2b: this finite class stands for the names this program makes from its own PID.",
    "require_bytes": [
     "/tmp/larsal-e7s6-"
-   ]
-  },
-  "class /tmp/larsal-ffi-e7s6-": {
-   "why": "R2b: this finite class stands for the names this program makes from its own PID.",
-   "require_bytes": [
-    "/tmp/larsal-ffi-e7s6-"
    ]
   },
   "class larsal-session-": {
@@ -220,10 +213,10 @@
    "checks": []
   },
   "needs:larsal-lsd": {
-   "review": "m23",
+   "review": "m25",
    "why": "The app code that checks in, how it starts hidden, and the app09 program that starts it.",
    "pins": {
-    "macos/Larsal": "ff0fca67a1e72c54af5b9b5abc7f48c905bd2f7d",
+    "macos/Larsal": "ad157e9ac40172f4f61dab5012c517385b67d176",
     "macos/Larsal.xcodeproj": "ef9b09d7a1febf2ec94fc873dba710a8812134ec",
     "crates/larsal-ffi/src/lib.rs": "6f1a661e023049273886c5770bc15ae527130d55",
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
@@ -241,10 +234,10 @@
    "checks": []
   },
   "needs:larsal-window": {
-   "review": "m23",
+   "review": "m25",
    "why": "The app code, HiddenLaunch and ScreenProtection among it, how it starts hidden, and the app09 program that starts it. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml holds the build profiles and .cargo/config.toml chooses where crates come from; a line added to either could turn debug assertions off, and hidden() is always false without them. The whole autotype crate is pinned, so a new key event caller there takes the line too. macos/Larsal holds the Swift call.",
    "pins": {
-    "macos/Larsal": "ff0fca67a1e72c54af5b9b5abc7f48c905bd2f7d",
+    "macos/Larsal": "ad157e9ac40172f4f61dab5012c517385b67d176",
     "macos/Larsal.xcodeproj": "ef9b09d7a1febf2ec94fc873dba710a8812134ec",
     "crates/larsal-ffi/src/lib.rs": "6f1a661e023049273886c5770bc15ae527130d55",
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
@@ -293,24 +286,24 @@
    "checks": []
   },
   "needs:unix-bind": {
-   "review": "m23",
+   "review": "m25",
    "why": "Where the single-instance channel and the browser channel are bound, and the tests that use them.",
    "pins": {
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
-    "crates/larsal-browser/src/server.rs": "e33a795590bbf1312bcbd415c2b0cdb82c5e3701",
+    "crates/larsal-browser/src/server.rs": "9b6314e7ab48e80d5cd1d1ddc438209cee7347d7",
     "crates/larsal-ffi/tests/app09.rs": "f11e2cdd066e6e1c25a5c9cee9586c606a38f811",
-    "macos/LarsalTests": "fdaa21251763d203d279cf60c68fa019f0d7172d"
+    "macos/LarsalTests": "5336a09299d8f035e6c2bdfd55eec3344c000636"
    },
    "checks": []
   },
   "needs:unix-connect": {
-   "review": "m23",
+   "review": "m25",
    "why": "Where the channels are connected to, and the tests that do it.",
    "pins": {
     "crates/larsal-ffi/src/instance.rs": "2c0b489572b27f3d36080fa7f324368d8ec1bdf6",
-    "crates/larsal-browser/src/server.rs": "e33a795590bbf1312bcbd415c2b0cdb82c5e3701",
+    "crates/larsal-browser/src/server.rs": "9b6314e7ab48e80d5cd1d1ddc438209cee7347d7",
     "crates/larsal-ffi/tests/app09.rs": "f11e2cdd066e6e1c25a5c9cee9586c606a38f811",
-    "macos/LarsalTests": "fdaa21251763d203d279cf60c68fa019f0d7172d"
+    "macos/LarsalTests": "5336a09299d8f035e6c2bdfd55eec3344c000636"
    },
    "checks": []
   },
@@ -347,45 +340,45 @@
    "checks": []
   },
   "needs:xctest-lsd": {
-   "review": "m23",
+   "review": "m25",
    "why": "As the pasteboard row: this service turns the legacy board type into the modern one when a test reads its private board.",
    "pins": {
-    "macos/LarsalTests": "fdaa21251763d203d279cf60c68fa019f0d7172d",
-    "macos/Larsal": "ff0fca67a1e72c54af5b9b5abc7f48c905bd2f7d",
+    "macos/LarsalTests": "5336a09299d8f035e6c2bdfd55eec3344c000636",
+    "macos/Larsal": "ad157e9ac40172f4f61dab5012c517385b67d176",
     "macos/Larsal.xcodeproj": "ef9b09d7a1febf2ec94fc873dba710a8812134ec",
-    "crates/larsal-ffi/src/session.rs": "3aadf77209d7dda14f3fb665b64d5c0a77621af7",
+    "crates/larsal-ffi/src/session.rs": "287db21a557c3b170c16430f431f8b3b076aa804",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
    "checks": []
   },
   "needs:xctest-nsird": {
-   "review": "m23",
+   "review": "m25",
    "why": "The T72 test that makes this atomic write.",
    "pins": {
-    "macos/LarsalTests": "fdaa21251763d203d279cf60c68fa019f0d7172d"
+    "macos/LarsalTests": "5336a09299d8f035e6c2bdfd55eec3344c000636"
    },
    "checks": []
   },
   "needs:xctest-pasteboard": {
-   "review": "m23",
+   "review": "m25",
    "why": "The tests, the app code they run, the project that names them, session.rs where a session picks its board, and the platform files where general and private are chosen. N1b read these sources; no one reads a later change unless this pin stops it.",
    "pins": {
-    "macos/LarsalTests": "fdaa21251763d203d279cf60c68fa019f0d7172d",
-    "macos/Larsal": "ff0fca67a1e72c54af5b9b5abc7f48c905bd2f7d",
+    "macos/LarsalTests": "5336a09299d8f035e6c2bdfd55eec3344c000636",
+    "macos/Larsal": "ad157e9ac40172f4f61dab5012c517385b67d176",
     "macos/Larsal.xcodeproj": "ef9b09d7a1febf2ec94fc873dba710a8812134ec",
-    "crates/larsal-ffi/src/session.rs": "3aadf77209d7dda14f3fb665b64d5c0a77621af7",
+    "crates/larsal-ffi/src/session.rs": "287db21a557c3b170c16430f431f8b3b076aa804",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
    "checks": []
   },
   "needs:xctest-window": {
-   "review": "m23",
+   "review": "m25",
    "why": "The tests that make real windows, the app code they run, and the project that names them. N1b read these sources. What decides whether key events are posted is pinned too: autotype.rs holds the post flag and autotype_typing.rs sets it and picks the real keyboard or the recorder; instance.rs and lib.rs answer hidden; typing.rs asks before each key; keyboard.rs calls CGEventPost; Cargo.toml holds the build profiles and .cargo/config.toml chooses where crates come from; a line added to either could turn debug assertions off, and hidden() is always false without them. The whole autotype crate is pinned, so a new key event caller there takes the line too. macos/Larsal holds the Swift call.",
    "pins": {
-    "macos/LarsalTests": "fdaa21251763d203d279cf60c68fa019f0d7172d",
-    "macos/Larsal": "ff0fca67a1e72c54af5b9b5abc7f48c905bd2f7d",
+    "macos/LarsalTests": "5336a09299d8f035e6c2bdfd55eec3344c000636",
+    "macos/Larsal": "ad157e9ac40172f4f61dab5012c517385b67d176",
     "macos/Larsal.xcodeproj": "ef9b09d7a1febf2ec94fc873dba710a8812134ec",
     "crates/larsal-ffi/src/autotype.rs": "3f6b84400b2bb6f5025a7af720ea9eaee7d2f962",
     "crates/larsal-ffi/src/autotype_typing.rs": "d4133ad94e3f135724345f83d9921e832dd53c1a",
@@ -414,10 +407,10 @@
    ]
   },
   "sync:larsal-ffi/autotype": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -425,10 +418,10 @@
    ]
   },
   "sync:larsal-ffi/autotype_typing": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -436,10 +429,10 @@
    ]
   },
   "sync:larsal-ffi/clipboard": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -451,10 +444,10 @@
    ]
   },
   "sync:larsal-ffi/edit": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -462,10 +455,10 @@
    ]
   },
   "sync:larsal-ffi/generator": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -477,26 +470,25 @@
    ]
   },
   "sync:larsal-ffi/key_pages": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-"
    ]
   },
   "sync:larsal-ffi/larsal_ffi": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen. device_key.rs holds the one key route this feature row opens SecurityServer for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d",
     "crates/larsal-platform/src/device_key.rs": "2018b2c6e69210d0df704e3b81b245b4dcb4feba"
    },
    "checks": [
-    "class /tmp/larsal-ffi-e7s6-",
     "class larsal-session-",
     "key-route",
     "no-nsapplication",
@@ -504,10 +496,10 @@
    ]
   },
   "sync:larsal-ffi/new_vault": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -515,10 +507,10 @@
    ]
   },
   "sync:larsal-ffi/option_a": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -529,10 +521,10 @@
    ]
   },
   "sync:larsal-ffi/qr": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -540,10 +532,10 @@
    ]
   },
   "sync:larsal-ffi/qr_wipe": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -551,10 +543,10 @@
    ]
   },
   "sync:larsal-ffi/reports": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -562,10 +554,10 @@
    ]
   },
   "sync:larsal-ffi/session": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -576,10 +568,10 @@
    ]
   },
   "sync:larsal-ffi/ssh": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class /tmp/e9s1-",
@@ -587,10 +579,10 @@
    ]
   },
   "sync:larsal-ffi/vault_settings": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -607,34 +599,14 @@
     "class /tmp/larsal-bridge-"
    ]
   },
-  "workspace:larsal-browser/int01": {
-   "review": "F-439",
-   "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
-   "pins": {
-    "crates/larsal-browser": "1d0d0c6ea9205bd088127e8c2d6c147d6bf3091a"
-   },
-   "checks": [
-    "class /tmp/larsal-browser-"
-   ]
-  },
   "workspace:larsal-browser/int01_setup": {
-   "review": "F-439",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-browser": "1d0d0c6ea9205bd088127e8c2d6c147d6bf3091a"
+    "crates/larsal-browser": "2bddd9c9448635f771d547ebb10a74a529421cd5"
    },
    "checks": [
     "class /tmp/larsal-e7s6-"
-   ]
-  },
-  "workspace:larsal-browser/larsal_browser": {
-   "review": "F-439",
-   "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
-   "pins": {
-    "crates/larsal-browser": "1d0d0c6ea9205bd088127e8c2d6c147d6bf3091a"
-   },
-   "checks": [
-    "class /tmp/larsal-browser-"
    ]
   },
   "workspace:larsal-cli/int10": {
@@ -652,10 +624,10 @@
    ]
   },
   "workspace:larsal-ffi/autotype": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -663,10 +635,10 @@
    ]
   },
   "workspace:larsal-ffi/autotype_typing": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -674,10 +646,10 @@
    ]
   },
   "workspace:larsal-ffi/clipboard": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -689,10 +661,10 @@
    ]
   },
   "workspace:larsal-ffi/edit": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -700,10 +672,10 @@
    ]
   },
   "workspace:larsal-ffi/generator": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -715,35 +687,34 @@
    ]
   },
   "workspace:larsal-ffi/key_pages": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-"
    ]
   },
   "workspace:larsal-ffi/larsal_ffi": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
    "checks": [
-    "class /tmp/larsal-ffi-e7s6-",
     "class larsal-session-",
     "no-nsapplication",
     "no-pbcopy"
    ]
   },
   "workspace:larsal-ffi/new_vault": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -751,10 +722,10 @@
    ]
   },
   "workspace:larsal-ffi/option_a": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -765,10 +736,10 @@
    ]
   },
   "workspace:larsal-ffi/qr": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -776,10 +747,10 @@
    ]
   },
   "workspace:larsal-ffi/qr_wipe": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -787,10 +758,10 @@
    ]
   },
   "workspace:larsal-ffi/reports": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -798,10 +769,10 @@
    ]
   },
   "workspace:larsal-ffi/session": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds the test program and session.rs, where new sessions take a private board and shared ones the general board. The two platform files are where the general and private boards are chosen.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018",
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e",
     "crates/larsal-platform/src/clipboard.rs": "7b9cfd1fb2cc01e15dbe37379891de380f8aecc2",
     "crates/larsal-platform/src/macos/pasteboard.rs": "dff2b31a8f8ee7443928274f19108dc25ad72f2d"
    },
@@ -812,10 +783,10 @@
    ]
   },
   "workspace:larsal-ffi/ssh": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class /tmp/e9s1-",
@@ -823,10 +794,10 @@
    ]
   },
   "workspace:larsal-ffi/vault_settings": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds this program and the code that makes the names its finite class or target/tmp line stands for.",
    "pins": {
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "class larsal-session-",
@@ -912,12 +883,12 @@
    ]
   },
   "workspace:larsal-cli/fil02": {
-   "review": "m24",
+   "review": "m25",
    "why": "The owner crate holds fil02.rs, which runs larsal encrypt and decrypt under pty with demo files and its own TMPDIR scratch folders; larsal-files is the code it drives; larsal-ffi is its dev-dependency for the app-path round trip. The cli test starts larsal under pty and sh, which the guard does not reach, so this pin is what holds there.",
    "pins": {
     "crates/larsal-cli": "d9ecc5e451d5db7b7056b442742dfca5aebd2e7e",
     "crates/larsal-files": "d4f4639c7b97abc5f579225f6ed60b817cb31b54",
-    "crates/larsal-ffi": "f12033340c3279468084ec029a46e498fe718018"
+    "crates/larsal-ffi": "3a0f7acaaf5266fa7cb6e85c5c0f635fda38da5e"
    },
    "checks": [
     "no-nsapplication",
