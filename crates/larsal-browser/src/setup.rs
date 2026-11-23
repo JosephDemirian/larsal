@@ -259,13 +259,18 @@ impl Manifests {
     /// `name` is [`HOST`]); another program's file stays (INT-01.10).
     ///
     /// # Errors
-    /// MI01-01 when Larsal's file is there but cannot be removed.
+    /// MI01-01 when Larsal's file is there but cannot be removed, and when
+    /// there is no home folder (nothing is read or removed then).
     pub fn turn_off(&self, browser: Browser) -> Result<(), Trouble> {
+        let failed = || Trouble::not_written(browser, &self.folder(browser));
+        if !self.home.is_absolute() {
+            return Err(failed()); // no home folder: never a path relative to here
+        }
         let file = self.file(browser);
         if ours(&file).is_none() {
             return Ok(());
         }
-        fs::remove_file(&file).map_err(|_| Trouble::not_written(browser, &self.folder(browser)))
+        fs::remove_file(&file).map_err(|_| failed())
     }
 
     /// INT-01.11 with S-BRW-21 on, at start: every file of Larsal's that
@@ -488,6 +493,15 @@ impl Listeners {
     #[must_use]
     pub fn listening(&self) -> (bool, bool) {
         (self.port.is_some(), self.safari.is_some())
+    }
+
+    /// INT-01.46: tells `event` to the bridge-socket sessions whose proven
+    /// identity `to` accepts ([`Server::notify`]); nothing while the bridge
+    /// socket is off, and never on the Safari socket.
+    pub fn notify(&self, event: &str, to: impl Fn(Option<&[u8; 32]>) -> bool) {
+        if let Some(port) = &self.port {
+            port.notify(event, to);
+        }
     }
 
     /// Makes the listeners follow S-BRW-01 (`enabled`) and the Safari

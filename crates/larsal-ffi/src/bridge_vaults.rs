@@ -555,4 +555,133 @@ mod tests {
         assert_eq!(row.host, "github.com");
         assert!(!format!("{q:?}").contains(&user), "{q:?}");
     }
+
+    /// Verify E7-S2 second pass (C2R3-01, F-635): the bridge passes a hidden
+    /// title's mark on to Swift. Verify's probe, now a project test.
+    #[test]
+    fn verify_c2r3_01_the_prompt_row_swift_reads_hides_a_protected_title() {
+        let _turn = turn();
+        let (s, v, _folder) = demo("rows-title");
+        let h = handler(Arc::downgrade(&s));
+        let (vid, id, title) = s
+            .with_edit(v, |vault, _, _, _| {
+                let key = larsal_crypto::base64::encode(larsal_crypto::base64::Form::Padded, &K);
+                let now = crate::views::now();
+                assert!(larsal_core::settings::add_association(
+                    vault,
+                    "demo",
+                    &key,
+                    "2026-11-01T00:00:00Z",
+                    now
+                ));
+                vault.meta.memory_protection.title = true;
+                let e = vault
+                    .root
+                    .all_entries()
+                    .find(|e| e.value("Title") == "GitHub")
+                    .expect("the demo GitHub entry");
+                Ok((
+                    larsal_browser::vault_id(vault),
+                    larsal_browser::entry_id(e.uuid),
+                    e.value("Title").to_owned(),
+                ))
+            })
+            .unwrap();
+        assert_eq!(title, "GitHub");
+        let screen = {
+            let s = s.clone();
+            std::thread::spawn(move || {
+                loop {
+                    if let Some(q) = s.browser_question() {
+                        s.answer_browser_access(q.id, false, Vec::new(), false);
+                        return q;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(2));
+                }
+            })
+        };
+        let got = send(
+            &*h,
+            &Live::default(),
+            "logins.get",
+            &format!(
+                r#","ids":[{{"vault":"{vid}","id":"{id}"}}],"url":"https://example.org/","top_url":"https://example.org/""#
+            ),
+        );
+        assert_eq!(got, Err(6));
+        let q = screen.join().unwrap();
+        assert_eq!(q.kind, "access");
+        let row = &q.rows[0];
+        assert_eq!((row.title.as_str(), row.title_hidden), ("", true));
+        assert!(!row.username_hidden);
+        assert_eq!(row.host, "github.com");
+        assert!(!format!("{q:?}").contains(&title), "{q:?}");
+    }
+
+    fn icons(g: &mut larsal_model::Group, n: i32) {
+        for e in &mut g.entries {
+            e.icon = larsal_model::Icon::Standard(n);
+        }
+        for c in &mut g.groups {
+            icons(c, n);
+        }
+    }
+
+    /// F-635 (C2R3-01): the prompt row Swift reads carries the entry's
+    /// standard icon number (INT-02.18), not a default one.
+    #[test]
+    fn f635_int02_18_the_prompt_row_swift_reads_carries_the_icon_number() {
+        let _turn = turn();
+        let (s, v, _folder) = demo("rows-icon");
+        let h = handler(Arc::downgrade(&s));
+        let (vid, id) = s
+            .with_edit(v, |vault, _, _, _| {
+                let key = larsal_crypto::base64::encode(larsal_crypto::base64::Form::Padded, &K);
+                let now = crate::views::now();
+                assert!(larsal_core::settings::add_association(
+                    vault,
+                    "demo",
+                    &key,
+                    "2026-11-01T00:00:00Z",
+                    now
+                ));
+                icons(&mut vault.root, 42);
+                let e = vault
+                    .root
+                    .all_entries()
+                    .find(|e| e.value("Title") == "GitHub")
+                    .expect("the demo GitHub entry");
+                Ok((
+                    larsal_browser::vault_id(vault),
+                    larsal_browser::entry_id(e.uuid),
+                ))
+            })
+            .unwrap();
+        let screen = {
+            let s = s.clone();
+            std::thread::spawn(move || {
+                loop {
+                    if let Some(q) = s.browser_question() {
+                        s.answer_browser_access(q.id, false, Vec::new(), false);
+                        return q;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(2));
+                }
+            })
+        };
+        let got = send(
+            &*h,
+            &Live::default(),
+            "logins.get",
+            &format!(
+                r#","ids":[{{"vault":"{vid}","id":"{id}"}}],"url":"https://example.org/","top_url":"https://example.org/""#
+            ),
+        );
+        assert_eq!(got, Err(6));
+        let q = screen.join().unwrap();
+        assert_eq!(
+            (q.rows[0].icon, q.rows[0].custom_icon.as_deref()),
+            (42, None)
+        );
+    }
 }

@@ -247,6 +247,12 @@ impl Slot {
     }
 }
 
+/// INT-01.46: the lock or unlock notice of `slot`'s vault while it is open
+/// (`shown` is the session's shown vault).
+fn notice_of(slot: &Slot, shown: Option<u64>) -> Option<crate::browser::Notice> {
+    crate::browser::Notice::of(slot.vault.as_deref()?, shown == Some(slot.id))
+}
+
 fn unix_now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -1011,6 +1017,20 @@ impl Session {
             self.auto_open(id);
             // INT-08.15 step 1.
             self.share_unlocked(id);
+            self.unlocked_notice(id);
+        }
+    }
+
+    /// INT-01.46: tells the browser sessions that may use vault `id`, now
+    /// open, that it unlocked.
+    fn unlocked_notice(&self, id: u64) {
+        let notice = {
+            let state = self.state();
+            let slot = state.slots.iter().find(|s| s.id == id);
+            slot.and_then(|s| notice_of(s, state.shown))
+        };
+        if let Some(n) = notice {
+            n.tell("unlocked");
         }
     }
 
@@ -1048,6 +1068,7 @@ impl Session {
         // APP-06.22 step 8 waited for the key change (F-079).
         self.auto_open(id);
         self.share_unlocked(id);
+        self.unlocked_notice(id);
         Ok(true)
     }
 
@@ -1210,7 +1231,9 @@ impl Session {
         // FIL-02.14: a running file operation stops at its next safe point.
         crate::files::revoke_all(self);
         let mut state = self.state();
+        let shown = state.shown;
         let slot = state.slot(vault)?;
+        let notice = notice_of(slot, shown);
         self.clipboard.clear();
         slot.lock();
         drop(state);
@@ -1219,6 +1242,9 @@ impl Session {
         // SYN-03.4: never a run while locked.
         #[cfg(feature = "sync")]
         self.sync.locked(Some(vault));
+        if let Some(n) = notice {
+            n.tell("locked");
+        }
         Ok(())
     }
 
@@ -1229,6 +1255,12 @@ impl Session {
         // FIL-02.14: a running file operation stops at its next safe point.
         crate::files::revoke_all(self);
         let mut state = self.state();
+        let shown = state.shown;
+        let notices: Vec<_> = state
+            .slots
+            .iter()
+            .filter_map(|s| notice_of(s, shown))
+            .collect();
         self.clipboard.clear();
         for slot in &mut state.slots {
             slot.lock();
@@ -1238,6 +1270,9 @@ impl Session {
         self.autotype_locked(None);
         #[cfg(feature = "sync")]
         self.sync.locked(None);
+        for n in notices {
+            n.tell("locked");
+        }
     }
 
     /// APP-03.12: empties the clipboard if it still holds Larsal's last copy,
@@ -1284,6 +1319,7 @@ impl Session {
             .iter()
             .position(|s| s.id == vault)
             .ok_or(LarsalError::UnknownVault)?;
+        let notice = state.slots.get(at).and_then(|s| notice_of(s, state.shown));
         self.clipboard.clear();
         state.slots.remove(at);
         if state.shown == Some(vault) {
@@ -1296,6 +1332,9 @@ impl Session {
         // SYN-03.4: never a run while locked.
         #[cfg(feature = "sync")]
         self.sync.locked(Some(vault));
+        if let Some(n) = notice {
+            n.tell("locked");
+        }
         Ok(())
     }
 

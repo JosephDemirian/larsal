@@ -17,6 +17,24 @@ struct PlatformTests {
         #expect(FileOpen.paths([URL(string: "https://example.org/")!]).isEmpty)
     }
 
+    @Test("LD-557, D-INT11-1 (a): only app.larsal.desktop://open brings Larsal to the front; other forms do nothing")
+    func onlyTheOpenURLBringsLarsalToFront() {
+        var fronts = 0
+        URLOpen.handle([URL(string: "app.larsal.desktop://open")!]) { fronts += 1 }
+        #expect(fronts == 1)
+        let others = [
+            "app.larsal.desktop://other", "app.larsal.desktop://open/", "app.larsal.desktop://open/vault",
+            "app.larsal.desktop://open?file=/tmp/spec-app09/a.larsalvault", "app.larsal.desktop://open#top",
+            "app.larsal.desktop://user@open", "app.larsal.desktop://open:1", "app.larsal.desktop:open",
+            "larsal://open", "https://open/",
+        ]
+        for text in others {
+            URLOpen.handle([URL(string: text)!]) { fronts += 1 }
+        }
+        URLOpen.handle([URL(fileURLWithPath: "/tmp/spec-app09/a.larsalvault")]) { fronts += 1 }
+        #expect(fronts == 1)
+    }
+
     @Test("APP-09.26-a, AT-E06: a drop opens vault files only")
     func dropsOpenVaultFilesOnly() {
         let other = String([0x6B, 0x64, 0x62, 0x78].map { Character(Unicode.Scalar(UInt8($0))) }).uppercased()

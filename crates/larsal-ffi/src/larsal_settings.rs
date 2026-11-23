@@ -219,6 +219,10 @@ const DEFS: &[Def] = &[
     d("S-BRW-21", "browser.rewrite_manifests", P, Flag(true)),
     d("S-BRW-23", "browser.custom_proxy", P, Flag(false)),
     d("S-BRW-24", "browser.custom_proxy.path", P, Text("")),
+    // INT-01.9, LD-556: debug builds only, the developer extension id the
+    // setup files add (no screen shows it; a release build has no such key).
+    #[cfg(debug_assertions)]
+    d("S-DEBUG-01", "browser.debug_extension_id", P, Text("")),
     // Shortcuts: only values that differ from the default (APP-01.29).
     d("S-KEYS-01", "shortcuts.custom", P, Pairs),
     // SSH Agent.

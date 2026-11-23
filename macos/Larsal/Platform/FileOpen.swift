@@ -22,6 +22,21 @@ enum FileOpen {
     ]
 }
 
+/// LD-557, D-INT11-1 (a): the URL the popup's Open Larsal buttons ask for.
+/// Only `app.larsal.desktop://open` brings Larsal to the front; every other
+/// form (another host, a path, a query, a fragment) does nothing, and no
+/// part of a URL is read. Not called yet: until Info.plist declares the
+/// scheme (a LaunchServices grant), APP-09.25 holds and the app delegate
+/// ignores URL-open events.
+enum URLOpen {
+    static let open = "app.larsal.desktop://open"
+
+    /// `front` is `Front.bring`; tests pass a counter.
+    static func handle(_ urls: [URL], front: () -> Void = { Front.bring() }) {
+        if urls.contains(where: { $0.absoluteString == open }) { front() }
+    }
+}
+
 extension MainWindowModel {
     /// APP-09.23: `paths` open in order once every open asked for before
     /// them is done, so the last one asked for is shown.

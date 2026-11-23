@@ -9,15 +9,22 @@
 //! connect <words>` when the Connect dialog shows and `sessions <n>` when the
 //! number of live sessions changes; standard input takes `allow <id> <name>`
 //! and `deny <id>`, answered on the app's one dialog line as the window's
-//! Connect and Deny buttons answer it. Demo data only; no secret is written:
-//! the words are the dialog's pairing words, the identity a public key.
+//! Connect and Deny buttons answer it, and (LD-611) `open <path> <password>`
+//! (`opened <id>` once the demo vault is open and unlocked in the app's
+//! session, else `open error`), `lock` (every vault, as the Lock command;
+//! `locked`) and `unlock` (the vaults `open` opened, again; `unlocked`, else
+//! `unlock error`). Demo data only; no secret is written: the words are the
+//! dialog's pairing words, the identity a public key, and a demo password
+//! goes into a secret type at once and is never told back.
 
 use crate::instance;
+use crate::session::{Session, UnlockResult};
 use larsal_browser::{Answer, Bridge, Prompts, Question, Request, SharedHandler};
 use larsal_crypto::base64::{self, Form};
+use larsal_crypto::secret::SecretString;
 use larsal_model::json::{Map, Value};
 use std::io::{BufRead, Write};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 /// The switch next to the test instance folder.
@@ -66,12 +73,50 @@ pub fn logged(vaults: Arc<dyn SharedHandler>) -> Arc<dyn SharedHandler> {
     Arc::new(Logged(vaults))
 }
 
-/// One input line answered on `line`; the reply line to write.
-fn answer(line: &Prompts, input: &str) -> String {
+/// The demo vaults `open` opened, each with its demo password, for `unlock`.
+#[derive(Default)]
+struct Opened(Mutex<Vec<(u64, SecretString)>>);
+
+impl Opened {
+    fn all(&self) -> std::sync::MutexGuard<'_, Vec<(u64, SecretString)>> {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// One input line answered on `line` and in `session`; the reply line to
+/// write.
+fn answer(line: &Prompts, session: &Session, opened: &Opened, input: &str) -> String {
+    // A path may hold spaces; a demo password holds none.
+    if let Some((path, password)) = input.strip_prefix("open ").and_then(|r| r.rsplit_once(' ')) {
+        return open(session, opened, path, password);
+    }
     let words: Vec<&str> = input.splitn(3, ' ').collect();
     let (id, given) = match words.as_slice() {
         ["allow", id, name] => (id.parse::<u64>(), Answer::Connect((*name).into())),
         ["deny", id] => (id.parse::<u64>(), Answer::Deny { remember: false }),
+        ["lock"] => {
+            session.lock_all();
+            return "locked".into();
+        }
+        ["unlock"] => {
+            let ids: Vec<u64> = opened
+                .all()
+                .iter()
+                .map(|(id, password)| {
+                    // An open vault answers Ignored and stays open.
+                    let _ = session.unlock(*id, Some(password.expose().to_owned()), None);
+                    *id
+                })
+                .collect();
+            let vaults = session.vaults();
+            let open = |id: &u64| vaults.iter().any(|v| v.id == *id && !v.locked);
+            return if ids.iter().all(open) {
+                "unlocked"
+            } else {
+                "unlock error"
+            }
+            .into();
+        }
         _ => return format!("unknown {input}"),
     };
     match id {
@@ -80,10 +125,33 @@ fn answer(line: &Prompts, input: &str) -> String {
     }
 }
 
+/// `open <path> <password>` (LD-611): opens the demo vault at `path` in
+/// `session` and unlocks it, as the unlock form does.
+fn open(session: &Session, opened: &Opened, path: &str, password: &str) -> String {
+    let password = SecretString::new(password.to_owned());
+    let unlocked = session.open(path.to_owned()).ok().filter(|&id| {
+        let given = Some(password.expose().to_owned());
+        matches!(session.unlock(id, given, None), Ok(UnlockResult::Unlocked))
+    });
+    match unlocked {
+        Some(id) => {
+            opened.all().push((id, password));
+            format!("opened {id}")
+        }
+        None => "open error".into(),
+    }
+}
+
 /// Answers each line of `input` until it ends.
-fn serve(line: &Prompts, input: impl BufRead, out: &dyn Fn(&str)) {
+fn serve(
+    line: &Prompts,
+    session: &Session,
+    opened: &Opened,
+    input: impl BufRead,
+    out: &dyn Fn(&str),
+) {
     for text in input.lines().map_while(Result::ok) {
-        out(&answer(line, &text));
+        out(&answer(line, session, opened, &text));
     }
 }
 
@@ -115,7 +183,10 @@ pub fn start(line: Arc<Prompts>, bridge: Arc<Mutex<Bridge>>) {
             std::thread::sleep(Duration::from_millis(20));
         }
     });
-    std::thread::spawn(move || serve(&line, std::io::stdin().lock(), &say));
+    std::thread::spawn(move || {
+        let (session, opened) = (Session::shared(), Opened::default());
+        serve(&line, &session, &opened, std::io::stdin().lock(), &say);
+    });
 }
 
 /// Told once the sockets follow the settings, as the test Larsal does.
@@ -166,14 +237,15 @@ mod tests {
         );
         assert_eq!(shown(&line, Some(id)), None, "told once");
         let said = Mutex::new(Vec::new());
-        let input = format!("lock\nallow x Chrome\nallow {id} Work Chrome\n");
-        serve(&line, input.as_bytes(), &|l| {
+        let (session, opened) = (Session::new(), Opened::default());
+        let input = format!("hello\nallow x Chrome\nallow {id} Work Chrome\n");
+        serve(&line, &session, &opened, input.as_bytes(), &|l| {
             said.lock().unwrap().push(l.to_owned())
         });
         assert_eq!(
             *said.lock().unwrap(),
             [
-                "unknown lock".to_owned(),
+                "unknown hello".to_owned(),
                 "unknown allow x Chrome".to_owned(),
                 format!("answered {id} true"),
             ]
@@ -197,7 +269,7 @@ mod tests {
             std::thread::sleep(Duration::from_millis(5));
         };
         assert_eq!(
-            answer(&line, &format!("deny {id}")),
+            answer(&line, &session, &opened, &format!("deny {id}")),
             format!("answered {id} true")
         );
         assert_eq!(
@@ -212,5 +284,81 @@ mod tests {
     fn ld556_the_seam_is_off_without_its_switch() {
         assert!(std::env::var_os(LINES_VARIABLE).is_none());
         assert!(!on());
+    }
+
+    /// LD-610 (lead ruling 7): the seam's own switch does nothing in a
+    /// launch not started by a test (no `LARSAL_TEST_INSTANCE_DIR`); with
+    /// both, it is on.
+    #[test]
+    fn ld610_the_seam_needs_a_launch_started_by_a_test() {
+        const NAME: &str = "browser_seam::tests::ld610_the_seam_needs_a_launch_started_by_a_test";
+        const WANT: &str = "LARSAL_TEST_SEAM_WANT";
+        if let Some(want) = std::env::var_os(WANT) {
+            // The child of the run below: its environment is the case.
+            assert_eq!(on(), want == "on");
+            return;
+        }
+        // A test may not set a variable (no unsafe code), so each case runs
+        // in a child of this test program.
+        let dir = crate::test_dir::TempDir::new("e7s6-seam-gate");
+        for (started_by_test, want) in [(false, "off"), (true, "on")] {
+            let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+            child
+                .args(["--exact", NAME, "--test-threads=1"])
+                .env(LINES_VARIABLE, "1")
+                .env(WANT, want)
+                .env_remove(instance::TEST_DIR_VARIABLE);
+            if started_by_test {
+                child.env(instance::TEST_DIR_VARIABLE, &*dir);
+            }
+            let out = child.output().unwrap();
+            let text = String::from_utf8_lossy(&out.stdout);
+            assert!(out.status.success(), "{want}: {text}");
+            assert!(
+                text.contains("1 passed"),
+                "{want}: the child ran no test: {text}"
+            );
+        }
+    }
+
+    /// LD-611 (lead ruling 6 (c)): `open <path> <password>` (the path may
+    /// hold a space) opens and unlocks a demo vault in the session, `lock`
+    /// locks every vault and `unlock` unlocks again those `open` opened; a
+    /// vault that does not unlock is `open error`, and no reply holds the
+    /// password.
+    #[test]
+    fn ld611_the_seam_opens_locks_and_unlocks_a_demo_vault() {
+        let dir = crate::test_dir::TempDir::new("e7s6-seam-open");
+        let demo = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../testdata/option-a-personal.larsalvault");
+        std::fs::create_dir(dir.join("with space")).unwrap();
+        let good = dir.join("with space/demo-vault.larsalvault");
+        let other = dir.join("other.larsalvault");
+        for path in [&good, &other] {
+            std::fs::copy(&demo, path).unwrap();
+        }
+        let session = Session::new();
+        let line = Prompts::new(Arc::new(Instant::now), Box::new(|| {}));
+        let opened = Opened::default();
+        let say = |input: &str| answer(&line, &session, &opened, input);
+        let locked = || {
+            session
+                .vaults()
+                .iter()
+                .map(|v| v.locked)
+                .collect::<Vec<_>>()
+        };
+        let reply = say(&format!("open {} demo-pass-7", good.display()));
+        assert!(reply.starts_with("opened "), "{reply}");
+        assert_eq!(locked(), [false]);
+        assert_eq!(say("lock"), "locked");
+        assert_eq!(locked(), [true]);
+        assert_eq!(say("unlock"), "unlocked");
+        assert_eq!(locked(), [false]);
+        let wrong = say(&format!("open {} not-the-demo-pass", other.display()));
+        assert_eq!(wrong, "open error");
+        assert_eq!(say("open"), "unknown open");
+        assert_eq!(say("lock now"), "unknown lock now");
+        assert_eq!(say("unlock"), "unlocked", "only the vaults open opened");
     }
 }

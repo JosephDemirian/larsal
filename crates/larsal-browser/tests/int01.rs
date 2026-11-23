@@ -57,7 +57,25 @@ impl Handler for Demo {
 
 static FOLDERS: AtomicU64 = AtomicU64::new(0);
 
-/// Both sockets over one bridge, in a fresh folder under /tmp.
+/// A fresh owner-only folder `larsal-browser-‹pid›-‹name›` for one test's
+/// sockets: in the run's own temp folder when that is a folder under /tmp,
+/// as a guarded run's is, else in /tmp itself (the per-user temp folder's
+/// long path leaves no room for a socket name).
+fn test_folder(name: &str) -> PathBuf {
+    let own = std::env::temp_dir();
+    let root = if own.starts_with("/private/tmp") && own.components().count() > 3 {
+        own
+    } else {
+        PathBuf::from("/tmp")
+    };
+    let dir = root.join(format!("larsal-browser-{}-{name}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir(&dir).unwrap();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    dir
+}
+
+/// Both sockets over one bridge, in a fresh folder (`test_folder`).
 struct Fixture {
     dir: PathBuf,
     bridge: Arc<Mutex<Bridge>>,
@@ -70,10 +88,7 @@ struct Fixture {
 impl Fixture {
     fn new() -> Self {
         let n = FOLDERS.fetch_add(1, Ordering::SeqCst);
-        let dir = PathBuf::from(format!("/tmp/larsal-browser-{}-{n}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir(&dir).unwrap();
-        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let dir = test_folder(&n.to_string());
         let seen = Seen::default();
         let bridge = Arc::new(Mutex::new(Bridge::new("1.0", Box::new(Demo(seen.clone())))));
         let minutes = Arc::new(AtomicU64::new(0));
@@ -1681,16 +1696,46 @@ impl SharedHandler for Waits {
     }
 }
 
-fn waiting_port(handler: Arc<Waits>) -> (PathBuf, Server) {
+/// The server of [`waiting_port`] with its folder, which goes when this is
+/// dropped, a failed test's too, so no empty folder is left (lead ruling 4).
+struct Waiting {
+    dir: PathBuf,
+    server: Option<Server>,
+}
+
+impl Drop for Waiting {
+    fn drop(&mut self) {
+        drop(self.server.take());
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+fn waiting_port(handler: Arc<Waits>) -> (PathBuf, Waiting) {
     let n = FOLDERS.fetch_add(1, Ordering::SeqCst);
-    let dir = PathBuf::from(format!("/tmp/larsal-browser-{}-w{n}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir(&dir).unwrap();
-    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let dir = test_folder(&format!("w{n}"));
     let bridge = Arc::new(Mutex::new(Bridge::shared("1.0", handler)));
     let path = dir.join("p.sock");
     let server = Server::start(&path, Route::Port, bridge, clock(&Arc::default())).unwrap();
-    (path, server)
+    let server = Some(server);
+    (path, Waiting { dir, server })
+}
+
+/// INT-01.10, lead ruling 4 (E7-S6): `waiting_port`'s folder goes with its
+/// server, also when the test fails before its end, so no empty
+/// `larsal-browser-‹pid›-w‹n›` folder is left.
+#[test]
+fn int01_10_waiting_port_leaves_no_folder_even_when_its_test_fails() {
+    let (path, server) = waiting_port(Arc::default());
+    let dir = path.parent().unwrap().to_owned();
+    assert!(dir.is_dir());
+    drop(server);
+    assert!(!dir.exists(), "{dir:?} is left");
+    let failed = std::panic::catch_unwind(|| {
+        let (path, _server) = waiting_port(Arc::default());
+        std::panic::panic_any(path.parent().unwrap().to_owned());
+    });
+    let dir = failed.unwrap_err().downcast::<PathBuf>().unwrap();
+    assert!(!dir.exists(), "{dir:?} is left after a failed test");
 }
 
 /// T59 INT-01.44: 8 requests of one session run at once; the 9th gets a
@@ -1728,7 +1773,6 @@ fn t59_int01_44_the_9th_request_in_flight_gets_42_while_8_wait() {
         assert_eq!(reply.get("type").and_then(Value::as_str), Some("box"));
     }
     drop(server);
-    let _ = std::fs::remove_dir_all(path.parent().unwrap());
 }
 
 /// T31 INT-01.20, INT-01.45: a second hello on the connection ends the
@@ -1763,5 +1807,4 @@ fn t31_int01_45_a_new_hello_ends_the_waiting_request_without_a_reply() {
         .unwrap();
     assert!(read_frame(stream).is_none());
     drop(server);
-    let _ = std::fs::remove_dir_all(path.parent().unwrap());
 }

@@ -100,9 +100,10 @@ impl std::fmt::Debug for Server {
 }
 
 impl Server {
-    /// Listens on `socket` for `route`. The folder must exist and belong to
-    /// the user; a leftover file of the socket's name is removed only when
-    /// it is a socket of the user (INT-01.6).
+    /// Listens on `socket` for `route`. The folder must exist, belong to
+    /// the user and be writable by no one else; a leftover file of the
+    /// socket's name is removed only when it is a socket of the user
+    /// (INT-01.6).
     ///
     /// # Errors
     /// `InvalidInput` for a path over [`MAX_SOCKET_PATH`] bytes;
@@ -162,14 +163,14 @@ impl Server {
             .parent()
             .ok_or_else(|| io::Error::new(ErrorKind::InvalidInput, "no folder"))?;
         let meta = std::fs::symlink_metadata(folder)?;
-        if !meta.is_dir() || meta.uid() != own {
+        if !meta.is_dir() || meta.uid() != own || meta.mode() & 0o022 != 0 {
             return Err(io::Error::new(
                 ErrorKind::PermissionDenied,
                 "the folder is not the user's",
             ));
         }
         if let Ok(old) = std::fs::symlink_metadata(socket) {
-            if !old.file_type().is_socket() || old.uid() != own {
+            if !leftover_is_ours(&old, own) {
                 return Err(io::Error::new(
                     ErrorKind::AlreadyExists,
                     "something else is there",
@@ -253,6 +254,12 @@ impl Drop for Server {
             self.shutdown();
         }
     }
+}
+
+/// INT-01.6: a leftover file at the socket's path may be removed only when
+/// it is a socket (never a link to one) owned by `own`.
+fn leftover_is_ours(old: &std::fs::Metadata, own: u32) -> bool {
+    old.file_type().is_socket() && old.uid() == own
 }
 
 fn accept_loop(shared: &Arc<Shared>, listener: &UnixListener) {
@@ -401,13 +408,21 @@ mod tests {
         }
     }
 
-    /// A fresh owner-only folder under /tmp, removed when dropped
-    /// (INT-01.10: never the owner's Library).
+    /// A fresh owner-only folder, removed when dropped (INT-01.10: never the
+    /// owner's Library): in the run's own temp folder when that is a folder
+    /// under /tmp, as a guarded run's is, else in /tmp itself (the per-user
+    /// temp folder's long path leaves no room for a socket name).
     struct Folder(PathBuf);
 
     impl Folder {
         fn new(name: &str) -> Self {
-            let dir = PathBuf::from(format!("/tmp/larsal-browser-{name}-{}", std::process::id()));
+            let own = std::env::temp_dir();
+            let root = if own.starts_with("/private/tmp") && own.components().count() > 3 {
+                own
+            } else {
+                PathBuf::from("/tmp")
+            };
+            let dir = root.join(format!("larsal-browser-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir(&dir).unwrap();
             std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -467,6 +482,23 @@ mod tests {
         assert_eq!(hello(&path), None);
         assert_eq!(bridge.lock().unwrap().sessions(), 0);
         server.stop();
+    }
+
+    /// INT-01.6: a leftover socket of another user, or a link to a socket
+    /// of this user, is in the way; only this user's own socket is removed.
+    /// The run with a real second user is W-08's.
+    #[test]
+    fn int01_6_a_leftover_of_another_user_or_a_link_stays() {
+        let dir = Folder::new("leftover-owner");
+        let path = dir.0.join("left.sock");
+        drop(UnixListener::bind(&path).unwrap());
+        let link = dir.0.join("link.sock");
+        std::os::unix::fs::symlink(&path, &link).unwrap();
+        let own = larsal_platform::macos::effective_uid();
+        let meta = |p: &Path| std::fs::symlink_metadata(p).unwrap();
+        assert!(leftover_is_ours(&meta(&path), own));
+        assert!(!leftover_is_ours(&meta(&path), own.wrapping_add(1)));
+        assert!(!leftover_is_ours(&meta(&link), own));
     }
 
     /// INT-01.6: the real peer check (`getpeereid`) reads this user's id

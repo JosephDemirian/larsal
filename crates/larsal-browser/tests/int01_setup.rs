@@ -28,14 +28,22 @@ use std::time::{Duration, Instant};
 
 static FOLDERS: AtomicU64 = AtomicU64::new(0);
 
-/// A fresh owner-only folder under /tmp, removed when dropped (also after
-/// a test made parts of it read-only).
+/// A fresh owner-only folder, removed when dropped (also after a test made
+/// parts of it read-only): in the run's own temp folder when that is a
+/// folder under /tmp, as a guarded run's is (a short name, so the group
+/// socket's path stays within 103 bytes), else in /tmp itself (the per-user
+/// temp folder's long path leaves no room for a socket name).
 struct Folder(PathBuf);
 
 impl Folder {
     fn new() -> Self {
         let n = FOLDERS.fetch_add(1, Ordering::SeqCst);
-        let dir = PathBuf::from(format!("/tmp/larsal-e7s6-{}-{n}", std::process::id()));
+        let (own, pid) = (std::env::temp_dir(), std::process::id());
+        let dir = if own.starts_with("/private/tmp") && own.components().count() > 3 {
+            own.join(format!("e7s6-{pid}-{n}"))
+        } else {
+            PathBuf::from(format!("/tmp/larsal-e7s6-{pid}-{n}"))
+        };
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir(&dir).unwrap();
         fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
@@ -322,6 +330,29 @@ fn int01_10_no_home_folder_writes_nothing() {
     let m = Manifests::new(Path::new(""), &h.program, &[], ADDON_ID);
     assert_eq!(m.turn_on(Browser::Chrome).unwrap_err().id, "MI01-01");
     assert!(!Path::new("Library").exists());
+}
+
+/// INT-01.10 (lead ruling 4): turning a browser off with no home folder, or
+/// one that is not absolute, is MI01-01 and reads and removes nothing, not
+/// even Larsal's own file at that path relative to the current folder.
+#[test]
+fn int01_10_off_with_a_home_that_is_not_absolute_removes_nothing() {
+    let h = Home::new();
+    h.manifests().turn_on(Browser::Chrome).unwrap();
+    let file = h.manifests().file(Browser::Chrome);
+    // The test home again, as a path relative to the current folder.
+    let up = std::env::current_dir().unwrap().components().count() - 1;
+    let home = h.home();
+    let relative = PathBuf::from("../".repeat(up)).join(home.strip_prefix("/").unwrap());
+    assert!(relative.is_relative() && fs::metadata(relative.join("Library")).is_ok());
+    for home in [Path::new(""), relative.as_path()] {
+        let m = Manifests::new(home, &h.program, &[ID_A, ID_B], ADDON_ID);
+        assert_eq!(m.turn_off(Browser::Chrome).unwrap_err().id, "MI01-01");
+    }
+    assert!(
+        file.is_file(),
+        "Larsal's own file went through a relative home"
+    );
 }
 
 /// T23 INT-01.11 (S-BRW-21 on): a file that names an old copy of Larsal is
@@ -644,6 +675,30 @@ fn int01_6_a_planted_link_is_in_the_way() {
     assert_eq!(l.apply(true, false).len(), 1);
     assert_eq!(l.listening(), (false, false));
     assert_eq!(fs::read_dir(&real).unwrap().count(), 0);
+}
+
+/// INT-01.6 and INT-01.13: the socket's folder is the user's alone (mode
+/// 0700, as the OS makes the temp folder and Larsal makes the group folder): a
+/// folder that others may write into is in the way (MI01-06, no listener),
+/// since anyone who can write there could put a socket of theirs in Larsal's
+/// place.
+#[test]
+fn int01_6_a_folder_others_may_write_is_in_the_way() {
+    let s = Sockets::new();
+    fs::create_dir(&s.group).unwrap();
+    for folder in [&s.temp, &s.group] {
+        fs::set_permissions(folder, fs::Permissions::from_mode(0o777)).unwrap();
+    }
+    let mut l = s.listeners(true, reader(true, Arc::default()));
+    let trouble = l.apply(true, true);
+    assert_eq!(trouble.len(), 2, "{trouble:?}");
+    assert!(trouble.iter().all(|t| t.id == "MI01-06"), "{trouble:?}");
+    assert_eq!(l.listening(), (false, false));
+    for folder in [&s.temp, &s.group] {
+        fs::set_permissions(folder, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    assert!(l.apply(true, true).is_empty());
+    assert_eq!(l.listening(), (true, true));
 }
 
 /// INT-01.14: turning the Safari switch off ends the Safari sessions: a
