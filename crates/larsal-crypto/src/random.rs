@@ -13,6 +13,13 @@
 use crate::{Error, secret::SecretBytes};
 use getrandom::SysRng;
 use rand_core::TryCryptoRng;
+/// The draw trait, for the failing sources ssh.rs's tests build (E24-S2).
+#[cfg(test)]
+pub(crate) use rand_core::TryRng as TryDraw;
+/// `rand_core`'s traits under this module's names, for the code that takes a
+/// source made here (ssh.rs's key generation, E24-S2), so no other file names
+/// a random source (AT-B04).
+pub(crate) use rand_core::{CryptoRng as Source, TryCryptoRng as TrySource};
 
 /// How many draws [`below`] makes before it gives up. One draw is rejected
 /// with a chance under 1/2, so a working source passes all of these with a
@@ -176,6 +183,95 @@ impl rand_core::TryRng for Prepared {
 
 impl TryCryptoRng for Prepared {}
 
+/// The OS source for a crate whose key maker takes only a generator that
+/// cannot fail (ssh-key's, New SSH Key, INT-06.E24.02).
+///
+/// Guarantees: while the source works, every byte served came from it. The
+/// first failed draw marks it failed; from then on it serves filler bytes
+/// from a counter that changes with every request, so a search for a valid
+/// value (a scalar below the curve order, a prime) still ends, and the
+/// caller must throw the result away: [`Unfailing::failed`] says whether any
+/// draw failed. Nothing made after a failure is ever used.
+pub(crate) struct Unfailing<R> {
+    source: R,
+    failed: bool,
+    counter: u64,
+}
+
+/// [`Unfailing`] over the OS source.
+pub(crate) fn os_unfailing() -> Unfailing<SysRng> {
+    Unfailing::new(SysRng)
+}
+
+#[cfg(feature = "test-random")]
+static OS_SOURCE_DOWN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Test seam for the callers' failure paths (E24-S2, Checker 1 C1-F4):
+/// while `down` is set, every draw an [`Unfailing`] makes from its source
+/// fails, as a broken OS source would. Returns the earlier state. Only the
+/// `test-random` feature has it, which only dev-dependencies turn on: never
+/// a product build.
+#[cfg(feature = "test-random")]
+pub fn test_os_source_down(down: bool) -> bool {
+    OS_SOURCE_DOWN.swap(down, std::sync::atomic::Ordering::SeqCst)
+}
+
+#[cfg(feature = "test-random")]
+fn os_source_down() -> bool {
+    OS_SOURCE_DOWN.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[cfg(not(feature = "test-random"))]
+const fn os_source_down() -> bool {
+    false
+}
+
+impl<R: TryCryptoRng> Unfailing<R> {
+    pub(crate) fn new(source: R) -> Self {
+        Self {
+            source,
+            failed: false,
+            counter: 0,
+        }
+    }
+
+    /// True when a draw failed: everything made with this generator goes.
+    pub(crate) fn failed(&self) -> bool {
+        self.failed
+    }
+}
+
+impl<R: TryCryptoRng> rand_core::TryRng for Unfailing<R> {
+    type Error = core::convert::Infallible;
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        let mut b = [0u8; 4];
+        self.try_fill_bytes(&mut b)?;
+        Ok(u32::from_le_bytes(b))
+    }
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        let mut b = [0u8; 8];
+        self.try_fill_bytes(&mut b)?;
+        Ok(u64::from_le_bytes(b))
+    }
+    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+        if !self.failed && (os_source_down() || self.source.try_fill_bytes(dst).is_err()) {
+            self.failed = true;
+        }
+        if self.failed {
+            for chunk in dst.chunks_mut(8) {
+                self.counter = self.counter.wrapping_add(1);
+                let bytes = self.counter.to_le_bytes();
+                for (d, s) in chunk.iter_mut().zip(bytes) {
+                    *d = s;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<R: TryCryptoRng> TryCryptoRng for Unfailing<R> {}
+
 // Rule 4 is about input handling; this test code counts and computes bounds.
 #[cfg(test)]
 #[allow(clippy::arithmetic_side_effects)]
@@ -241,6 +337,25 @@ mod tests {
     /// 2^32 mod n, computed the slow obvious way.
     fn rem(n: u32) -> u32 {
         u32::try_from((1u64 << 32) % u64::from(n)).unwrap()
+    }
+
+    /// E24-S02: a failed draw marks the generator failed for good, and the
+    /// filler changes with every request (so a search for a valid value ends).
+    #[test]
+    fn e24_s02_unfailing_marks_a_failed_draw_and_never_serves_it_as_random() {
+        let mut ok = os_unfailing();
+        let (mut a, mut b) = ([0u8; 32], [0u8; 32]);
+        ok.try_fill_bytes(&mut a).unwrap();
+        ok.try_fill_bytes(&mut b).unwrap();
+        assert!(!ok.failed());
+        assert_ne!(a, b);
+        let mut down = Unfailing::new(Broken::default());
+        down.try_fill_bytes(&mut a).unwrap();
+        down.try_fill_bytes(&mut b).unwrap();
+        assert!(down.failed());
+        assert_eq!(down.source.0, 1, "no draw after the first failure");
+        assert_ne!(a, b, "the filler changes");
+        assert_ne!(down.try_next_u32().unwrap(), down.try_next_u32().unwrap());
     }
 
     #[test]

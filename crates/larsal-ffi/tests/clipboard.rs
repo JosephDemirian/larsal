@@ -406,3 +406,31 @@ fn at_e03_copy_code_and_fingerprint_refuse_hostile_arguments() {
     }
     assert_eq!(pasted(&session).as_deref(), Some("user text"));
 }
+
+/// E24-S05: Copy Public Key puts the new key's public line, exactly, on the
+/// (private) pasteboard under APP-03's rules; no private marker is in it;
+/// nothing is copied before the call; an entry without a key has nothing.
+#[test]
+fn e24_s05_copy_public_key_copies_the_exact_public_line() {
+    use larsal_ffi::edit::SshKeyKind;
+    let (session, id) = unlocked();
+    session.begin_edit(id, hex(MAIL)).unwrap();
+    let view = session
+        .new_ssh_key(id, SshKeyKind::EcdsaP384, "demo@larsal".into())
+        .unwrap();
+    assert_eq!(pasted(&session), None, "nothing copied by making the key");
+    let answer = session.copy_ssh_public_key(id, hex(MAIL)).unwrap();
+    assert_eq!(answer, copied("Public key"));
+    let text = pasted(&session).unwrap();
+    assert_eq!(text, view.public_key);
+    assert!(text.starts_with("ecdsa-sha2-nistp384 ") && text.ends_with(" demo@larsal"));
+    assert!(!text.contains("PRIVATE") && !text.contains('\n'));
+    assert_eq!(
+        session.copy_ssh_public_key(id, hex(EMPTY)),
+        Err(LarsalError::UnknownField)
+    );
+    assert_eq!(
+        session.copy_ssh_public_key(id, "+".repeat(32)),
+        Err(LarsalError::UnknownEntry)
+    );
+}

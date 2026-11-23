@@ -72,6 +72,7 @@
 				MainWindowModel.swift,
 				Menus.swift,
 				MenuBarIcon.swift,
+				NewSshKey.swift,
 				NewVaultCredentials.swift,
 				NewVaultModel.swift,
 				NewVaultParts.swift,

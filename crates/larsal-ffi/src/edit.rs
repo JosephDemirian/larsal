@@ -25,7 +25,7 @@ use crate::session::{LarsalError, MAX_TEXT, Session};
 use crate::views::{
     AttachmentView, Copied, FAVORITE, PASSKEY, PasskeyView, Rated, Rating, SshKeyView, TotpView,
     count, custom_icon_name, find, hex, icon_number, is_protected, is_totp_field, now, parse_id,
-    passkey, plain_in, ssh_key, ssh_type, totp_of, unix,
+    passkey, plain_in, ssh_key, totp_of, unix,
 };
 use larsal_core::health::{Level, entry_bits, score};
 use larsal_core::storage::{self, Checksum};
@@ -40,6 +40,13 @@ use larsal_model::entry::{Field, STANDARD_FIELDS};
 use larsal_model::{Entry, Group, Icon, Time, Uuid, Vault, json};
 use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
+
+// E24-S2: New SSH Key, on the open draft (edit/ssh_new.rs).
+mod ssh_new;
+pub use ssh_new::{
+    MSG_SSH_COMMENT, MSG_SSH_FAILED, MSG_SSH_HAS_KEY, MSG_SSH_RANDOM, MSG_SSH_STALE, NewSshKeyView,
+    SshKeyKind,
+};
 
 /// The name prefix of the additional URL fields (MOD-01.8, INT-03).
 const EXTRA_URL: &str = "KP2A_URL";
@@ -312,6 +319,45 @@ struct Draft {
     /// History items marked for deletion (MOD-03.13), by position.
     marked: Vec<usize>,
     all_marked: bool,
+    /// The draft's revision (E24-S2, INT-06.E24.06): unique in the
+    /// process, new for each draft and moved by every change to it (any
+    /// field, an attachment added, removed or renamed, any setting:
+    /// [`DraftMut`]), so a key made for one revision never joins another.
+    revision: u64,
+}
+
+/// Draft revisions, unique in the process.
+static REVISIONS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+impl Draft {
+    /// A revision no draft had before.
+    fn next_revision() -> u64 {
+        REVISIONS.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// The draft changed: its revision moves.
+    fn touch(&mut self) {
+        self.revision = Self::next_revision();
+    }
+}
+
+/// The open draft as [`Session::with_draft`] hands it out: reading it keeps
+/// its revision, any mutable use moves it (INT-06.E24.06).
+struct DraftMut<'a>(&'a mut Draft);
+
+impl std::ops::Deref for DraftMut<'_> {
+    type Target = Draft;
+
+    fn deref(&self) -> &Draft {
+        self.0
+    }
+}
+
+impl std::ops::DerefMut for DraftMut<'_> {
+    fn deref_mut(&mut self) -> &mut Draft {
+        self.0.touch();
+        self.0
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -959,13 +1005,7 @@ fn view(vault: &Vault, d: &Draft) -> EditorView {
         }),
         passkey: passkey(vault, e),
         ssh: ssh_key(e),
-        ssh_public_key: ssh_key(e).and_then(|_| {
-            e.attachments.iter().find_map(|a| {
-                let text = std::str::from_utf8(a.data.expose()).ok()?;
-                (ssh_type(a.data.expose()).is_some() && text.len() <= 16 * 1024)
-                    .then(|| text.lines().next().unwrap_or("").to_owned())
-            })
-        }),
+        ssh_public_key: crate::views::ssh_public_line(e),
         auto_type: AutoTypeView {
             enabled: e.auto_type.enabled,
             sequence: e.auto_type.default_sequence.clone(),
@@ -1300,18 +1340,19 @@ impl EditState {
 
 impl Session {
     /// Runs `f` on the open draft of vault `vault`; the vault only reads,
-    /// so it is not a change (F-167).
+    /// so it is not a change (F-167). A mutable use of the draft moves its
+    /// revision ([`DraftMut`]).
     fn with_draft<R>(
         &self,
         vault: u64,
-        f: impl FnOnce(&Vault, &mut Draft) -> Result<R, LarsalError>,
+        f: impl FnOnce(&Vault, &mut DraftMut<'_>) -> Result<R, LarsalError>,
     ) -> Result<R, LarsalError> {
         self.with_draft_state(vault, |v, state| {
             let d = state
                 .draft
                 .as_mut()
                 .ok_or_else(|| LarsalError::Refused("The editor is not open.".to_owned()))?;
-            f(v, d)
+            f(v, &mut DraftMut(d))
         })
     }
 
@@ -1339,6 +1380,102 @@ fn forget_all(rated: &mut Rated, ids: &[Uuid]) {
     for id in ids {
         rated.forget(*id);
     }
+}
+
+/// Writes `data` as `file` into `folder` (made when missing), 0600, in one
+/// step without following a link; `false`, writing nothing, when that file
+/// exists and `overwrite` is off (MOD-05.14; New SSH Key's Save Public Key).
+pub(crate) fn save_named(
+    name: &str,
+    file: &str,
+    folder: &str,
+    data: &[u8],
+    overwrite: bool,
+) -> Result<bool, LarsalError> {
+    let failed =
+        |e: std::io::Error| LarsalError::Refused(format!("“{name}” could not be saved: {e}."));
+    std::fs::create_dir_all(folder).map_err(failed)?;
+    let path = Path::new(folder).join(file);
+    if !overwrite && std::fs::symlink_metadata(&path).is_ok() {
+        return Ok(false);
+    }
+    storage::write_export(&path, data).map_err(failed)?;
+    Ok(true)
+}
+
+/// The body of [`Session::commit_edit`] under the session lock, shared with
+/// New SSH Key (E24-S2), which commits its key in the same edit session.
+fn commit_draft(
+    v: &mut Vault,
+    rated: &mut Rated,
+    state: &mut EditState,
+) -> Result<String, LarsalError> {
+    let d = state
+        .draft
+        .as_mut()
+        .ok_or_else(|| LarsalError::Refused("The editor is not open.".to_owned()))?;
+    for name in ["Title", "UserName", "URL"] {
+        let value = d.entry.value(name);
+        if value.contains(['\r', '\n']) {
+            let line = edit::screen_line(value);
+            let protected = d.entry.field(name).is_some_and(|f| f.protected);
+            d.entry.set_field(
+                name.to_owned(),
+                Field {
+                    value: SecretString::new(line),
+                    protected,
+                },
+            );
+            // A change to the open draft: if the commit fails below, the
+            // draft keeps this line under a new revision (INT-06.E24.06).
+            d.touch();
+        }
+    }
+    let at = now();
+    let id = d.entry.uuid;
+    let changed = if d.original.is_none() {
+        let e = d.entry.duplicate(false);
+        let id = edit::add_entry(v, d.group, e, at).map_err(|e| refused(&e))?;
+        // `add_entry` starts with no expiry and the expiry time at
+        // creation; the editor's is kept only when Expires is on
+        // (MOD-09.10), so the time stays the creation time when it
+        // is off (MOD-01.25, MOD-09.1).
+        let (expires, expiry) = (d.entry.times.expires, d.entry.times.expiry);
+        if expires {
+            edit::change_entry(v, id, at, |e| {
+                (e.times.expires, e.times.expiry) = (expires, expiry)
+            })
+            .map_err(|e| refused(&e))?;
+        }
+        d.entry.uuid = id;
+        true
+    } else {
+        let marks = if d.all_marked {
+            Some(history::Delete::All)
+        } else if d.marked.is_empty() {
+            None
+        } else {
+            Some(history::Delete::Items(d.marked.clone()))
+        };
+        let mut changed = false;
+        if let Some(m) = marks {
+            changed |= history::delete_items(v, id, &m, at).map_err(|e| refused(&e))?;
+        }
+        let next = d.entry.duplicate(false);
+        changed |= edit::edit_entry(v, id, at, |e| *e = next).map_err(|e| refused(&e))?;
+        if holder(v, id).is_some_and(|g| g.uuid != d.group) {
+            changed |= edit::move_entries(v, &[id], d.group, at).map_err(|e| refused(&e))? > 0;
+        }
+        changed
+    };
+    let id = d.entry.uuid;
+    state.draft = None;
+    state.opened.clear();
+    if changed {
+        state.changes = state.changes.saturating_add(1);
+        rated.forget(id);
+    }
+    Ok(hex(id))
 }
 
 impl Session {
@@ -1390,6 +1527,7 @@ impl Session {
                 group,
                 marked: Vec::new(),
                 all_marked: false,
+                revision: Draft::next_revision(),
             };
             let out = view(v, &d);
             // A new edit: copies opened from the last one go (MOD-05.12).
@@ -1432,6 +1570,7 @@ impl Session {
                 group,
                 marked: Vec::new(),
                 all_marked: false,
+                revision: Draft::next_revision(),
             };
             let out = view(v, &d);
             state.opened.clear();
@@ -1886,6 +2025,7 @@ impl Session {
             if attachments::remove(&mut d.entry, &[name.as_str()]) == 0 {
                 return Err(LarsalError::UnknownField);
             }
+            d.touch();
             // MOD-05.11: its open copy is wiped and removed.
             if let Some(i) = s.opened.0.iter().position(|(n, ..)| *n == name) {
                 let (_, copy, _) = s.opened.0.remove(i);
@@ -1928,15 +2068,7 @@ impl Session {
                 .map(|a| Arc::clone(&a.data))
                 .ok_or(LarsalError::UnknownField)
         })?;
-        let failed =
-            |e: std::io::Error| LarsalError::Refused(format!("“{name}” could not be saved: {e}."));
-        std::fs::create_dir_all(&folder).map_err(failed)?;
-        let path = Path::new(&folder).join(&file);
-        if !overwrite && std::fs::symlink_metadata(&path).is_ok() {
-            return Ok(false);
-        }
-        storage::write_export(&path, data.expose()).map_err(failed)?;
-        Ok(true)
+        save_named(&name, &file, &folder, data.expose(), overwrite)
     }
 
     /// Deletes custom data item `key` (MOD-01.20; the screen asked).
@@ -2227,72 +2359,7 @@ impl Session {
     /// `Refused` with the core's reason (the draft stays open), or when no
     /// editor is open.
     pub fn commit_edit(&self, vault: u64) -> Result<String, LarsalError> {
-        self.with_edit(vault, |v, _, rated, state| {
-            let d = state
-                .draft
-                .as_mut()
-                .ok_or_else(|| LarsalError::Refused("The editor is not open.".to_owned()))?;
-            for name in ["Title", "UserName", "URL"] {
-                let value = d.entry.value(name);
-                if value.contains(['\r', '\n']) {
-                    let line = edit::screen_line(value);
-                    let protected = d.entry.field(name).is_some_and(|f| f.protected);
-                    d.entry.set_field(
-                        name.to_owned(),
-                        Field {
-                            value: SecretString::new(line),
-                            protected,
-                        },
-                    );
-                }
-            }
-            let at = now();
-            let id = d.entry.uuid;
-            let changed = if d.original.is_none() {
-                let e = d.entry.duplicate(false);
-                let id = edit::add_entry(v, d.group, e, at).map_err(|e| refused(&e))?;
-                // `add_entry` starts with no expiry and the expiry time at
-                // creation; the editor's is kept only when Expires is on
-                // (MOD-09.10), so the time stays the creation time when it
-                // is off (MOD-01.25, MOD-09.1).
-                let (expires, expiry) = (d.entry.times.expires, d.entry.times.expiry);
-                if expires {
-                    edit::change_entry(v, id, at, |e| {
-                        (e.times.expires, e.times.expiry) = (expires, expiry)
-                    })
-                    .map_err(|e| refused(&e))?;
-                }
-                d.entry.uuid = id;
-                true
-            } else {
-                let marks = if d.all_marked {
-                    Some(history::Delete::All)
-                } else if d.marked.is_empty() {
-                    None
-                } else {
-                    Some(history::Delete::Items(d.marked.clone()))
-                };
-                let mut changed = false;
-                if let Some(m) = marks {
-                    changed |= history::delete_items(v, id, &m, at).map_err(|e| refused(&e))?;
-                }
-                let next = d.entry.duplicate(false);
-                changed |= edit::edit_entry(v, id, at, |e| *e = next).map_err(|e| refused(&e))?;
-                if holder(v, id).is_some_and(|g| g.uuid != d.group) {
-                    changed |=
-                        edit::move_entries(v, &[id], d.group, at).map_err(|e| refused(&e))? > 0;
-                }
-                changed
-            };
-            let id = d.entry.uuid;
-            state.draft = None;
-            state.opened.clear();
-            if changed {
-                state.changes = state.changes.saturating_add(1);
-                rated.forget(id);
-            }
-            Ok(hex(id))
-        })
+        self.with_edit(vault, |v, _, rated, state| commit_draft(v, rated, state))
     }
 
     /// Cancel (MOD-01.25): the draft goes; nothing changed.
@@ -2574,6 +2641,7 @@ impl Session {
                 let a = attachments::prepare(v, &d.entry, &name, data, &limits)
                     .map_err(|e| refused(&e))?;
                 attachments::put(&mut d.entry, a);
+                d.touch();
             }
             if let Some(copy) = s.opened.0.iter_mut().find(|(n, ..)| *n == name) {
                 copy.2 = sum;

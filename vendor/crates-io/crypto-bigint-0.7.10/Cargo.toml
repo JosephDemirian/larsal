@@ -62,7 +62,7 @@ rustdoc-args = [
 extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
 
 [features]
-alloc = ["serdect?/alloc"]
+alloc = []
 default = ["rand_core"]
 der = [
     "dep:der",

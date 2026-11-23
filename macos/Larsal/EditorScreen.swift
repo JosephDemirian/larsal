@@ -113,7 +113,7 @@ struct EditorScreen: View {
         case .icon: IconPage(editor: editor)
         case .autoType: AutoTypePage(editor: editor)
         case .browser: BrowserPage(editor: editor)
-        case .ssh: SshPage(editor: editor)
+        case .ssh: SshPage(model: model, editor: editor)
         case .properties: PropertiesPage(model: model, editor: editor)
         case .history: HistoryPage(model: model, editor: editor)
         }

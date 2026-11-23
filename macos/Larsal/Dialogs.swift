@@ -133,6 +133,9 @@ struct DialogView: View {
         case .preview(let name, let preview): PreviewSheet(model: model, name: name, preview: preview)
         case .export(let step): ExportSheet(model: model, step: step)
         case .approveShare(let label): ApproveShareSheet(model: model, label: label)
+        case .newSshKey: NewSshKeySheet(model: model)
+        case .sshKeySaved(let key, let line): SshKeySavedSheet(model: model, key: key, line: line)
+        case .sshKeyNotSaved(let key, let line): SshKeyNotSavedSheet(model: model, key: key, line: line)
         case .leaveEditor:
             // LD-199 (2): the unsaved-changes question (mockup `closeUnsaved`).
             DialogCard(

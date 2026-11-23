@@ -128,6 +128,7 @@ struct BrowserPage: View {
 /// The SSH Agent page (INT-06): the key's public parts from the entry's
 /// attachments; the agent settings come with E9-S2.
 struct SshPage: View {
+    let model: VaultModel
     let editor: EditorModel
 
     var body: some View {
@@ -163,6 +164,7 @@ struct SshPage: View {
                 Choice(isOn: false, title: "From a file on this Mac", note: "~/.ssh/id_ed25519", mono: true) {}
                     .later(Later.sshAgent)
             }
+            if view.ssh == nil { NewSshKeyButton(model: model).padding(.top, 12) }
             if let key = view.ssh {
                 let parts = (view.sshPublicKey ?? "").split(separator: " ", maxSplits: 2).map(String.init)
                 VStack(alignment: .leading, spacing: 10) {
@@ -245,10 +247,6 @@ struct SshPage: View {
             .later(Later.sshAgent)
             .padding(.top, 12)
         }
-    }
-
-    static func breakAnywhere(_ text: String) -> String {
-        text.map { String($0) + "\u{200B}" }.joined()
     }
 
     private func keyValue<Value: View>(_ key: String, @ViewBuilder value: () -> Value) -> some View {

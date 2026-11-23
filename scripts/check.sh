@@ -211,9 +211,13 @@ audit_copies() {
   grep -q '^name = ' "$lock" || { echo "no path copies found in vendor/"; return 1; }
   cargo audit -n -f "$lock"
 }
+# RUSTSEC-2023-0071 (rsa, Marvin timing, no fixed release): Larsal only makes
+# RSA keys, no RSA decryption or signing (E24-S2; deny.toml ignores it with
+# the same reason). cargo audit reads an ignore list only from an audit.toml,
+# which the guarded route refuses, so the two runs over Cargo.lock name it.
 audit() {
-  run audit cargo audit -n
-  run audit-fuzz cargo audit -n -f fuzz/Cargo.lock  # F-114
+  run audit cargo audit -n --ignore RUSTSEC-2023-0071
+  run audit-fuzz cargo audit -n --ignore RUSTSEC-2023-0071 -f fuzz/Cargo.lock  # F-114
   run audit-copies audit_copies                       # F-113
 }
 # Target names only in the list log; stderr joins it only when the command fails.

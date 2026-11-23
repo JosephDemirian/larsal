@@ -673,26 +673,64 @@ pub(crate) fn ssh_type(data: &[u8]) -> Option<(&'static str, &'static str)> {
     })
 }
 
-/// The first attachment that holds an OpenSSH public key line: a known key
-/// type, then base64 of a key blob that starts with the same type name,
-/// length-prefixed (RFC 4253 section 6.6).
-pub(crate) fn ssh_key(e: &Entry) -> Option<SshKeyView> {
+/// An entry's SSH public key: the first attachment that holds an OpenSSH
+/// public key line, a known key type, then base64 of a key blob that starts
+/// with the same type name, length-prefixed (RFC 4253 section 6.6). One pick
+/// for everything SSH shows (INT-06.E24.05): the detail's and the editor's
+/// fingerprint, the editor's public line, Copy Public Key, Save Public Key and
+/// New SSH Key's refusal. Public.
+pub(crate) struct SshPublic<'a> {
+    /// The attachment that holds the line.
+    pub(crate) name: &'a str,
+    label: &'static str,
+    blob: Vec<u8>,
+    /// That blob in OpenSSH form with the line's own comment (what follows
+    /// the base64 on its line), without a line end; `None` past 16 KiB.
+    pub(crate) line: Option<String>,
+}
+
+/// See [`SshPublic`].
+pub(crate) fn ssh_public(e: &Entry) -> Option<SshPublic<'_>> {
+    use larsal_format::document::encode::{base64_decode, base64_encode};
     e.attachments.iter().find_map(|a| {
         let data = a.data.expose();
         let (name, label) = ssh_type(data)?;
         let text = std::str::from_utf8(data).ok()?;
-        let blob = larsal_format::document::encode::base64_decode(text.split_whitespace().nth(1)?);
+        let rest = text[name.len()..].trim_start();
+        let (token, after) = rest.split_at(rest.find(char::is_whitespace).unwrap_or(rest.len()));
+        let blob = base64_decode(token);
         let len = u32::try_from(name.len()).ok()?.to_be_bytes();
         if blob.get(..4) != Some(&len[..]) || blob.get(4..4 + name.len()) != Some(name.as_bytes()) {
             return None;
         }
-        let hash = larsal_crypto::hash::sha256(&[&blob]);
-        let encoded = larsal_format::document::encode::base64_encode(hash.expose());
-        Some(SshKeyView {
-            kind: label.to_owned(),
-            fingerprint: format!("SHA256:{}", encoded.trim_end_matches('=')),
+        let comment = after.lines().next().unwrap_or("").trim();
+        let line = match comment {
+            "" => format!("{name} {}", base64_encode(&blob)),
+            _ => format!("{name} {} {comment}", base64_encode(&blob)),
+        };
+        Some(SshPublic {
+            name: &a.name,
+            label,
+            blob,
+            line: Some(line).filter(|l| l.len() <= 16 * 1024),
         })
     })
+}
+
+/// The key [`ssh_public`] picks: its type and SHA-256 fingerprint.
+pub(crate) fn ssh_key(e: &Entry) -> Option<SshKeyView> {
+    let key = ssh_public(e)?;
+    let hash = larsal_crypto::hash::sha256(&[&key.blob]);
+    let encoded = larsal_format::document::encode::base64_encode(hash.expose());
+    Some(SshKeyView {
+        kind: key.label.to_owned(),
+        fingerprint: format!("SHA256:{}", encoded.trim_end_matches('=')),
+    })
+}
+
+/// That key's public line (see [`SshPublic::line`]). Public.
+pub(crate) fn ssh_public_line(e: &Entry) -> Option<String> {
+    ssh_public(e)?.line
 }
 
 /// The fields that hold one-time password settings are there (rows; the

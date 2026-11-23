@@ -13,6 +13,9 @@
 //! empties both at lock; [`OwnAgent`] is Larsal's own agent for keys that ask
 //! before each use, asking through an [`Asker`] before every signature.
 //!
+//! E24-S2: [`new_key_files`] are what New SSH Key adds to an entry, and
+//! [`new_key_blocked`] names what stands in its way.
+//!
 //! Every failure is an [`Error`] that maps to one of the card's messages
 //! ([`messages`]); none holds a secret.
 #![forbid(unsafe_code)]
@@ -32,6 +35,7 @@ mod entry;
 mod key;
 mod keyring;
 pub mod messages;
+mod new_key;
 mod server;
 mod settings;
 
@@ -42,6 +46,7 @@ pub use entry::{EntryKey, Step, has_ssh_key, key_path, unlock_plan};
 pub use key::{MAX_KEY_SIZE, MAX_ROUNDS, SshKey};
 pub use keyring::{Keyring, Leaving, Place, Refused, Session};
 pub use larsal_crypto::ssh::AgentKey;
+pub use new_key::{new_key_blocked, new_key_files};
 pub use server::{
     Asker, IDLE, MAX_CLIENTS, Options, OwnAgent, QUESTION_TIME, Question, known_host_name,
     setup_line,

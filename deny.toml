@@ -17,6 +17,14 @@ ignore = [
     # 0.16.1 (the latest) needs it for its "config" feature, which
     # uniffi_bindgen 0.32.2 turns on. Remove when UniFFI moves off it.
     { id = "RUSTSEC-2026-0374", reason = "build-time only, in the UniFFI bindings generator; no maintained release to move to (E5-S1)" },
+    # E24-S2: the Marvin timing attack on RSA private-key operations (decryption
+    # and signing) observed over a network; no version of rsa is patched. Larsal
+    # uses rsa only to make new RSA SSH keys (larsal-crypto ssh.rs, through
+    # ssh-key): no RSA decryption or signing runs in Larsal; signing stays in the
+    # agent E9 adds the key to. E24-S3 rules again before Larsal's own agent
+    # signs with RSA (a local socket of the same user). Round 2 (2026-11-20): the
+    # advisory copy still lists 0.10.0-rc.18, the shipped version, as affected.
+    { id = "RUSTSEC-2023-0071", reason = "rsa makes keys only (E24-S2): no RSA decryption or signing in Larsal; E24-S3 rules again before signing" },
 ]
 
 [licenses]
@@ -141,6 +149,16 @@ deny = [
     { crate = "rfc6979", deny-multiple-versions = true },
     { crate = "sec1", deny-multiple-versions = true },
     { crate = "ssh-key", deny-multiple-versions = true },
+    # E24-S2 (INT-06.E24.01): New SSH Key's P-384, P-521 and RSA keys, made only
+    # through ssh-key's own types in larsal-crypto ssh.rs.
+    { crate = "p384", deny-multiple-versions = true },
+    { crate = "p521", deny-multiple-versions = true },
+    { crate = "rsa", deny-multiple-versions = true },
+    { crate = "crypto-primes", deny-multiple-versions = true },
+    { crate = "p384", wrappers = ["ssh-key", "larsal-crypto"], reason = "New SSH Key only, through ssh-key in larsal-crypto (E24-S2)" },
+    { crate = "p521", wrappers = ["ssh-key", "larsal-crypto"], reason = "New SSH Key only, through ssh-key in larsal-crypto (E24-S2)" },
+    { crate = "rsa", wrappers = ["ssh-key", "larsal-crypto"], reason = "New SSH Key only, through ssh-key in larsal-crypto (E24-S2)" },
+    { crate = "crypto-primes", wrappers = ["rsa"], reason = "RSA primes for New SSH Key only (E24-S2)" },
     { crate = "ssh-cipher", deny-multiple-versions = true },
     { crate = "ssh-encoding", deny-multiple-versions = true },
     { crate = "ring", deny-multiple-versions = true },

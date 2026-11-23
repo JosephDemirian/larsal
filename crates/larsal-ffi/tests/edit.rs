@@ -821,3 +821,473 @@ fn mod_09_1_a_new_entry_without_expiry_keeps_the_creation_time() {
         "expiry time is the creation time"
     );
 }
+
+// ------------------------------------------------- New SSH Key (E24-S2)
+
+use larsal_ffi::edit::{NewSshKeyView, SshKeyKind};
+use std::os::unix::fs::PermissionsExt;
+
+const KINDS: [(SshKeyKind, &str, &str, &str); 6] = [
+    (SshKeyKind::Ed25519, "ED25519", "ssh-ed25519", "id_ed25519"),
+    (
+        SshKeyKind::EcdsaP256,
+        "ECDSA P-256",
+        "ecdsa-sha2-nistp256",
+        "id_ecdsa",
+    ),
+    (
+        SshKeyKind::EcdsaP384,
+        "ECDSA P-384",
+        "ecdsa-sha2-nistp384",
+        "id_ecdsa",
+    ),
+    (
+        SshKeyKind::EcdsaP521,
+        "ECDSA P-521",
+        "ecdsa-sha2-nistp521",
+        "id_ecdsa",
+    ),
+    (SshKeyKind::Rsa3072, "RSA 3072", "ssh-rsa", "id_rsa"),
+    (SshKeyKind::Rsa4096, "RSA 4096", "ssh-rsa", "id_rsa"),
+];
+
+/// The vault at `path` as the file holds it, read in memory only.
+fn on_disk(path: &std::path::Path) -> larsal_model::Vault {
+    let p = larsal_crypto::secret::SecretString::new("demo-pass-7".into());
+    let c = larsal_format::keys::Credentials {
+        password: Some(&p),
+        ..Default::default()
+    };
+    let mut host = larsal_crypto::kdf::Host {
+        physical_memory: 8 << 30,
+        logical_processors: 4,
+        argon2_record: None,
+        aes_record: None,
+    };
+    let bytes = std::fs::read(path).unwrap();
+    let limits = larsal_format::limits::Limits::DEFAULT;
+    match larsal_format::open(&bytes, &c, &mut host, &limits, None).unwrap() {
+        larsal_format::Opened::Vault(o) => o.vault,
+        larsal_format::Opened::Ask(_) => panic!("no ask"),
+    }
+}
+
+fn stored_entry(v: &larsal_model::Vault, id: &str) -> larsal_model::Entry {
+    let hex = |u: &larsal_model::Uuid| u.0.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    v.root
+        .all_entries()
+        .find(|e| hex(&e.uuid) == id)
+        .unwrap_or_else(|| panic!("{id}"))
+        .duplicate(false)
+}
+
+/// No file in `dir` holds a private key in the clear (INT-06.E24.04).
+fn no_private_file(dir: &std::path::Path) {
+    for f in std::fs::read_dir(dir).unwrap() {
+        let p = f.unwrap().path();
+        if p.is_file() {
+            let bytes = std::fs::read(&p).unwrap();
+            assert!(
+                !bytes.windows(11).any(|w| w == b"PRIVATE KEY"),
+                "{} holds a private key",
+                p.display()
+            );
+        }
+    }
+}
+
+/// E24-S01, E24-S04, E24-S05: every kind New SSH Key offers, on a blank
+/// editor: committed with the entry, saved in the vault as one-key
+/// openssh-key-v1 inside the encryption, its public parts in the answer, the
+/// detail and the `.pub` attachment; no private key file anywhere.
+#[test]
+fn e24_s01_s04_each_kind_on_a_blank_editor_is_committed_and_saved_in_the_vault() {
+    let (s, v, path) = personal("e24-kinds");
+    let mut made: Vec<(NewSshKeyView, &str, &str)> = Vec::new();
+    for (kind, label, algorithm, file) in KINDS {
+        s.begin_new(v, None).unwrap();
+        s.set_text(v, EditText::Title, format!("Key {label}"))
+            .unwrap();
+        let before = s.save_status(v).unwrap().changes;
+        let view = s.new_ssh_key(v, kind, "demo@larsal".into()).unwrap();
+        assert!(!s.has_draft(v), "committed: the editor closed");
+        assert_eq!(s.save_status(v).unwrap().changes, before + 1);
+        assert_eq!(view.kind, label);
+        assert_eq!(view.attachment, file);
+        assert!(view.fingerprint.starts_with("SHA256:"));
+        assert_eq!(view.fingerprint.len(), 7 + 43);
+        let parts: Vec<&str> = view.public_key.split(' ').collect();
+        assert_eq!((parts[0], parts.len()), (algorithm, 3));
+        assert_eq!(parts[2], "demo@larsal");
+        assert!(!format!("{view:?}").contains("PRIVATE"));
+        let detail = s.entry(v, view.entry.clone()).unwrap();
+        assert_eq!(detail.title, format!("Key {label}"));
+        assert_eq!(detail.ssh.unwrap().fingerprint, view.fingerprint);
+        made.push((view, algorithm, file));
+    }
+    let status = s.save(v).unwrap();
+    assert_eq!((status.changes, status.failure), (0, None));
+    let disk = on_disk(&path);
+    for (view, algorithm, file) in &made {
+        let e = stored_entry(&disk, &view.entry);
+        let names: Vec<&str> = e.attachments.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(names.len(), 3, "{names:?}");
+        let public_name = format!("{file}.pub");
+        assert!(names.contains(file) && names.contains(&public_name.as_str()));
+        let private = e.attachments.iter().find(|a| a.name == *file).unwrap();
+        let key = larsal_crypto::ssh::OpenSshKey::parse(private.data.expose()).unwrap();
+        assert_eq!(key.algorithm(), *algorithm);
+        assert!(!key.is_encrypted(), "inside the vault's encryption only");
+        assert_eq!(key.fingerprint(), view.fingerprint);
+        assert_eq!(key.public_line(), view.public_key);
+        let public = e
+            .attachments
+            .iter()
+            .find(|a| a.name == public_name)
+            .unwrap();
+        assert_eq!(
+            public.data.expose(),
+            format!("{}\n", view.public_key).as_bytes()
+        );
+        let settings = larsal_sshagent::Settings::of(&e).unwrap().unwrap();
+        assert_eq!(settings.attachment_name, *file);
+        assert!(
+            larsal_sshagent::has_ssh_key(&disk, &e).is_some(),
+            "E9 finds it"
+        );
+    }
+    no_private_file(path.parent().unwrap());
+}
+
+/// E24-S03: the comment is kept exactly or refused with its labelled error
+/// before any key is made; a blank comment is blank, never the protected
+/// user name or anything else of the entry.
+#[test]
+fn e24_s03_the_comment_is_exact_or_refused_never_the_user_name() {
+    let (s, v, path) = personal("e24-comment");
+    s.begin_new(v, None).unwrap();
+    s.set_text(v, EditText::UserName, "demo-user".into())
+        .unwrap();
+    s.set_text(v, EditText::Title, "Blank comment".into())
+        .unwrap();
+    let long = "a".repeat(257);
+    for bad in ["two\nlines", "tab\t", "rlo\u{202E}x", long.as_str()] {
+        assert_eq!(
+            s.new_ssh_key(v, SshKeyKind::Ed25519, bad.into()),
+            Err(LarsalError::Refused(
+                larsal_ffi::edit::MSG_SSH_COMMENT.into()
+            )),
+            "{bad:?}"
+        );
+        assert!(s.has_draft(v) && s.editor(v).unwrap().attachments.is_empty());
+    }
+    let blank = s
+        .new_ssh_key(v, SshKeyKind::Ed25519, String::new())
+        .unwrap();
+    assert_eq!(
+        blank.public_key.split(' ').count(),
+        2,
+        "{}",
+        blank.public_key
+    );
+    assert!(!blank.public_key.contains("demo-user"));
+    s.begin_new(v, None).unwrap();
+    let label = "Développement · 鍵 🔑";
+    let kept = s
+        .new_ssh_key(v, SshKeyKind::EcdsaP256, label.into())
+        .unwrap();
+    assert!(kept.public_key.ends_with(&format!(" {label}")));
+    assert_eq!(s.save(v).unwrap().failure, None);
+    let disk = on_disk(&path);
+    for (view, comment) in [(&blank, ""), (&kept, label)] {
+        let e = stored_entry(&disk, &view.entry);
+        let a = e
+            .attachments
+            .iter()
+            .find(|a| a.name == view.attachment)
+            .unwrap();
+        let key = larsal_crypto::ssh::OpenSshKey::parse(a.data.expose()).unwrap();
+        assert_eq!(key.comment(), Some(comment));
+    }
+}
+
+/// E24-S04: a key never replaces an attachment or SSH settings by name; the
+/// refusal comes before any key is made and leaves the draft as it was.
+#[test]
+fn e24_s04_a_name_in_the_way_or_a_key_already_there_is_refused() {
+    let (s, v, _) = personal("e24-collide");
+    let github = entry_id(&s, v, "GitHub");
+    s.begin_edit(v, github.clone()).unwrap();
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("edit-tests/e24-collide-src");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("id_ed25519"), b"demo text, not a key\n").unwrap();
+    s.attach_file(v, dir.join("id_ed25519").to_string_lossy().into_owned())
+        .unwrap();
+    let before = s.editor(v).unwrap().attachments;
+    let refused = s.new_ssh_key(v, SshKeyKind::Ed25519, String::new());
+    assert!(
+        matches!(&refused, Err(LarsalError::Refused(t)) if t.contains("“id_ed25519”")),
+        "{refused:?}"
+    );
+    assert_eq!(s.editor(v).unwrap().attachments, before, "nothing replaced");
+    // Another type's names are free: the key joins, the demo file stays.
+    let ecdsa = s
+        .new_ssh_key(v, SshKeyKind::EcdsaP256, String::new())
+        .unwrap();
+    s.begin_edit(v, github.clone()).unwrap();
+    let names: Vec<String> = s
+        .editor(v)
+        .unwrap()
+        .attachments
+        .into_iter()
+        .map(|a| a.name)
+        .collect();
+    assert!(names.contains(&"id_ed25519".to_owned()) && names.contains(&"id_ecdsa".to_owned()));
+    // The entry now has SSH settings: no second key, of any type.
+    for kind in [SshKeyKind::Rsa3072, SshKeyKind::EcdsaP256] {
+        assert_eq!(
+            s.new_ssh_key(v, kind, String::new()),
+            Err(LarsalError::Refused(
+                larsal_ffi::edit::MSG_SSH_HAS_KEY.into()
+            ))
+        );
+    }
+    let shown = s.entry(v, github).unwrap().ssh.unwrap();
+    assert_eq!(shown.fingerprint, ecdsa.fingerprint);
+}
+
+/// E24-S04 (lead ruling (5), APP-05): a save that fails leaves the vault file
+/// as it was, byte for byte, keeps the key in the open vault as an unsaved
+/// change and reports it; the next save writes it.
+#[test]
+fn e24_s04_a_failed_save_leaves_the_file_unchanged_and_reports_unsaved() {
+    let (_, _, path) = personal("e24-disk");
+    let lockdir = path.parent().unwrap().join("e24-disk-ro");
+    let _ = std::fs::set_permissions(&lockdir, std::fs::Permissions::from_mode(0o700));
+    let _ = std::fs::remove_dir_all(&lockdir);
+    std::fs::create_dir_all(&lockdir).unwrap();
+    let moved = lockdir.join("Personal.larsalvault");
+    std::fs::rename(&path, &moved).unwrap();
+    let s = Session::new();
+    let w = s.open(moved.to_string_lossy().into_owned()).unwrap();
+    s.unlock(w, Some("demo-pass-7".into()), None).unwrap();
+    let wise = entry_id(&s, w, "Wise");
+    s.begin_edit(w, wise.clone()).unwrap();
+    let view = s
+        .new_ssh_key(w, SshKeyKind::Ed25519, String::new())
+        .unwrap();
+    let file = std::fs::read(&moved).unwrap();
+    // A folder the save cannot write into (the file is replaced in one step).
+    std::fs::set_permissions(&lockdir, std::fs::Permissions::from_mode(0o500)).unwrap();
+    let status = s.save(w).unwrap();
+    std::fs::set_permissions(&lockdir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(status.failure.is_some(), "{status:?}");
+    assert_eq!(status.changes, 1, "reported unsaved");
+    assert_eq!(
+        std::fs::read(&moved).unwrap(),
+        file,
+        "the vault file, byte for byte"
+    );
+    let open = s.entry(w, wise.clone()).unwrap();
+    assert_eq!(
+        open.ssh.map(|k| k.fingerprint),
+        Some(view.fingerprint.clone()),
+        "the key stays in the open vault"
+    );
+    assert!(open.attachments.iter().any(|a| a.name == "id_ed25519"));
+    let saved = stored_entry(&on_disk(&moved), &wise);
+    assert!(
+        !saved.attachments.iter().any(|a| a.name.starts_with("id_")),
+        "the file is unchanged"
+    );
+    assert_eq!(s.save(w).unwrap().failure, None);
+    let saved = stored_entry(&on_disk(&moved), &wise);
+    assert!(saved.attachments.iter().any(|a| a.name == "id_ed25519"));
+    no_private_file(&lockdir);
+}
+
+/// E24-S05: Save Public Key writes the public line only, 0600, asks before
+/// replacing a file, and the file stays after the vault locks.
+#[test]
+fn e24_s05_save_public_key_writes_the_public_line_and_asks_before_replacing() {
+    let (s, v, path) = personal("e24-pub");
+    s.begin_new(v, None).unwrap();
+    let view = s
+        .new_ssh_key(v, SshKeyKind::Rsa3072, "demo@larsal".into())
+        .unwrap();
+    let folder = path.parent().unwrap().join("e24-pub-out");
+    let _ = std::fs::remove_dir_all(&folder);
+    let f = folder.to_string_lossy().into_owned();
+    let save = |overwrite| s.save_ssh_public_key(v, view.entry.clone(), f.clone(), overwrite);
+    assert_eq!(save(false), Ok(true));
+    let file = folder.join("id_rsa.pub");
+    let line = format!("{}\n", view.public_key);
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), line);
+    let mode = std::fs::metadata(&file).unwrap().permissions().mode();
+    assert_eq!(mode & 0o777, 0o600);
+    assert_eq!(
+        std::fs::read_dir(&folder).unwrap().count(),
+        1,
+        "the public file only"
+    );
+    assert_eq!(save(false), Ok(false), "asks first");
+    std::fs::write(&file, b"other\n").unwrap();
+    assert_eq!(save(true), Ok(true));
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), line);
+    let other = entry_id(&s, v, "Wise");
+    assert_eq!(
+        s.save_ssh_public_key(v, other, f.clone(), false),
+        Err(LarsalError::UnknownField)
+    );
+    s.lock(v).unwrap();
+    assert!(file.exists(), "a saved public file stays after the lock");
+    no_private_file(&folder);
+}
+
+/// E24-S05, Checker 1 (C1-F1), lead ruling (1): an attachment that starts
+/// like a public line but holds no key blob. The editor shows New SSH Key on
+/// that entry; after the key is made, the detail, the editor public line and
+/// Save Public Key (Copy reads the same line) all show the new key.
+#[test]
+fn e24_s05_c1_public_line_after_new_key_on_an_entry_with_a_broken_public_line() {
+    let (s, v, path) = personal("c1-e24-broken-line");
+    let wise = entry_id(&s, v, "Wise");
+    s.begin_edit(v, wise.clone()).unwrap();
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("edit-tests/c1-e24-broken-src");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("notes.txt"),
+        "ssh-ed25519 is the key type the demo server wants\n",
+    )
+    .unwrap();
+    s.attach_file(v, dir.join("notes.txt").to_string_lossy().into_owned())
+        .unwrap();
+    let before = s.editor(v).unwrap();
+    assert!(
+        before.ssh.is_none(),
+        "the editor shows New SSH Key on this entry (EditorMorePages.swift:167)"
+    );
+    let view = s
+        .new_ssh_key(v, SshKeyKind::Ed25519, "c1@new".into())
+        .unwrap();
+    let detail = s.entry(v, wise.clone()).unwrap();
+    let folder = path.parent().unwrap().join("c1-e24-broken-pub-out");
+    let _ = std::fs::remove_dir_all(&folder);
+    let saved = s.save_ssh_public_key(
+        v,
+        view.entry.clone(),
+        folder.to_string_lossy().into_owned(),
+        false,
+    );
+    let names: Vec<String> = std::fs::read_dir(&folder)
+        .map(|d| {
+            d.map(|f| f.unwrap().file_name().to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default();
+    let reopened = s.begin_edit(v, wise.clone()).unwrap();
+    s.cancel_edit(v).unwrap();
+    assert_eq!(
+        detail.ssh.map(|k| k.fingerprint),
+        Some(view.fingerprint.clone()),
+        "the detail shows the new key"
+    );
+    assert_eq!(
+        reopened.ssh_public_key,
+        Some(view.public_key.clone()),
+        "the editor shows the new key"
+    );
+    assert!(
+        names.contains(&"id_ed25519.pub".to_owned()),
+        "Save Public Key writes the new key file: {names:?}"
+    );
+    assert_eq!((saved, names.len()), (Ok(true), 1), "{names:?}");
+    assert_eq!(
+        std::fs::read_to_string(folder.join("id_ed25519.pub")).unwrap(),
+        format!("{}\n", view.public_key)
+    );
+}
+
+/// E24-S04, E24-S05, Checker 1 (C1-F1), lead ruling (1): an entry whose
+/// draft holds another public line under another name shows that key, so
+/// the editor hides New SSH Key; the Rust call refuses as well, with nothing
+/// changed, and the public line is that key with its own comment.
+#[test]
+fn e24_s04_s05_c1_new_key_on_an_entry_with_another_public_line_is_refused() {
+    let (s, v, path) = personal("c1-e24-other-line");
+    let wise = entry_id(&s, v, "Wise");
+    s.begin_edit(v, wise.clone()).unwrap();
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("edit-tests/c1-e24-src");
+    std::fs::create_dir_all(&dir).unwrap();
+    let other = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBcFDq2T71wERCeKk/6BZCGHILdNQmAt+6GVCObXA9mG other@host\n";
+    std::fs::write(dir.join("authorized_keys"), other).unwrap();
+    s.attach_file(
+        v,
+        dir.join("authorized_keys").to_string_lossy().into_owned(),
+    )
+    .unwrap();
+    let before = s.editor(v).unwrap();
+    assert!(before.ssh.is_some(), "the editor hides New SSH Key");
+    assert_eq!(
+        before.ssh_public_key.as_deref(),
+        Some(other.trim_end()),
+        "the line of the key shown, with its own comment"
+    );
+    for kind in [SshKeyKind::EcdsaP256, SshKeyKind::Ed25519] {
+        assert_eq!(
+            s.new_ssh_key(v, kind, "c1@new".into()),
+            Err(LarsalError::Refused(
+                larsal_ffi::edit::MSG_SSH_HAS_KEY.into()
+            ))
+        );
+    }
+    let after = s.editor(v).unwrap();
+    assert_eq!(after.attachments, before.attachments, "nothing changed");
+    assert_eq!(after.ssh_public_key, before.ssh_public_key);
+    assert!(s.has_draft(v), "the editor stays open");
+    assert_eq!(s.save_status(v).unwrap().changes, 0);
+    s.commit_edit(v).unwrap();
+    let folder = path.parent().unwrap().join("c1-e24-other-pub-out");
+    let _ = std::fs::remove_dir_all(&folder);
+    let f = folder.to_string_lossy().into_owned();
+    assert_eq!(s.save_ssh_public_key(v, wise, f, false), Ok(true));
+    assert_eq!(
+        std::fs::read_to_string(folder.join("authorized_keys.pub")).unwrap(),
+        other,
+        "Save Public Key writes that line under that key name with .pub"
+    );
+}
+
+/// E24-S05 (lead ruling (1), INT-06.E24.05): the public line, Copy Public
+/// Key and Save Public Key give the key the editor shows, in OpenSSH form
+/// with its own comment, never the attachment's text: its extra spaces, its
+/// carriage return and its second line stay out.
+#[test]
+fn e24_s05_the_public_line_is_the_shown_key_never_the_attachment_text() {
+    let (s, v, path) = personal("e24-shown-line");
+    let wise = entry_id(&s, v, "Wise");
+    s.begin_edit(v, wise.clone()).unwrap();
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("edit-tests/e24-shown-line-src");
+    std::fs::create_dir_all(&dir).unwrap();
+    let blob = "AAAAC3NzaC1lZDI1NTE5AAAAIBcFDq2T71wERCeKk/6BZCGHILdNQmAt+6GVCObXA9mG";
+    let text =
+        format!("ssh-ed25519  {blob}   other@host  \r\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5 second\n");
+    std::fs::write(dir.join("authorized_keys"), &text).unwrap();
+    s.attach_file(
+        v,
+        dir.join("authorized_keys").to_string_lossy().into_owned(),
+    )
+    .unwrap();
+    let line = format!("ssh-ed25519 {blob} other@host");
+    assert_eq!(s.editor(v).unwrap().ssh_public_key, Some(line.clone()));
+    s.commit_edit(v).unwrap();
+    let folder = path.parent().unwrap().join("e24-shown-line-out");
+    let _ = std::fs::remove_dir_all(&folder);
+    let f = folder.to_string_lossy().into_owned();
+    assert_eq!(s.save_ssh_public_key(v, wise, f, false), Ok(true));
+    assert_eq!(
+        std::fs::read_to_string(folder.join("authorized_keys.pub")).unwrap(),
+        format!("{line}\n"),
+        "the shown key's line, not the attachment's text"
+    );
+}

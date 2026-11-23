@@ -8,17 +8,18 @@ mod common;
 
 use common::*;
 use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_crypto::ssh::{NewKeyKind, new_key};
 use larsal_model::{Attachment, Entry, Field, Group, Time, Uuid, Vault};
 use larsal_sshagent::messages::{Names, text};
 use larsal_sshagent::{
     Asker, EntryKey, Error, Keyring, Options, OwnAgent, Place, Question, SETTINGS_NAME, Session,
-    Settings, Source, SshKey, has_ssh_key, key_path, unlock_plan,
+    Settings, Source, SshKey, has_ssh_key, key_path, new_key_files, unlock_plan,
 };
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{Read, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -2079,4 +2080,191 @@ fn ld209_a_p256_key_with_a_31_byte_scalar_reads_adds_and_signs() {
         keygen_verify(&app, "k2s", "short@app"),
         "a valid P-256 signature"
     );
+}
+
+// ------------------------------------------------- E24-S2: New SSH Key
+
+/// INT-06.E24.06 with ruling (3): `ssh-keygen` reads the new private key
+/// through a pipe, never a file. `-f /dev/stdin` is refused on this Mac (a
+/// pipe reports mode 0660: "bad permissions"), so the key goes through a
+/// named pipe (`mkfifo -m 600` in this test's own 0700 folder) that a writer
+/// thread serves on each open: `ssh-keygen` opens it as it would a file
+/// (several times for `-l`), and nothing on disk ever holds the key. A reader
+/// still open when the writer comes round again gets the key once more
+/// before its end of file; `ssh-keygen` reads the first key block. Returns
+/// (the `/dev/stdin` refusal, the `-y` line, the `-l` line).
+fn keygen_reads(private: &[u8]) -> (String, String, String) {
+    let dir = Dir::new("w");
+    fs::set_permissions(&dir.0, fs::Permissions::from_mode(0o700)).unwrap();
+    // Never panics: a panic inside the scope below would wait for the writer.
+    let keygen = |args: &[&str], input: Option<&[u8]>| {
+        let mut cmd = tool("ssh-keygen", &dir.0);
+        cmd.args(args)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        if input.is_some() {
+            cmd.stdin(std::process::Stdio::piped());
+        }
+        let Ok(mut child) = cmd.spawn() else {
+            return (false, String::new(), "ssh-keygen did not start".to_owned());
+        };
+        if let (Some(bytes), Some(mut stdin)) = (input, child.stdin.take()) {
+            // A refusal can close the pipe before it is read.
+            let _ = stdin.write_all(bytes);
+        }
+        let text = |b: &[u8]| String::from_utf8_lossy(b).trim_end().to_owned();
+        match child.wait_with_output() {
+            Ok(out) => (out.status.success(), text(&out.stdout), text(&out.stderr)),
+            Err(e) => (false, String::new(), e.to_string()),
+        }
+    };
+    let (piped, _, refused) = keygen(&["-y", "-f", "/dev/stdin"], Some(private));
+    assert!(!piped && refused.contains("bad permissions"), "{refused}");
+    let made = tool("mkfifo", &dir.0).args(["-m", "600", "k"]).status();
+    assert!(made.unwrap().success());
+    let fifo = dir.join("k");
+    let stop = AtomicBool::new(false);
+    let (y, l, opens) = thread::scope(|s| {
+        let writer = s.spawn(|| {
+            let mut opens = 0;
+            while !stop.load(std::sync::atomic::Ordering::SeqCst) {
+                // Waits for a reader; a reader that stops early is fine.
+                if let Ok(mut f) = fs::OpenOptions::new().write(true).open(&fifo) {
+                    let _ = f.write_all(private);
+                    opens += 1;
+                }
+            }
+            opens
+        });
+        let y = keygen(&["-y", "-f", "k"], None);
+        let l = keygen(&["-l", "-f", "k"], None);
+        stop.store(true, std::sync::atomic::Ordering::SeqCst);
+        // The writer may wait in open(2) for a reader: an open for reading
+        // and writing never waits, and lets it go round once more and stop.
+        let release = fs::OpenOptions::new().read(true).write(true).open(&fifo);
+        let opens = writer.join().unwrap();
+        drop(release);
+        (y, l, opens)
+    });
+    let meta = fs::symlink_metadata(&fifo).unwrap();
+    let kept = (meta.file_type().is_fifo(), meta.len(), meta.mode() & 0o777);
+    assert_eq!(kept, (true, 0, 0o600), "the named pipe, empty");
+    fs::remove_file(&fifo).unwrap();
+    assert!(
+        fs::read_dir(&dir.0).unwrap().next().is_none(),
+        "nothing else"
+    );
+    assert!(y.0 && l.0, "{y:?} {l:?}");
+    eprintln!("  named pipe k: {opens} opens served, then removed");
+    let refused = refused.lines().last().unwrap_or_default().to_owned();
+    (refused, y.1, l.1)
+}
+
+#[test]
+fn e24_s06_ssh_keygen_reads_each_new_key_and_shows_what_larsal_shows() {
+    for kind in NewKeyKind::ALL {
+        let key = new_key(kind, "e24@demo").unwrap();
+        eprintln!("E24-S06 {}", kind.label());
+        eprintln!("  larsal: {} | {}", key.public_line(), key.fingerprint());
+        let (refused, y, l) = keygen_reads(key.private().expose());
+        eprintln!("  $ ssh-keygen -y -f /dev/stdin  (key piped): {refused}");
+        eprintln!("  $ ssh-keygen -y -f k  (named pipe 0600, folder 0700): {y}");
+        eprintln!("  $ ssh-keygen -l -f k: {l}");
+        assert_eq!(y, key.public_line(), "{kind:?}: the same public key");
+        let mut parts = l.split(' ');
+        let bits = parts.next().unwrap();
+        assert_eq!(parts.next(), Some(key.fingerprint()), "{kind:?}");
+        assert_eq!(parts.next(), Some("e24@demo"), "{kind:?}");
+        let (size, name) = match kind {
+            NewKeyKind::Ed25519 => ("256", "(ED25519)"),
+            NewKeyKind::EcdsaP256 => ("256", "(ECDSA)"),
+            NewKeyKind::EcdsaP384 => ("384", "(ECDSA)"),
+            NewKeyKind::EcdsaP521 => ("521", "(ECDSA)"),
+            NewKeyKind::Rsa3072 => ("3072", "(RSA)"),
+            NewKeyKind::Rsa4096 => ("4096", "(RSA)"),
+        };
+        assert_eq!((bits, parts.next()), (size, Some(name)), "{kind:?}");
+    }
+}
+
+/// INT-06.E24.06: each new key, as New SSH Key adds it to an entry, goes to
+/// the agent through E9's path (INT-06.4 on the settings it wrote, the test
+/// that offers "Load into SSH Agent"; then INT-06.27's read, unlock and
+/// `Keyring::load`) and signs in to a loopback `sshd` that lets in only its
+/// public line; with the agent empty, the same `ssh` is refused. No private
+/// key file is written.
+#[test]
+fn e24_s06_each_new_key_signs_in_to_a_loopback_sshd_through_the_agent() {
+    for kind in NewKeyKind::ALL {
+        let key = new_key(kind, "e24@demo").unwrap();
+        let (line, fingerprint) = (key.public_line().to_owned(), key.fingerprint().to_owned());
+        let mut e = entry(9, "New key", "", "", vec![]);
+        e.attachments = new_key_files(key)
+            .into_iter()
+            .map(|(name, data)| Attachment {
+                name,
+                data: Arc::new(data),
+            })
+            .collect();
+        let v = vault(vec![e], vec![]);
+        let a = Throwaway::start();
+        let k = Keyring::new();
+        k.set_agent_settings(a.agent.path().to_str().unwrap(), None);
+        let sshd = Sshd::start(&format!("{line}\n"));
+        let dir = Dir::new("o");
+        let mut host = sshd.host_key_line.split(' ');
+        let (t, b64) = (host.next().unwrap(), host.next().unwrap());
+        fs::write(
+            dir.join("ssh_known"),
+            format!("[127.0.0.1]:{} {t} {b64}\n", sshd.port),
+        )
+        .unwrap();
+        // As t53_t57: a throwaway config, no identity files, never ~/.ssh.
+        fs::write(
+            dir.join("ssh_config"),
+            format!(
+                "Host *\n  BatchMode yes\n  UserKnownHostsFile {d}/ssh_known\n  \
+                 GlobalKnownHostsFile /dev/null\n  IdentityAgent \"{sock}\"\n",
+                d = dir.0.display(),
+                sock = a.agent.path().display()
+            ),
+        )
+        .unwrap();
+        let signs_in = || {
+            let out = tool("ssh", &dir.0)
+                .args(["-F", "ssh_config", "-o", "IdentityFile=none", "-p"])
+                .arg(sshd.port.to_string())
+                .args(["127.0.0.1", "echo", "signed-in"])
+                .output()
+                .unwrap();
+            String::from_utf8(out.stdout).unwrap().contains("signed-in")
+        };
+        assert!(!signs_in(), "{kind:?}: the agent is empty, no sign-in");
+        assert!(
+            has_ssh_key(&v, e_of(&v, 9)).is_some(),
+            "{kind:?}: INT-06.4, the entry has an SSH key"
+        );
+        assert_eq!(
+            load(&k, &session(1, "V"), &v, 9),
+            Ok(Place::System),
+            "{kind:?}"
+        );
+        let listed = a.tool("ssh-add").arg("-l").output().unwrap();
+        let listed = String::from_utf8(listed.stdout).unwrap();
+        assert!(
+            listed.contains(&format!("{fingerprint} e24@demo")),
+            "{listed}"
+        );
+        assert!(signs_in(), "{kind:?}: ssh signs in through the agent");
+        eprintln!("E24-S06 {}: signed in, {fingerprint}", kind.label());
+        for d in [&dir.0, &a.dir.0] {
+            for f in fs::read_dir(d).unwrap() {
+                let bytes = fs::read(f.unwrap().path()).unwrap_or_default();
+                assert!(
+                    !String::from_utf8_lossy(&bytes).contains("PRIVATE KEY"),
+                    "{kind:?}: a private key file"
+                );
+            }
+        }
+    }
 }

@@ -51,6 +51,10 @@ extension VaultModel {
         case export(ExportStep)
         /// INT-08.31: the Approve sheet of a share made elsewhere.
         case approveShare(ShareLabel)
+        /// E24-S2 (NewSshKey.swift): New SSH Key, then its saved key or a failed save.
+        case newSshKey
+        case sshKeySaved(NewSshKeyView, line: String)
+        case sshKeyNotSaved(NewSshKeyView, line: String)
     }
 
     // MARK: The editor

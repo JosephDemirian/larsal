@@ -32,8 +32,14 @@ hkdf.workspace = true
 # reads protected keys (bcrypt-pbkdf, AES, ChaCha20-Poly1305); the private key
 # types of ssh-key wipe themselves on drop. bcrypt-pbkdf is named only to turn
 # on its "zeroize".
-ssh-key = { workspace = true, features = ["alloc", "ecdsa", "encryption"] }
+ssh-key = { workspace = true, features = ["alloc", "ecdsa", "encryption", "ed25519", "p256", "p384", "p521", "rsa"] }
 bcrypt-pbkdf = { workspace = true, features = ["zeroize"] }
+# E24-S2 (INT-06.E24.01, .02): New SSH Key. ssh-key's `ed25519`, `p256`, `p384`, `p521`
+# and `rsa` features above make the keys with its own types; named here only to pin
+# them to the reviewed versions (ssh-key turns on what it needs).
+p384.workspace = true
+p521.workspace = true
+rsa.workspace = true
 # E9-S2: Larsal's own SSH agent (ssh.rs; INT-06.33) signs with Ed25519 and ECDSA
 # P-256 and checks session bindings with them. ssh-key never signs (LD-182 (2)).
 ed25519-dalek = { workspace = true, features = ["zeroize"] }
@@ -77,6 +83,10 @@ test-p256-key = []
 # builds turn it on, through larsal-ffi's dev-dependency; a normal build has
 # no way to a KEM shared secret.
 test-kem-secret = []
+# E24-S2 (Checker 1 C1-F4): random.rs `test_os_source_down`, a seam that makes
+# the OS source fail for New SSH Key's generator. Only larsal-ffi's
+# dev-dependency turns it on; a normal build has no such seam.
+test-random = []
 
 [dev-dependencies]
 proptest.workspace = true

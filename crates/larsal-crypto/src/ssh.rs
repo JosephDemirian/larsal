@@ -41,10 +41,12 @@ const DECRYPTABLE: [Cipher; 9] = [
 /// Guarantees: its public parts (type, public key blob, fingerprint, public
 /// key line) are known without the passphrase, because the format stores
 /// them outside the protected part (INT-06.7). An unprotected key's private
-/// part is held in `ssh-key`'s self-wiping types. No `Clone`; `Debug` shows
-/// only the type and fingerprint.
+/// part is held in `ssh-key`'s self-wiping types, behind a `Box` made while
+/// the parse's stack is still to be overwritten: moving an `OpenSshKey` (or
+/// a [`NewSshKey`]) copies only the pointer, never a key byte (rule 4,
+/// INT-06.E24.02). No `Clone`; `Debug` shows only the type and fingerprint.
 pub struct OpenSshKey {
-    key: PrivateKey,
+    key: Box<PrivateKey>,
     algorithm: String,
     public_blob: Vec<u8>,
     public_line: String,
@@ -66,7 +68,7 @@ impl OpenSshKey {
             let fingerprint = key.fingerprint(HashAlg::Sha256).to_string();
             let algorithm = key.algorithm().as_str().to_owned();
             Some(Self {
-                key,
+                key: Box::new(key),
                 algorithm,
                 public_blob,
                 public_line,
@@ -414,6 +416,251 @@ fn agent_form(key: &PrivateKey) -> Result<AgentKey, Error> {
     })
 }
 
+// ------------------------------------------------------------ New SSH Key
+
+/// The key types New SSH Key makes (E24-S2, INT-06.E24.01), in the dialog's
+/// order. Guarantees: no other type or size exists here: no RSA under 3072
+/// bits, no DSA, no security-key or hybrid type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NewKeyKind {
+    /// Ed25519 (RFC 8709): a 32-byte random seed, a 256-bit public key; the
+    /// default, with no size to choose.
+    Ed25519,
+    /// ECDSA on NIST P-256 (RFC 5656).
+    EcdsaP256,
+    /// ECDSA on NIST P-384 (RFC 5656).
+    EcdsaP384,
+    /// ECDSA on NIST P-521 (RFC 5656).
+    EcdsaP521,
+    /// RSA, 3072-bit modulus, exponent 65537 (RFC 8332); the RSA size first
+    /// selected.
+    Rsa3072,
+    /// RSA, 4096-bit modulus, exponent 65537.
+    Rsa4096,
+}
+
+impl NewKeyKind {
+    /// Every kind New SSH Key offers, the default first.
+    pub const ALL: [Self; 6] = [
+        Self::Ed25519,
+        Self::EcdsaP256,
+        Self::EcdsaP384,
+        Self::EcdsaP521,
+        Self::Rsa3072,
+        Self::Rsa4096,
+    ];
+
+    /// The default kind (INT-06.E24.01).
+    pub const DEFAULT: Self = Self::Ed25519;
+
+    /// Type and size as the screen names them: `ED25519`, `ECDSA P-256`,
+    /// `ECDSA P-384`, `ECDSA P-521`, `RSA 3072`, `RSA 4096`.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Ed25519 => "ED25519",
+            Self::EcdsaP256 => "ECDSA P-256",
+            Self::EcdsaP384 => "ECDSA P-384",
+            Self::EcdsaP521 => "ECDSA P-521",
+            Self::Rsa3072 => "RSA 3072",
+            Self::Rsa4096 => "RSA 4096",
+        }
+    }
+
+    /// The public key's type name in the OpenSSH line: `ssh-ed25519`,
+    /// `ecdsa-sha2-nistp256`, `-nistp384`, `-nistp521`, `ssh-rsa`.
+    #[must_use]
+    pub fn algorithm(self) -> &'static str {
+        match self {
+            Self::Ed25519 => ED25519,
+            Self::EcdsaP256 => NISTP256,
+            Self::EcdsaP384 => "ecdsa-sha2-nistp384",
+            Self::EcdsaP521 => "ecdsa-sha2-nistp521",
+            Self::Rsa3072 | Self::Rsa4096 => "ssh-rsa",
+        }
+    }
+
+    /// The file name OpenSSH gives this type: `id_ed25519`, `id_ecdsa`,
+    /// `id_rsa` (the attachment's name).
+    #[must_use]
+    pub fn file_name(self) -> &'static str {
+        match self {
+            Self::Ed25519 => "id_ed25519",
+            Self::EcdsaP256 | Self::EcdsaP384 | Self::EcdsaP521 => "id_ecdsa",
+            Self::Rsa3072 | Self::Rsa4096 => "id_rsa",
+        }
+    }
+}
+
+/// The longest public comment of a new key, in UTF-8 bytes (INT-06.E24.03).
+pub const MAX_COMMENT: usize = 256;
+
+/// True when `comment` may label a new key (INT-06.E24.03): at most
+/// [`MAX_COMMENT`] UTF-8 bytes; no control character (line breaks and tabs
+/// among them), no line or paragraph separator, and no direction mark,
+/// embedding, override or isolate (U+061C, U+200E, U+200F, U+202A to
+/// U+202E, U+2066 to U+2069). Empty is allowed. Nothing is rewritten: a
+/// comment either passes as it is or is refused.
+#[must_use]
+pub fn comment_ok(comment: &str) -> bool {
+    comment.len() <= MAX_COMMENT
+        && !comment.chars().any(|c| {
+            c.is_control()
+                || matches!(
+                    c,
+                    '\u{2028}'
+                        | '\u{2029}'
+                        | '\u{061C}'
+                        | '\u{200E}'
+                        | '\u{200F}'
+                        | '\u{202A}'..='\u{202E}'
+                        | '\u{2066}'..='\u{2069}'
+                )
+        })
+}
+
+/// A key New SSH Key made (INT-06.E24.02, .04): the private key as a
+/// one-key, unprotected `openssh-key-v1` file text, and its public parts.
+///
+/// Guarantees: the private text lives only in a [`SecretBytes`]; the key
+/// read back from it lives in `ssh-key`'s self-wiping types behind the
+/// `Box` of [`OpenSshKey`], and every by-value copy of the key while it was
+/// made sat on the worker of [`new_key`], whose stack is overwritten before
+/// it ends (rule 4, INT-06.E24.02: a move of a `NewSshKey` copies pointers
+/// only). The public line, blob and fingerprint are read back from that
+/// same text by [`OpenSshKey::parse`], so they belong to that key. No
+/// `Clone`; `Debug` shows the type and fingerprint only.
+pub struct NewSshKey {
+    kind: NewKeyKind,
+    private: SecretBytes,
+    key: OpenSshKey,
+}
+
+impl NewSshKey {
+    /// The kind it was made as.
+    #[must_use]
+    pub fn kind(&self) -> NewKeyKind {
+        self.kind
+    }
+
+    /// The public line: type, base64 blob, and the comment after one space
+    /// when it is not empty. Public.
+    #[must_use]
+    pub fn public_line(&self) -> &str {
+        self.key.public_line()
+    }
+
+    /// `SHA256:` and the unpadded base64 SHA-256 of the public blob. Public.
+    #[must_use]
+    pub fn fingerprint(&self) -> &str {
+        self.key.fingerprint()
+    }
+
+    /// The public key blob (RFC 4253 section 6.6). Public.
+    #[must_use]
+    pub fn public_blob(&self) -> &[u8] {
+        self.key.public_blob()
+    }
+
+    /// The private key file text. Secret: it goes only into the vault.
+    #[must_use]
+    pub fn private(&self) -> &SecretBytes {
+        &self.private
+    }
+
+    /// The private key file text, moved out (no copy) into the vault's
+    /// attachment. Secret.
+    #[must_use]
+    pub fn into_private(self) -> SecretBytes {
+        self.private
+    }
+}
+
+impl fmt::Debug for NewSshKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NewSshKey({} {})", self.kind.label(), self.fingerprint())
+    }
+}
+
+/// Makes a new key of `kind` labelled `comment` with the OS random source
+/// (E24-S2; INT-06.E24.01 to .03). Call it off the screen thread: an RSA key
+/// takes seconds.
+///
+/// Guarantees: every random byte of the key came from the OS source, through
+/// this crate's random module; if any draw failed, the key made from it is
+/// wiped and nothing is returned. The comment is stored as given.
+///
+/// # Errors
+/// [`Error::Unsupported`] when `comment` breaks [`comment_ok`], before any
+/// work, or if the key cannot be encoded and read back (or the worker
+/// cannot run); [`Error::RandomSource`] when the OS source failed.
+pub fn new_key(kind: NewKeyKind, comment: &str) -> Result<NewSshKey, Error> {
+    new_key_from(kind, comment, crate::random::os_unfailing())
+}
+
+/// [`new_key`] with `rng` as the generator (tests pass failing ones).
+fn new_key_from<R>(
+    kind: NewKeyKind,
+    comment: &str,
+    mut rng: crate::random::Unfailing<R>,
+) -> Result<NewSshKey, Error>
+where
+    R: crate::random::TrySource + Send,
+{
+    if !comment_ok(comment) {
+        return Err(Error::Unsupported);
+    }
+    crate::secret::scrubbed_thread(Error::Unsupported, move || {
+        let made = make_key(kind, comment, &mut rng);
+        // A failed draw anywhere: the key (if any) is dropped and wiped.
+        if rng.failed() {
+            return Err(Error::RandomSource);
+        }
+        made
+    })?
+}
+
+/// The key itself, through `ssh-key`'s own key makers, then encoded as
+/// `openssh-key-v1` and read back.
+fn make_key<R: crate::random::Source + ?Sized>(
+    kind: NewKeyKind,
+    comment: &str,
+    rng: &mut R,
+) -> Result<NewSshKey, Error> {
+    use ssh_key::EcdsaCurve;
+    use ssh_key::private::{EcdsaKeypair, Ed25519Keypair, KeypairData, RsaKeypair};
+    let ecdsa = |rng: &mut R, curve| {
+        EcdsaKeypair::random(rng, curve)
+            .map(KeypairData::from)
+            .map_err(|_| Error::Unsupported)
+    };
+    let rsa = |rng: &mut R, bits| {
+        RsaKeypair::random(rng, bits)
+            .map(KeypairData::from)
+            .map_err(|_| Error::Unsupported)
+    };
+    let data = match kind {
+        NewKeyKind::Ed25519 => KeypairData::from(Ed25519Keypair::random(rng)),
+        NewKeyKind::EcdsaP256 => ecdsa(rng, EcdsaCurve::NistP256)?,
+        NewKeyKind::EcdsaP384 => ecdsa(rng, EcdsaCurve::NistP384)?,
+        NewKeyKind::EcdsaP521 => ecdsa(rng, EcdsaCurve::NistP521)?,
+        NewKeyKind::Rsa3072 => rsa(rng, 3072)?,
+        NewKeyKind::Rsa4096 => rsa(rng, 4096)?,
+    };
+    let key = PrivateKey::new(data, comment).map_err(|_| Error::Unsupported)?;
+    let mut text = key
+        .to_openssh(ssh_key::LineEnding::LF)
+        .map_err(|_| Error::Unsupported)?;
+    // The String's own buffer moves into the wiping type: no copy is left.
+    let private = SecretBytes::new(core::mem::take(&mut *text).into_bytes());
+    let parsed = OpenSshKey::parse(private.expose()).ok_or(Error::Unsupported)?;
+    Ok(NewSshKey {
+        kind,
+        private,
+        key: parsed,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -604,5 +851,400 @@ ILdNQmAt+6GVCObXA9mGAAAACGRlbW9AYXBwAQIDBAU=
         assert!(OpenSshKey::parse(K1.replace("OPENSSH", "RSA").as_bytes()).is_none());
         assert!(OpenSshKey::parse(K1.replace("b3Bl", "c3Bl").as_bytes()).is_none());
         assert!(OpenSshKey::parse(&[0xff; 4096]).is_none());
+    }
+
+    // ------------------------------------------------ New SSH Key (E24-S2)
+
+    use crate::random::Unfailing;
+
+    /// A source that serves `ok` draws from the OS source, then fails; it
+    /// counts the draws asked for, the failed ones included.
+    struct FailsAfter(usize, std::sync::Arc<std::sync::atomic::AtomicUsize>);
+
+    fn fails_after(ok: usize) -> (FailsAfter, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+        let n = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        (FailsAfter(ok, std::sync::Arc::clone(&n)), n)
+    }
+
+    impl crate::random::TryDraw for FailsAfter {
+        type Error = std::io::Error;
+        fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+            let mut b = [0u8; 4];
+            self.try_fill_bytes(&mut b)?;
+            Ok(u32::from_le_bytes(b))
+        }
+        fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+            let mut b = [0u8; 8];
+            self.try_fill_bytes(&mut b)?;
+            Ok(u64::from_le_bytes(b))
+        }
+        fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+            self.1.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if self.0 == 0 {
+                return Err(std::io::Error::other("demo: source down"));
+            }
+            self.0 = self.0.saturating_sub(1);
+            crate::random::fill(dst).map_err(|_| std::io::Error::other("os"))
+        }
+    }
+    impl crate::random::TrySource for FailsAfter {}
+
+    /// The fields of a one-key `openssh-key-v1` file after its magic.
+    fn header(private: &SecretBytes) -> (Vec<u8>, Vec<u8>, Vec<u8>, u32) {
+        let text = std::str::from_utf8(private.expose()).unwrap();
+        assert!(text.starts_with("-----BEGIN OPENSSH PRIVATE KEY-----\n"));
+        assert!(text.ends_with("-----END OPENSSH PRIVATE KEY-----\n"));
+        let body: String = text.lines().filter(|l| !l.starts_with("-----")).collect();
+        let raw = crate::base64::decode(crate::base64::Form::Padded, body).unwrap();
+        let mut rest = raw.strip_prefix(b"openssh-key-v1\0".as_slice()).unwrap();
+        let cipher = take(&mut rest).unwrap().to_vec();
+        let kdf = take(&mut rest).unwrap().to_vec();
+        let options = take(&mut rest).unwrap().to_vec();
+        let count = u32::from_be_bytes(rest[..4].try_into().unwrap());
+        (cipher, kdf, options, count)
+    }
+
+    #[test]
+    fn e24_s01_exactly_ed25519_by_default_three_curves_and_two_rsa_sizes() {
+        assert_eq!(NewKeyKind::DEFAULT, NewKeyKind::Ed25519);
+        assert_eq!(NewKeyKind::ALL[0], NewKeyKind::DEFAULT);
+        let labels: Vec<&str> = NewKeyKind::ALL.iter().map(|k| k.label()).collect();
+        assert_eq!(
+            labels,
+            [
+                "ED25519",
+                "ECDSA P-256",
+                "ECDSA P-384",
+                "ECDSA P-521",
+                "RSA 3072",
+                "RSA 4096"
+            ],
+            "nothing else: no RSA under 3072 bits, no DSA, no security-key type"
+        );
+        // Each kind makes a key of its own type and size.
+        for kind in NewKeyKind::ALL {
+            let key = new_key(kind, "").unwrap();
+            let read = OpenSshKey::parse(key.private().expose()).unwrap();
+            assert_eq!(read.algorithm(), kind.algorithm(), "{kind:?}");
+            assert_eq!(
+                read.rsa_bits(),
+                match kind {
+                    NewKeyKind::Rsa3072 => Some(3072),
+                    NewKeyKind::Rsa4096 => Some(4096),
+                    _ => None,
+                },
+                "{kind:?}"
+            );
+            let curve = |name: &str| {
+                let mut blob = key.public_blob();
+                take(&mut blob);
+                take(&mut blob) == Some(name.as_bytes())
+            };
+            match kind {
+                // RFC 8709: string type, string 32-byte key.
+                NewKeyKind::Ed25519 => assert_eq!(key.public_blob().len(), 4 + 11 + 4 + 32),
+                NewKeyKind::EcdsaP256 => assert!(curve("nistp256")),
+                NewKeyKind::EcdsaP384 => assert!(curve("nistp384")),
+                NewKeyKind::EcdsaP521 => assert!(curve("nistp521")),
+                NewKeyKind::Rsa3072 | NewKeyKind::Rsa4096 => {}
+            }
+        }
+    }
+
+    #[test]
+    fn e24_s02_a_failing_random_source_makes_no_key_of_any_kind() {
+        use std::sync::atomic::Ordering::SeqCst;
+        for kind in NewKeyKind::ALL {
+            // How many draws a key of this kind takes, with a working source.
+            let (source, draws) = fails_after(usize::MAX);
+            assert!(new_key_from(kind, "demo", Unfailing::new(source)).is_ok());
+            let n = draws.load(SeqCst);
+            assert!(n >= 1, "{kind:?}");
+            // The first draw failing, and the last one.
+            for ok in [0, n - 1] {
+                let (source, _) = fails_after(ok);
+                assert_eq!(
+                    new_key_from(kind, "demo", Unfailing::new(source)).err(),
+                    Some(Error::RandomSource),
+                    "{kind:?} with the source down after {ok} of {n} draws"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn e24_s02_each_key_is_new_and_its_public_half_is_its_own() {
+        for kind in NewKeyKind::ALL {
+            let (a, b) = (new_key(kind, "").unwrap(), new_key(kind, "").unwrap());
+            assert_ne!(
+                a.public_blob(),
+                b.public_blob(),
+                "{kind:?}: never a fixed key"
+            );
+            assert_ne!(a.private().expose(), b.private().expose(), "{kind:?}");
+            assert_ne!(a.fingerprint(), b.fingerprint(), "{kind:?}");
+        }
+        // Signing with the private text verifies with the public blob.
+        for kind in [NewKeyKind::Ed25519, NewKeyKind::EcdsaP256] {
+            let key = new_key(kind, "demo@larsal").unwrap();
+            let agent = OpenSshKey::parse(key.private().expose())
+                .unwrap()
+                .agent_key(&SecretString::new(String::new()), 1)
+                .unwrap();
+            let sig = agent.sign(b"E24-S02 demo data").unwrap();
+            assert_eq!(
+                verify(key.public_blob(), b"E24-S02 demo data", &sig),
+                Some(true)
+            );
+            let other = new_key(kind, "").unwrap();
+            assert_eq!(
+                verify(other.public_blob(), b"E24-S02 demo data", &sig),
+                Some(false)
+            );
+        }
+    }
+
+    #[test]
+    fn e24_s03_the_comment_is_kept_exactly_or_refused() {
+        let at_limit = "é".repeat(MAX_COMMENT / 2);
+        assert_eq!(at_limit.len(), 256);
+        for good in [
+            "",
+            "demo@larsal",
+            "Développement · 鍵 🔑",
+            at_limit.as_str(),
+        ] {
+            assert!(comment_ok(good), "{good:?}");
+            let key = new_key(NewKeyKind::Ed25519, good).unwrap();
+            let read = OpenSshKey::parse(key.private().expose()).unwrap();
+            assert_eq!(read.comment(), Some(good), "stored as given");
+            let mut parts = key.public_line().splitn(3, ' ');
+            assert_eq!(parts.next(), Some("ssh-ed25519"));
+            assert!(parts.next().is_some());
+            assert_eq!(
+                parts.next(),
+                (!good.is_empty()).then_some(good),
+                "after one space, only when not empty: {:?}",
+                key.public_line()
+            );
+        }
+        let over = format!("{at_limit}a");
+        for bad in [
+            over.as_str(),
+            "two\nlines",
+            "cr\r",
+            "tab\there",
+            "nul\0",
+            "del\u{7f}",
+            "next\u{85}line",
+            "line\u{2028}sep",
+            "rlo\u{202E}moc.elpmaxe",
+            "isolate\u{2066}x\u{2069}",
+            "mark\u{200F}",
+        ] {
+            assert!(!comment_ok(bad), "{bad:?}");
+            assert_eq!(
+                new_key_from(NewKeyKind::Ed25519, bad, Unfailing::new(fails_after(0).0)).err(),
+                Some(Error::Unsupported),
+                "refused before any draw: {bad:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn e24_s04_the_private_text_is_one_unprotected_openssh_v1_key() {
+        for kind in [
+            NewKeyKind::Ed25519,
+            NewKeyKind::EcdsaP521,
+            NewKeyKind::Rsa3072,
+        ] {
+            let key = new_key(kind, "c").unwrap();
+            let (cipher, kdf, options, count) = header(key.private());
+            assert_eq!(cipher, b"none");
+            assert_eq!(kdf, b"none");
+            assert!(options.is_empty());
+            assert_eq!(count, 1, "one key");
+            // The parser checks the two check values are equal and the padding.
+            let read = OpenSshKey::parse(key.private().expose()).unwrap();
+            assert!(!read.is_encrypted());
+            assert_eq!(read.public_blob(), key.public_blob());
+            assert_eq!(read.fingerprint(), key.fingerprint());
+            assert_eq!(read.public_line(), key.public_line());
+            assert!(format!("{key:?}").starts_with("NewSshKey("));
+            assert!(!format!("{key:?}").contains("PRIVATE"));
+        }
+    }
+
+    /// E24-S03 (Checker 1 C1-F2, lead ruling (2)): every line, control and
+    /// text direction character the comment rule names is refused alone, at
+    /// the start, in the middle and at the end; the 256 limit counts bytes.
+    #[test]
+    fn e24_s03_c1_comment_refuses_each_named_character_alone() {
+        let named = [
+            '\u{0B}', '\u{0C}', '\u{1B}', '\u{85}', '\u{2028}', '\u{2029}', '\u{061C}', '\u{200E}',
+            '\u{200F}', '\u{202A}', '\u{202B}', '\u{202C}', '\u{202D}', '\u{202E}', '\u{2066}',
+            '\u{2067}', '\u{2068}', '\u{2069}',
+        ];
+        for c in named {
+            for s in [format!("{c}"), format!("a{c}b"), format!("ab{c}")] {
+                assert!(!comment_ok(&s), "U+{:04X} in {s:?}", c as u32);
+            }
+        }
+        let three = "\u{20AC}".repeat(85);
+        assert_eq!(three.len(), 255);
+        assert!(comment_ok(&format!("{three}a")), "256 bytes");
+        assert!(!comment_ok(&format!("{three}ab")), "257 bytes");
+        assert!(
+            !comment_ok(&format!("{three}\u{e9}")),
+            "257 bytes, last char 2 bytes"
+        );
+    }
+
+    // ------------------------------------------------ rule 4 (E24-S2, round 3)
+
+    const MASK: u8 = 0x5a;
+    /// Set only in the process the worker test starts for its child.
+    const CHILD: &str = "LARSAL_E24_WORKER_CHILD";
+
+    /// When the thread that registered it ends (a thread-local's drop: after
+    /// `scrubbed_thread`'s wipe, before the stack is given back), the copies
+    /// of each masked marker in all writable memory.
+    struct AtExit(Vec<Vec<u8>>, std::sync::mpsc::Sender<Vec<usize>>);
+
+    impl Drop for AtExit {
+        fn drop(&mut self) {
+            let seen = self
+                .0
+                .iter()
+                .map(|m| larsal_platform::memory::copies_in_memory(m, MASK))
+                .collect();
+            let _ = self.1.send(seen);
+        }
+    }
+
+    std::thread_local! {
+        static AT_EXIT: std::cell::RefCell<Option<AtExit>> =
+            const { std::cell::RefCell::new(None) };
+    }
+
+    /// A replayable stream (splitmix64), so that the same key can be made
+    /// twice; on its first draw it registers its [`AtExit`] on the thread
+    /// that draws. A test tool only: keys in Larsal come from the OS source.
+    struct Replay(u64, Option<AtExit>);
+
+    impl crate::random::TryDraw for Replay {
+        type Error = core::convert::Infallible;
+        fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+            let mut b = [0u8; 4];
+            self.try_fill_bytes(&mut b)?;
+            Ok(u32::from_le_bytes(b))
+        }
+        fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+            let mut b = [0u8; 8];
+            self.try_fill_bytes(&mut b)?;
+            Ok(u64::from_le_bytes(b))
+        }
+        fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+            if let Some(at_exit) = self.1.take() {
+                AT_EXIT.with(|a| *a.borrow_mut() = Some(at_exit));
+            }
+            for byte in dst {
+                self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
+                let mut z = self.0;
+                z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+                z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+                *byte = (z ^ (z >> 31)) as u8;
+            }
+            Ok(())
+        }
+    }
+    impl crate::random::TrySource for Replay {}
+
+    /// The masked private values of a key text: the Ed25519 seed, or d in
+    /// big-endian (ssh-key's form) and little-endian order.
+    fn masked_values(text: &[u8]) -> Vec<Vec<u8>> {
+        let key = PrivateKey::from_openssh(text).unwrap();
+        let masked = |b: &[u8]| -> Vec<u8> { b.iter().map(|x| x ^ MASK).collect() };
+        if let Some(pair) = key.key_data().ed25519() {
+            return vec![masked(pair.private.as_ref())];
+        }
+        let be = masked(key.key_data().ecdsa().unwrap().private_key_bytes());
+        let mut le = be.clone();
+        le.reverse();
+        vec![be, le]
+    }
+
+    /// The child: for each kind, the markers of the key the replayed stream
+    /// makes (worked out on a thread that has ended), then that key made
+    /// again by `new_key_from`; the worker counts when it ends.
+    #[test]
+    #[ignore = "a child of e24_s02_rule4_int06_e24_02_the_key_worker_stack_is_wiped_when_it_ends"]
+    fn worker_child() {
+        if std::env::var_os(CHILD).is_none() {
+            return;
+        }
+        let kinds = [
+            NewKeyKind::Ed25519,
+            NewKeyKind::EcdsaP256,
+            NewKeyKind::EcdsaP384,
+            NewKeyKind::EcdsaP521,
+        ];
+        for (i, kind) in kinds.into_iter().enumerate() {
+            let seed = 0x0e24_5203 + i as u64;
+            let markers = std::thread::scope(|s| {
+                s.spawn(|| {
+                    let key = new_key_from(kind, "demo", Unfailing::new(Replay(seed, None)));
+                    masked_values(key.unwrap().private().expose())
+                })
+                .join()
+                .unwrap()
+            });
+            let (tx, rx) = std::sync::mpsc::channel();
+            let source = Replay(seed, Some(AtExit(markers.clone(), tx)));
+            let key = new_key_from(kind, "demo", Unfailing::new(source)).unwrap();
+            let at_exit = rx.try_recv().expect("the key's worker counted as it ended");
+            // The key handed back holds one copy, in ssh-key's big-endian form.
+            let held: Vec<usize> = (0..markers.len()).map(|m| usize::from(m == 0)).collect();
+            println!(
+                "ROW {} worker at its end: {at_exit:?} (the key handed back holds {held:?})",
+                kind.label()
+            );
+            assert_eq!(
+                at_exit,
+                held,
+                "{}: the worker's stack kept a copy",
+                kind.label()
+            );
+            drop(key);
+        }
+    }
+
+    /// E24-S02, rule 4, INT-06.E24.02 (lead ruling (10) of round 3): the
+    /// worker `new_key` makes a key on wipes its stack before it ends; when
+    /// it ends, the key it hands back holds the only copy of the seed or d.
+    /// Reads all memory, so the child runs alone in a new process.
+    #[test]
+    fn e24_s02_rule4_int06_e24_02_the_key_worker_stack_is_wiped_when_it_ends() {
+        let out = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "ssh::tests::worker_child",
+                "--ignored",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        eprintln!("{text}");
+        assert!(
+            out.status.success() && text.contains("1 passed") && text.matches("ROW ").count() == 4,
+            "{text}"
+        );
     }
 }

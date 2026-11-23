@@ -81,6 +81,14 @@ ed25519-dalek = { version = "=3.0.0", default-features = false }
 ssh-key = { version = "=0.7.0-rc.11", default-features = false }
 # Named only to turn on its `zeroize` (the passphrase hash); it comes in through ssh-key.
 bcrypt-pbkdf = { version = "=0.11.0", default-features = false }
+# E24-S2 (INT-06.E24.01): New SSH Key makes P-384, P-521 and RSA keys through ssh-key's own
+# types (its `p384`, `p521` and `rsa` features); pinned here so the versions cannot move.
+# rsa is a release candidate: rc.18 is the version ssh-key rc.11 names; rsa 0.10.0 needs
+# crypto-bigint 0.7.11 (the tree has 0.7.10) and makes sha2 required. crypto-primes 0.7.2
+# comes in through rsa and Cargo.lock holds it. AT-J03 rows at the E24-S2 Checker.
+p384 = { version = "=0.14.0", default-features = false }
+p521 = { version = "=0.14.0", default-features = false }
+rsa = { version = "=0.10.0-rc.18", default-features = false }
 quick-xml = "=0.42.0"
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] } # pure Rust (miniz_oxide)
 zxcvbn = { version = "=3.1.1", default-features = false } # LD-133: drops derive_builder; used only by larsal-core health.rs
