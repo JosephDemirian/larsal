@@ -698,6 +698,10 @@
   "classes": [],
   "profile": "harness-runtime-key.sb"
  },
+ "workspace:larsal-sync/approval_wipe": {
+  "classes": [],
+  "profile": "harness-runtime-key.sb"
+ },
  "workspace:larsal-sync/larsal_sync": {
   "classes": [],
   "profile": "harness-runtime-key.sb"
