@@ -27,7 +27,7 @@ SYN-02.1 **Data folder.** One folder, given at start (a test uses a temp folder,
 - `tls/cert.der` and `tls/key.der`: the demo certificate and its key (SYN-01.2).
 The folder and its subfolders have mode 0700, every file 0600. The server refuses to start, with a plain error, when the folder or a file in it can be written by the group or others, or belongs to another user, or when `tls/key.der` can be read by the group or others (as SSH servers refuse a private host key that others can read; LD-309). Known limit: the check reads the mode bits and the owner, as SSH servers do for their keys; it does not read access control lists, so an inherited ACL that lets others read is not seen (LD-314).
 
-SYN-02.2 **SQLite settings** (P15; sqlite.org "Write-Ahead Logging"). At open: `journal_mode=WAL`, `synchronous=FULL` (each commit syncs the log, so a power cut never rolls back a commit the server answered), `fullfsync=ON` (on macOS, commits and checkpoints sync with `F_FULLFSYNC`, which SQLite does only when this is on; sqlite.org "Pragma statements", F-222), `foreign_keys=ON`, `busy_timeout=5000` (5 s, the value Litestream's tips advise). `user_version` holds the schema version: 2 from E17-S1 (1 before). A store of version 1 is moved to 2 at start, in one transaction: E17-S1's columns of SYN-02.3 are added (empty) and the `keyparts` table is made. A store with a higher `user_version` than the server knows is refused at start; a store with none gets the schema of SYN-02.3. SQLite is built from its bundled source (`libsqlite3-sys` `bundled`, P22).
+SYN-02.2 **SQLite settings** (P15; sqlite.org "Write-Ahead Logging"). At open: `journal_mode=WAL`, `synchronous=FULL` (each commit syncs the log, so a power cut never rolls back a commit the server answered), `fullfsync=ON` (on macOS, commits and checkpoints sync with `F_FULLFSYNC`, which SQLite does only when this is on; sqlite.org "Pragma statements", F-222), `foreign_keys=ON`, `busy_timeout=5000` (5 s, the value Litestream's tips advise). `user_version` holds the schema version: 3 from E17-S2 (2 from E17-S1, 1 before). There is no migration (LD-327 (5)): a store whose `user_version` is neither 0 nor 3 (1 and 2 older, 4 and up newer) is refused at start and its folder is not changed; a store with none gets the schema of SYN-02.3. SQLite is built from its bundled source (`libsqlite3-sys` `bundled`, P22).
 
 SYN-02.3 **Rows.** Ids are 16-byte blobs drawn from larsal-crypto's random source (P20); times are whole seconds UTC.
 - `accounts`: id; created; from E17-S1 the identity public key, the receiving public key and its binding (CRY-05.8's `kem_public_key` and `kem_signature`), the recovery public key and the account blob (SYN-06.6), empty before and written once.
@@ -37,7 +37,7 @@ SYN-02.3 **Rows.** Ids are 16-byte blobs drawn from larsal-crypto's random sourc
 - `vaults`: id; account id; version; size; SHA-256 of the bytes; uploader id and signature (from E17-S1, SYN-01.7); updated.
 - `vault_versions`: the same fields for each old version kept (SYN-02.5).
 - `keyparts`: vault id (of a vault of the account, so after its first upload); the wrap record of SYN-06.9 (from E17-S1), one per vault, a new PUT in place of the one before.
-- `approvals`: the state of SYN-06.11 (from E17-S2), with the SHA-256 of the approval code, never the code.
+- `approvals`: the state of SYN-06.11 (from E17-S2): `id`, `account`, `code_hash` (the SHA-256 of the approval code, unique; never the code), `expires`, `state` (the stage, 0 to 5), the claim's `device_public_key` and `device_name`, `commitment`, `keys_r`, `nonce_r`, `keys_c`, `nonce_c`, `seal` and `device` (the device the seal registered). The row goes when the request ends; a lapsed request is swept when the next one is made (E17-S3 also sweeps at start, at sign-in and at every approval route: the lead's ruling (f)).
 E18 adds (SHR-01 to SHR-04): `groups` (id; kind; head seq and hash; created); `member_entries` (group id; seq; the record; hash); `wraps` (group id; vault id; epoch; member id; the wrap record; the current and previous epoch only, SHR-01.12); `invites` (id; group id; the SHA-256 of the code, never the code; role; inviter; invitee; expiry; the compare's messages, SHR-03.6). For a shared vault, `vaults` and `vault_versions` also hold the group id, the epoch and the uploader's list head (SHR-03.10).
 
 SYN-02.4 **Writing a new version** (P15). In this order:
@@ -67,7 +67,7 @@ SYN-02.10 **What the store never holds.** No password and no value made from one
 - The disk fills during step 1: the temp file is deleted, 500 `server_error`, the old version stays.
 - Another server uses the data folder: the server refuses to start, before its sweep, with a plain error (an exclusive lock on the folder, held while the store is open; F-223).
 - A blob file named by a row is missing (outside damage): GET answers 500 and logs the vault id; the row is not changed.
-- A store from a newer server (`user_version` 3): refused at start; the folder is not changed.
+- A store of another schema (`user_version` 1 or 2 from an older server, 4 from a newer one): refused at start, with no migration; the folder is not changed.
 
 ## Security notes
 
@@ -82,8 +82,8 @@ SYN-02.10 **What the store never holds.** No password and no value made from one
 |---|---|---|---|
 | T01 SYN-02.1 folder modes | Fresh data folder | Start the server; list the folder | Folders 0700, files 0600; `tls/cert.der`, `tls/key.der`, `store.sqlite` exist |
 | T02 SYN-02.1 unsafe folder | Data folder with mode 0770 | Start | Refused with a plain error; nothing written |
-| T03 SYN-02.2 pragmas | Running server | Read `PRAGMA journal_mode`, `synchronous`, `fullfsync`, `foreign_keys`, `user_version` | `wal`, 2 (FULL), 1, 1, 2 |
-| T04 SYN-02.2 newer schema | A store with `user_version` 3 | Start | Refused; the store's bytes unchanged |
+| T03 SYN-02.2 pragmas | Running server | Read `PRAGMA journal_mode`, `synchronous`, `fullfsync`, `foreign_keys`, `user_version` | `wal`, 2 (FULL), 1, 1, 3 |
+| T04 SYN-02.2 other schema | A store with `user_version` 4; one with 1 and one with 2 | Start | Each refused; the folder's bytes unchanged |
 | T05 SYN-02.3 no plain tokens | A session made by sign-in | Read every column of `sessions` | Only the SHA-256 of the token; no column equals the token |
 | T06 SYN-02.4 round trip | A demo vault file | PUT, then GET | Bytes equal (`cmp`); the file under `blobs/` is named by their SHA-256 |
 | T07 SYN-02.4 crash before commit | Vault X at version 1; a test hook stops the server after step 3 | PUT, then restart | GET X gives version 1's bytes; the new file was swept at start (SYN-02.6) |

@@ -47,6 +47,7 @@ SYN-01.4 **Routes.** "Session" means `Authorization: Bearer` (SYN-01.5). Only th
 | `GET /v1/account/keys` | yes | none | AccountKeys | 200, 401, 404 | SYN-06.6 |
 | `POST /v1/approvals` | yes | ApprovalCreate | ApprovalStart | 201, 400, 401, 429 | SYN-06.11 |
 | `POST /v1/approvals/claim` | approval code | ApprovalClaim | ApprovalClaimed | 201, 400, 401, 409, 429 | SYN-06.11 |
+| `POST /v1/approvals/{approval_id}/commit` | approval code | CompareCommit | none | 204, 400, 401, 404, 409 | SYN-06.11 |
 | `GET /v1/approvals/{approval_id}` | yes, or approval code | none | ApprovalState | 200, 401, 404 | SYN-06.11 |
 | `POST /v1/approvals/{approval_id}/keys` | yes | CompareKeys | none | 204, 400, 401, 404, 409 | SYN-06.11 |
 | `POST /v1/approvals/{approval_id}/reveal` | approval code | CompareReveal | none | 204, 400, 401, 404, 409 | SYN-06.11 |
@@ -75,6 +76,17 @@ SYN-01.8 **Records.** Every record is one JSON object (RFC 8259), UTF-8, `Conten
 - Field names are lower case with underscores. Byte strings are base64url without padding (RFC 4648 section 5); ids are 32 lowercase hex digits; times are whole seconds since 1970-01-01T00:00:00Z as JSON integers; versions and sizes are JSON integers from 0 to 2^53 − 1.
 - Refused (400 on the server; a protocol error on the client, `MSG-SYNC-ERROR`): a body that is not one JSON object; a missing field; a field of the wrong type; a duplicate key; a byte string or id of the wrong length or with a character outside its alphabet; a number outside its range; nesting deeper than 8 levels.
 - A field the reader does not know is ignored, so a later `/v1` server may add one.
+
+The records of SYN-06.11, each one JSON object as SYN-01.8 says (byte strings base64url without padding, ids 32 lowercase hex digits, times whole seconds):
+- **ApprovalCreate** `{"code_hash"}`: the SHA-256 of the approval code, 32 bytes.
+- **ApprovalStart** `{"approval_id","expires"}`: the request's id; `expires`, the first second on the server's clock at which the request is no longer valid (its creation + 900).
+- **ApprovalClaim** `{"device_public_key","device_name"}`: N's device key, 65 bytes, a P-256 point in SEC1 form (CRY-04.4; the server checks that it is a point, else 400); the device name, 1 to 64 Unicode scalar values with no control character (as SYN-04.2's).
+- **ApprovalClaimed** `{"approval_id","account_id","expires"}`: the request, the account N joins, and `expires` as in ApprovalStart.
+- **CompareCommit** `{"commit"}`: SYN-05.1's commitment, 32 bytes.
+- **CompareKeys** `{"keys","nonce"}`: `K_R`, 2,057 bytes (the field list of the identity public key, 1,984 bytes, and E's device key, 65 bytes), and `n_R`, 32 bytes.
+- **CompareReveal** `{"keys","nonce"}`: `K_C`, 1,289 bytes (the field list of N's device key, 65 bytes, and N's one-request X-Wing public key, 1,216 bytes), and `n_C`, 32 bytes.
+- **ApprovalSeal** `{"suite","enc","ct","info","signer","signature","device_signature"}`: CRY-05.4's wrap record of `S_acct` (suite `[25722, 1, 3]` only, else 400) with one more field, `device_signature`, the identity key's composite signature over (`sync-device-v1`, `account_id`, N's device public key, `approval_id`), 3,373 bytes; the record at most SYN-01.10's wrap record limit (16 KiB from E25-S3, SYN-01.16; larsal-proto `MAX_WRAP`).
+- **ApprovalState** `{"device_public_key","device_name","commit","keys_r","nonce_r","keys_c","nonce_c","seal","device_id","expires"}`: what the server holds so far, each field `""` until it is sent, with the sizes above; `seal` is the ApprovalSeal's wrap record in base64url and `device_id` the device the seal registered. N's `GET` after the seal is the last read: the row then goes.
 
 SYN-01.9 **Errors.** Every 4xx and 5xx reply from the server has the body `{"error":"<code>"}` with one code from this list: `bad_request`, `unauthorized`, `forbidden`, `not_found`, `method_not_allowed`, `conflict`, `length_required`, `precondition_failed`, `too_large`, `precondition_required`, `rate_limited`, `server_error`. The one exception is a reply to a request head, written before any route runs and with no body, as hyper writes it or by Larsal's own head check before routing in the same form: 400 when the head cannot be parsed, and 414 (RFC 9112 section 3) or 431 (RFC 6585 section 5) when it is over SYN-01.10's head limits, as SYN-01.10 says. An error body never holds a token, a key, a request body, another account's id or a stack trace. The client never shows text from the server: it maps the status to its own words (SYN-03.10), because the server may be hostile.
 

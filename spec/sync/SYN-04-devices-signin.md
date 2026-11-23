@@ -48,7 +48,7 @@ SYN-04.9 **Sign out everywhere** (E17-S3). `POST /v1/devices/signout-everywhere`
 
 SYN-04.10 **What the server holds and sees** (P5; plan/architecture.md, "What the server sees"). Account ids; device ids, public keys, names, added and last-seen times; the SHA-256 of each session token; open nonces; IP addresses; each uploaded vault's outer header, in clear by format, without field 12 (LD-427, SYN-03.14). Never a password or a value made from one (except the account blob of SYN-06.4, which also needs the account secret, and, until E16-S7b, the uploaded file of a password-only vault, against which a server can test a password guess: SYN-03's route table) or a private key in plain form. A request carries its session token; the server keeps only the token's hash.
 
-SYN-04.11 **A second device before E17-S2.** A server test helper registers a second device key for an account (tests only: built only for tests, never in a release server or app). E17-S2 replaces it with SYN-06.11's approval.
+SYN-04.11 **A second device.** From E17-S2 a second device joins only by SYN-06.11's approval or SYN-06.12's Recovery Kit, in tests too: no route, seam or helper registers a device key. (Until E17-S2 a server test helper did.)
 
 ## Edge cases and errors
 
@@ -85,7 +85,7 @@ SYN-04.11 **A second device before E17-S2.** A server test helper registers a se
 | T11 SYN-04.8 list | d1, d2 | `GET /v1/devices` from d1 | Two items; `this_device` true for d1 only; `last_seen` to the minute |
 | T12 SYN-04.9 sign out everywhere (E17-S3) | d1, d2, d3; d2 has vault D linked | d1 signs out everywhere; d2 syncs | d1 signs in again; d2 gets 401 twice, drops its account data and link; D's file on d2 byte-identical and still opens with its password and part; the `sessions` table holds only d1's new session |
 | T13 SYN-04.10 no password | A full E16-S7a run | A test proxy reads every request | No password and no value made from one (P5). The test searches every request and reply for the password, its SHA-256 (FMT-04.1), the composite key (FMT-04.5) and the transformed key of each device's last save (FMT-04.11), each raw, as hex and as base64. Keys made from those with a file's random seeds are not searched: each save makes new ones, so a fixed search would prove little. What keeps them out is that larsal-sync's `client.rs` builds every request from file bytes, ids, the public key and a signature, and takes no key |
-| T14 SYN-04.11 helper only in tests | A release build of larsal-server | Look for the helper's route or symbol | Absent |
+| T14 SYN-04.11 helper gone (E17-S2) | A release build of larsal-server; the test build's seams | Look for the helper's route or symbol, and for a seam that writes a device row | Absent: a second device joins only by SYN-06.11 or SYN-06.12 |
 | T15 SYN-04.3 lifetime, no push-out | d1; test rate limit raised to 100 | Get challenge c1; get 20 more challenges for d1; sign in with c1 at 299 s | 200: c1 was not pushed out and had not expired |
 
 ## How this was learned
