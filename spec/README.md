@@ -177,3 +177,14 @@ Status: SYN-01 to SYN-06 written 2026-10-31 (draft, E16-S1, from spec/research/s
 | SHR-04 | Removal, leaving and the list of passwords a removed member saw | E18-S5, E18-S7, E18-S8 |
 
 Status: SHR-01 to SHR-04 written 2026-11-01 (draft, E18-S1, from spec/research/sync-server.md and public standards; the reference app has no server or sharing): 59 rules, 102 test cases; reviewed 2026-11-01 (three Spec reviews, Verify signed round 3). D-SHR01-1, D-SHR01-2, D-SHR02-1, D-SHR02-2 and D-SHR04-1 decided by spec/decisions.md LD-290.
+
+
+### Files (`spec/files/`)
+
+| ID | Card | Built in |
+|---|---|---|
+| FIL-01 | [File format and keys](files/FIL-01-format-and-keys.md) | E22-S2, E22-S3 |
+| FIL-02 | [Screens and flows](files/FIL-02-screens-and-flows.md) | E22-S4, E22-S5 |
+| FIL-03 | [Limits and errors](files/FIL-03-limits-and-errors.md) | E22-S3 to E22-S6 |
+
+Status: FIL-01 to FIL-03 DRAFT 2026-11-05 (E22-S1), with [public research](research/file-encryption.md) and twelve proposed Option A frames per theme. Second Spec and fresh independent Verify remain OPEN. Lead rulings R1–R6, exact corpus/tool checksums, the full-file output/crash contract and offline-guess/server-store conflict are unadopted; external central proposals belong to the Lead. No implementation, download approval, runtime PASS, owner-frame approval or Done. FIL-04 to FIL-06 remain E23-S1's separate encrypted-folder scope.
