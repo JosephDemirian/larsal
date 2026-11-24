@@ -114,6 +114,9 @@ Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
 | FEA-07 | Statistics | E4-S11 |
 | FEA-08 | Import formats | E4-S13 |
 | FEA-09 | Export formats | E4-S13 |
+| FEA-10 | [Show as QR Code](features/FEA-10-show-as-qr.md) | E21-S1 (spec and proposals); E21-S2 to E21-S5 after review |
+
+Status: FEA-10 DRAFT 2026-11-04 (E21-S1), with Option A proposal frames, pending a fresh second Spec review and Verify. No implementation story starts from this draft. The longest-generator QR acceptance conflict and proposed technical rulings are recorded in the card; existing owner-only proposal choices remain pending.
 
 ### Larsal (`spec/app/`)
 
