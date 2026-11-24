@@ -312,7 +312,7 @@ fn view(
 }
 
 /// Sets (`Some`) or removes (`None`) the share item of `cd`.
-fn set_item(cd: &mut CustomData, key: &str, value: Option<String>, at: Time) {
+fn set_item(cd: &mut CustomData, key: &str, value: Option<SecretString>, at: Time) {
     let i = cd.items.iter().position(|i| i.key == key);
     match (i.and_then(|i| cd.items.get_mut(i)), value) {
         (Some(item), Some(v)) => {
@@ -1230,7 +1230,7 @@ mod tests {
                 .iter_mut()
                 .find(|i| i.key == key)
                 .unwrap()
-                .value = "x".into();
+                .value = larsal_crypto::secret::SecretString::new("x".into());
         });
         let bad = s.share_label(v, hx(id(0x20))).unwrap().unwrap();
         assert_eq!(

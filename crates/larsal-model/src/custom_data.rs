@@ -3,6 +3,7 @@
 
 use crate::times::Time;
 use crate::unknown::UnknownElement;
+use larsal_crypto::secret::SecretString;
 
 /// One custom data container.
 ///
@@ -17,16 +18,28 @@ pub struct CustomData {
 }
 
 /// One item: plain text key and value, optional time (FMT-14.13).
-#[derive(Clone, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct CustomDataItem {
     /// Key, exact and case-sensitive.
     pub key: String,
-    /// Value.
-    pub value: String,
+    /// Value, wiped on drop and replacement, including serialized credentials.
+    pub value: SecretString,
     /// `LastModificationTime`, when one was read or set.
     pub last_modified: Option<Time>,
     /// Kept unknown children of `Item`.
     pub unknown: Vec<UnknownElement>,
+}
+
+/// Copies go straight into wiping storage, as for entry fields.
+impl Clone for CustomDataItem {
+    fn clone(&self) -> Self {
+        Self {
+            key: self.key.clone(),
+            value: SecretString::new(self.value.expose().to_owned()),
+            last_modified: self.last_modified,
+            unknown: self.unknown.clone(),
+        }
+    }
 }
 
 /// The key and the value length only: a value may be a secret, for example
@@ -47,7 +60,7 @@ impl CustomData {
         self.items
             .iter()
             .find(|i| i.key == key)
-            .map(|i| i.value.as_str())
+            .map(|i| i.value.expose())
     }
 
     /// True when there are no items and nothing kept.
@@ -67,7 +80,7 @@ mod tests {
     fn int08_39_debug_shows_the_key_and_the_value_length_only() {
         let item = CustomDataItem {
             key: "demo-key".into(),
-            value: "ZGVtby1zaGFyZS0x".into(),
+            value: SecretString::new("ZGVtby1zaGFyZS0x".into()),
             last_modified: Some(Time(5)),
             unknown: Vec::new(),
         };

@@ -2591,3 +2591,298 @@ pub(crate) mod tests {
         assert_eq!(mail(&s, v), "pw-1");
     }
 }
+
+#[cfg(test)]
+mod backup_regressions {
+    use super::tests::*;
+    use super::*;
+    use crate::share_edit::ShareMode;
+    use larsal_model::Time;
+    use larsal_share::Error;
+    const T2: Time = Time(63_907_920_000);
+    fn host() -> larsal_crypto::kdf::Host {
+        larsal_crypto::kdf::Host {
+            physical_memory: 16 << 30,
+            logical_processors: 8,
+            argon2_record: None,
+            aes_record: Some(larsal_crypto::kdf::SpeedRecord {
+                count: 100_000_000,
+                memory_kib: 0,
+                lanes: 1,
+                ms: 1000,
+            }),
+        }
+    }
+    use crate::larsal_settings::{LarsalSetting, LarsalSettingValue};
+    use crate::test_dir::TempDir;
+    fn backup_settings(s: &Session, enabled: bool, pattern: &str) {
+        s.save_settings(vec![
+            LarsalSetting {
+                key: "backup.enabled".into(),
+                value: LarsalSettingValue::Flag { on: enabled },
+            },
+            LarsalSetting {
+                key: "backup.pattern".into(),
+                value: LarsalSettingValue::Text {
+                    text: pattern.into(),
+                },
+            },
+        ])
+        .unwrap();
+    }
+    #[test]
+    fn t70_matrix_no_import_export_and_mi08_17() {
+        let mut count = 0;
+        for enabled in [false, true] {
+            for existing in [false, true] {
+                for configured in [false, true] {
+                    for other in [false, true] {
+                        count += 1;
+                        let dir = TempDir::new(&format!("share-matrix-{count}"));
+                        let file = dir.join("v.larsalvault");
+                        let w = dir.join("other.larsalvault");
+                        let stem = if other { "other" } else { "v" };
+                        let pattern = "{FILE_NAME}-backup-{TIME:HHmmss}.larsalvault";
+                        let name = if configured {
+                            format!("{stem}-backup-any-text.larsalvault")
+                        } else {
+                            format!("{stem}.old.larsalvault")
+                        }
+                        .to_uppercase();
+                        let dest = dir.join(&name);
+                        let mut vault = base();
+                        set_share(team(&mut vault), settings(true, true, &name));
+                        let s = session(false);
+                        backup_settings(&s, enabled, pattern);
+                        if other {
+                            write(&w, &base(), MAIN);
+                            s.open(w.to_string_lossy().into_owned()).unwrap();
+                        }
+                        if existing {
+                            write(&dest, &base(), MAIN);
+                        }
+                        let before = std::fs::read(&dest).ok();
+                        let v = approved(&s, &file, &vault);
+                        unlock(&s, v);
+                        assert_eq!(mail(&s, v), "pw-1");
+                        assert!(s.share_paths(v).unwrap().is_empty());
+                        assert_eq!(
+                            s.share_edit(v, hex(id(0x20))).unwrap().warning,
+                            Some(crate::share_edit::ShareWarning::OpenVault),
+                            "MI08-17 case {count}"
+                        );
+                        s.share_edit_cancel(v).unwrap();
+                        save(&s, v);
+                        assert_eq!(news(&s, v), None, "no pass case {count}");
+                        assert_eq!(
+                            std::fs::read(&dest).ok(),
+                            before,
+                            "destination case {count}"
+                        );
+                        if existing {
+                            let open = if other {
+                                vec![file.clone(), w.clone()]
+                            } else {
+                                vec![file.clone()]
+                            };
+                            let keep = kept(open, pattern);
+                            let c = container::build(id(0x20), true, &vault, T2).unwrap();
+                            let result = container::write_file(
+                                &dest,
+                                &c,
+                                &secret(SHARE),
+                                &mut host(),
+                                &Limits::DEFAULT,
+                                &keep,
+                            );
+                            assert!(
+                                matches!(
+                                    result,
+                                    Err(Error::Io(std::io::ErrorKind::PermissionDenied))
+                                ),
+                                "write case {count}: {result:?}"
+                            );
+                            assert_eq!(
+                                std::fs::read(&dest).ok(),
+                                before,
+                                "write preservation case {count}"
+                            );
+                        }
+                        read(&file, MAIN).unwrap();
+                    }
+                }
+            }
+        }
+        assert_eq!(count, 16);
+        println!("T70: {count} matrix scenes, existing-backup writes refused");
+    }
+    #[test]
+    fn f269_existing_casefold_backup_write_must_refuse() {
+        let dir = TempDir::new("share-casefold");
+        let file = dir.join("v.larsalvault");
+        let backup = dir.join("V.OLD.LARSALVAULT");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        write(&backup, &vault, MAIN);
+        let before = std::fs::read(&backup).unwrap();
+        assert!(
+            guarded(&backup, std::slice::from_ref(&file), ""),
+            "early guard covers it"
+        );
+        let keep = kept(vec![file.clone()], "");
+        println!(
+            "casefold backup in keep={}",
+            keep.iter()
+                .any(|p| storage::file_id(p) == storage::file_id(&backup))
+        );
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        let result = container::write_file(
+            &backup,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &keep,
+        );
+        println!(
+            "write={result:?}; backup opens main={} share={}",
+            read(&backup, MAIN).is_ok(),
+            read(&backup, SHARE).is_ok()
+        );
+        assert!(
+            matches!(result, Err(Error::Io(std::io::ErrorKind::PermissionDenied))),
+            "existing matching backup must be protected at write"
+        );
+        assert_eq!(std::fs::read(&backup).unwrap(), before);
+        read(&backup, MAIN).unwrap();
+    }
+    #[test]
+    fn f269_backup_match_alias_and_controls() {
+        let dir = TempDir::new("share-match");
+        let real = dir.join("v.larsalvault");
+        write(&real, &base(), MAIN);
+        let home = std::env::var_os("HOME").map(PathBuf::from).unwrap();
+        let alias = dir.join("alias");
+        std::os::unix::fs::symlink(&*dir, &alias).unwrap();
+        for name in [
+            "v-backup-.larsalvault",
+            "v-backup-nonnumeric.larsalvault",
+            "V-BACKUP-123.LARSALVAULT",
+        ] {
+            assert!(
+                storage::is_backup(
+                    "{FILE_NAME}-backup-{TIME}.larsalvault",
+                    &real,
+                    &home,
+                    &alias.join(name)
+                ),
+                "{name}"
+            );
+        }
+        assert!(!storage::is_backup(
+            "{FILE_NAME}-backup-{TIME}.larsalvault",
+            &real,
+            &home,
+            &dir.join("other-backup-123.larsalvault")
+        ));
+        assert!(storage::is_backup(
+            "~/demo/{FILE_NAME}.old.larsalvault",
+            &real,
+            &home,
+            &home.join("demo/v.old.larsalvault")
+        ));
+    }
+    #[test]
+    fn t69_each_invalid_item_stays_shared_without_running() {
+        for raw in [true, false] {
+            let dir = TempDir::new(if raw {
+                "share-raw-state"
+            } else {
+                "share-path-state"
+            });
+            let file = dir.join("v.larsalvault");
+            let victim = dir.join("victim.larsalvault");
+            std::fs::write(&victim, b"demo canary").unwrap();
+            let mut vault = base();
+            let path = if raw {
+                "victim.larsalvault".to_owned()
+            } else {
+                format!("{}a", "é".repeat(2048))
+            };
+            set_share(team(&mut vault), settings(true, true, &path));
+            if raw {
+                let item = team(&mut vault).custom_data.items.last_mut().unwrap();
+                let mut value = item.value.expose().to_owned();
+                value.extend(std::iter::repeat_n(
+                    '!',
+                    larsal_format::share_item::MAX_VALUE + 1 - value.len(),
+                ));
+                item.value = larsal_crypto::secret::SecretString::new(value);
+            }
+            let s = session(false);
+            let v = approved(&s, &file, &vault);
+            unlock(&s, v);
+            let label = s.share_label(v, hex(id(0x20))).unwrap().unwrap();
+            assert_eq!(label.state, crate::share_edit::ShareState::Off);
+            assert_eq!(label.mode, ShareMode::Inactive);
+            assert!(label.path.is_empty() && label.full_path.is_empty());
+            assert!(!s.share_marks(v).unwrap()[0].active);
+            let rows = s.share_rows(v).unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].mode, ShareMode::Inactive);
+            assert!(rows[0].path.is_empty() && !rows[0].active);
+            let page = s.share_edit(v, hex(id(0x20))).unwrap();
+            assert!(page.item);
+            assert_eq!(page.mode, ShareMode::Inactive);
+            assert!(page.path.is_empty());
+            s.share_edit_cancel(v).unwrap();
+            assert!(s.share_paths(v).unwrap().is_empty());
+            save(&s, v);
+            assert_eq!(news(&s, v), None);
+            assert_eq!(std::fs::read(&victim).unwrap(), b"demo canary");
+        }
+    }
+
+    #[test]
+    fn f269_folder_swap_reaches_casefold_backup() {
+        let dir = TempDir::new("share-backup-swap");
+        let home = dir.join("home");
+        let shared = dir.join("shared");
+        std::fs::create_dir(&home).unwrap();
+        std::fs::create_dir(&shared).unwrap();
+        let file = home.join("v.larsalvault");
+        let backup = home.join("V.OLD.LARSALVAULT");
+        let target = shared.join("V.OLD.LARSALVAULT");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        write(&backup, &vault, MAIN);
+        let before = std::fs::read(&backup).unwrap();
+        assert!(
+            !guarded(&target, std::slice::from_ref(&file), ""),
+            "legitimate share at preflight"
+        );
+        let keep = kept(vec![file.clone()], "");
+        std::fs::rename(&shared, dir.join("shared-before")).unwrap();
+        std::os::unix::fs::symlink(&home, &shared).unwrap();
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        let result = container::write_file(
+            &target,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &keep,
+        );
+        println!(
+            "post-preflight folder swap: write={result:?}, main={} share={}",
+            read(&backup, MAIN).is_ok(),
+            read(&backup, SHARE).is_ok()
+        );
+        assert!(
+            matches!(result, Err(Error::Io(std::io::ErrorKind::PermissionDenied))),
+            "folder-swap write must preserve the existing backup"
+        );
+        assert_eq!(std::fs::read(&backup).unwrap(), before);
+        read(&backup, MAIN).unwrap();
+    }
+}

@@ -753,7 +753,7 @@ fn mod12_12_advanced_mode() {
             .to_vec(),
         )
         .unwrap(),
-        value: "1000".into(),
+        value: larsal_crypto::secret::SecretString::new("1000".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -913,7 +913,7 @@ fn text(bytes: &[u8]) -> String {
 fn cd(key: &str, value: &str) -> CustomDataItem {
     CustomDataItem {
         key: key.into(),
-        value: value.into(),
+        value: larsal_crypto::secret::SecretString::new(value.into()),
         last_modified: None,
         unknown: Vec::new(),
     }

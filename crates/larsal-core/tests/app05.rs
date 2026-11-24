@@ -1581,3 +1581,38 @@ fn f_110_two_writers_take_turns_and_no_save_is_lost() {
     assert_eq!(fs::read(&v).unwrap(), b"FIRST");
     assert_eq!(s.names(), ["V.larsalvault"], "no temp file left");
 }
+
+/// F-269: enumeration and the absent-target guard use the same name matching.
+#[test]
+fn f269_old_copies_use_the_case_insensitive_backup_matcher() {
+    let s = Scratch::new("backup-case");
+    let vault = s.path("v.larsalvault");
+    fs::write(&vault, b"demo vault").unwrap();
+    fs::create_dir(s.path("v-backup-directory.larsalvault")).unwrap();
+    for (pattern, name) in [
+        ("", "V.OLD.LARSALVAULT"),
+        (
+            "{FILE_NAME}-backup-{TIME:HHmmss}.larsalvault",
+            "V-BACKUP-any-text.LARSALVAULT",
+        ),
+    ] {
+        let path = s.path(name);
+        fs::write(&path, b"demo backup").unwrap();
+        fs::write(s.path("other.old.larsalvault"), b"other").unwrap();
+        assert!(storage::is_backup(pattern, &vault, &s.0, &path));
+        assert_eq!(storage::old_copies(pattern, &vault, &s.0, None), [path]);
+    }
+    let alias = s.path("alias");
+    std::os::unix::fs::symlink(&s.0, &alias).unwrap();
+    assert_eq!(
+        storage::old_copies("alias/{FILE_NAME}.old.larsalvault", &vault, &s.0, None),
+        [alias.join("V.OLD.LARSALVAULT")]
+    );
+    // A broad pattern still excludes the vault and its hard-link alias.
+    let link = s.path("V-copy.larsalvault");
+    fs::hard_link(&vault, &link).unwrap();
+    assert!(
+        !storage::old_copies("{FILE_NAME}{TIME}.larsalvault", &vault, &s.0, None).contains(&link)
+    );
+    assert_eq!(fs::read(&vault).unwrap(), b"demo vault");
+}

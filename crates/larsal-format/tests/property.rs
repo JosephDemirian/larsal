@@ -207,7 +207,7 @@ fn build_cd(p: &CdPlan) -> CustomData {
             })
             .map(|(k, v, t, u)| CustomDataItem {
                 key: k.clone(),
-                value: v.clone(),
+                value: larsal_crypto::secret::SecretString::new(v.clone()),
                 last_modified: t.map(Time),
                 unknown: build_unknowns(u),
             })

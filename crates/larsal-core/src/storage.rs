@@ -982,16 +982,16 @@ pub fn old_copies(
     let glob = backup_glob(pattern, real, home);
     let mut out = Vec::new();
     let vault = file_id(real);
-    if let (Some(dir), Some(name)) = (
-        glob.parent(),
-        glob.file_name().map(|n| n.to_string_lossy().into_owned()),
-    ) && let Ok(list) = fs::read_dir(dir)
+    if let Some(dir) = glob.parent()
+        && let Ok(list) = fs::read_dir(dir)
     {
         for e in list.flatten() {
-            let file = e.file_name().to_string_lossy().into_owned();
             // SG43: the vault itself by what file it is, never by the
             // spelling of the pattern's folder (F-224).
-            if matches_glob(&name, &file) && e.path().is_file() && file_id(&e.path()) != vault {
+            if is_backup(pattern, real, home, &e.path())
+                && e.path().is_file()
+                && file_id(&e.path()) != vault
+            {
                 out.push(e.path());
             }
         }

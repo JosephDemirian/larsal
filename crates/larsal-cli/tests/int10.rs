@@ -62,6 +62,8 @@ impl Dir {
         c.args(args)
             .current_dir(&self.0)
             .env("HOME", self.path("home"))
+            .env("TEST_RUNNER_HOME", self.path("home"))
+            .env("CFFIXED_USER_HOME", self.path("home"))
             .env_remove("LARSAL_TEST_PASTEBOARD")
             .env_remove("LARSAL_TEST_SELF_TEST_FAIL");
         c

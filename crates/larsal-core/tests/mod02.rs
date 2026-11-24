@@ -17,7 +17,7 @@ use larsal_model::{CustomDataItem, CustomIcon, Group, Icon, Switch, Time, Uuid, 
 fn cd(key: &str, value: &str) -> CustomDataItem {
     CustomDataItem {
         key: key.into(),
-        value: value.into(),
+        value: larsal_crypto::secret::SecretString::new(value.into()),
         last_modified: None,
         unknown: Vec::new(),
     }
