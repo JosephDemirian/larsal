@@ -40,7 +40,7 @@ fuzz_target!(|data: &[u8]| {
     let Some(mut s) = settings::read(&value) else {
         return;
     };
-    let again = settings::read(&s.write().unwrap()).unwrap();
+    let again = settings::read(s.write().unwrap().expose()).unwrap();
     assert_eq!(again.mode(), s.mode());
     assert_eq!(again.group, s.group);
     assert!(!again.group.is_zero());

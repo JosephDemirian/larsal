@@ -111,10 +111,67 @@ g1() {
   run swift-format swift_format
   run swiftlint swiftlint_lint
 }
+# LD-325(5d): guard each G2 Cargo test configuration before runtime, then fail closed.
+test_keychain_imports() {
+  local workspace_artifacts=$LOGS/test-binaries-workspace.jsonl
+  local sync_artifacts=$LOGS/test-binaries-sync.jsonl
+  local net_artifacts=$LOGS/test-binaries-net.jsonl
+  local release_artifacts=$LOGS/test-binaries-release.jsonl
+  local browser_artifacts=$LOGS/test-binaries-release-browser.jsonl
+  local app09_artifacts=$LOGS/test-binaries-app09.jsonl
+  cargo test --offline --locked --workspace --no-run --message-format=json >"$workspace_artifacts" || return
+  cargo test --offline --locked -p larsal-ffi --features sync --no-run --message-format=json >"$sync_artifacts" || return
+  cargo test --offline --locked -p larsal-platform --features net --no-run --message-format=json >"$net_artifacts" || return
+  cargo test --offline --locked --release -p larsal-core --test fea01 --test fea05 --test fea06 --test fea07 --test mod08 --test mod11 --no-run --message-format=json >"$release_artifacts" || return
+  cargo test --offline --locked --release -p larsal-browser --test int03 --no-run --message-format=json >"$browser_artifacts" || return
+  cargo test --offline --locked -p larsal-ffi --test app09 --no-run --message-format=json >"$app09_artifacts" || return
+  python3 - "$workspace_artifacts" "$sync_artifacts" "$net_artifacts" "$release_artifacts" "$browser_artifacts" "$app09_artifacts" <<'PYTHON'
+import json, os, re, subprocess, sys
+binaries = set()
+expected = [set(), {'larsal_ffi'}, {'larsal_platform'},
+            {'fea01', 'fea05', 'fea06', 'fea07', 'mod08', 'mod11'}, {'int03'}, {'app09'}]
+for index, path in enumerate(sys.argv[1:]):
+    found = set()
+    targets = set()
+    with open(path) as stream:
+        for line in stream:
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            if item.get('reason') != 'compiler-artifact' or item.get('profile', {}).get('test') is not True:
+                continue
+            binary = item.get('executable')
+            if binary is None:
+                continue
+            if not isinstance(binary, str) or not os.path.isabs(binary) or not os.path.isfile(binary):
+                sys.exit('keychain guard: invalid test executable')
+            found.add(binary)
+            name = item.get('target', {}).get('name')
+            feature = {1: 'sync', 2: 'net'}.get(index)
+            if feature is None or feature in item.get('features', []):
+                targets.add(name)
+    if not found or not expected[index].issubset(targets):
+        sys.exit('keychain guard: missing configured test discovery')
+    binaries.update(found)
+nm = os.environ['DEVELOPER_DIR'] + '/Toolchains/XcodeDefault.xctoolchain/usr/bin/nm'
+hits = []
+for binary in sorted(binaries):
+    result = subprocess.run([nm, '-u', binary], check=True, capture_output=True, text=True)
+    hits.extend((binary, line) for line in result.stdout.splitlines()
+                if re.search(r'_Sec(?:Item|Keychain|AccessControl)', line))
+for binary, line in hits:
+    print(binary, line)
+print(f'keychain guard: {len(binaries)} binaries, {len(hits)} forbidden imports')
+sys.exit(bool(hits))
+PYTHON
+}
+
 # Timed tests (MOD-08.22, FEA-01.32, LD-126 (4)) prove their bounds in a
 # release build; some run only there.
 g2() {
+  run keychain-imports test_keychain_imports || return
   run test cargo test --offline --locked --workspace
+  run test-sync cargo test --offline --locked -p larsal-ffi --features sync
   run test-net cargo test --offline --locked -p larsal-platform --features net  # the opt-in network client, off by default (E6-S7)
   run test-release cargo test --offline --locked --release -p larsal-core --test fea01 --test fea05 --test fea06 --test fea07 --test mod08 --test mod11
   run test-release-browser cargo test --offline --locked --release -p larsal-browser --test int03  # INT-03.17's timed bounds (F-244, F-245)

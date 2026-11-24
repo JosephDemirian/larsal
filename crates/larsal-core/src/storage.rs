@@ -43,11 +43,12 @@
 
 use larsal_crypto::hash::sha256;
 use larsal_model::times::Civil;
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, ErrorKind, Read, Write};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
 /// Bytes of the file the checksum hashes (APP-05 "Checksum").
@@ -879,8 +880,19 @@ fn file_stem(real: &Path) -> String {
     }
 }
 
-/// One pass from left to right; with `time` `None` every time placeholder
-/// becomes `*` (for APP-05.33's matching).
+// NUL cannot be a file name: literal stars in folders must stay literal.
+const TIME_GLOB: char = '\0';
+const GLOB_TIME: Civil = Civil {
+    year: 1,
+    month: 1,
+    day: 1,
+    hour: 0,
+    minute: 0,
+    second: 0,
+};
+
+/// One pass from left to right; with `time` `None` time components become
+/// wildcard markers (for APP-05.33's matching).
 fn expand(pattern: &str, stem: &str, time: Option<(Civil, u32)>) -> String {
     let mut out = String::new();
     let mut rest = pattern;
@@ -903,12 +915,12 @@ fn expand(pattern: &str, stem: &str, time: Option<(Civil, u32)>) -> String {
                 Some(stem.to_owned())
             } else if inner == "TIME" || inner == "TIME:" {
                 Some(time.map_or_else(
-                    || "*".to_owned(),
+                    || TIME_GLOB.to_string(),
                     |(t, ms)| format_time("dd_MM_yyyy_HH-mm-ss", t, ms),
                 ))
             } else if let Some(f) = inner.strip_prefix("TIME:") {
                 (!f.contains(['{', '\\']))
-                    .then(|| time.map_or_else(|| "*".to_owned(), |(t, ms)| format_time(f, t, ms)))
+                    .then(|| time.map_or_else(|| time_glob(f), |(t, ms)| format_time(f, t, ms)))
             } else {
                 None
             };
@@ -922,6 +934,26 @@ fn expand(pattern: &str, stem: &str, time: Option<(Civil, u32)>) -> String {
         rest = rest.get(c.len_utf8()..).unwrap_or("");
     }
     out
+}
+
+/// Numeric tokens cannot add separators; use the formatter to keep quoted
+/// slashes and path-resolution components without choosing today's directory.
+fn time_glob(format: &str) -> String {
+    let shape = format_time(format, GLOB_TIME, 0);
+    if shape.is_empty() {
+        return TIME_GLOB.to_string();
+    }
+    shape
+        .split('/')
+        .map(|part| {
+            if part.is_empty() {
+                String::new()
+            } else {
+                TIME_GLOB.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 /// APP-05.20's numeric time tokens, longest match first; quoted text as
@@ -982,16 +1014,18 @@ pub fn old_copies(
     let glob = backup_glob(pattern, real, home);
     let mut out = Vec::new();
     let vault = file_id(real);
-    if let (Some(dir), Some(name)) = (
-        glob.parent(),
-        glob.file_name().map(|n| n.to_string_lossy().into_owned()),
-    ) && let Ok(list) = fs::read_dir(dir)
-    {
-        for e in list.flatten() {
-            let file = e.file_name().to_string_lossy().into_owned();
+    if let (Some(dir), Some(name)) = (glob.parent(), glob.file_name()) {
+        for e in backup_folders(dir, None)
+            .iter()
+            .flat_map(|dir| fs::read_dir(dir).into_iter().flatten())
+            .flatten()
+        {
             // SG43: the vault itself by what file it is, never by the
             // spelling of the pattern's folder (F-224).
-            if matches_glob(&name, &file) && e.path().is_file() && file_id(&e.path()) != vault {
+            if backup_name_matches(name, &e.file_name(), '*')
+                && e.path().is_file()
+                && file_id(&e.path()) != vault
+            {
                 out.push(e.path());
             }
         }
@@ -1010,12 +1044,6 @@ pub fn old_copies(
 #[must_use]
 pub fn is_backup(pattern: &str, real: &Path, home: &Path, path: &Path) -> bool {
     let glob = backup_glob(pattern, real, home);
-    let lower = |n: &OsStr| -> String {
-        n.to_string_lossy()
-            .chars()
-            .flat_map(|c| c.to_lowercase())
-            .collect()
-    };
     match (
         glob.parent(),
         glob.file_name(),
@@ -1023,10 +1051,133 @@ pub fn is_backup(pattern: &str, real: &Path, home: &Path, path: &Path) -> bool {
         path.file_name(),
     ) {
         (Some(dir), Some(name), Some(folder), Some(file)) => {
-            file_id(dir) == file_id(folder) && matches_glob(&lower(name), &lower(file))
+            let folder = resolved_backup_folder(folder);
+            backup_name_matches(name, file, '*')
+                && backup_folders(dir, Some(&folder))
+                    .iter()
+                    .any(|dir| file_id(&resolved_backup_folder(dir)) == file_id(&folder))
         }
         _ => false,
     }
+}
+
+fn backup_name_matches(pattern: &OsStr, name: &OsStr, wildcard: char) -> bool {
+    let lower = |n: &OsStr| -> String {
+        n.to_string_lossy()
+            .chars()
+            .flat_map(char::to_lowercase)
+            .collect()
+    };
+    let pattern = lower(pattern);
+    // Keep the existing filename glob behavior; directory stars are literal.
+    let pattern = if wildcard == '*' {
+        pattern.replace(TIME_GLOB, "*")
+    } else {
+        pattern
+    };
+    matches_glob(&pattern, &lower(name), wildcard)
+}
+
+/// Resolve the existing ancestor too when a backup folder has not been made.
+fn resolved_backup_folder(path: &Path) -> PathBuf {
+    path.ancestors()
+        .find_map(|ancestor| {
+            fs::canonicalize(ancestor).ok().and_then(|real| {
+                path.strip_prefix(ancestor).ok().map(|suffix| {
+                    suffix.components().fold(real, |mut real, part| {
+                        if part == Component::ParentDir {
+                            real.pop();
+                        } else {
+                            real.push(part);
+                        }
+                        // A missing suffix can return to an existing link.
+                        fs::canonicalize(&real).unwrap_or(real)
+                    })
+                })
+            })
+        })
+        .unwrap_or_else(|| path.to_path_buf())
+}
+
+/// Expand only the pattern's directory components, never a recursive wildcard.
+/// A candidate contributes missing components for the before-creation guard.
+fn backup_folders(dir: &Path, candidate: Option<&Path>) -> Vec<PathBuf> {
+    let mut root = PathBuf::new();
+    let mut parts = Vec::new();
+    for part in dir.components() {
+        if parts.is_empty() && !part.as_os_str().to_string_lossy().contains(TIME_GLOB) {
+            root.push(part);
+        } else {
+            parts.push(part);
+        }
+    }
+    let mut folders = vec![root];
+    let mut deferred = vec![Vec::new(); parts.len().saturating_add(1)];
+    for (i, part) in parts.iter().enumerate() {
+        let name = part.as_os_str();
+        let wildcard = name.to_string_lossy().contains(TIME_GLOB);
+        let mut rejoin = None;
+        if wildcard {
+            let mut depth = 1_usize;
+            for (j, part) in parts.iter().enumerate().skip(i.saturating_add(1)) {
+                match part {
+                    Component::ParentDir => depth = depth.saturating_sub(1),
+                    Component::CurDir => (),
+                    _ => depth = depth.saturating_add(1),
+                }
+                if depth == 0 {
+                    rejoin = Some(j.saturating_add(1));
+                    break;
+                }
+            }
+        }
+        let mut next = Vec::new();
+        for folder in folders {
+            if wildcard {
+                // A missing matching child and its suffix can be cancelled by `..`.
+                if let Some(step) = rejoin
+                    && let Some(pending) = deferred.get_mut(step)
+                {
+                    pending.push(folder.clone());
+                }
+                if let Ok(list) = fs::read_dir(&folder) {
+                    next.extend(
+                        list.flatten()
+                            .filter(|e| {
+                                backup_name_matches(name, &e.file_name(), TIME_GLOB)
+                                    && e.path().is_dir()
+                            })
+                            .map(|e| e.path()),
+                    );
+                }
+            } else {
+                next.push(folder.join(name));
+            }
+            for extra in candidate.into_iter().flat_map(|p| p.ancestors()) {
+                if let (Some(parent), Some(file)) = (extra.parent(), extra.file_name())
+                    && file_id(&resolved_backup_folder(parent))
+                        == file_id(&resolved_backup_folder(&folder))
+                    && (if wildcard {
+                        backup_name_matches(name, file, TIME_GLOB)
+                    } else {
+                        name == file
+                    })
+                    && !next.iter().any(|p| p == extra)
+                {
+                    next.push(extra.to_path_buf());
+                }
+            }
+        }
+        if let Some(pending) = deferred.get_mut(i.saturating_add(1)) {
+            next.append(pending);
+        }
+        // Alias cycles cannot multiply the same directory at one pattern depth.
+        next.sort();
+        let mut seen = BTreeSet::new();
+        next.retain(|p| seen.insert(file_id(&resolved_backup_folder(p))));
+        folders = next;
+    }
+    folders
 }
 
 /// The backup pattern's path for the vault at `real`, each time
@@ -1037,7 +1188,25 @@ fn backup_glob(pattern: &str, real: &Path, home: &Path) -> PathBuf {
     } else {
         pattern
     };
-    let glob = expand(pattern, &file_stem(real), None);
+    let stem = file_stem(real);
+    let glob = expand(pattern, &stem, None);
+    let shape = expand(pattern, &stem, Some((GLOB_TIME, 0)));
+    let parts: Vec<_> = glob.split('/').collect();
+    let last = parts.len().saturating_sub(1);
+    // Resolution uses whole components, even when several placeholders form one.
+    let glob = shape
+        .split('/')
+        .zip(parts)
+        .enumerate()
+        .map(|(i, (shape, glob))| {
+            if i != last && (matches!(shape, "" | "." | "..") || (i == 0 && shape == "~")) {
+                shape
+            } else {
+                glob
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/");
     match glob.strip_prefix("~/") {
         Some(rest) => home.join(rest),
         None if Path::new(&glob).is_absolute() => PathBuf::from(&glob),
@@ -1046,8 +1215,8 @@ fn backup_glob(pattern: &str, real: &Path, home: &Path) -> PathBuf {
 }
 
 /// `*` matches any text; everything else exactly.
-fn matches_glob(glob: &str, name: &str) -> bool {
-    let parts: Vec<&str> = glob.split('*').collect();
+fn matches_glob(glob: &str, name: &str, wildcard: char) -> bool {
+    let parts: Vec<&str> = glob.split(wildcard).collect();
     let (Some(first), Some(last)) = (parts.first(), parts.last()) else {
         return false;
     };

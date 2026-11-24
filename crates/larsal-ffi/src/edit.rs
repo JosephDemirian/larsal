@@ -976,7 +976,7 @@ fn view(vault: &Vault, d: &Draft) -> EditorView {
                 } else {
                     i.key.clone()
                 },
-                value: i.value.clone(),
+                value: i.value.expose().to_owned(),
             })
             .collect(),
         custom_icon: custom_icon_name(vault, e.icon),
@@ -1057,17 +1057,17 @@ pub(crate) fn custom_value<'a>(e: &'a Entry, key: &[u8]) -> Option<&'a str> {
         .items
         .iter()
         .find(|i| i.key.as_bytes() == key)
-        .map(|i| i.value.as_str())
+        .map(|i| i.value.expose())
 }
 
 fn set_custom(e: &mut Entry, key: &str, value: Option<String>) {
     let items = &mut e.custom_data.items;
     match (items.iter_mut().find(|i| i.key == key), value) {
-        (Some(item), Some(v)) => item.value = v,
+        (Some(item), Some(v)) => item.value = SecretString::new(v),
         (Some(_), None) => items.retain(|i| i.key != key),
         (None, Some(v)) => items.push(larsal_model::CustomDataItem {
             key: key.to_owned(),
-            value: v,
+            value: SecretString::new(v),
             last_modified: None,
             unknown: Vec::new(),
         }),

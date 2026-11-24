@@ -582,6 +582,22 @@ impl Session {
         }
     }
 
+    /// Editor exclusion and applying a disk result share the same state lock.
+    fn with_closed_editors<R>(
+        &self,
+        vault: u64,
+        f: impl FnOnce(&mut Vault, &mut Rated, &mut EditState) -> Result<R, LarsalError>,
+    ) -> Result<Option<R>, LarsalError> {
+        self.with_share(vault, |slot| {
+            let v = slot.vault.ok_or(LarsalError::Locked)?;
+            if slot.edit.editing() || slot.share.draft.is_some() {
+                return Ok(None);
+            }
+            *slot.version = slot.version.wrapping_add(1);
+            f(v, slot.rated, slot.edit).map(Some)
+        })?
+    }
+
     /// Opens the disk version with the kept key parts (APP-05.26 to
     /// APP-05.29) and puts it in place of the open vault, merged with it
     /// for Merge (`before` is `None`). A reload (`Some` of the change count
@@ -601,6 +617,7 @@ impl Session {
         before: Option<u32>,
         new_key: Option<NewKey>,
         guard: bool,
+        watch_before: Option<storage::Checksum>,
     ) -> Result<DiskEvent, LarsalError> {
         let (saver, path, root) = self.with_edit(vault, |v, path, _, s| {
             Ok((s.saver.clone(), path.to_path_buf(), v.root.uuid))
@@ -609,11 +626,24 @@ impl Session {
             return Ok(DiskEvent::None);
         };
         let mut sv = locked(&saver);
-        let unreadable = |me: &Self| {
-            me.with_edit(vault, |_, _, _, s| {
+        let retry = watch_before.unwrap_or(sv.checksum);
+        let busy = |sv: &mut Saver| {
+            sv.watched = retry;
+            Ok(DiskEvent::Busy)
+        };
+        let unreadable = |me: &Self, sv: &mut Saver| {
+            let event = me.with_closed_editors(vault, |_, _, s| {
+                same(s, &saver)?;
+                if watch_before.is_some() {
+                    (s.disk.asked, s.disk.older_asked) = (Some(DiskAsk::Unsaved), false);
+                }
                 s.disk.unreadable = true;
                 Ok(DiskEvent::Unreadable)
-            })
+            })?;
+            match event {
+                Some(event) => Ok(event),
+                None => busy(sv),
+            }
         };
         let real = storage::real_path(&path);
         // F-101: never waits on a pipe planted at the vault's path.
@@ -621,7 +651,7 @@ impl Session {
             .map_err(|e| larsal_format::Error::Io(e.kind()))
             .and_then(|f| larsal_format::detect::read_vault(f, &Limits::DEFAULT))
         else {
-            return unreadable(self);
+            return unreadable(self, &mut sv);
         };
         // F-107: the kept hardware key stays a part of either key (the
         // APP-05.29 sheet asks for the password and key file only).
@@ -639,11 +669,23 @@ impl Session {
             },
         };
         let Some(opened) = self.open_bytes(&bytes, &credentials, true) else {
-            return unreadable(self);
+            return unreadable(self, &mut sv);
         };
         let opened = match opened {
             Ok(opened) => opened,
-            Err(()) => return Ok(DiskEvent::NewKey),
+            Err(()) => {
+                let event = self.with_closed_editors(vault, |_, _, s| {
+                    same(s, &saver)?;
+                    if watch_before.is_some() {
+                        (s.disk.asked, s.disk.older_asked) = (Some(DiskAsk::Unsaved), false);
+                    }
+                    Ok(DiskEvent::NewKey)
+                })?;
+                return match event {
+                    Some(event) => Ok(event),
+                    None => busy(&mut sv),
+                };
+            }
         };
         let sum = storage::checksum(&bytes);
         let larsal_format::OpenedVault {
@@ -658,13 +700,17 @@ impl Session {
             match self.is_retired_copy(disk_vault.root.uuid, &credentials) {
                 Some(false) => {}
                 Some(true) => {
-                    return self.with_edit(vault, |_, _, _, s| {
+                    let event = self.with_closed_editors(vault, |_, _, s| {
                         same(s, &saver)?;
                         s.held = Some(Box::new(disk_vault));
                         Ok(DiskEvent::OldKey)
-                    });
+                    })?;
+                    return match event {
+                        Some(event) => Ok(event),
+                        None => busy(&mut sv),
+                    };
                 }
-                None => return unreadable(self),
+                None => return unreadable(self, &mut sv),
             }
             // The record of this Mac's key, made now, off the session lock:
             // kept if the merge gives the vault the disk copy's key.
@@ -683,7 +729,7 @@ impl Session {
         // more (the first question's kind), with Merge the default; the
         // second Discard loads it.
         if new_key.is_some() && !guard && before.is_some() && verdict.older {
-            let again = self.with_edit(vault, |_, _, _, s| {
+            let Some(again) = self.with_closed_editors(vault, |_, _, s| {
                 let ask = match s.disk.asked {
                     Some(DiskAsk::OnSave) => DiskAsk::OnSave,
                     _ => DiskAsk::Unsaved,
@@ -696,7 +742,10 @@ impl Session {
                         },
                     ),
                 )
-            })?;
+            })?
+            else {
+                return busy(&mut sv);
+            };
             if let Some(again) = again {
                 return Ok(again);
             }
@@ -705,7 +754,7 @@ impl Session {
         // one is never taken as seen.
         let read = (!verdict.older).then(|| disk_vault.duplicate());
         let merging = before.is_none() || (guard && verdict.older);
-        let taken = self.with_edit(vault, |v, _, rated, s| {
+        let Some(taken) = self.with_closed_editors(vault, |v, rated, s| {
             same(s, &saver)?;
             let mut replaced = None;
             if merging || before.is_some_and(|b| s.changes > b) {
@@ -767,7 +816,10 @@ impl Session {
                 s.disk.new_key = pending;
             }
             Ok((keeps_mine, replaced == Some(true), weaker))
-        })?;
+        })?
+        else {
+            return busy(&mut sv);
+        };
         let (keeps_mine, retire, weaker) = taken;
         let other_key = retiring.is_some();
         sv.checksum = sum;
@@ -875,8 +927,9 @@ impl Session {
         let (path, measures) = self
             .with_share(vault, |slot| {
                 let v = slot.vault?;
-                (!sync_busy(slot.edit, slot.share))
-                    .then(|| (slot.path.to_path_buf(), crate::sync::measures(v)))
+                (!sync_busy(slot.edit, slot.share)
+                    && !v.read_version.is_some_and(|version| version.major < 4))
+                .then(|| (slot.path.to_path_buf(), crate::sync::measures(v)))
             })
             .ok()??;
         let bytes = larsal_platform::macos::open_regular(&storage::real_path(&path))
@@ -928,14 +981,29 @@ impl Session {
         if copy.root.uuid != root {
             return Merge::OtherVault;
         }
+        #[cfg(test)]
+        crate::sync::tests::server_opened();
         let measured = crate::sync::measures(&copy);
         let mut sv = locked(&saver);
+        // A copy opened with credentials retired meanwhile needs a fresh run.
+        let same_key = sv.password == kept.0
+            && sv.hardware == kept.2
+            && match (&sv.key_file, &kept.1) {
+                (Some(a), Some(b)) => a.key() == b.key(),
+                (a, b) => a.is_none() && b.is_none(),
+            };
+        if !same_key {
+            return Merge::Busy;
+        }
         let staged = self.with_share(vault, |slot| -> Result<_, LarsalError> {
             let (Some(v), s) = (slot.vault, &mut *slot.edit) else {
                 return Ok(None);
             };
             same(s, &saver)?;
-            if sync_busy(s, slot.share) {
+            if sync_busy(s, slot.share)
+                || (!s.disk.notice_confirmed
+                    && v.read_version.is_some_and(|version| version.major < 4))
+            {
                 return Ok(None);
             }
             // A change of the vault, as `with_edit` counts one (F-165).
@@ -1048,7 +1116,9 @@ impl Session {
         if ignore {
             return Ok(DiskEvent::None);
         }
-        if editing {
+        // LD-310 (7): defer the disk event while the group editor has a draft.
+        let group_editor = self.with_share(vault, |slot| slot.share.draft.is_some())?;
+        if editing || group_editor {
             return Ok(DiskEvent::Busy);
         }
         let mut sv = match saver.try_lock() {
@@ -1059,30 +1129,45 @@ impl Session {
         let Some(seen) = storage::changed_on_disk(&storage::real_path(&path), &sv.watched) else {
             return Ok(DiskEvent::None);
         };
+        let previous = sv.watched;
         sv.watched = seen;
         drop(sv);
-        let changes = self.with_edit(vault, |_, _, _, s| {
-            // A new question round (APP-05.29).
-            (s.disk.asked, s.disk.older_asked) = (Some(DiskAsk::Unsaved), false);
-            Ok(s.changes)
-        })?;
-        // APP-05.26, APP-05.27 (LD-267 (3)): the rollback guard compares
-        // before any question; an older version is never loaded silently.
-        if changes > 0 {
-            let ask = DiskAsk::Unsaved;
-            return Ok(if self.disk_older(vault)? {
-                DiskEvent::AskOlder { ask, changes }
+        let result = (|| {
+            let changes = self.with_edit(vault, |_, _, _, s| Ok(s.changes))?;
+            // The KDF runs off the state lock; editor exclusion is checked
+            // again under that lock when the result is applied or published.
+            let event = if changes > 0 {
+                let ask = DiskAsk::Unsaved;
+                if self.disk_older(vault)? {
+                    DiskEvent::AskOlder { ask, changes }
+                } else {
+                    DiskEvent::Ask { ask, changes }
+                }
+            } else if !self.settings.flag("save.reload_on_change".into())
+                && !self.disk_older(vault)?
+            {
+                DiskEvent::Ask {
+                    ask: DiskAsk::Reload,
+                    changes,
+                }
             } else {
-                DiskEvent::Ask { ask, changes }
-            });
+                return self.take_disk_version(vault, Some(changes), None, true, Some(previous));
+            };
+            Ok(self
+                .with_closed_editors(vault, |_, _, s| {
+                    same(s, &saver)?;
+                    (s.disk.asked, s.disk.older_asked) = (Some(DiskAsk::Unsaved), false);
+                    Ok(event)
+                })?
+                .unwrap_or(DiskEvent::Busy))
+        })();
+        if matches!(result, Ok(DiskEvent::Busy)) {
+            let mut sv = locked(&saver);
+            if sv.watched == seen {
+                sv.watched = previous;
+            }
         }
-        if !self.settings.flag("save.reload_on_change".into()) && !self.disk_older(vault)? {
-            return Ok(DiskEvent::Ask {
-                ask: DiskAsk::Reload,
-                changes,
-            });
-        }
-        self.take_disk_version(vault, Some(changes), None, true)
+        result
     }
 
     /// The answer to a changed-on-disk question (APP-05.26 to APP-05.29).
@@ -1095,10 +1180,10 @@ impl Session {
     /// `UnknownVault`, `Locked`; `Refused` when the merge fails.
     pub fn resolve_disk(&self, vault: u64, choice: DiskChoice) -> Result<DiskEvent, LarsalError> {
         match choice {
-            DiskChoice::Merge => self.take_disk_version(vault, None, None, false),
+            DiskChoice::Merge => self.take_disk_version(vault, None, None, false, None),
             DiskChoice::Reload => {
                 let changes = self.with_edit(vault, |_, _, _, s| Ok(s.changes))?;
-                self.take_disk_version(vault, Some(changes), None, false)
+                self.take_disk_version(vault, Some(changes), None, false, None)
             }
             DiskChoice::KeepMine | DiskChoice::Later => self.with_edit(vault, |_, _, _, s| {
                 s.disk.ignore |= choice == DiskChoice::KeepMine;
@@ -1153,7 +1238,7 @@ impl Session {
         if password.is_none() && key_file.is_none() {
             return Ok(DiskEvent::NewKey);
         }
-        self.take_disk_version(vault, before, Some((password, key_file)), false)
+        self.take_disk_version(vault, before, Some((password, key_file)), false, None)
     }
 
     /// The answer to `MSG-DISK-OLD-KEY` for the vault's own file (APP-05.29,
@@ -1474,6 +1559,24 @@ mod tests {
         s.begin_edit(v, id_of(&s, v, "Wise")).unwrap();
         assert_eq!(s.check_disk(v).unwrap(), DiskEvent::Busy);
         s.cancel_edit(v).unwrap();
+        assert_eq!(s.check_disk(v).unwrap(), DiskEvent::Reloaded);
+        assert!(titles(&s, v).contains(&"Demo Shop".to_owned()));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// LD-310 (7), APP-05.25: while the group editor is open the event
+    /// waits, as it does for the entry editor; when it closes the check
+    /// runs the flow.
+    #[test]
+    fn ld_310_7_the_group_editor_keeps_the_event_pending() {
+        let (dir, path, s, v) = personal("pending-group");
+        let (other, ov) = window(&path, "demo-pass-7");
+        add(&other, ov, "Demo Shop");
+        saved(&other.save(ov).unwrap());
+        let root = s.sidebar(v).unwrap().root;
+        s.share_edit(v, root).unwrap();
+        assert_eq!(s.check_disk(v).unwrap(), DiskEvent::Busy);
+        s.share_edit_cancel(v).unwrap();
         assert_eq!(s.check_disk(v).unwrap(), DiskEvent::Reloaded);
         assert!(titles(&s, v).contains(&"Demo Shop".to_owned()));
         let _ = std::fs::remove_dir_all(dir);
@@ -2472,5 +2575,273 @@ mod tests {
         assert!(matches!(save.join().unwrap(), Err(LarsalError::Locked)));
         assert!(on_file(&copy).contains(&"Typed before the lock".to_owned()));
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    // A disk reload held at its KDF: existing save-lock reference and host-lock seam.
+    fn late_group_editor(deleted: bool, ask: Option<DiskAsk>) {
+        use crate::share_edit::ShareChange;
+        use std::time::{Duration, Instant};
+        let tag = match (deleted, ask) {
+            (true, _) => "late-deleted",
+            (false, Some(DiskAsk::Unsaved)) => "late-unsaved-question",
+            (false, Some(DiskAsk::Reload)) => "late-reload-question",
+            _ => "late-root",
+        };
+        let (_dir, path, s, v) = personal(tag);
+        let group = if deleted {
+            let id = s
+                .add_group(v, None, "Demo target".into(), 48, None)
+                .unwrap();
+            saved(&s.save(v).unwrap());
+            id
+        } else {
+            s.sidebar(v).unwrap().root
+        };
+        let (other, ov) = window(&path, "demo-pass-7");
+        if deleted {
+            let id = crate::views::parse_id(&group, LarsalError::UnknownGroup).unwrap();
+            other
+                .with_edit(ov, |vault, _, _, state| {
+                    larsal_core::recycle::delete_group(vault, id, now()).unwrap();
+                    larsal_core::recycle::empty_bin(vault, now()).unwrap();
+                    state.count_change();
+                    Ok(())
+                })
+                .unwrap();
+        } else {
+            add(&other, ov, "Demo disk entry");
+        }
+        saved(&other.save(ov).unwrap());
+        match ask {
+            Some(DiskAsk::Unsaved) => add(&s, v, "Local before disk check"),
+            Some(DiskAsk::Reload) => s
+                .save_settings(vec![crate::larsal_settings::LarsalSetting {
+                    key: "save.reload_on_change".into(),
+                    value: crate::larsal_settings::LarsalSettingValue::Flag { on: false },
+                }])
+                .unwrap(),
+            None => {}
+            _ => unreachable!(),
+        }
+        let changes_before = s.save_status(v).unwrap().changes;
+        let saver = save_lock(&s, v);
+        let watched_before = locked(&saver).watched;
+        let host = s.host.lock().unwrap();
+        let reload = {
+            let s = Arc::clone(&s);
+            std::thread::spawn(move || s.check_disk(v))
+        };
+        // Check and reader each hold a saver reference while the KDF waits on host.
+        let end = Instant::now() + Duration::from_secs(10);
+        while Arc::strong_count(&saver) < 4 || saver.try_lock().is_ok() {
+            assert!(
+                !reload.is_finished() && Instant::now() < end,
+                "reload did not reach KDF seam"
+            );
+            std::thread::yield_now();
+        }
+        let version_before = s.with_share(v, |slot| *slot.version).unwrap();
+        let page = s.share_edit(v, group.clone()).unwrap();
+        assert_eq!(page.group, group);
+        s.share_edit_change(
+            v,
+            ShareChange::Path {
+                path: "pending.larsalvault".into(),
+            },
+        )
+        .unwrap();
+        let version_after = s.with_share(v, |slot| *slot.version).unwrap();
+        assert_eq!(
+            version_before, version_after,
+            "draft did not count as a committed change"
+        );
+        assert_eq!(s.save_status(v).unwrap().changes, changes_before);
+        drop(host);
+        let event = reload.join().unwrap().unwrap();
+        let draft_retained = s.with_share(v, |slot| slot.share.draft.is_some()).unwrap();
+        let target_present = s
+            .with_vault(v, |vault| {
+                let id = crate::views::parse_id(&group, LarsalError::UnknownGroup)?;
+                Ok(vault.root.find_group(id).is_some())
+            })
+            .unwrap();
+        assert_eq!(
+            event,
+            DiskEvent::Busy,
+            "the disk event waits for the open editor"
+        );
+        assert!(
+            draft_retained && target_present,
+            "the editor keeps its target"
+        );
+        assert_eq!(
+            locked(&saver).watched,
+            watched_before,
+            "the event remains pending"
+        );
+        let watched_changed = locked(&saver).watched != watched_before;
+        println!(
+            "Late editor: deleted={deleted}, event={event:?}, draft_retained={draft_retained}, target_present={target_present}, watched_changed={watched_changed}, version_unchanged_on_draft={}",
+            version_before == version_after
+        );
+        if deleted {
+            let applied = s.share_edit_save(v);
+            let draft_after_save = s.with_share(v, |slot| slot.share.draft.is_some()).unwrap();
+            println!("Save: result={applied:?}, draft_after_save={draft_after_save}");
+            assert!(
+                applied.is_ok(),
+                "late reload removed the edited group; Save consumes the draft before UnknownGroup"
+            );
+        } else {
+            s.share_edit_cancel(v).unwrap();
+            let retry = s.check_disk(v).unwrap();
+            println!("After Cancel: next_check={retry:?}");
+            match (ask, retry) {
+                (
+                    Some(expected),
+                    DiskEvent::Ask { ask, changes } | DiskEvent::AskOlder { ask, changes },
+                ) => {
+                    assert_eq!((ask, changes), (expected, changes_before));
+                }
+                (None, DiskEvent::Reloaded) => {}
+                (_, event) => panic!("the deferred disk event after Cancel: {event:?}"),
+            }
+            assert_eq!(
+                s.check_disk(v).unwrap(),
+                DiskEvent::None,
+                "handled only once"
+            );
+        }
+    }
+
+    #[test]
+    fn ld_310_7_a_group_opened_during_the_disk_kdf_defers_reload() {
+        late_group_editor(false, None);
+    }
+
+    #[test]
+    fn ld_310_7_a_deleted_disk_group_keeps_its_open_editor() {
+        late_group_editor(true, None);
+    }
+
+    #[test]
+    fn ld_310_7_a_late_group_editor_defers_the_unsaved_question() {
+        late_group_editor(false, Some(DiskAsk::Unsaved));
+    }
+
+    #[test]
+    fn ld_310_7_a_late_group_editor_defers_the_reload_question() {
+        late_group_editor(false, Some(DiskAsk::Reload));
+    }
+
+    #[test]
+    fn ld_310_7_a_late_group_editor_defers_a_merge_answer() {
+        let (_dir, path, s, v) = personal("late-merge-answer");
+        add(&s, v, "Local before answer");
+        let (other, ov) = window(&path, "demo-pass-7");
+        add(&other, ov, "Other before answer");
+        saved(&other.save(ov).unwrap());
+        assert!(matches!(s.check_disk(v).unwrap(), DiskEvent::Ask { .. }));
+        let saver = save_lock(&s, v);
+        let host = s.host.lock().unwrap();
+        let merge = {
+            let s = Arc::clone(&s);
+            std::thread::spawn(move || s.resolve_disk(v, DiskChoice::Merge))
+        };
+        wait_held(&saver, 3, &merge);
+        let root = s.sidebar(v).unwrap().root;
+        s.share_edit(v, root).unwrap();
+        drop(host);
+        assert_eq!(merge.join().unwrap().unwrap(), DiskEvent::Busy);
+        s.share_edit_cancel(v).unwrap();
+        assert!(
+            matches!(s.check_disk(v).unwrap(), DiskEvent::Ask { .. }),
+            "the deferred answer keeps its disk event"
+        );
+        assert!(titles(&s, v).contains(&"Local before answer".to_owned()));
+    }
+    #[test]
+    fn f261_group_save_and_reload_keep_the_changed_draft() {
+        use crate::share_edit::ShareChange;
+        use std::sync::mpsc;
+        use std::time::Duration;
+        let (_dir, path, s, v) = personal("f261-save-commit-race");
+        let group = s
+            .add_group(v, None, "Demo target".into(), 48, None)
+            .unwrap();
+        saved(&s.save(v).unwrap());
+        let (other, ov) = window(&path, "demo-pass-7");
+        let gid = crate::views::parse_id(&group, LarsalError::UnknownGroup).unwrap();
+        other
+            .with_edit(ov, |vault, _, _, state| {
+                larsal_core::recycle::delete_group(vault, gid, now()).unwrap();
+                larsal_core::recycle::empty_bin(vault, now()).unwrap();
+                state.count_change();
+                Ok(())
+            })
+            .unwrap();
+        saved(&other.save(ov).unwrap());
+        s.share_edit(v, group).unwrap();
+        s.share_edit_change(
+            v,
+            ShareChange::Path {
+                path: "pending.larsalvault".into(),
+            },
+        )
+        .unwrap();
+        let (ready_tx, ready_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let save = {
+            let s = Arc::clone(&s);
+            std::thread::spawn(move || {
+                crate::share_edit::SAVE_PREPARED.with(|hook| {
+                    *hook.borrow_mut() = Some(Box::new(move || {
+                        ready_tx.send(()).unwrap();
+                        release_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+                    }));
+                });
+                s.share_edit_save(v)
+            })
+        };
+        ready_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        let commit_locked = s.state_busy_for_test();
+        let reload = {
+            let s = Arc::clone(&s);
+            std::thread::spawn(move || s.check_disk(v))
+        };
+        let event = if commit_locked {
+            release_tx.send(()).unwrap();
+            reload.join().unwrap().unwrap()
+        } else {
+            let event = reload.join().unwrap().unwrap();
+            release_tx.send(()).unwrap();
+            event
+        };
+        let result = save.join().unwrap();
+        println!("commit_locked={commit_locked}, save={result:?}, disk={event:?}");
+        assert!(
+            result.is_ok(),
+            "Save must keep the changed group while the disk update waits"
+        );
+        assert!(matches!(
+            event,
+            DiskEvent::Ask { .. } | DiskEvent::AskOlder { .. }
+        ));
+        let stored = s
+            .with_vault(v, |vault| {
+                Ok(vault
+                    .root
+                    .find_group(gid)
+                    .and_then(larsal_format::share_item::of))
+            })
+            .unwrap();
+        assert!(
+            matches!(
+                stored,
+                Some(larsal_format::share_item::Item::Settings(settings))
+                    if settings.path == "pending.larsalvault"
+            ),
+            "the committed setting is the user's draft value"
+        );
     }
 }

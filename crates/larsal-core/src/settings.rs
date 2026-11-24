@@ -666,10 +666,12 @@ pub(crate) fn set_item(cd: &mut CustomData, k: &str, value: Option<&str>, now: T
     let at = cd.items.iter().position(|i| i.key == k);
     match (at, value) {
         (None, None) => return false,
-        (Some(i), Some(v)) if cd.items.get(i).is_some_and(|x| x.value == v) => return false,
+        (Some(i), Some(v)) if cd.items.get(i).is_some_and(|x| x.value.expose() == v) => {
+            return false;
+        }
         (Some(i), Some(v)) => {
             if let Some(x) = cd.items.get_mut(i) {
-                v.clone_into(&mut x.value);
+                x.value = SecretString::new(v.to_owned());
                 x.last_modified = Some(now);
             }
         }
@@ -678,7 +680,7 @@ pub(crate) fn set_item(cd: &mut CustomData, k: &str, value: Option<&str>, now: T
         }
         (None, Some(v)) => cd.items.push(CustomDataItem {
             key: k.to_owned(),
-            value: v.to_owned(),
+            value: SecretString::new(v.to_owned()),
             last_modified: Some(now),
             unknown: Vec::new(),
         }),
@@ -692,7 +694,7 @@ fn stamp(cd: &mut CustomData, now: Time) {
         cd.items.clear();
         return;
     }
-    let text = last_modified_text(now);
+    let text = SecretString::new(last_modified_text(now));
     match cd.items.iter_mut().find(|i| i.key == LAST_MODIFIED) {
         Some(i) => i.value = text,
         None => cd.items.push(CustomDataItem {
@@ -755,7 +757,8 @@ pub fn associations(v: &Vault) -> Vec<Association> {
         .filter_map(|i| {
             association_name(&i.key).map(|n| Association {
                 name: n.to_owned(),
-                value: i.value.clone(),
+                // The exact browser prefix selects public keys for this public view.
+                value: String::from(i.value.expose()),
                 created: cd.get(&format!("{CREATED}{n}")).map(str::to_owned),
             })
         })

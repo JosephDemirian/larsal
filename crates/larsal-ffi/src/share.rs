@@ -2591,3 +2591,746 @@ pub(crate) mod tests {
         assert_eq!(mail(&s, v), "pw-1");
     }
 }
+
+#[cfg(test)]
+mod backup_regressions {
+    use super::tests::*;
+    use super::*;
+    use crate::share_edit::ShareMode;
+    use larsal_model::Time;
+    use larsal_share::Error;
+    const T2: Time = Time(63_907_920_000);
+    fn host() -> larsal_crypto::kdf::Host {
+        larsal_crypto::kdf::Host {
+            physical_memory: 16 << 30,
+            logical_processors: 8,
+            argon2_record: None,
+            aes_record: Some(larsal_crypto::kdf::SpeedRecord {
+                count: 100_000_000,
+                memory_kib: 0,
+                lanes: 1,
+                ms: 1000,
+            }),
+        }
+    }
+    use crate::larsal_settings::{LarsalSetting, LarsalSettingValue};
+    use crate::test_dir::TempDir;
+    fn backup_settings(s: &Session, enabled: bool, pattern: &str) {
+        s.save_settings(vec![
+            LarsalSetting {
+                key: "backup.enabled".into(),
+                value: LarsalSettingValue::Flag { on: enabled },
+            },
+            LarsalSetting {
+                key: "backup.pattern".into(),
+                value: LarsalSettingValue::Text {
+                    text: pattern.into(),
+                },
+            },
+        ])
+        .unwrap();
+    }
+    #[test]
+    fn t70_matrix_no_import_export_and_mi08_17() {
+        let mut count = 0;
+        for enabled in [false, true] {
+            for existing in [false, true] {
+                for configured in [false, true] {
+                    for other in [false, true] {
+                        count += 1;
+                        let dir = TempDir::new(&format!("share-matrix-{count}"));
+                        let file = dir.join("v.larsalvault");
+                        let w = dir.join("other.larsalvault");
+                        let stem = if other { "other" } else { "v" };
+                        let pattern = "{FILE_NAME}-backup-{TIME:HHmmss}.larsalvault";
+                        let name = if configured {
+                            format!("{stem}-backup-any-text.larsalvault")
+                        } else {
+                            format!("{stem}.old.larsalvault")
+                        }
+                        .to_uppercase();
+                        let dest = dir.join(&name);
+                        let mut vault = base();
+                        set_share(team(&mut vault), settings(true, true, &name));
+                        let s = session(false);
+                        backup_settings(&s, enabled, pattern);
+                        if other {
+                            write(&w, &base(), MAIN);
+                            s.open(w.to_string_lossy().into_owned()).unwrap();
+                        }
+                        if existing {
+                            write(&dest, &base(), MAIN);
+                        }
+                        let before = std::fs::read(&dest).ok();
+                        let v = approved(&s, &file, &vault);
+                        unlock(&s, v);
+                        assert_eq!(mail(&s, v), "pw-1");
+                        assert!(s.share_paths(v).unwrap().is_empty());
+                        assert_eq!(
+                            s.share_edit(v, hex(id(0x20))).unwrap().warning,
+                            Some(crate::share_edit::ShareWarning::OpenVault),
+                            "MI08-17 case {count}"
+                        );
+                        s.share_edit_cancel(v).unwrap();
+                        save(&s, v);
+                        assert_eq!(news(&s, v), None, "no pass case {count}");
+                        assert_eq!(
+                            std::fs::read(&dest).ok(),
+                            before,
+                            "destination case {count}"
+                        );
+                        if existing {
+                            let open = if other {
+                                vec![file.clone(), w.clone()]
+                            } else {
+                                vec![file.clone()]
+                            };
+                            let keep = kept(open, pattern);
+                            let c = container::build(id(0x20), true, &vault, T2).unwrap();
+                            let result = container::write_file(
+                                &dest,
+                                &c,
+                                &secret(SHARE),
+                                &mut host(),
+                                &Limits::DEFAULT,
+                                &keep,
+                            );
+                            assert!(
+                                matches!(
+                                    result,
+                                    Err(Error::Io(std::io::ErrorKind::PermissionDenied))
+                                ),
+                                "write case {count}: {result:?}"
+                            );
+                            assert_eq!(
+                                std::fs::read(&dest).ok(),
+                                before,
+                                "write preservation case {count}"
+                            );
+                        }
+                        read(&file, MAIN).unwrap();
+                    }
+                }
+            }
+        }
+        assert_eq!(count, 16);
+        println!("T70: {count} matrix scenes, existing-backup writes refused");
+    }
+    #[test]
+    fn f269_existing_casefold_backup_write_must_refuse() {
+        let dir = TempDir::new("share-casefold");
+        let file = dir.join("v.larsalvault");
+        let backup = dir.join("V.OLD.LARSALVAULT");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        write(&backup, &vault, MAIN);
+        let before = std::fs::read(&backup).unwrap();
+        assert!(
+            guarded(&backup, std::slice::from_ref(&file), ""),
+            "early guard covers it"
+        );
+        let keep = kept(vec![file.clone()], "");
+        println!(
+            "casefold backup in keep={}",
+            keep.iter()
+                .any(|p| storage::file_id(p) == storage::file_id(&backup))
+        );
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        let result = container::write_file(
+            &backup,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &keep,
+        );
+        println!(
+            "write={result:?}; backup opens main={} share={}",
+            read(&backup, MAIN).is_ok(),
+            read(&backup, SHARE).is_ok()
+        );
+        assert!(
+            matches!(result, Err(Error::Io(std::io::ErrorKind::PermissionDenied))),
+            "existing matching backup must be protected at write"
+        );
+        assert_eq!(std::fs::read(&backup).unwrap(), before);
+        read(&backup, MAIN).unwrap();
+    }
+    #[test]
+    fn f269_backup_match_alias_and_controls() {
+        let dir = TempDir::new("share-match");
+        let real = dir.join("v.larsalvault");
+        write(&real, &base(), MAIN);
+        let home = std::env::var_os("HOME").map(PathBuf::from).unwrap();
+        let alias = dir.join("alias");
+        std::os::unix::fs::symlink(&*dir, &alias).unwrap();
+        for name in [
+            "v-backup-.larsalvault",
+            "v-backup-nonnumeric.larsalvault",
+            "V-BACKUP-123.LARSALVAULT",
+        ] {
+            assert!(
+                storage::is_backup(
+                    "{FILE_NAME}-backup-{TIME}.larsalvault",
+                    &real,
+                    &home,
+                    &alias.join(name)
+                ),
+                "{name}"
+            );
+        }
+        assert!(!storage::is_backup(
+            "{FILE_NAME}-backup-{TIME}.larsalvault",
+            &real,
+            &home,
+            &dir.join("other-backup-123.larsalvault")
+        ));
+        assert!(storage::is_backup(
+            "~/demo/{FILE_NAME}.old.larsalvault",
+            &real,
+            &home,
+            &home.join("demo/v.old.larsalvault")
+        ));
+    }
+
+    #[test]
+    fn f269_missing_literal_prefix_alias_guard_before_actual_save() {
+        let dir = TempDir::new("share-missing-prefix-guard");
+        let file = dir.join("v.larsalvault");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        std::os::unix::fs::symlink(&*dir, dir.join("alias")).unwrap();
+        let pattern = "alias/new/{TIME:yyyy}/{FILE_NAME}.old.larsalvault";
+        let t = larsal_model::times::Civil {
+            year: 1999,
+            month: 11,
+            day: 4,
+            hour: 12,
+            minute: 34,
+            second: 56,
+        };
+        let backup = storage::backup_path(pattern, &file, t, 0, &dir);
+        let canonical = dir.join("new/1999/v.old.larsalvault");
+        let before_alias = guarded(&backup, std::slice::from_ref(&file), pattern);
+        let before_canonical = guarded(&canonical, std::slice::from_ref(&file), pattern);
+        let bytes = std::fs::read(&file).unwrap();
+        let mut q = storage::SaveRequest::plain(&file, &bytes, None, &dir);
+        q.backup = Some(storage::Backup {
+            pattern,
+            local: t,
+            millis: 0,
+            home: &dir,
+        });
+        assert_eq!(storage::save(&q).unwrap().backup, Some(Ok(backup.clone())));
+        assert_eq!(std::fs::read(&backup).unwrap(), bytes);
+        read(&backup, MAIN).unwrap();
+        assert_eq!(storage::file_id(&backup), storage::file_id(&canonical));
+        let after = guarded(&canonical, std::slice::from_ref(&file), pattern);
+        println!(
+            "missing fixed prefix guard: alias={before_alias}, canonical={before_canonical}, after actual save={after}, bytes preserved=true, main reopen=true"
+        );
+        assert!(after);
+        assert!(
+            before_alias && before_canonical,
+            "INT08.34 requires the permitted backup name to be guarded before its missing folders are created"
+        );
+    }
+
+    #[test]
+    fn t69_each_invalid_item_stays_shared_without_running() {
+        for raw in [true, false] {
+            let dir = TempDir::new(if raw {
+                "share-raw-state"
+            } else {
+                "share-path-state"
+            });
+            let file = dir.join("v.larsalvault");
+            let victim = dir.join("victim.larsalvault");
+            std::fs::write(&victim, b"demo canary").unwrap();
+            let mut vault = base();
+            let path = if raw {
+                "victim.larsalvault".to_owned()
+            } else {
+                format!("{}a", "é".repeat(2048))
+            };
+            set_share(team(&mut vault), settings(true, true, &path));
+            if raw {
+                let item = team(&mut vault).custom_data.items.last_mut().unwrap();
+                let mut value = item.value.expose().to_owned();
+                value.extend(std::iter::repeat_n(
+                    '!',
+                    larsal_format::share_item::MAX_VALUE + 1 - value.len(),
+                ));
+                item.value = larsal_crypto::secret::SecretString::new(value);
+            }
+            let s = session(false);
+            let v = approved(&s, &file, &vault);
+            unlock(&s, v);
+            let label = s.share_label(v, hex(id(0x20))).unwrap().unwrap();
+            assert_eq!(label.state, crate::share_edit::ShareState::Off);
+            assert_eq!(label.mode, ShareMode::Inactive);
+            assert!(label.path.is_empty() && label.full_path.is_empty());
+            assert!(!s.share_marks(v).unwrap()[0].active);
+            let rows = s.share_rows(v).unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].mode, ShareMode::Inactive);
+            assert!(rows[0].path.is_empty() && !rows[0].active);
+            let page = s.share_edit(v, hex(id(0x20))).unwrap();
+            assert!(page.item);
+            assert_eq!(page.mode, ShareMode::Inactive);
+            assert!(page.path.is_empty());
+            s.share_edit_cancel(v).unwrap();
+            assert!(s.share_paths(v).unwrap().is_empty());
+            save(&s, v);
+            assert_eq!(news(&s, v), None);
+            assert_eq!(std::fs::read(&victim).unwrap(), b"demo canary");
+        }
+    }
+
+    #[test]
+    fn f269_folder_swap_reaches_casefold_backup() {
+        let dir = TempDir::new("share-backup-swap");
+        let home = dir.join("home");
+        let shared = dir.join("shared");
+        std::fs::create_dir(&home).unwrap();
+        std::fs::create_dir(&shared).unwrap();
+        let file = home.join("v.larsalvault");
+        let backup = home.join("V.OLD.LARSALVAULT");
+        let target = shared.join("V.OLD.LARSALVAULT");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        write(&backup, &vault, MAIN);
+        let before = std::fs::read(&backup).unwrap();
+        assert!(
+            !guarded(&target, std::slice::from_ref(&file), ""),
+            "legitimate share at preflight"
+        );
+        let keep = kept(vec![file.clone()], "");
+        std::fs::rename(&shared, dir.join("shared-before")).unwrap();
+        std::os::unix::fs::symlink(&home, &shared).unwrap();
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        let result = container::write_file(
+            &target,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &keep,
+        );
+        println!(
+            "post-preflight folder swap: write={result:?}, main={} share={}",
+            read(&backup, MAIN).is_ok(),
+            read(&backup, SHARE).is_ok()
+        );
+        assert!(
+            matches!(result, Err(Error::Io(std::io::ErrorKind::PermissionDenied))),
+            "folder-swap write must preserve the existing backup"
+        );
+        assert_eq!(std::fs::read(&backup).unwrap(), before);
+        read(&backup, MAIN).unwrap();
+    }
+
+    fn c2r3_directory_case(tag: &str, pattern: &str, year: i64) {
+        let dir = TempDir::new(tag);
+        let file = dir.join("v.larsalvault");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        let t = larsal_model::times::Civil {
+            year,
+            month: 11,
+            day: 4,
+            hour: 12,
+            minute: 34,
+            second: 56,
+        };
+        let backup = storage::backup_path(pattern, &file, t, 0, &dir);
+        let original = std::fs::read(&file).unwrap();
+        let mut request = storage::SaveRequest::plain(&file, &original, None, &dir);
+        request.backup = Some(storage::Backup {
+            pattern,
+            local: t,
+            millis: 0,
+            home: &dir,
+        });
+        let saved = storage::save(&request).unwrap();
+        assert_eq!(
+            saved.backup,
+            Some(Ok(backup.clone())),
+            "the actual save accepts and creates this backup pattern"
+        );
+        assert_eq!(std::fs::read(&backup).unwrap(), original);
+        read(&backup, MAIN).unwrap();
+        let before = std::fs::read(&backup).unwrap();
+        let guard = guarded(&backup, std::slice::from_ref(&file), pattern);
+        let keep = kept(vec![file.clone()], pattern);
+        let listed = keep
+            .iter()
+            .any(|p| storage::file_id(p) == storage::file_id(&backup));
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        let result = container::write_file(
+            &backup,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &keep,
+        );
+        let preserved = std::fs::read(&backup).unwrap() == before;
+        let main = read(&backup, MAIN).is_ok();
+        let shared = read(&backup, SHARE).is_ok();
+        println!(
+            "pattern={pattern} generated={backup:?} guarded={guard} listed={listed} writer={result:?} preserved={preserved} main={main} share={shared}"
+        );
+        assert!(
+            guard && listed && preserved && main && !shared,
+            "APP05 permitted backup path must remain protected"
+        );
+        assert!(matches!(
+            result,
+            Err(Error::Io(std::io::ErrorKind::PermissionDenied))
+        ));
+    }
+    #[test]
+    fn c2r3_fixed_directory_positive_control() {
+        c2r3_directory_case(
+            "c2r3-fixed-directory",
+            "backups/fixed/{FILE_NAME}.old.larsalvault",
+            2026,
+        );
+    }
+    #[test]
+    fn c2r3_time_directory_existing_backup_must_be_protected() {
+        c2r3_directory_case(
+            "c2r3-time-directory",
+            "backups/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+            2026,
+        );
+    }
+    #[test]
+    fn c2r3_slash_time_format_existing_backup_must_be_protected() {
+        c2r3_directory_case(
+            "c2r3-slash-directory",
+            "backups/{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault",
+            2026,
+        );
+    }
+    #[test]
+    fn c2r3_time_directory_absent_destination_must_be_guarded() {
+        let dir = TempDir::new("c2r3-time-absent");
+        let file = dir.join("v.larsalvault");
+        write(&file, &base(), MAIN);
+        let backup_dir = dir.join("backups/2026");
+        std::fs::create_dir_all(&backup_dir).unwrap();
+        let target = backup_dir.join("v.old.larsalvault");
+        let got = guarded(
+            &target,
+            std::slice::from_ref(&file),
+            "backups/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+        );
+        println!("absent time-directory path guarded={got}");
+        assert!(
+            got,
+            "INT08.34 must guard permitted backup names before creation"
+        );
+    }
+    #[test]
+    fn c2r3_unrelated_filename_in_backup_directory_can_write() {
+        let dir = TempDir::new("c2r3-backup-negative");
+        let file = dir.join("v.larsalvault");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        std::fs::create_dir_all(dir.join("backups/fixed")).unwrap();
+        let dest = dir.join("backups/fixed/team.larsalvault");
+        let pattern = "backups/fixed/{FILE_NAME}.old.larsalvault";
+        assert!(!guarded(&dest, std::slice::from_ref(&file), pattern));
+        let keep = kept(vec![file.clone()], pattern);
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        container::write_file(
+            &dest,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &keep,
+        )
+        .unwrap();
+        read(&dest, SHARE).unwrap();
+        read(&file, MAIN).unwrap();
+    }
+
+    #[test]
+    fn f269_older_multi_component_directory_backup_refuses_write() {
+        c2r3_directory_case(
+            "f269-old-multi-directory",
+            "backups/{TIME:yyyy/MM/dd}/{FILE_NAME}-{TIME}.old.larsalvault",
+            1999,
+        );
+    }
+
+    #[test]
+    fn f269_directory_t70_no_import_export_and_mi08_17() {
+        let mut count = 0;
+        for (pattern, folder) in [
+            (
+                "backups/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+                "backups/1999",
+            ),
+            (
+                "backups/{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault",
+                "backups/1999/01",
+            ),
+        ] {
+            for enabled in [false, true] {
+                for existing in [false, true] {
+                    count += 1;
+                    let dir = TempDir::new("share-directory-matrix");
+                    let file = dir.join("v.larsalvault");
+                    let relative = format!("{folder}/V.OLD.LARSALVAULT");
+                    let dest = dir.join(&relative);
+                    std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+                    let mut vault = base();
+                    set_share(team(&mut vault), settings(true, true, &relative));
+                    if existing {
+                        write(&dest, &base(), MAIN);
+                    }
+                    let before = std::fs::read(&dest).ok();
+                    let s = session(false);
+                    backup_settings(&s, enabled, pattern);
+                    let v = approved(&s, &file, &vault);
+                    unlock(&s, v);
+                    assert_eq!(mail(&s, v), "pw-1");
+                    assert!(s.share_paths(v).unwrap().is_empty());
+                    assert_eq!(
+                        s.share_edit(v, hex(id(0x20))).unwrap().warning,
+                        Some(crate::share_edit::ShareWarning::OpenVault)
+                    );
+                    s.share_edit_cancel(v).unwrap();
+                    save(&s, v);
+                    assert_eq!(news(&s, v), None);
+                    assert_eq!(std::fs::read(&dest).ok(), before);
+                    if existing {
+                        assert!(
+                            kept(vec![file.clone()], pattern)
+                                .iter()
+                                .any(|p| storage::file_id(p) == storage::file_id(&dest))
+                        );
+                        read(&dest, MAIN).unwrap();
+                    }
+                    read(&file, MAIN).unwrap();
+                }
+            }
+        }
+        assert_eq!(count, 8);
+        println!("T70: {count} older-directory scenes");
+    }
+
+    #[test]
+    fn f269_same_backup_name_in_unrelated_folder_can_write() {
+        let dir = TempDir::new("share-unrelated-directory");
+        let file = dir.join("v.larsalvault");
+        let vault = base();
+        write(&file, &vault, MAIN);
+        let dest = dir.join("unrelated/1999/01/v.old.larsalvault");
+        std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        let pattern = "backups/{TIME:yyyy/MM}/{FILE_NAME}.old.larsalvault";
+        assert!(!guarded(&dest, std::slice::from_ref(&file), pattern));
+        let c = container::build(id(0x20), true, &vault, T2).unwrap();
+        container::write_file(
+            &dest,
+            &c,
+            &secret(SHARE),
+            &mut host(),
+            &Limits::DEFAULT,
+            &kept(vec![file.clone()], pattern),
+        )
+        .unwrap();
+        read(&dest, SHARE).unwrap();
+        read(&file, MAIN).unwrap();
+    }
+    #[test]
+    fn f269_parent_components_alias_guard_and_editor_before_actual_save() {
+        let mut missed = Vec::new();
+        for (n, (pattern, suffix)) in [
+            (
+                "alias/new/{TIME:yyyy}/../fixed/{FILE_NAME}.old.larsalvault",
+                "new/fixed/v.old.larsalvault",
+            ),
+            (
+                "alias/new/{TIME:yyyy/../MM}/{FILE_NAME}.old.larsalvault",
+                "new/11/v.old.larsalvault",
+            ),
+            (
+                "alias/new/{TIME:'..'}/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+                "1999/v.old.larsalvault",
+            ),
+            (
+                "alias/new/{TIME:'.'}{TIME:'.'}/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+                "1999/v.old.larsalvault",
+            ),
+            (
+                "alias/new/{TIME:yyyy/MM}/../fixed/{FILE_NAME}.old.larsalvault",
+                "new/1999/fixed/v.old.larsalvault",
+            ),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let dir = TempDir::new(&format!("f269-fix5-parent-components-{n}"));
+            let file = dir.join("v.larsalvault");
+            std::os::unix::fs::symlink(&*dir, dir.join("alias")).unwrap();
+            let mut vault = base();
+            set_share(team(&mut vault), settings(true, true, suffix));
+            let s = session(false);
+            backup_settings(&s, false, pattern);
+            let v = approved(&s, &file, &vault);
+            unlock(&s, v);
+            let t = larsal_model::times::Civil {
+                year: 1999,
+                month: 11,
+                day: 4,
+                hour: 12,
+                minute: 34,
+                second: 56,
+            };
+            let generated = storage::backup_path(pattern, &file, t, 0, &dir);
+            let canonical = dir.join(suffix);
+            let before_literal = guarded(&generated, std::slice::from_ref(&file), pattern);
+            let before_canonical = guarded(&canonical, std::slice::from_ref(&file), pattern);
+            let warning = s.share_edit(v, hex(id(0x20))).unwrap().warning;
+            let watched = s.share_paths(v).unwrap();
+            println!(
+                "parent scene {n}: before literal={before_literal}, canonical={before_canonical}, editor={warning:?}, watched={watched:?}"
+            );
+            s.share_edit_cancel(v).unwrap();
+            assert!(!guarded(
+                &dir.join(format!("other/{suffix}")),
+                std::slice::from_ref(&file),
+                pattern
+            ));
+            let bytes = std::fs::read(&file).unwrap();
+            let mut q = storage::SaveRequest::plain(&file, &bytes, None, &dir);
+            q.backup = Some(storage::Backup {
+                pattern,
+                local: t,
+                millis: 0,
+                home: &dir,
+            });
+            assert_eq!(
+                storage::save(&q).unwrap().backup,
+                Some(Ok(generated.clone()))
+            );
+            assert_eq!(std::fs::read(&generated).unwrap(), bytes);
+            read(&generated, MAIN).unwrap();
+            assert_eq!(std::fs::canonicalize(&generated).unwrap(), canonical);
+            assert_eq!(storage::file_id(&generated), storage::file_id(&canonical));
+            assert!(guarded(&canonical, std::slice::from_ref(&file), pattern));
+            let keep = kept(vec![file.clone()], pattern);
+            assert!(
+                keep.iter()
+                    .any(|p| storage::file_id(p) == storage::file_id(&canonical))
+            );
+            let c = container::build(id(0x20), true, &vault, T2).unwrap();
+            let result = container::write_file(
+                &canonical,
+                &c,
+                &secret(SHARE),
+                &mut host(),
+                &Limits::DEFAULT,
+                &keep,
+            );
+            assert!(matches!(
+                result,
+                Err(Error::Io(std::io::ErrorKind::PermissionDenied))
+            ));
+            assert_eq!(std::fs::read(&canonical).unwrap(), bytes);
+            read(&canonical, MAIN).unwrap();
+            read(&file, MAIN).unwrap();
+            println!(
+                "parent scene {n}: actual save=true, canonical inode=true, encrypted bytes=true, original password reopen=true, after guard=true, final writer refused=true"
+            );
+            if !(before_literal
+                && before_canonical
+                && warning == Some(crate::share_edit::ShareWarning::OpenVault)
+                && watched.is_empty())
+            {
+                missed.push(n);
+            }
+        }
+        assert!(
+            missed.is_empty(),
+            "INT08.34 and MI08-17 miss actual permitted canonical names before folder creation: {missed:?}"
+        );
+    }
+
+    #[test]
+    fn f269_missing_parent_normalization_unrelated_actual_share() {
+        for (n, (pattern, correct, unrelated)) in [
+            (
+                "alias/../new/{TIME:yyyy}/{FILE_NAME}.old.larsalvault",
+                "nested/new/1999/v.old.larsalvault",
+                "new/1999/v.old.larsalvault",
+            ),
+            (
+                "alias/new/{TIME:yyyy}/../fixed/{FILE_NAME}.old.larsalvault",
+                "nested/real/new/fixed/v.old.larsalvault",
+                "new/fixed/v.old.larsalvault",
+            ),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let dir = TempDir::new(&format!("f269-fix5-normalization-negative-{n}"));
+            std::fs::create_dir_all(dir.join("nested/real")).unwrap();
+            std::os::unix::fs::symlink(dir.join("nested/real"), dir.join("alias")).unwrap();
+            let file = dir.join("v.larsalvault");
+            let vault = base();
+            write(&file, &vault, MAIN);
+            let target = dir.join(unrelated);
+            assert!(!target.parent().unwrap().exists());
+            assert!(!guarded(&target, std::slice::from_ref(&file), pattern));
+            let t = larsal_model::times::Civil {
+                year: 1999,
+                month: 11,
+                day: 4,
+                hour: 12,
+                minute: 34,
+                second: 56,
+            };
+            let backup = storage::backup_path(pattern, &file, t, 0, &dir);
+            let bytes = std::fs::read(&file).unwrap();
+            let mut q = storage::SaveRequest::plain(&file, &bytes, None, &dir);
+            q.backup = Some(storage::Backup {
+                pattern,
+                local: t,
+                millis: 0,
+                home: &dir,
+            });
+            assert_eq!(storage::save(&q).unwrap().backup, Some(Ok(backup.clone())));
+            assert_eq!(std::fs::canonicalize(&backup).unwrap(), dir.join(correct));
+            std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+            assert!(!guarded(&target, std::slice::from_ref(&file), pattern));
+            let keep = kept(vec![file.clone()], pattern);
+            assert!(
+                keep.iter()
+                    .any(|p| storage::file_id(p) == storage::file_id(&backup))
+            );
+            let c = container::build(id(0x20), true, &vault, T2).unwrap();
+            container::write_file(
+                &target,
+                &c,
+                &secret(SHARE),
+                &mut host(),
+                &Limits::DEFAULT,
+                &keep,
+            )
+            .unwrap();
+            read(&target, SHARE).unwrap();
+            assert_eq!(std::fs::read(&backup).unwrap(), bytes);
+            read(&backup, MAIN).unwrap();
+            read(&file, MAIN).unwrap();
+            println!(
+                "normalization negative {n}: unrelated absent parent guard=false, actual backup in distinct canonical folder, unrelated write allowed, backup encrypted bytes preserved and reopen=true"
+            );
+        }
+    }
+}

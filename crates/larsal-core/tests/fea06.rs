@@ -597,7 +597,13 @@ impl Read for Records {
 /// memory reading is its own.
 static HEAVY: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-/// The resident memory of this process in KiB, from `ps`.
+/// The resident memory of this process in KiB.
+#[cfg(target_os = "macos")]
+fn rss_kib() -> u64 {
+    larsal_platform::macos::resident_bytes().unwrap() / 1024
+}
+
+#[cfg(not(target_os = "macos"))]
 fn rss_kib() -> u64 {
     let out = std::process::Command::new("ps")
         .args(["-o", "rss=", "-p", &std::process::id().to_string()])

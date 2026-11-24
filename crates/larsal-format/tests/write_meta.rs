@@ -758,7 +758,7 @@ fn fmt_10_25_random_item_place() {
     let mut v = cheap_vault(&g(""));
     v.meta.custom_data.items.push(larsal_model::CustomDataItem {
         key: padding_key(),
-        value: "old".into(),
+        value: larsal_crypto::secret::SecretString::new("old".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -778,13 +778,13 @@ fn fmt_10_25_random_item_place() {
             .filter(|i| i.key == padding_key())
             .collect();
         assert_eq!(items.len(), 1, "replaced, never kept twice");
-        let hex = &items[0].value;
+        let hex = items[0].value.expose();
         assert!((128..=1022).contains(&hex.len()) && hex.len().is_multiple_of(2));
         assert!(
             hex.bytes()
                 .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
         );
-        values.push(hex.clone());
+        values.push(hex.to_owned());
     }
     assert_ne!(values[0], values[1]);
 }

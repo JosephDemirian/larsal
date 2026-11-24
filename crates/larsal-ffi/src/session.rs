@@ -402,6 +402,11 @@ pub(crate) fn front() {
 }
 
 impl Session {
+    #[cfg(test)]
+    pub(crate) fn state_busy_for_test(&self) -> bool {
+        self.state.try_lock().is_err()
+    }
+
     fn with_clipboard(
         clipboard: Clipboard,
         settings: Arc<crate::larsal_settings::LarsalSettingsStore>,

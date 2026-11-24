@@ -51,7 +51,7 @@ fn time(secs: i64) -> Time {
 fn item(key: &str, value: &str) -> CustomDataItem {
     CustomDataItem {
         key: key.into(),
-        value: value.into(),
+        value: larsal_crypto::secret::SecretString::new(value.into()),
         last_modified: None,
         unknown: Vec::new(),
     }

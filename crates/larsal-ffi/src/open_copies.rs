@@ -75,7 +75,10 @@ impl OpenCopies {
     pub(crate) fn private() -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let root = (|| {
-            let tmp = std::fs::canonicalize("/tmp")?;
+            let tmp = match debug_root() {
+                Some(root) => validate_test_root(Path::new(&root))?,
+                None => std::fs::canonicalize("/tmp")?,
+            };
             for _ in 0..32 {
                 let n = NEXT.fetch_add(1, Ordering::Relaxed);
                 let path = tmp.join(format!("larsal-session-{}-{n}", std::process::id()));
@@ -262,7 +265,12 @@ mod tests {
     #[ignore = "path-gated child of shared_fixture_selection_is_validated"]
     fn shared_fixture_child() {
         let session = crate::session::Session::shared();
+        let private = OpenCopies::private();
         if std::env::var_os("LARSAL_TEST_INVALID_ROOT").is_some() {
+            assert!(
+                private.root.is_err(),
+                "invalid private fixture must not fall back"
+            );
             assert!(
                 session.open_copies.root.is_err(),
                 "invalid fixture must not fall back"
@@ -271,6 +279,12 @@ mod tests {
         }
         let given = debug_root().unwrap();
         let expected = validate_test_root(Path::new(&given)).unwrap();
+        let private_root = private
+            .root
+            .as_ref()
+            .expect("private child uses the validated fixture");
+        assert_eq!(private_root.parent(), Some(expected.as_path()));
+        assert!(private.owned && private.test_root);
         assert_eq!(session.open_copies.root.as_ref().unwrap(), &expected);
         assert!(session.open_copies.test_root && !session.open_copies.owned);
         // Gate mutation behind the path assertions, including under production-selection mutants.

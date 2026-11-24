@@ -753,7 +753,7 @@ fn mod12_12_advanced_mode() {
             .to_vec(),
         )
         .unwrap(),
-        value: "1000".into(),
+        value: larsal_crypto::secret::SecretString::new("1000".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -913,10 +913,49 @@ fn text(bytes: &[u8]) -> String {
 fn cd(key: &str, value: &str) -> CustomDataItem {
     CustomDataItem {
         key: key.into(),
-        value: value.into(),
+        value: larsal_crypto::secret::SecretString::new(value.into()),
         last_modified: None,
         unknown: Vec::new(),
     }
+}
+
+#[test]
+fn mod12_18_association_public_view_excludes_private_metadata() {
+    let prefix = browser("");
+    let private = "demo-private-share-value";
+    let mut v = demo();
+    v.meta.custom_data.items = vec![
+        cd(&text(larsal_format::share_item::KEY), private),
+        cd("_CREATED_private", private),
+        cd("_LAST_USED_private", private),
+        cd(&format!("x{}", browser("private")), private),
+        cd(&prefix.to_ascii_lowercase(), private),
+        cd(prefix.strip_suffix('_').unwrap(), private),
+        cd(&browser("démo🗝️"), "public-key-1"),
+        cd("_CREATED_démo🗝️", "created"),
+        cd(&prefix, "public-key-2"),
+    ];
+    assert_eq!(
+        settings::associations(&v),
+        vec![
+            settings::Association {
+                name: "démo🗝️".into(),
+                value: "public-key-1".into(),
+                created: Some("created".into()),
+            },
+            settings::Association {
+                name: "".into(),
+                value: "public-key-2".into(),
+                created: None,
+            },
+        ]
+    );
+    assert_eq!(
+        v.meta
+            .custom_data
+            .get(&text(larsal_format::share_item::KEY)),
+        Some(private)
+    );
 }
 
 #[test]

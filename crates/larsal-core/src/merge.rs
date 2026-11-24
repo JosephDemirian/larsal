@@ -27,6 +27,7 @@ use crate::Error;
 use crate::health::shown_title;
 use crate::history;
 use crate::recycle;
+use larsal_crypto::secret::SecretString;
 use larsal_model::custom_data::CustomDataItem;
 use larsal_model::entry::STANDARD_FIELDS;
 use larsal_model::{Entry, Field, Group, Kdf, Time, Uuid, Vault};
@@ -1293,7 +1294,7 @@ impl<'t, 's> Merger<'t, 's> {
             match at.get(k).and_then(|i| target.items.get_mut(*i)) {
                 Some(i) if i.value == item.value => continue,
                 Some(i) => {
-                    i.value.clone_from(&item.value);
+                    i.value = SecretString::from(item.value.expose());
                     i.last_modified = Some(self.now);
                 }
                 None if item.value.is_empty() => continue,
@@ -1301,7 +1302,7 @@ impl<'t, 's> Merger<'t, 's> {
                     at.insert(item.key.clone(), target.items.len());
                     target.items.push(CustomDataItem {
                         key: item.key.clone(),
-                        value: item.value.clone(),
+                        value: SecretString::from(item.value.expose()),
                         last_modified: Some(self.now),
                         unknown: Vec::new(),
                     });
@@ -1312,7 +1313,7 @@ impl<'t, 's> Merger<'t, 's> {
         if notes.is_empty() {
             return;
         }
-        let stamp = last_modified_text(self.now);
+        let stamp = SecretString::new(last_modified_text(self.now));
         match target.items.iter_mut().find(|i| i.key == LAST_MODIFIED) {
             Some(i) => i.value = stamp,
             None => target.items.push(CustomDataItem {

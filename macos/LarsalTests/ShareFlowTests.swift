@@ -357,3 +357,41 @@ extension ShareFlowTests {
         window.lockAll()
     }
 }
+
+// LD-310 (7): a disk check already running when the group editor opens.
+extension ShareFlowTests {
+    @Test("LD-310 (7), APP-05.25: a check that started before the group editor opened waits for it too")
+    func checkInFlightWaitsForTheGroupEditor() async throws {
+        let name = "share-disk-in-flight-" + UUID().uuidString
+        let window = try ShareDemo.window(name, household: false)
+        let main = try #require(window.main)
+        let session = window.session
+        main.disk.watch = nil
+        main.autosave = false
+        let home = try ShareDemo.group(main, "Household")
+        await main.saveNow()
+        _ = try session.addGroup(vault: main.vault.id, parent: nil, name: "Local", icon: 48, customIcon: nil)
+        let file = ParityDemo.root.appending(path: "target/option-a/\(name)/Personal.larsalvault").path(
+            percentEncoded: false)
+        try ShareDemo.elsewhere(file, group: "Household", mode: .export, path: "elsewhere.larsalvault")
+        main.checkDisk()
+        main.editGroup(home)  // before the check's read runs
+        #expect(main.sharing.editor != nil)
+        try await ShareDemo.until { !main.disk.checking }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(main.dialog == nil, "no question over the group editor")
+        #expect(main.disk.pending, "the event waits for the group editor")
+        main.cancelGroup()
+        try await ShareDemo.until {
+            if case .changedOnDisk = main.dialog { return true }
+            return false
+        }
+        guard case .changedOnDisk(let ask, _) = main.dialog else {
+            Issue.record("APP-05.25: the question after Cancel, got \(String(describing: main.dialog))")
+            return
+        }
+        main.resolveDisk(.merge, ask: ask)
+        await main.saving?.value
+        window.lockAll()
+    }
+}

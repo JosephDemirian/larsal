@@ -31,6 +31,9 @@ use larsal_share::run;
 use larsal_share::settings::resolve;
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
+thread_local! { pub(crate) static SAVE_PREPARED: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+
 /// The longest path the Sharing page takes, as `share_look` (bytes): the
 /// longest the share item keeps (F-268).
 const MAX_PATH: usize = share_item::MAX_PATH;
@@ -312,7 +315,7 @@ fn view(
 }
 
 /// Sets (`Some`) or removes (`None`) the share item of `cd`.
-fn set_item(cd: &mut CustomData, key: &str, value: Option<String>, at: Time) {
+fn set_item(cd: &mut CustomData, key: &str, value: Option<SecretString>, at: Time) {
     let i = cd.items.iter().position(|i| i.key == key);
     match (i.and_then(|i| cd.items.get_mut(i)), value) {
         (Some(item), Some(v)) => {
@@ -533,37 +536,51 @@ impl Session {
     /// `UnknownVault`, `Locked`, `UnknownGroup` (the group went),
     /// `Refused` when the random source fails.
     pub fn share_edit_save(&self, vault: u64) -> Result<(), LarsalError> {
-        let draft = self.with_share(vault, |slot| slot.share.draft.take())?;
-        let Some(mut d) = draft.filter(|d| d.changed) else {
-            return Ok(());
-        };
-        let refused =
-            || LarsalError::Refused("The system's random source failed. Try again.".to_owned());
-        let value = if d.item {
-            Some(d.settings.write().map_err(|_| refused())?)
-        } else {
-            None
-        };
-        let key = std::str::from_utf8(share_item::KEY).map_err(|_| refused())?;
-        self.with_edit(vault, |v, _, _, state| {
+        // A reload must not see a closed editor before its draft is committed.
+        let group = self.with_share(vault, |slot| -> Result<Option<Uuid>, LarsalError> {
+            let Some(d) = slot.share.draft.as_mut().filter(|d| d.changed) else {
+                slot.share.draft = None;
+                return Ok(None);
+            };
+            let v = slot.vault.ok_or(LarsalError::Locked)?;
+            let refused =
+                || LarsalError::Refused("The system's random source failed. Try again.".to_owned());
+            let value = if d.item {
+                Some(d.settings.write().map_err(|_| refused())?)
+            } else {
+                None
+            };
+            #[cfg(test)]
+            SAVE_PREPARED.with(|hook| {
+                if let Some(hook) = hook.borrow_mut().take() {
+                    hook();
+                }
+            });
+            let key = std::str::from_utf8(share_item::KEY).map_err(|_| refused())?;
+            *slot.version = slot.version.wrapping_add(1);
             let at = now();
             let changed = larsal_core::edit::edit_group(v, d.group, at, |g| {
                 set_item(&mut g.custom_data, key, value, at)
             })
             .map_err(|_| LarsalError::UnknownGroup)?;
             if changed {
-                state.changes = state.changes.saturating_add(1);
+                slot.edit.changes = slot.edit.changes.saturating_add(1);
             }
-            Ok(())
-        })?;
+            let group = d.group;
+            slot.share.draft = None;
+            Ok(Some(group))
+        })??;
+        let Some(group) = group else {
+            return Ok(());
+        };
         let approval = self.with_open(vault, |v, file, _| {
             Ok(run::shares(v, Some(file))
                 .into_iter()
-                .find(|s| s.group == d.group)
+                .find(|s| s.group == group)
                 .map(|s| s.approval(v)))
         })?;
         if approval.is_some_and(|a| !self.settings.share_approvals().contains(&a)) {
-            self.approve_share(vault, hex(d.group))?;
+            self.approve_share(vault, hex(group))?;
         }
         Ok(())
     }
@@ -1230,7 +1247,7 @@ mod tests {
                 .iter_mut()
                 .find(|i| i.key == key)
                 .unwrap()
-                .value = "x".into();
+                .value = larsal_crypto::secret::SecretString::new("x".into());
         });
         let bad = s.share_label(v, hx(id(0x20))).unwrap().unwrap();
         assert_eq!(
@@ -1313,5 +1330,30 @@ mod tests {
         assert_ne!(a, b);
         assert!(!a.is_zero() && !b.is_zero());
         write(&dir.join("unused.larsalvault"), &base(), MAIN);
+    }
+
+    #[test]
+    fn failed_group_save_retains_the_changed_draft() {
+        let dir = TempDir::new("share-edit-save-retains-draft");
+        let (s, v) = open(&dir, &base());
+        s.share_edit(v, hx(id(0x20))).unwrap();
+        change_page(&s, v, path("pending.larsalvault"));
+        change(&s, v, |m| {
+            m.root.groups.retain(|g| g.uuid != id(0x20));
+        });
+        assert_eq!(s.share_edit_save(v), Err(LarsalError::UnknownGroup));
+        let retained = s
+            .with_share(v, |slot| {
+                slot.share
+                    .draft
+                    .as_ref()
+                    .map(|d| (d.group, d.settings.path.clone(), d.changed))
+            })
+            .unwrap();
+        assert_eq!(
+            retained,
+            Some((id(0x20), "pending.larsalvault".into(), true)),
+            "a refused Save keeps the user's changed draft"
+        );
     }
 }

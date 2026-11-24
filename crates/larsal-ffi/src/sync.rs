@@ -23,7 +23,7 @@
 //! - Every text here is Larsal's own (SYN-01.9).
 
 use crate::session::{LarsalError, Session};
-use larsal_core::guard::newest;
+use larsal_core::{guard::newest, storage};
 use larsal_model::{FileVersion, Uuid, Vault};
 use larsal_platform::device_key::{DeviceKey, KeyError};
 use larsal_sync::client::{self, Fail, Server};
@@ -118,6 +118,51 @@ struct Pending {
     sha: [u8; 32],
 }
 
+/// A local transfer owns its file/root or server vault until commit or cancellation.
+struct Claim {
+    path: PathBuf,
+    root: Option<Uuid>,
+    remote: Option<(String, larsal_sync::state::VaultId)>,
+}
+
+impl Claim {
+    fn overlaps(&self, other: &Self) -> bool {
+        self.path == other.path
+            || self.root.is_some_and(|root| other.root == Some(root))
+            || self
+                .remote
+                .as_ref()
+                .is_some_and(|remote| other.remote.as_ref() == Some(remote))
+    }
+}
+
+/// Dropping an error or unwinding releases only this operation's claim.
+struct Transfer<'a> {
+    sync: &'a Syncs,
+    claim: Arc<Claim>,
+}
+
+impl Transfer<'_> {
+    fn release(&self, i: &mut Inner) {
+        i.transfers.retain(|c| !Arc::ptr_eq(c, &self.claim));
+    }
+
+    fn ready(&self, i: &Inner) -> bool {
+        i.transfers.iter().any(|c| Arc::ptr_eq(c, &self.claim))
+            && !i.unavailable(&self.claim)
+            && !i
+                .transfers
+                .iter()
+                .any(|c| !Arc::ptr_eq(c, &self.claim) && c.overlaps(&self.claim))
+    }
+}
+
+impl Drop for Transfer<'_> {
+    fn drop(&mut self) {
+        self.release(&mut self.sync.inner());
+    }
+}
+
 struct Inner {
     clock: Arc<dyn Clock>,
     /// The state file it was read from (`Some(None)`: memory only).
@@ -128,6 +173,7 @@ struct Inner {
     servers: BTreeMap<String, Arc<Mutex<Client>>>,
     vaults: BTreeMap<u64, Open>,
     pending: Vec<Pending>,
+    transfers: Vec<Arc<Claim>>,
     /// Servers whose certificate changed: no run until the user adds the
     /// server again (SYN-03.10).
     stopped: BTreeSet<String>,
@@ -149,6 +195,7 @@ impl Default for Syncs {
             servers: BTreeMap::new(),
             vaults: BTreeMap::new(),
             pending: Vec::new(),
+            transfers: Vec::new(),
             stopped: BTreeSet::new(),
             #[cfg(test)]
             runs: Vec::new(),
@@ -165,9 +212,9 @@ impl Syncs {
     pub(crate) fn unlocked(&self, id: u64, path: &Path, root: Uuid) {
         let mut i = self.inner();
         let now = i.clock.now_ms();
-        let mut schedule = Schedule::default();
+        let prior = i.vaults.remove(&id);
+        let (mut schedule, report) = prior.map(|o| (o.schedule, o.report)).unwrap_or_default();
         schedule.unlocked(now);
-        let report = i.vaults.remove(&id).and_then(|o| o.report);
         i.vaults.insert(
             id,
             Open {
@@ -213,6 +260,51 @@ impl Inner {
             // ponytail: a failed write keeps the state in memory for this
             // run; the next change writes it again.
             let _ = self.state.save(path);
+        }
+    }
+
+    fn has_server_vault(&self, server: &str, vault_id: larsal_sync::state::VaultId) -> bool {
+        self.state
+            .links
+            .iter()
+            .any(|l| l.server == server && l.vault_id == vault_id)
+            || self
+                .pending
+                .iter()
+                .any(|p| p.server == server && p.vault_id == vault_id)
+    }
+
+    fn unavailable(&self, claim: &Claim) -> bool {
+        self.state
+            .links
+            .iter()
+            .any(|l| Path::new(&l.file) == claim.path || claim.root == Some(l.root))
+            || self.pending.iter().any(|p| p.path == claim.path)
+            || claim
+                .remote
+                .as_ref()
+                .is_some_and(|(server, id)| self.has_server_vault(server, *id))
+            || (claim.root.is_none() && self.vaults.values().any(|o| o.path == claim.path))
+    }
+
+    /// A run updates only its own file/root, and never rolls back the guard.
+    fn write_back(&mut self, mut link: Link) {
+        let at = self.state.links.iter().position(|l| {
+            l.file == link.file
+                && l.root == link.root
+                && l.server == link.server
+                && l.vault_id == link.vault_id
+        });
+        if let Some(at) = at {
+            let current = &self.state.links[at];
+            if link.highest < current.highest {
+                return;
+            }
+            link.seen.newest = link.seen.newest.max(current.seen.newest);
+            if *current != link {
+                self.state.links[at] = link;
+                self.save();
+            }
         }
     }
 
@@ -328,6 +420,22 @@ impl Session {
         f(&mut i)
     }
 
+    fn sync_reserve(&self, claim: Claim) -> Result<Transfer<'_>, LarsalError> {
+        let claim = Arc::new(claim);
+        self.sync_with(|i| {
+            if i.unavailable(&claim) || i.transfers.iter().any(|c| c.overlaps(&claim)) {
+                return Err(refused(
+                    "This vault or destination is already linked or in use for sync.",
+                ));
+            }
+            i.transfers.push(claim.clone());
+            Ok(Transfer {
+                sync: &self.sync,
+                claim,
+            })
+        })
+    }
+
     /// The vault `id` was saved: a run 2 s later (SYN-03.4).
     pub(crate) fn sync_saved(&self, id: u64) {
         let mut i = self.sync.inner();
@@ -425,24 +533,21 @@ impl Session {
             if report.messages.contains(&Message::CertChanged) {
                 i.stopped.insert(link.server.clone());
             }
-            let at = i
-                .state
-                .links
-                .iter()
-                .position(|l| l.vault_id == link.vault_id && l.server == link.server);
-            if let Some(at) = at
-                && i.state.links[at] != link
-            {
-                i.state.links[at] = link;
-                i.save();
-            }
+            i.write_back(link);
             if let Some(o) = i.vaults.get_mut(&id) {
                 o.schedule.finished();
                 if let Some(Status::Synced(t)) = report.status {
                     o.synced_at = Some(t);
                 }
-                if report.status.is_some() {
-                    o.report = Some(report);
+                if report.status.is_some() || !report.messages.is_empty() {
+                    let status = report
+                        .status
+                        .or_else(|| o.report.as_ref().and_then(|old| old.status))
+                        .unwrap_or(Status::Error);
+                    o.report = Some(Report {
+                        status: Some(status),
+                        ..report
+                    });
                 }
             }
         });
@@ -467,11 +572,31 @@ impl Session {
             seen,
         };
         self.sync_with(|i| {
-            i.pending.retain(|q| q.path != p.path);
+            let at = i.pending.iter().position(|q| {
+                q.server == p.server
+                    && q.vault_id == p.vault_id
+                    && q.path == p.path
+                    && q.version == p.version
+                    && q.sha == p.sha
+            })?;
+            i.pending.remove(at);
+            if i.state.links.iter().any(|l| {
+                (l.server == p.server && l.vault_id == p.vault_id)
+                    || l.file == link.file
+                    || l.root == root
+            }) || i.transfers.iter().any(|c| {
+                c.path == p.path
+                    || c.root == Some(root)
+                    || c.remote
+                        .as_ref()
+                        .is_some_and(|(server, id)| server == &p.server && *id == p.vault_id)
+            }) {
+                return None;
+            }
             i.state.links.push(link.clone());
             i.save();
-        });
-        Some(link)
+            Some(link)
+        })
     }
 
     fn sync_view(&self, id: u64, open: &Open, address: Option<&str>) -> Option<SyncState> {
@@ -602,12 +727,21 @@ impl Session {
             client::parse_address(&address).ok_or_else(|| failure(Fail::Address, &address))?;
         let (path, root) = self.with_open(vault, |v, p, _| Ok((p.to_path_buf(), v.root.uuid)))?;
         let file = path.to_string_lossy().into_owned();
-        if self.sync_with(|i| i.state.links.iter().any(|l| l.file == file)) {
-            return Err(refused("This vault is already on a server."));
-        }
+        let identity = storage::file_id(&path)
+            .map_err(|_| refused("The local vault file is unavailable. Try again."))?;
         let (bytes, seen) = self
             .sync_read(vault)
             .ok_or_else(|| refused("Save the vault first, then try again."))?;
+        #[cfg(test)]
+        tests::download_started();
+        let transfer = self.sync_reserve(Claim {
+            path: path.clone(),
+            root: Some(root),
+            remote: None,
+        })?;
+        if storage::file_id(&path) != Ok(identity) {
+            return Err(refused("The local vault file changed. Try again."));
+        }
         let client = self.sync_client(&base)?;
         let mut c = client.lock().unwrap_or_else(PoisonError::into_inner);
         let (vault_id, version) =
@@ -624,7 +758,22 @@ impl Session {
             local_sha: sha,
             seen,
         };
-        Ok(self.sync_with(|i| {
+        self.with_open(vault, |v, p, _| {
+            if p != path || v.root.uuid != root {
+                return Err(refused("The local vault changed. Try again."));
+            }
+            Ok(())
+        })?;
+        if storage::file_id(&path) != Ok(identity) {
+            return Err(refused("The local vault file changed. Try again."));
+        }
+        self.sync_with(|i| {
+            if !transfer.ready(i) {
+                return Err(refused(
+                    "This vault is already linked or its sync was cancelled.",
+                ));
+            }
+            transfer.release(i);
             i.state.links.push(link);
             i.save();
             let now = i.clock.now_ms();
@@ -635,13 +784,13 @@ impl Session {
                 });
                 o.synced_at = Some(now);
             });
-            SyncState {
+            Ok(SyncState {
                 vault,
                 status: SyncStatus::Synced,
                 synced_at: open.map(|()| now),
                 messages: Vec::new(),
-            }
-        }))
+            })
+        })
     }
 
     /// SYN-03.2, SYN-03.7: the vaults of this Mac's account on the server
@@ -709,6 +858,20 @@ impl Session {
         if path.len() > 4096 {
             return Err(LarsalError::TooLong);
         }
+        let chosen = Path::new(&path);
+        let path = chosen
+            .parent()
+            .and_then(|p| std::fs::canonicalize(p).ok())
+            .zip(chosen.file_name())
+            .map(|(parent, name)| parent.join(name))
+            .ok_or_else(|| refused("The destination folder is unavailable."))?;
+        let transfer = self.sync_reserve(Claim {
+            path: path.clone(),
+            root: None,
+            remote: Some((base.clone(), id)),
+        })?;
+        #[cfg(test)]
+        tests::download_started();
         let client = self.sync_client(&base)?;
         let r = client
             .lock()
@@ -723,16 +886,39 @@ impl Session {
             };
             return Err(refused(m.text("", &base)));
         };
+        self.sync_with(|i| {
+            if !transfer.ready(i) {
+                return Err(refused(
+                    "This server vault or destination is already linked or in use.",
+                ));
+            }
+            Ok(())
+        })?;
         let mut f = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
             .mode(0o600)
             .open(&path)
             .map_err(|e| refused(format!("The vault could not be saved: {e}.")))?;
+        #[cfg(test)]
+        tests::server_opened();
         f.write_all(&r.body)
             .and_then(|()| f.sync_all())
             .map_err(|e| refused(format!("The vault could not be saved: {e}.")))?;
-        let real = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
+        use std::os::unix::fs::MetadataExt;
+        let metadata = f
+            .metadata()
+            .map_err(|e| refused(format!("The vault could not be checked: {e}.")))?;
+        let identity = (metadata.dev(), metadata.ino());
+        let real = std::fs::canonicalize(&path)
+            .map_err(|_| refused("The downloaded vault moved. Nothing was linked."))?;
+        let on_disk = std::fs::symlink_metadata(&path)
+            .map_err(|_| refused("The downloaded vault moved. Nothing was linked."))?;
+        if real != path || !on_disk.is_file() || (on_disk.dev(), on_disk.ino()) != identity {
+            return Err(refused(
+                "The downloaded vault was replaced. Nothing was linked.",
+            ));
+        }
         let pending = Pending {
             server: base,
             vault_id: id,
@@ -740,8 +926,22 @@ impl Session {
             version,
             sha: larsal_sync::sync::hash(&r.body),
         };
-        self.sync_with(|i| i.pending.push(pending));
-        Ok(())
+        // A failed or cancelled write leaves its file for the user; never unlink a replacement.
+        let result = self.sync_with(|i| {
+            if !transfer.ready(i) {
+                return Err(refused(
+                    "This server vault or destination is already linked or in use.",
+                ));
+            }
+            transfer.release(i);
+            i.pending.push(pending);
+            Ok(())
+        });
+        #[cfg(test)]
+        if result.is_ok() {
+            tests::download_committed();
+        }
+        result
     }
 
     /// Sync now (SYN-03.4): the next tick runs the vault's sync; nothing
@@ -821,4 +1021,4 @@ impl Session {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

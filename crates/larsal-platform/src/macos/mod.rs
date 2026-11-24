@@ -29,7 +29,7 @@ pub use folder::{
 };
 pub use instance::{effective_uid, peer_uid, user_temp_dir};
 pub use pipe::ignore_broken_pipes;
-pub use process::{core_dumps_off, deny_debugger};
+pub use process::{core_dumps_off, deny_debugger, resident_bytes};
 #[cfg(any(test, feature = "test-signals"))]
 pub use signals::reset_quit_signals_for_tests;
 pub use signals::{QuitGuard, catch_quit};

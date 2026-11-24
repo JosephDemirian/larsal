@@ -155,7 +155,7 @@ fn mod11_01_kinds_and_options() {
     let mut imported = vault(i_root);
     imported.meta.custom_data.items.push(CustomDataItem {
         key: "X".into(),
-        value: "1".into(),
+        value: larsal_crypto::secret::SecretString::new("1".into()),
         last_modified: Some(t0()),
         unknown: Vec::new(),
     });
@@ -559,7 +559,7 @@ fn mod11_10_group_fields() {
     g.tags = "x".into();
     g.custom_data.items.push(CustomDataItem {
         key: "k".into(),
-        value: "target".into(),
+        value: larsal_crypto::secret::SecretString::new("target".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -574,7 +574,7 @@ fn mod11_10_group_fields() {
     g.tags = "y".into();
     g.custom_data.items.push(CustomDataItem {
         key: "k".into(),
-        value: "source".into(),
+        value: larsal_crypto::secret::SecretString::new("source".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -612,7 +612,7 @@ fn mod11_10_group_fields() {
     let mut b = two_groups(vec![]);
     b.root.groups[0].custom_data.items.push(CustomDataItem {
         key: share.clone(),
-        value: "path".into(),
+        value: larsal_crypto::secret::SecretString::new("path".into()),
         last_modified: None,
         unknown: Vec::new(),
     });
@@ -987,7 +987,7 @@ fn mod11_17_custom_icons() {
 fn cd(key: &str, value: &str) -> CustomDataItem {
     CustomDataItem {
         key: key.into(),
-        value: value.into(),
+        value: larsal_crypto::secret::SecretString::new(value.into()),
         last_modified: None,
         unknown: Vec::new(),
     }
@@ -2189,7 +2189,7 @@ fn mod11_18_custom_data_survivors() {
     );
     assert!(data.get(&padding).is_none());
     let k = data.items.iter().find(|i| i.key == "k").unwrap();
-    assert_eq!((k.value.as_str(), k.last_modified), ("s", Some(t9())));
+    assert_eq!((k.value.expose(), k.last_modified), ("s", Some(t9())));
     // MG94: no stamp in the source: its newest item time is its time.
     let mut a = two_groups(vec![]);
     a.meta.custom_data.items = vec![

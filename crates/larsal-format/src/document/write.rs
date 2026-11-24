@@ -28,7 +28,7 @@ use super::read::ROOT_NAME;
 use crate::buffer::Grow;
 use crate::error::Error;
 use crate::limits::Limit;
-use larsal_crypto::secret::SecretBytes;
+use larsal_crypto::secret::{SecretBytes, SecretString};
 use larsal_crypto::stream::FieldStream;
 use larsal_model::entry::{STANDARD_FIELDS, cmp_utf16};
 use larsal_model::{
@@ -439,7 +439,7 @@ impl Writer<'_, '_> {
         for item in &cd.items {
             self.open("Item");
             self.text("Key", &item.key);
-            self.text("Value", &item.value);
+            self.text("Value", item.value.expose());
             if let (true, Some(t)) = (self.v41, item.last_modified) {
                 self.time("LastModificationTime", t);
             }
@@ -820,6 +820,7 @@ fn stamped(cd: &CustomData, stamp: &SaveStamp) -> CustomData {
 }
 
 fn set_item(cd: &mut CustomData, key: String, value: String, time: Option<Time>) {
+    let value = SecretString::new(value);
     match cd.items.iter_mut().find(|i| i.key == key) {
         Some(item) => {
             item.value = value;
