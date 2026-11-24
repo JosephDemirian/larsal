@@ -408,7 +408,7 @@ fn mod08_63_auto_type_of_a_planted_reference_types_nothing_outside_the_share() {
     team.entries.push(entry(0x44, "Team wiki", "", planted));
     team.custom_data.items.push(larsal_model::CustomDataItem {
         key: String::from_utf8(larsal_core::edit::SHARED_KEY.to_vec()).unwrap(),
-        value: "not base64 !!".into(),
+        value: larsal_crypto::secret::SecretString::new("not base64 !!".into()),
         last_modified: None,
         unknown: Vec::new(),
     });

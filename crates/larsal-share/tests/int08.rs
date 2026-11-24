@@ -10,6 +10,7 @@ use larsal_core::refs::Context;
 use larsal_crypto::base64::{self, Form};
 use larsal_crypto::hash::sha256;
 use larsal_crypto::kdf::KdfParams;
+use larsal_crypto::secret::SecretString;
 use larsal_format::limits::{Limit, Limits};
 use larsal_model::{Argon2Kind, Cipher, Compression, CustomIcon, DeletedObject, Icon, Kdf};
 use larsal_share::container::{self, VAULT_ENTRY};
@@ -74,10 +75,10 @@ fn t02_int08_2_int08_3_synchronize_item_is_written_exactly() {
         keep_groups: true,
     };
     let value = s.write().unwrap();
-    assert!(!value.contains(['\n', '\r', ' ']));
+    assert!(!value.expose().contains(['\n', '\r', ' ']));
     let r = root_text();
     assert_eq!(
-        decoded(&value),
+        decoded(value.expose()),
         format!(
             "<?xml version=\"1.0\"?><{r}><Type><Import/><Export/></Type>\
              <Group>EREREREREREREREREREREQ==</Group><Path>dGVhbS9zaGFyZWQubGFyc2FsdmF1bHQ=</Path>\
@@ -95,7 +96,7 @@ fn t03_int08_3_import_only_with_empty_password() {
         keep_groups: false,
         ..Settings::new()
     };
-    let text = decoded(&s.write().unwrap());
+    let text = decoded(s.write().unwrap().expose());
     for part in [
         "<Type><Import/></Type>",
         "<Group>IiIiIiIiIiIiIiIiIiIiIg==</Group>",
@@ -107,7 +108,7 @@ fn t03_int08_3_import_only_with_empty_password() {
     }
     // Inactive: an empty Type; an empty path as a text element.
     let mut s = Settings::new();
-    let text = decoded(&s.write().unwrap());
+    let text = decoded(s.write().unwrap().expose());
     assert!(text.contains("<Type/><Group>"), "{text}");
     assert!(text.contains("<Path></Path>"), "{text}");
 }
@@ -133,7 +134,7 @@ fn t05_int08_3_int08_4_wrong_root_is_invalid_but_shared() {
     assert!(settings::read(&value).is_none());
     let mut v = v();
     let team = v.root.groups.get_mut(0).unwrap();
-    team.custom_data.items.get_mut(0).unwrap().value = value;
+    team.custom_data.items.get_mut(0).unwrap().value = SecretString::new(value);
     assert!(matches!(
         settings::of(group(&v, id(0x20))),
         Some(Item::Invalid)
@@ -250,7 +251,7 @@ fn int08_3_missing_group_is_zero_then_random_on_write() {
     assert!(s.group.is_zero());
     let first = s.write().unwrap();
     assert!(!s.group.is_zero());
-    let again = settings::read(&first).unwrap();
+    let again = settings::read(first.expose()).unwrap();
     assert_eq!(again.group, s.group);
     // The id stays once drawn: the next write is the same text.
     assert_eq!(s.write().unwrap(), first);
@@ -268,8 +269,8 @@ fn t65_int08_3_every_new_share_gets_its_own_id() {
     b.path = "a.larsalvault".into();
     let (va, vb) = (a.write().unwrap(), b.write().unwrap());
     let (ga, gb) = (
-        settings::read(&va).unwrap().group,
-        settings::read(&vb).unwrap().group,
+        settings::read(va.expose()).unwrap().group,
+        settings::read(vb.expose()).unwrap().group,
     );
     assert!(!ga.is_zero() && !gb.is_zero());
     assert_ne!(ga, gb);
@@ -326,7 +327,7 @@ fn int08_39_debug_and_errors_hold_no_password_or_path() {
     let mut s = export_to("secret-place/team.larsalvault");
     s.password = secret("hunter2-demo");
     let value = s.write().unwrap();
-    let read = settings::read(&value).unwrap();
+    let read = settings::read(value.expose()).unwrap();
     for text in [
         format!("{s:?}"),
         format!("{read:?}"),
@@ -377,7 +378,7 @@ mod round_trip {
                 keep_groups: keep,
             };
             let value = s.write().unwrap();
-            let r = settings::read(&value).unwrap();
+            let r = settings::read(value.expose()).unwrap();
             prop_assert_eq!(r.mode(), s.mode());
             prop_assert_eq!(r.group, s.group);
             prop_assert_eq!(&r.path, &s.path);
@@ -546,7 +547,7 @@ fn t13_int08_12_int08_33_no_share_item_in_the_container() {
         .items
         .push(larsal_model::CustomDataItem {
             key: "other".into(),
-            value: "kept".into(),
+            value: larsal_crypto::secret::SecretString::new("kept".into()),
             last_modified: None,
             unknown: Vec::new(),
         });
@@ -1091,7 +1092,7 @@ fn int08_12_name_bin_icons_and_deleted_objects() {
     v.meta.default_user_name = "demo-user".into();
     v.meta.custom_data.items.push(larsal_model::CustomDataItem {
         key: "demo-key".into(),
-        value: "demo-value".into(),
+        value: larsal_crypto::secret::SecretString::new("demo-value".into()),
         last_modified: None,
         unknown: Vec::new(),
     });

@@ -29,12 +29,13 @@ fn item<'a>(data: &'a CustomData, key: &[u8]) -> Option<&'a str> {
     data.items
         .iter()
         .find(|i| i.key.as_bytes() == key)
-        .map(|i| i.value.as_str())
+        .map(|i| i.value.expose())
 }
 
 /// Sets or adds item `key` (new keys at the end, FMT-14.15), with `now` as
 /// its time.
 fn set_item(data: &mut CustomData, key: &str, value: String, now: Time) {
+    let value = larsal_crypto::secret::SecretString::new(value);
     match data.items.iter_mut().find(|i| i.key == key) {
         Some(i) => {
             i.value = value;

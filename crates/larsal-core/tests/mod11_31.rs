@@ -152,7 +152,7 @@ fn mod11_31_t62_a_copy_under_a_retired_key_gets_the_content_merge_only() {
     b.meta.master_key_changed = at(2099, 1, 1, 0, 0, 0);
     b.meta.custom_data.items.push(CustomDataItem {
         key: "X".into(),
-        value: "1".into(),
+        value: larsal_crypto::secret::SecretString::new("1".into()),
         last_modified: Some(t3),
         unknown: Vec::new(),
     });
