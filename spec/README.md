@@ -188,3 +188,13 @@ Status: SHR-01 to SHR-04 written 2026-11-01 (draft, E18-S1, from spec/research/s
 | FIL-03 | [Limits and errors](files/FIL-03-limits-and-errors.md) | E22-S3 to E22-S6 |
 
 Status: FIL-01 to FIL-03 reviewed 2026-11-05 (E22-S1 specification and static proposals only), after second Spec corrections and fresh independent Verify APPROVE with no required findings. Owner commit `c8fa2f1` adopted the exact research/cards/index/proposals and central source package; LD-366–371 record R1–R6, AT-FILE-01–14 and FILE-P1–4 are final catalog identifiers with runtime proof OPEN. All original acceptance and dependencies remain unchanged, including S3 corruption/no-plaintext/no-plaintext-temp/bounded-memory and S4 cancel-leaves-no-partial-output. Original technical/sensitive reviews and E22-S2 AT-J03/package/tool/corpus download gates govern implementation; no runtime PASS or new general permission gate. Owner frame review/W-18 wording are nonblocking under LD-220/268/363. FIL-04–06 remain E23-S1’s separate encrypted-folder scope under its original dependency. Proof: the research [Review and proof](research/file-encryption.md#review-and-proof) footer.
+
+### Encrypted folders (E23-S1 draft addition)
+
+| ID | Card | Built in |
+|---|---|---|
+| FIL-04 | [Folder format and keys](files/FIL-04-folder-format.md) | E23-S2, E23-S3, E23-S6 |
+| FIL-05 | [Folder screens and flows](files/FIL-05-folder-screens.md) | E23-S4, E23-S5, E23-S6 |
+| FIL-06 | [Folder limits and conflicts](files/FIL-06-folder-limits-and-conflicts.md) | E23-S3 to E23-S6 |
+
+Status: **DRAFT, 2026-11-05**, with [encrypted-folder research](research/encrypted-folders.md). Seven accepted second-Spec corrections applied; fresh independent Verify pending. Proposed LD-372–378, AT-FOLD-01–16 and FOLD-P1–5 are unadopted; all runtime obligations remain OPEN. Original acceptance/Order and other story statuses are untouched. Exact original S3 changed-byte and S4 Open/closure checks stay unchanged and OPEN. Authentic truncation/replay/substitution are separate S6 handling/disclosure limits. Lead selects first-party Open without a readable disk copy or external-custody exception; named API/secret and runtime proofs remain OPEN. Recovery encrypted-name custody, cumulative shared-header GCM budget, documented NFC basis, RFC-valid scrypt and33 mapped frame states per theme are included. No hidden acceptance rewrite or success-by-refusal. No product/runtime/dependency/download/signing approval or new general owner gate. Locked Option A bytes remain unchanged; proposal-frame review and W-18 wording stay nonblocking.
