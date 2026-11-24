@@ -602,3 +602,105 @@ fn syn01_13_t20_the_client_logs_nothing() {
         }
     }
 }
+
+/// F-282: warnings from every merged attempt stay in order before the
+/// terminal failure, including a transport failure during the upload.
+#[test]
+fn f282_warnings_survive_conflict_rate_limit_and_transport_failure() {
+    let puts = Arc::new(AtomicUsize::new(0));
+    let p = puts.clone();
+    let s = server(move |r| match r.method.as_str() {
+        "GET" => vault(6, b"old weak copy"),
+        _ => match p.fetch_add(1, Ordering::SeqCst) {
+            0 => Response::new(412, b"{}"),
+            1 => Response::new(429, b"{}").with("Retry-After", "2"),
+            // Two conflicting lengths make the HTTP transport refuse it.
+            _ => Response::new(200, b"{}").with("Content-Length", "123"),
+        },
+    });
+    let local = Fake::changed(m(500, 3, 16_384));
+    let mut l = link();
+    let report = run(&mut client(&s), &mut l, &local, &*TestClock::at(0));
+    assert_eq!(puts.load(Ordering::SeqCst), 3);
+    assert_eq!(report.status, Some(Status::Offline));
+    assert_eq!(
+        report.messages,
+        [
+            Message::WentBack,
+            Message::Weaker(vec!["file format version", "key derivation"]),
+            Message::WentBack,
+            Message::WentBack,
+        ]
+    );
+}
+
+/// F-282: a warning from a merged 412 attempt precedes the next try's
+/// final error; a later successful try also keeps every earlier warning.
+#[test]
+fn f282_warnings_precede_the_final_report_after_a_retry() {
+    for terminal in [200, 403, 429, 412] {
+        let gets = Arc::new(AtomicUsize::new(0));
+        let g = gets.clone();
+        let s = server(move |r| match r.method.as_str() {
+            "GET" => {
+                let n = g.fetch_add(1, Ordering::SeqCst);
+                if n == 0 || terminal == 429 || terminal == 412 {
+                    vault(6, b"weak copy")
+                } else if terminal == 200 {
+                    Response::new(304, b"")
+                } else {
+                    Response::new(terminal, b"{}")
+                }
+            }
+            _ => Response::new(if terminal == 429 { 429 } else { 412 }, b"{}"),
+        });
+        let local = Fake::changed(m(1200, 4, 16_384));
+        let mut l = link();
+        let report = run(&mut client(&s), &mut l, &local, &*TestClock::at(0));
+        let mut expected = vec![Message::Weaker(vec!["key derivation"])];
+        match terminal {
+            403 => expected.push(Message::NoWrite),
+            412 => expected.push(Message::Busy),
+            _ => {}
+        }
+        assert_eq!(report.messages, expected, "{terminal}: {report:?}");
+        match terminal {
+            200 => assert!(matches!(report.status, Some(Status::Synced(_)))),
+            429 => assert_eq!(report.status, Some(Status::Offline)),
+            _ => assert_eq!(report.status, Some(Status::Error)),
+        }
+    }
+}
+
+/// F-288: accepting a later-numbered older file must never lower the
+/// remembered newest time, even when the next upload fails.
+#[test]
+fn f288_newest_stays_a_maximum_after_accept_and_upload() {
+    let mut l = link();
+    record(&mut l, 6, hash(b"old"), &m(500, 3, 16_384));
+    assert_eq!(l.seen.newest, Time(1000));
+    assert_eq!(l.seen.version.major, 3);
+    record(&mut l, 7, hash(b"new"), &m(2000, 4, 65_536));
+    assert_eq!(l.seen.newest, Time(2000));
+    record(&mut l, 8, hash(b"old again"), &m(1500, 4, 16_384));
+    assert_eq!(l.seen.newest, Time(2000));
+    assert_eq!(l.highest, 8);
+    assert_eq!(l.seen.kdf, m(1500, 4, 16_384).kdf);
+}
+
+/// F-287: only completion releases an active run, across both lock and unlock.
+#[test]
+fn f287_lock_unlock_keeps_the_running_run_until_finished() {
+    let mut s = Schedule::default();
+    s.unlocked(0);
+    assert!(s.start(0, false));
+    s.locked();
+    assert!(s.running());
+    assert!(!s.start(60_000, false));
+    s.unlocked(60_001);
+    assert!(s.running());
+    assert!(!s.start(60_001, false));
+    s.finished();
+    assert!(s.start(60_001, false));
+    assert!(!s.start(60_001, false));
+}

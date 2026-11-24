@@ -308,7 +308,12 @@ impl<K: Signer> Server<K> {
             device_name: "Mac".to_owned(),
         }
         .to_json();
-        let a = self.send(Method::Post(&body), routes::ACCOUNTS, &[], MAX_JSON as u64)?;
+        let a = self.send(
+            Method::Post(&body),
+            routes::ACCOUNTS,
+            &[("content-type", "application/json")],
+            MAX_JSON as u64,
+        )?;
         if a.status != 201 {
             return Err(signin_fail(&a));
         }
@@ -336,7 +341,12 @@ impl<K: Signer> Server<K> {
         let device = *device;
         let request = ChallengeRequest { device_id: device }.to_json();
         let limit = MAX_JSON as u64;
-        let a = self.send(Method::Post(&request), routes::CHALLENGE, &[], limit)?;
+        let a = self.send(
+            Method::Post(&request),
+            routes::CHALLENGE,
+            &[("content-type", "application/json")],
+            limit,
+        )?;
         if a.status != 200 {
             return Err(signin_fail(&a));
         }
@@ -349,7 +359,12 @@ impl<K: Signer> Server<K> {
             signature: sign(key, &message)?,
         }
         .to_json();
-        let mut a = self.send(Method::Post(&signed), routes::SIGNIN, &[], limit)?;
+        let mut a = self.send(
+            Method::Post(&signed),
+            routes::SIGNIN,
+            &[("content-type", "application/json")],
+            limit,
+        )?;
         // LD-325 (5) (b): the reply holds the token; its bytes move into a
         // wiping buffer before anything reads them.
         let body = SecretBytes::new(std::mem::take(&mut a.body));

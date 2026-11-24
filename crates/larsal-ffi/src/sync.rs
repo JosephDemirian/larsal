@@ -165,9 +165,9 @@ impl Syncs {
     pub(crate) fn unlocked(&self, id: u64, path: &Path, root: Uuid) {
         let mut i = self.inner();
         let now = i.clock.now_ms();
-        let mut schedule = Schedule::default();
+        let prior = i.vaults.remove(&id);
+        let (mut schedule, report) = prior.map(|o| (o.schedule, o.report)).unwrap_or_default();
         schedule.unlocked(now);
-        let report = i.vaults.remove(&id).and_then(|o| o.report);
         i.vaults.insert(
             id,
             Open {
@@ -213,6 +213,38 @@ impl Inner {
             // ponytail: a failed write keeps the state in memory for this
             // run; the next change writes it again.
             let _ = self.state.save(path);
+        }
+    }
+
+    fn has_server_vault(&self, server: &str, vault_id: larsal_sync::state::VaultId) -> bool {
+        self.state
+            .links
+            .iter()
+            .any(|l| l.server == server && l.vault_id == vault_id)
+            || self
+                .pending
+                .iter()
+                .any(|p| p.server == server && p.vault_id == vault_id)
+    }
+
+    /// A run updates only its own file/root, and never rolls back the guard.
+    fn write_back(&mut self, mut link: Link) {
+        let at = self.state.links.iter().position(|l| {
+            l.file == link.file
+                && l.root == link.root
+                && l.server == link.server
+                && l.vault_id == link.vault_id
+        });
+        if let Some(at) = at {
+            let current = &self.state.links[at];
+            if link.highest < current.highest {
+                return;
+            }
+            link.seen.newest = link.seen.newest.max(current.seen.newest);
+            if *current != link {
+                self.state.links[at] = link;
+                self.save();
+            }
         }
     }
 
@@ -425,17 +457,7 @@ impl Session {
             if report.messages.contains(&Message::CertChanged) {
                 i.stopped.insert(link.server.clone());
             }
-            let at = i
-                .state
-                .links
-                .iter()
-                .position(|l| l.vault_id == link.vault_id && l.server == link.server);
-            if let Some(at) = at
-                && i.state.links[at] != link
-            {
-                i.state.links[at] = link;
-                i.save();
-            }
+            i.write_back(link);
             if let Some(o) = i.vaults.get_mut(&id) {
                 o.schedule.finished();
                 if let Some(Status::Synced(t)) = report.status {
@@ -468,10 +490,17 @@ impl Session {
         };
         self.sync_with(|i| {
             i.pending.retain(|q| q.path != p.path);
+            if i.state
+                .links
+                .iter()
+                .any(|l| (l.server == p.server && l.vault_id == p.vault_id) || l.file == link.file)
+            {
+                return None;
+            }
             i.state.links.push(link.clone());
             i.save();
-        });
-        Some(link)
+            Some(link)
+        })
     }
 
     fn sync_view(&self, id: u64, open: &Open, address: Option<&str>) -> Option<SyncState> {
@@ -709,6 +738,13 @@ impl Session {
         if path.len() > 4096 {
             return Err(LarsalError::TooLong);
         }
+        if self.sync_with(|i| i.has_server_vault(&base, id)) {
+            return Err(refused(
+                "This server vault is already linked or being downloaded on this Mac.",
+            ));
+        }
+        #[cfg(test)]
+        tests::download_started();
         let client = self.sync_client(&base)?;
         let r = client
             .lock()
@@ -723,25 +759,32 @@ impl Session {
             };
             return Err(refused(m.text("", &base)));
         };
-        let mut f = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(&path)
-            .map_err(|e| refused(format!("The vault could not be saved: {e}.")))?;
-        f.write_all(&r.body)
-            .and_then(|()| f.sync_all())
-            .map_err(|e| refused(format!("The vault could not be saved: {e}.")))?;
-        let real = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
-        let pending = Pending {
-            server: base,
-            vault_id: id,
-            path: real,
-            version,
-            sha: larsal_sync::sync::hash(&r.body),
-        };
-        self.sync_with(|i| i.pending.push(pending));
-        Ok(())
+        self.sync_with(|i| {
+            if i.has_server_vault(&base, id) {
+                return Err(refused(
+                    "This server vault is already linked or being downloaded on this Mac.",
+                ));
+            }
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(&path)
+                .map_err(|e| refused(format!("The vault could not be saved: {e}.")))?;
+            f.write_all(&r.body)
+                .and_then(|()| f.sync_all())
+                .map_err(|e| refused(format!("The vault could not be saved: {e}.")))?;
+            let real = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
+            let pending = Pending {
+                server: base,
+                vault_id: id,
+                path: real,
+                version,
+                sha: larsal_sync::sync::hash(&r.body),
+            };
+            i.pending.push(pending);
+            Ok(())
+        })
     }
 
     /// Sync now (SYN-03.4): the next tick runs the vault's sync; nothing
@@ -821,4 +864,4 @@ impl Session {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
