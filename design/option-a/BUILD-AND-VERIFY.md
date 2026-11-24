@@ -23,7 +23,7 @@ Later additions (new windows, new extension screens) go into this same `mockup.h
 
 ## Native mapping (Mac app, SwiftUI over the Rust core)
 
-| Mockup | App |
+| Mockup | Larsal |
 |---|---|
 | CSS custom properties in `.win.light` and `.win.dark` (`mockup.html`) | One colour asset per property with Any and Dark appearances, same names, same hex values. No other colours in the app. |
 | Sidebar tile colours `--blue` … `--graphite` in `:root` | Same hex values, same in both appearances. |
@@ -38,7 +38,7 @@ The browser extension (`extension/`, E7-S7) is web code: it may reuse the mockup
 
 | Skill | Use it for |
 |---|---|
-| `design-taste-frontend` | `references/app-screens.md` whole: spacing, density, tables, states, data honesty; its `lint.mjs` and `inspect.mjs --app` on the extension. |
+| `design-taste-frontend` | `references/larsal-screens.md` whole: spacing, density, tables, states, data honesty; its `lint.mjs` and `inspect.mjs --app` on the extension. |
 | `web-design-guidelines` | Fetch the current rules; apply accessibility, focus, forms, number formatting, motion and copy rules (their native equal in SwiftUI). |
 | `ui-ux-pro-max` | The pre-delivery checklist and the priority 1–3 rules (accessibility, interaction, layout); search `--stack swiftui` where it helps. |
 | `awesome-design-md` | Craft reference only. Never copy another brand's look. |
@@ -50,13 +50,13 @@ The mockup already applies these skills. The owner's taste overrides a skill whe
 ## Prompt for builders
 
 ```text
-You build App screens for story <STORY-ID>. The look is locked: design/option-a/mockup.html.
+You build Larsal screens for story <STORY-ID>. The look is locked: design/option-a/mockup.html.
 
 Read first, in full:
 1. AGENTS.md (all rules; clean room; secrets stay in Rust; never take over the owner's screen).
 2. design/option-a/BUILD-AND-VERIFY.md (this brief).
 3. The spec cards your story names in plan/epics.md.
-4. The skills: ~/.claude/skills/design-taste-frontend/SKILL.md and references/app-screens.md,
+4. The skills: ~/.claude/skills/design-taste-frontend/SKILL.md and references/larsal-screens.md,
    ~/.claude/skills/web-design-guidelines/SKILL.md (fetch its rules),
    ~/.claude/skills/ui-ux-pro-max/SKILL.md (checklists), ~/.claude/skills/awesome-design-md/SKILL.md.
 
@@ -71,7 +71,7 @@ Then:
 - Behaviour comes from the spec card. Where the card's words differ from the mockup's, use the card
   and list the frame id and both texts in your report.
 - For every frame you build, add an offscreen snapshot test that renders that exact state at the
-  frame's size in light and dark and writes app-shots/<light|dark>/<frame-id>.png. Render offscreen in
+  frame's size in light and dark and writes target/larsal-shots/<light|dark>/<frame-id>.png. Render offscreen in
   the test process; never open a visible window (AGENTS.md rule 10).
 - Apply the skill checklists: keyboard and VoiceOver labels on every control, visible focus, contrast
   at 4.5:1 for text, tabular figures for numbers, no layout shift on state change, reduced motion.
@@ -92,7 +92,7 @@ Read first: AGENTS.md, design/option-a/BUILD-AND-VERIFY.md, and the four skills 
 Inputs:
 - Reference: design/option-a/reference/<light|dark>/<frame-id>.png and manifest.json.
   Run `node design/option-a/tools/export-reference.mjs` first so the reference matches the current mockup.
-- App: build the app, run the snapshot tests offscreen, and collect app-shots/<light|dark>/<frame-id>.png.
+- Larsal: build the app, run the snapshot tests offscreen, and collect target/larsal-shots/<light|dark>/<frame-id>.png.
   Never open a visible window or take focus. Stop only processes you started, by PID.
 
 For every frame, in light and in dark, check and record:

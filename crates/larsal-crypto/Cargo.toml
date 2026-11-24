@@ -1,0 +1,67 @@
+[package]
+name = "larsal-crypto"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# Approved crates only (plan/architecture.md). "zeroize" is on wherever the
+# crate has it, so key schedules and buffers inside the crates are wiped too.
+# Except blake2 inside argon2: not a dependency of ours; the stack wipe after
+# derive covers it (spec/decisions.md LD-69).
+[dependencies]
+zeroize.workspace = true
+subtle.workspace = true
+# sys_rng: getrandom's OS source as a rand_core generator.
+getrandom = { workspace = true, features = ["sys_rng"] }
+rand_core.workspace = true
+sha2 = { workspace = true, features = ["zeroize"] }
+sha1 = { workspace = true, features = ["zeroize"] }
+hmac = { workspace = true, features = ["zeroize"] }
+aes = { workspace = true, features = ["zeroize"] }
+cbc = { workspace = true, features = ["zeroize"] }
+twofish = { workspace = true, features = ["zeroize"] }
+chacha20 = { workspace = true, features = ["zeroize"] }
+salsa20 = { workspace = true, features = ["zeroize"] }
+argon2 = { workspace = true, features = ["zeroize"] }
+# LD-142: PBKDF2 and HKDF for encrypted imports (FEA-08). They run on the
+# hmac crate above, so its "zeroize" feature covers their HMAC states.
+pbkdf2.workspace = true
+hkdf.workspace = true
+# E9-S1: OpenSSH private keys for the SSH agent (ssh.rs; INT-06). "encryption"
+# reads protected keys (bcrypt-pbkdf, AES, ChaCha20-Poly1305); the private key
+# types of ssh-key wipe themselves on drop. bcrypt-pbkdf is named only to turn
+# on its "zeroize".
+ssh-key = { workspace = true, features = ["alloc", "ecdsa", "encryption"] }
+bcrypt-pbkdf = { workspace = true, features = ["zeroize"] }
+# E9-S2: Larsal's own SSH agent (ssh.rs; INT-06.33) signs with Ed25519 and ECDSA
+# P-256 and checks session bindings with them. ssh-key never signs (LD-182 (2)).
+ed25519-dalek = { workspace = true, features = ["zeroize"] }
+p256 = { workspace = true, features = ["ecdsa"] }
+# E0-S7 R5 (LD-258 (2)): base64.rs, base64 for our crates (keys, imports, key files).
+base64ct.workspace = true
+# E16-S2 (CRY-04): hpke.rs, HPKE base mode with DHKEM(X25519, HKDF-SHA256),
+# HKDF-SHA256 and AES-256-GCM only (no ML-KEM, no getrandom: larsal-crypto::random
+# gives every random byte). wrap.rs: the AES-256-GCM key wrap. aes-gcm is named
+# here also to turn on its "zeroize", so the AES round keys inside hpke's
+# contexts are wiped too.
+hpke = { workspace = true, features = ["x25519", "aes", "alloc"] }
+aes-gcm = { workspace = true, features = ["aes", "zeroize"] }
+# E7-S1 (INT-01.49): bridge.rs, the browser bridge channel's X25519; the
+# features hpke already turns on, so the build does not change.
+x25519-dalek = { workspace = true, features = ["static_secrets", "zeroize"] }
+
+[features]
+# E16-S5: a software P-256 key that signs (sign.rs `P256TestKey`), the test
+# client's device key in larsal-server's tests. Only test builds turn it on,
+# through a dev-dependency; a normal build has no P-256 signer for sync.
+test-p256-key = []
+
+[dev-dependencies]
+proptest.workspace = true
+# F-070, F-170, F-190: the probe allocator of tests/ssh_wipe.rs, tests/sync_wipe.rs
+# and tests/bridge_wipe.rs (test tools only).
+larsal-platform = { workspace = true, features = ["test-memory"] }
+
+[lints]
+workspace = true

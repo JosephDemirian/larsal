@@ -3,7 +3,7 @@
 // accessibility tree (decorative letter tiles, the window behind a modal
 // menu). Writes target/parity/ocr/<theme>/<frame-id>.json: [{text, box}]
 // with boxes in points (the PNGs are 2x). No window, no network.
-// Usage: swift design/parity/tools/ocr.swift app-shots/light/*.png
+// Usage: swift design/parity/tools/ocr.swift target/larsal-shots/light/*.png
 import Foundation
 import Vision
 

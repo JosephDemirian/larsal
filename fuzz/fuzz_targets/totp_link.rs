@@ -10,9 +10,9 @@
 //! `TOTP Settings`, the four `TimeOtp-*` fields.
 #![no_main]
 
-use app_core::totp::{self, FORM_T, OTP, SEED, SETTINGS};
-use app_crypto::secret::SecretString;
-use app_model::{Entry, Field, Time, Uuid};
+use larsal_core::totp::{self, FORM_T, OTP, SEED, SETTINGS};
+use larsal_crypto::secret::SecretString;
+use larsal_model::{Entry, Field, Time, Uuid};
 use libfuzzer_sys::fuzz_target;
 
 fn entry(fields: &[(&str, &str)]) -> Entry {

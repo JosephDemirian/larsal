@@ -1,5 +1,5 @@
 //! Fuzz target `share_container` (E11-S2): reading a share container by its
-//! first bytes, through app-core's ZIP reader and the vault reader, with
+//! first bytes, through larsal-core's ZIP reader and the vault reader, with
 //! the fixed share password `demo-share-1` and cheap key settings
 //! (INT-08.9, INT-08.36; AT-A06, AT-A08, AT-A10). Must never panic, hang
 //! or allocate from an unchecked length; every vault it returns holds the
@@ -16,14 +16,14 @@
 //!   the vault entry).
 #![no_main]
 
-use app_core::edit::SHARED_KEY;
-use app_crypto::cipher::{self, Cipher};
-use app_crypto::hash::sha256;
-use app_crypto::kdf::{self, Host, KdfParams, SpeedRecord, Verdict};
-use app_crypto::secret::{SecretBytes, SecretString};
-use app_format::keys::{cipher_key_v3, composite_key, password_part};
-use app_format::limits::Limits;
-use app_share::container::{self, VAULT_ENTRY};
+use larsal_core::edit::SHARED_KEY;
+use larsal_crypto::cipher::{self, Cipher};
+use larsal_crypto::hash::sha256;
+use larsal_crypto::kdf::{self, Host, KdfParams, SpeedRecord, Verdict};
+use larsal_crypto::secret::{SecretBytes, SecretString};
+use larsal_format::keys::{cipher_key_v3, composite_key, password_part};
+use larsal_format::limits::Limits;
+use larsal_share::container::{self, VAULT_ENTRY};
 use libfuzzer_sys::fuzz_target;
 use std::io::Write;
 use std::sync::OnceLock;
@@ -112,7 +112,7 @@ fn seal_v3(plain: &[u8]) -> Vec<u8> {
     field3(
         &mut head,
         2,
-        &app_format::header::cipher_id(Cipher::Aes256Cbc),
+        &larsal_format::header::cipher_id(Cipher::Aes256Cbc),
     );
     field3(&mut head, 3, &0u32.to_le_bytes());
     field3(&mut head, 4, &SEED);
@@ -227,7 +227,7 @@ fuzz_target!(|data: &[u8]| {
     lim.kdf.ask_ms = 50;
     lim.kdf.ask_memory_kib = 8 << 10;
     if let Ok(v) = container::open(&file, &password(), &mut host(), &lim) {
-        assert_eq!(app_model::invariants::check(&v.vault), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&v.vault), Ok(()));
         for g in v.vault.root.subtree().into_iter().skip(1) {
             assert!(
                 g.custom_data

@@ -1,4 +1,7 @@
-# How App is built and sold: research
+# How Larsal is built and sold: research
+
+> Licensing update (LD-345, 2026-11-04): the former GPL/AGPL/paid-draft licensing recommendations below are historical and superseded. Current first-party permissions come from the root LICENSE. Third-party licenses and their recorded research remain unchanged.
+
 
 For the owner's vision of 2026-10-31. The plan that comes from it is [plan/product-vision.md](../../plan/product-vision.md).
 
@@ -7,11 +10,11 @@ Date: 2026-10-31. Research only. No product code, build file or other plan file 
 How to read this file:
 - Every fact has its source link. All pages were read on 2026-10-31, unless a fact says otherwise.
 - Prices are **as of 2026-10-31**. Bitwarden changed its prices in January 2026. Check every price again before you use it in public.
-- Facts about App come from project files. Their paths are given.
-- "App" is the placeholder name ([AGENTS.md](../../AGENTS.md), Naming). The reference app is not named (rule 1).
+- Facts about Larsal come from project files. Their paths are given.
+- Larsal is the product name ([AGENTS.md](../../AGENTS.md), Naming). The reference app is not named (rule 1).
 - Only public pages were read. No project content was sent to any site. No code was copied.
 
-The owner's question, shortened: build and sell App the way Bitwarden does. But App is a Mac app, not a web app on a server. People download it, keep the vault encrypted, and sync it through any cloud. Later, a subscription for family or team sync. Maybe a server that people host themselves, with the app as its client. Many versions from one code base. Sell part of it, but stay open source so people can check that it is safe.
+The owner's question, shortened: build and sell Larsal the way Bitwarden does. But Larsal is a Mac app, not a web app on a server. People download it, keep the vault encrypted, and sync it through any cloud. Later, a subscription for family or team sync. Maybe a server that people host themselves, with the app as its client. Many versions from one code base. Sell part of it, but stay open source so people can check that it is safe.
 
 ## Contents
 
@@ -20,7 +23,7 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 3. Cryptography of sync and sharing
 4. Any-cloud native apps and how they sell
 5. Selling a Mac app
-6. Fit to App
+6. Fit to Larsal
 7. Open questions
 
 ## 1. Bitwarden plans and self-hosting
@@ -57,12 +60,12 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 - It's FOSS reported that "Always free" left the pricing page in mid-April 2026 and came back after May 14. A staff member blamed a marketing oversight. The site also reported an unannounced CEO change (February 2026) and CFO change (April 2026). Source: [Things Are Quietly Changing at Bitwarden, and People Are Worried (It's FOSS)](https://itsfoss.com/news/bitwarden-quiet-changes/).
 - The new CEO's post of 2026-05-18 says open source, auditable code and self-hosting are core. It says the free tier stays, rules out a trial model or bait-and-switch, and promises to explain changes. Source: [My first 100 days at Bitwarden (Bitwarden Blog)](https://bitwarden.com/blog/my-first-100-days-at-bitwarden/).
 
-### What this means for App
+### What this means for Larsal
 
 - Bitwarden gives one person everything that matters for free: unlimited items, unlimited devices and sync. It sells sharing, administration and some personal extras.
 - A self-hosted server unlocks paid features with a license file from the cloud account. The file is not what protects the business. The paid code is under a license that does not allow production use without paying (section 2.1).
-- Write App's "free forever" promise in the repository, not only on a website. Bitwarden's wording lived on its website; it went missing from the pricing page for about a month, and Bitwarden staff called that a marketing mistake (research 1.4).
-- Decide which features stay free before any paid plan exists. Never take a free feature away later. App already has attachments, TOTP codes and health reports at no cost, for parity with the reference app (E4-S4, E4-S10 and E4-S11 in [plan/epics.md](../../plan/epics.md)).
+- Write Larsal's "free forever" promise in the repository, not only on a website. Bitwarden's wording lived on its website; it went missing from the pricing page for about a month, and Bitwarden staff called that a marketing mistake (research 1.4).
+- Decide which features stay free before any paid plan exists. Never take a free feature away later. Larsal already has attachments, TOTP codes and health reports at no cost, for parity with the reference app (E4-S4, E4-S10 and E4-S11 in [plan/epics.md](../../plan/epics.md)).
 
 ## 2. Licensing and how it builds in the open
 
@@ -78,7 +81,7 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 
 - sdk-internal is a Rust workspace. Its open packages are GPL-3.0. Commercial packages add code under a separate license. The bindings are WASM for the web and UniFFI (`bitwarden-uniffi`) for Swift and Kotlin. Bitwarden says it is for its own apps, not for public use. Source: [bitwarden/sdk-internal (GitHub)](https://github.com/bitwarden/sdk-internal).
 - Bitwarden's rule: everything except presentation belongs in the shared Rust SDK. That means crypto, business logic, state and sync, API calls and data models. Source: [SDK Architecture (Bitwarden Contributing Docs)](https://contributing.bitwarden.com/architecture/sdk/).
-- This is App's own shape: a Rust engine with Swift screens over UniFFI. Sources: [plan/architecture.md](../../plan/architecture.md); LD-155 in [spec/decisions.md](../decisions.md).
+- This is Larsal's own shape: a Rust engine with Swift screens over UniFFI. Sources: [plan/architecture.md](../../plan/architecture.md); LD-155 in [spec/decisions.md](../decisions.md).
 
 ### 2.3 The 2024 SDK episode
 
@@ -117,13 +120,13 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 - Vaultwarden is a community Rust server that works with Bitwarden clients. It is AGPL-3.0. It was called bitwarden_rs and was renamed to avoid trademark confusion. It says it is not linked with Bitwarden, Inc. One active maintainer works for Bitwarden and contributes on their own time, with review by others. It supports organizations, Send, attachments, two-step login and emergency access. Source: [dani-garcia/vaultwarden (GitHub)](https://github.com/dani-garcia/vaultwarden).
 - Bitwarden says most client features should work with unofficial servers such as Vaultwarden, but it "cannot guarantee" that, and its support may be limited. Source: [Hosting FAQs (Bitwarden Help)](https://bitwarden.com/help/hosting-faqs/).
 
-### What this means for App
+### What this means for Larsal
 
 - **Copy the license split.** Engine and Mac app: GPL-3.0-or-later (decision D2 in [README.md](../../README.md)). Any server: AGPL-3.0, like Bitwarden's server and Vaultwarden. Paid-only code: one top-level folder under a source-available license that allows non-production use only. Everything outside that folder stays fully open.
 - **Keep the paid folder small and away from the vault.** The vault engine, the file format and the crypto stay in GPL code. Paid code only adds features on top. The any-cloud researcher (section 4) warns that a paid folder inside the Mac app costs trust, as the 2024 episode showed. The fit research (section 6) says the plan check belongs on a server, never in GPL client code. [plan/product-vision.md](../../plan/product-vision.md) therefore puts the paid folder in the server only.
 - **Two builds, one tag.** If paid code exists, build an open and a commercial version from the same tag and publish both with SHA-256 hashes. A CI check deletes the paid folder and then builds and tests the open version. That check would have stopped the 2024 episode.
-- **Contributor agreement before the first outside pull request,** if the owner wants the Mac App Store or commercial licenses. If App ships only as a signed download and never relicenses, a DCO (a sign-off line on each commit) is enough. A DCO gives no right to relicense. A fairer agreement can promise that a GPL version stays available. The text needs a lawyer.
-- **Name and trust.** Register the product name (D1) and publish trademark guidelines: forks may use the code, not the name. Publish every outside audit (D6), a short security paper and a SECURITY.md. App's reproducible build is already Done (E14-S4 in [plan/epics.md](../../plan/epics.md)): anyone can check that a download matches the source. We found no Bitwarden page that offers this (not checked, section 7), so it can be one of App's main trust points.
+- **Contributor agreement before the first outside pull request,** if the owner wants the Mac App Store or commercial licenses. If Larsal ships only as a signed download and never relicenses, a DCO (a sign-off line on each commit) is enough. A DCO gives no right to relicense. A fairer agreement can promise that a GPL version stays available. The text needs a lawyer.
+- **Name and trust.** Register the product name (D1) and publish trademark guidelines: forks may use the code, not the name. Publish every outside audit (D6), a short security paper and a SECURITY.md. Larsal's reproducible build is already Done (E14-S4 in [plan/epics.md](../../plan/epics.md)): anyone can check that a download matches the source. We found no Bitwarden page that offers this (not checked, section 7), so it can be one of Larsal's main trust points.
 - **Releases:** a fixed monthly YYYY.M.patch rhythm, a protected release branch and cherry-picked hotfixes work well. Release notes say what is in each build.
 - **Expect other servers.** Document the vault file use and the sync protocol. Others will build servers, as Vaultwarden did. Say early: allowed, not supported, not under our name.
 
@@ -182,13 +185,13 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 - **What is encrypted:** item names, notes, attachments, custom fields, usernames, passwords, password history, web addresses, TOTP secrets, card and identity fields, Send content, and folder and collection names. The list does not cover item type, favorite, folder ID, organization ID or revision dates. Source: [Vault Data (Bitwarden Help)](https://bitwarden.com/help/vault-data/).
 - **Plain web addresses** are LastPass history, not Bitwarden. LastPass stored them unencrypted from 2008, and they were in the vault backup stolen in 2022. LastPass later started to encrypt them. Sources: [LastPass Is Encrypting URLs (LastPass blog)](https://blog.lastpass.com/posts/lastpass-is-encrypting-urls-heres-whats-happening), [Notice of recent security incident (LastPass blog)](https://blog.lastpass.com/posts/notice-of-recent-security-incident).
 
-### What this means for App
+### What this means for Larsal
 
 - **Threat model first.** Every cloud folder and every server is fully hostile, our own paid server too. Write this into [plan/security.md](../../plan/security.md) before E11 or any server work.
-- **Keep one encrypted file per vault as the unit of sync.** Bitwarden's field-by-field encryption is the root of BW04 to BW07 and BW10. A whole file that the key authenticates avoids that class. The cloud sees only the file name, size and times, so suggest neutral file names. App already promises that a tamperer with write access is found before data is used ([plan/security.md](../../plan/security.md), "Who attacks").
-- **Nothing made from the master password leaves the Mac.** A future server login uses a separate device credential or auth secret, never a password hash. The key settings stay inside the vault header that the key checks. A merge never lowers them, which App already does (MOD-11; LD-60 and LD-132 in [spec/decisions.md](../decisions.md)).
+- **Keep one encrypted file per vault as the unit of sync.** Bitwarden's field-by-field encryption is the root of BW04 to BW07 and BW10. A whole file that the key authenticates avoids that class. The cloud sees only the file name, size and times, so suggest neutral file names. Larsal already promises that a tamperer with write access is found before data is used ([plan/security.md](../../plan/security.md), "Who attacks").
+- **Nothing made from the master password leaves the Mac.** A future server login uses a separate device credential or auth secret, never a password hash. The key settings stay inside the vault header that the key checks. A merge never lowers them, which Larsal already does (MOD-11; LD-60 and LD-132 in [spec/decisions.md](../decisions.md)).
 - **Guard against rollback.** Per vault, keep the newest format version, the KDF strength and a save counter in the Keychain. Warn when a synced copy goes backwards. Never write an old format to a synced vault.
-- **Sharing done right:** one key per shared vault, so it is a real crypto boundary. Wrap it to each member's public key. Check each public key by fingerprint at invite, pin it, and warn loudly when it changes. Removing a member makes a new key, and App lists the passwords to change. No silent key escrow: recovery and emergency access only by each person's choice, confirmed by fingerprint. For free users, a printed recovery kit.
+- **Sharing done right:** one key per shared vault, so it is a real crypto boundary. Wrap it to each member's public key. Check each public key by fingerprint at invite, pin it, and warn loudly when it changes. Removing a member makes a new key, and Larsal lists the passwords to change. No silent key escrow: recovery and emergency access only by each person's choice, confirmed by fingerprint. For free users, a printed recovery kit.
 - **Do not fetch icons through our own server by domain.** Features that need a trusted clock or storage (emergency-access wait times, Send links, push sync) need a server. A plain cloud folder cannot do them.
 
 ## 4. Any-cloud native apps and how they sell
@@ -201,7 +204,7 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 - Enpass for Business keeps vault files in the company's OneDrive, SharePoint or Google Drive. A License Server manages subscriptions. "Enpass Hub", hosted or self-hosted, is a key directory: it stores RSA-3072 wrapped vault keys and metadata for sharing, recovery and audit, and "never vault content". Source: [Enpass Security Whitepaper v1.4](https://dl.enpass.io/docs/whitepaper/enpass-security-whitepaper.pdf).
 - Business sharing has two layers. The cloud grants access to the file, and the Hub delivers the vault key wrapped to the member's public key. "Neither layer alone is sufficient." Source: [How vault sharing works (Enpass Business Help)](https://help.enpass.io/business/latest/microsoft-365/how-vault-sharing-works).
 - Personal sharing has no server. The owner makes a separate vault and gives the other person its password and the cloud login. Enpass advises a separate cloud account for the shared vault. Source: [Sharing a vault in Enpass (Enpass Help)](https://help.enpass.io/personal/latest/all/vault-sharing).
-- The Family Plan covers up to 6 people and is sold only on enpass.io. App stores sell only single-person plans. Source: [Sharing an Enpass family plan (Enpass Help)](https://help.enpass.io/personal/latest/all/sharing-an-enpass-family-plan).
+- The Family Plan covers up to 6 people and is sold only on enpass.io. Larsal stores sell only single-person plans. Source: [Sharing an Enpass family plan (Enpass Help)](https://help.enpass.io/personal/latest/all/sharing-an-enpass-family-plan).
 - Prices, from a third-party tracker captured 2026-10-12 (the vendor page returned HTTP 403, so treat these as approximate): Free plan; Premium $1.99 a month billed yearly; Family $2.99 a month at first, raised to $3.99 in August 2026. A free plan came and the lifetime plan went in September 2026. Source: [Enpass Pricing Plans & History (PricingSaaS)](https://pricingsaas.com/companies/enpass).
 - Enpass is freemium, and its source is not published. Source: [Enpass (Wikipedia)](https://en.wikipedia.org/wiki/Enpass).
 
@@ -241,12 +244,12 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 ### 4.6 How cloud services handle a conflict
 
 - Dropbox makes a "conflicted copy" when the same file changes in two places or offline. The file name gets the editor's name, the date and "conflicted copy". Dropbox does not merge: "compare both versions and merge them manually." Source: [What's a conflicted copy? (Dropbox Help)](https://help.dropbox.com/organize/conflicted-copy).
-- iCloud picks one "conflict winner", the same on every device, and keeps the losing versions. The app finds them with NSFileVersion, merges or picks, replaces the file, removes the other versions, and marks each one resolved last. Source: [Resolving Document Version Conflicts (Apple Document-Based App Programming Guide)](https://developer.apple.com/library/archive/documentation/DataManagement/Conceptual/DocumentBasedAppPGiOS/ResolveVersionConflicts/ResolveVersionConflicts.html).
+- iCloud picks one "conflict winner", the same on every device, and keeps the losing versions. The app finds them with NSFileVersion, merges or picks, replaces the file, removes the other versions, and marks each one resolved last. Source: [Resolving Document Version Conflicts (Apple Document-Based Larsal Programming Guide)](https://developer.apple.com/library/archive/documentation/DataManagement/Conceptual/DocumentBasedAppPGiOS/ResolveVersionConflicts/ResolveVersionConflicts.html).
 
-### What this means for App
+### What this means for Larsal
 
-- **The free core is the Enpass model, and App already has it.** One encrypted file in any folder the user picks: iCloud Drive, Dropbox, Google Drive, OneDrive, Nextcloud or WebDAV, or a USB stick. App runs no sync network. It watches the file and merges on the Mac (section 6.1). No server, no account, no cost.
-- **Always merge. Never pick a side.** Joplin's Conflict notebook and Dropbox's "merge by hand" lose passwords in a vault. When a cloud makes a second copy, App opens it with the same key, merges, saves once and removes the copy. Tell users: one sync service per vault, as Obsidian does.
+- **The free core is the Enpass model, and Larsal already has it.** One encrypted file in any folder the user picks: iCloud Drive, Dropbox, Google Drive, OneDrive, Nextcloud or WebDAV, or a USB stick. Larsal runs no sync network. It watches the file and merges on the Mac (section 6.1). No server, no account, no cost.
+- **Always merge. Never pick a side.** Joplin's Conflict notebook and Dropbox's "merge by hand" lose passwords in a vault. When a cloud makes a second copy, Larsal opens it with the same key, merges, saves once and removes the copy. Tell users: one sync service per vault, as Obsidian does.
 - **Money goes where a file alone falls short:** hosted sync and storage (Standard Notes, Joplin, Obsidian), and seats and sharing for families and teams (Bitwarden, Enpass, Proton Pass). Market anchors as of 2026-10-31: Bitwarden Families $47.88 a year for 6, Teams $4 per user a month, Proton Pass Family $59.88 a year, Enpass Family about $36 to $48 a year.
 - **Sharing needs a small key directory.** It stores only public keys, wrapped keys, invites and seats, and never sees vault data. Bitwarden's server and Enpass Hub both work this way. The shared vault file can stay in the members' own cloud folder.
 - **Sell a service, not a lock.** In GPL code anyone can delete a check in the app. Bitwarden and Enpass put the paid check on a server. Standard Notes' client-only "offline plan" is the weak form.
@@ -282,42 +285,42 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 - Signal's former publisher added a GPLv3 "additional permission" to ship through the Apple App Store, as long as the source is offered. Only the copyright holder can grant it. Source: [signal-gpl-3.0-exception (ScanCode LicenseDB)](https://scancode-licensedb.aboutcode.org/signal-gpl-3.0-exception.LICENSE).
 - Bitwarden ships its desktop app free in the Mac App Store. Source: [Bitwarden on the Mac App Store](https://apps.apple.com/app/bitwarden/id1352778147). Our reading, not stated by Bitwarden: it can probably do this because its contributor agreement lets it relicense the code (section 2.5). The listing shows only that the app is free, and issue #1115 gives enterprise licenses as the reason for the agreement. From its October 2026 release, store builds are commercially licensed (section 2.4).
 
-### What this means for App
+### What this means for Larsal
 
 - **Ship direct first:** a Developer ID signed, notarized download plus the command line tool. That is E14-S3 as written ("no App Sandbox", [plan/epics.md](../../plan/epics.md)). It needs D7, the $99 account.
 - **Sell through a merchant of record,** so VAT and sales tax are handled everywhere. Paddle is the stable pick today. Lemon Squeezy is moving into Stripe Managed Payments. Check fees and countries again just before choosing.
 - **The Mac App Store is a separate, later decision.** It needs the sandbox (security-scoped bookmarks for a vault in any folder), store-only updates, no license keys, in-app purchase for every personal and family plan, and a contributor agreement or a commercial store build. The cost is 15% under the Small Business Program.
 - **No court has tested the GPL and App Store conflict.** A lawyer should confirm the plan before a store release. The bundle must also hold no third-party GPL-only code; check the license list in [deny.toml](../../deny.toml) then.
 
-## 6. Fit to App
+## 6. Fit to Larsal
 
-### 6.1 What App already has toward any-cloud sync
+### 6.1 What Larsal already has toward any-cloud sync
 
-- **Safe saves.** App writes a temp file in the same folder, fully syncs it, renames it over the vault, and syncs the folder. Before writing, it checks that the file on disk has not changed, and checks again under a lock just before the rename. So it never overwrites a change made elsewhere without asking. Source: [spec/app/APP-05-saving.md](../app/APP-05-saving.md), APP-05.10 and APP-05.11.
-- **Change on disk.** App watches the folder and the file with kqueue and also checks every 30 seconds. With no unsaved changes, it reloads (or asks). With unsaved changes, it asks Merge, Ignore, Discard or Cancel. A vault re-keyed elsewhere asks for the new key. A half-synced or unreadable file leaves the open copy alone ("It may still be syncing"). Sources: [spec/app/APP-05-saving.md](../app/APP-05-saving.md), APP-05.24 to APP-05.30; [macos/App/Platform/DiskWatch.swift](../../macos/App/Platform/DiskWatch.swift); LD-216 in [spec/decisions.md](../decisions.md).
+- **Safe saves.** Larsal writes a temp file in the same folder, fully syncs it, renames it over the vault, and syncs the folder. Before writing, it checks that the file on disk has not changed, and checks again under a lock just before the rename. So it never overwrites a change made elsewhere without asking. Source: [spec/app/APP-05-saving.md](../app/APP-05-saving.md), APP-05.10 and APP-05.11.
+- **Change on disk.** Larsal watches the folder and the file with kqueue and also checks every 30 seconds. With no unsaved changes, it reloads (or asks). With unsaved changes, it asks Merge, Ignore, Discard or Cancel. A vault re-keyed elsewhere asks for the new key. A half-synced or unreadable file leaves the open copy alone ("It may still be syncing"). Sources: [spec/app/APP-05-saving.md](../app/APP-05-saving.md), APP-05.24 to APP-05.30; [macos/Larsal/Platform/DiskWatch.swift](../../macos/Larsal/Platform/DiskWatch.swift); LD-216 in [spec/decisions.md](../decisions.md).
 - **Merge.** It matches by id, the newer change wins, and histories are joined. Same time with different content keeps both versions and records a Conflict. It never lowers the cipher, the KDF cost or protection flags. Sources: [spec/model/MOD-11-merge.md](../model/MOD-11-merge.md); LD-60 and LD-132 in [spec/decisions.md](../decisions.md).
 - **Status:** E4-S12 Merge Done 2026-10-26 (no data lost in 1,000 random cases), E4-S15 Storage Done 2026-10-26, E5-S10 Saving Done 2026-10-28. Source: [plan/epics.md](../../plan/epics.md).
-- **A build with no network code.** Without app-ffi's `net` feature, App links no network code (SN-05). Sources: [plan/security.md](../../plan/security.md) SN-05; [README.md](../../README.md), Checks.
+- **A build with no network code.** Without larsal-ffi's `net` feature, Larsal links no network code (SN-05). Sources: [plan/security.md](../../plan/security.md) SN-05; [README.md](../../README.md), Checks.
 - **Promises.** A thief of the vault file cannot read it. A tamperer with write access (cloud folder, USB stick) is found before data is used. Quick unlock data is never synced. Sources: [plan/security.md](../../plan/security.md), "Who attacks"; [spec/app/APP-04-quick-unlock.md](../app/APP-04-quick-unlock.md).
 
 ### 6.2 Gaps for any-cloud sync
 
-- **Conflict copies.** App does not look for the copies that sync services make. The user merges them by hand. Source: [spec/app/APP-05-saving.md](../app/APP-05-saving.md), APP-05.17.
+- **Conflict copies.** Larsal does not look for the copies that sync services make. The user merges them by hand. Source: [spec/app/APP-05-saving.md](../app/APP-05-saving.md), APP-05.17.
 - **Deleted entries can come back.** The everyday merge (change on disk, merge from another copy) does not read the deleted-objects list. An entry deleted for good on one Mac comes back from a copy that still has it. Only the shared-group import applies deletions. Sources: [spec/format/FMT-15-deleted-objects.md](../format/FMT-15-deleted-objects.md), FMT-15.10 and FMT-15.11; [spec/model/MOD-11-merge.md](../model/MOD-11-merge.md), MOD-11.15.
-- **No coordinated file access.** App uses plain file calls; no NSFileCoordinator is used ([macos/App/Platform/DiskWatch.swift](../../macos/App/Platform/DiskWatch.swift), LD-216). Apple: "Your presenter objects are not notified about changes made directly using low-level read and write calls to the file. Only changes that go through a file coordinator result in notifications." Source: [NSFilePresenter (Apple Developer Documentation)](https://developer.apple.com/documentation/foundation/nsfilepresenter). NSFileCoordinator "coordinates the reading and writing of files and directories among multiple processes", and each coordinator should be used on one thread only. Source: [NSFileCoordinator (Apple Developer Documentation)](https://developer.apple.com/documentation/foundation/nsfilecoordinator).
+- **No coordinated file access.** Larsal uses plain file calls; no NSFileCoordinator is used ([macos/Larsal/Platform/DiskWatch.swift](../../macos/Larsal/Platform/DiskWatch.swift), LD-216). Apple: "Your presenter objects are not notified about changes made directly using low-level read and write calls to the file. Only changes that go through a file coordinator result in notifications." Source: [NSFilePresenter (Apple Developer Documentation)](https://developer.apple.com/documentation/foundation/nsfilepresenter). NSFileCoordinator "coordinates the reading and writing of files and directories among multiple processes", and each coordinator should be used on one thread only. Source: [NSFileCoordinator (Apple Developer Documentation)](https://developer.apple.com/documentation/foundation/nsfilecoordinator).
 - **Files that are not downloaded yet.** A cloud can keep only a placeholder ("dataless" file). The system fetches the contents when the file is opened, and never evicts a file with pending changes. Source: [Synchronizing the File Provider extension (Apple Developer Documentation)](https://developer.apple.com/documentation/fileprovider/synchronizing-the-file-provider-extension). An app can start the download and read its status. Source: [startDownloadingUbiquitousItem(at:) (Apple Developer Documentation)](https://developer.apple.com/documentation/foundation/filemanager/startdownloadingubiquitousitem(at:)).
 - **iCloud conflicts** can be listed with NSFileVersion. Source: [unresolvedConflictVersionsOfItem(at:) (Apple Developer Documentation)](https://developer.apple.com/documentation/foundation/nsfileversion/unresolvedconflictversionsofitem(at:)).
-- **Other facts:** Apple says file system event lists on disks other computers change are only advisory (old guide, may be out of date). Source: [File System Events Programming Guide (Apple)](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/FSEvents_ProgGuide/UsingtheFSEventsFramework/UsingtheFSEventsFramework.html). Finder connects to SMB, NFS, WebDAV and FTP servers (FTP may be read-only). Source: [Servers and shared computers you can connect to on Mac (Apple Support)](https://support.apple.com/guide/mac-help/servers-shared-computers-connect-mac-mchlp3015/mac). A rename does not work across mount points. Source: [std::fs::rename (Rust std documentation)](https://doc.rust-lang.org/std/fs/fn.rename.html). App's 30-second check already covers network disks.
+- **Other facts:** Apple says file system event lists on disks other computers change are only advisory (old guide, may be out of date). Source: [File System Events Programming Guide (Apple)](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/FSEvents_ProgGuide/UsingtheFSEventsFramework/UsingtheFSEventsFramework.html). Finder connects to SMB, NFS, WebDAV and FTP servers (FTP may be read-only). Source: [Servers and shared computers you can connect to on Mac (Apple Support)](https://support.apple.com/guide/mac-help/servers-shared-computers-connect-mac-mchlp3015/mac). A rename does not work across mount points. Source: [std::fs::rename (Rust std documentation)](https://doc.rust-lang.org/std/fs/fn.rename.html). Larsal's 30-second check already covers network disks.
 - **README is out of date.** It says "Status: planning. Nothing is built yet", while [AGENTS.md](../../AGENTS.md) says the engine is done and the Mac app is being built. Source: [README.md](../../README.md).
 
 ### 6.3 Sharing: what is planned
 
-- **Without a server (INT-08, planned, not built).** A group is copied into a separate container vault file, protected by a share password, in a shared folder. Modes: import, export, synchronize. App adds approval outside the vault, keeps imports inside the share group, and imports before it exports. Recommended: unsigned containers. Size: about three stories. Source: [spec/integrations/INT-08-shared-groups.md](../integrations/INT-08-shared-groups.md). Weak points: one shared password, no way to remove one member without a new password for everyone, and the last writer wins on the file.
+- **Without a server (INT-08, planned, not built).** A group is copied into a separate container vault file, protected by a share password, in a shared folder. Modes: import, export, synchronize. Larsal adds approval outside the vault, keeps imports inside the share group, and imports before it exports. Recommended: unsigned containers. Size: about three stories. Source: [spec/integrations/INT-08-shared-groups.md](../integrations/INT-08-shared-groups.md). Weak points: one shared password, no way to remove one member without a new password for everyone, and the last writer wins on the file.
 - **Remote sync by user commands (INT-09) stays out.** Two writers at once can race. "A conditional upload (RFC 9110 If-Match) is the proper fix, and a user command cannot express it in general." The card recommends leaving it out of the first release, because Mac users mostly sync through cloud folders, which the change-on-disk merge covers. Source: [spec/integrations/INT-09-remote-sync.md](../integrations/INT-09-remote-sync.md), D-INT09-1 and D-INT09-8.
 - **E11 waits on the owner.** Its scope (INT-08 and INT-09) is the owner's call, W-15. Sources: [spec/decisions.md](../decisions.md), W-15 and LD-218; [plan/epics.md](../../plan/epics.md), E11.
 - **INT-08's own review** notes that password managers that share (Bitwarden organizations, Proton Pass shared vaults) do it through their own servers. Source: [spec/integrations/INT-08-shared-groups.md](../integrations/INT-08-shared-groups.md), R08-2.
 
-### 6.4 Sharing through a server, in App's terms
+### 6.4 Sharing through a server, in Larsal's terms
 
 - **The vault format does not change.** A vault's key can be built from a 32-byte key-file part alone, with no password. So a shared vault can be an ordinary vault file keyed by one random group key. Source: [spec/format/FMT-04-key-flow.md](../format/FMT-04-key-flow.md), FMT-04.3 and FMT-04.5.
 - **The design:** each person has an X25519 key pair, with the private key kept encrypted by their own key. The group key is sealed to each member's public key. The server stores the encrypted vault file with a version number, the member list with roles, and the sealed keys. The client downloads, merges, and uploads only if the version has not moved (If-Match). Removing a member makes a new group key; the removed person keeps what they already had.
@@ -328,9 +331,9 @@ The owner's question, shortened: build and sell App the way Bitwarden does. But 
 ### 6.5 Many versions from one code base
 
 - Cargo features "should be additive. That is, enabling a feature should not disable functionality." Source: [Features (The Cargo Book)](https://doc.rust-lang.org/cargo/reference/features.html).
-- App already has one such switch: the `net` feature (the `--no-net` build). Source: [crates/app-ffi/Cargo.toml](../../crates/app-ffi/Cargo.toml).
+- Larsal already has one such switch: the `net` feature (the `--no-net` build). Source: [crates/larsal-ffi/Cargo.toml](../../crates/larsal-ffi/Cargo.toml).
 - So: build switches only remove code (`net`, later `sync`). An account unlocks services at run time: server sync, families, teams, seats. One Mac app, not two. "With its own vault or not" is a run-time choice: local vaults only, or local vaults plus account vaults.
-- A paid plan never locks anyone out of a local vault. When a plan ends, server sync stops. App still opens, edits, saves and exports the local copies, because the vault is a standard file that opens with the key alone. The plan check lives on the server, never in GPL client code.
+- A paid plan never locks anyone out of a local vault. When a plan ends, server sync stops. Larsal still opens, edits, saves and exports the local copies, because the vault is a standard file that opens with the key alone. The plan check lives on the server, never in GPL client code.
 
 ### 6.6 Licenses
 
@@ -377,13 +380,13 @@ For the owner (money, reach or legal, AGENTS.md rule 7):
 For the lead (rule 9):
 - Should same-vault sync merges apply the deleted-objects list, and with which time rule?
 - Sealing group keys: `crypto_box` sealed boxes (after the LD-203 re-pin) or HPKE (RFC 9180, a new crate)? Account login: OPAQUE, or a derived auth secret?
-- Should coordinated file access live in Swift around the Rust save, or in app-platform? Check the deadlock rules for a file presenter in the same process.
+- Should coordinated file access live in Swift around the Rust save, or in larsal-platform? Check the deadlock rules for a file presenter in the same process.
 - How to recognise other providers' conflict-copy names. Vendor naming was only checked for Dropbox. A content-based finder (same name stem, opens with the same key, same root group) avoids depending on names.
 
 Not checked or not settled:
 - The exact text of Bitwarden's contributor agreement (section 2.5).
 - The scope and payouts of Bitwarden's HackerOne program (section 2.7).
-- Whether Bitwarden offers a reproducible build. We found no Bitwarden page that offers one, but did not check further, for example third-party rebuilds of its Linux packages (section 2, "What this means for App").
+- Whether Bitwarden offers a reproducible build. We found no Bitwarden page that offers one, but did not check further, for example third-party rebuilds of its Linux packages (section 2, "What this means for Larsal").
 - Which future Bitwarden features will be commercial-only, and the text of its new commercial license (section 2.4).
 - Bitwarden's server re-hash count: 600,000 (whitepaper) or 700,000 in total (KDF page) (section 3.1).
 - The emergency-access maximum wait time, which the official pages do not state.

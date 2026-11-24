@@ -1,0 +1,25 @@
+[package]
+name = "larsal-sshagent"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E9-S1: Larsal as a client of the system SSH agent (spec INT-06). Keys are read
+# and decrypted in larsal-crypto (AGENTS rule 3: ssh-key lives there); the socket
+# peer check comes from larsal-platform.
+# E9-S2: keys from entries (larsal-model; the password resolved by larsal-core's
+# refs as Copy does), the settings attachment (quick-xml), Larsal's own agent
+# (base64 and signing in larsal-crypto).
+[dependencies]
+larsal-core = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-model = { workspace = true }
+larsal-platform = { workspace = true }
+quick-xml = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[lints]
+workspace = true

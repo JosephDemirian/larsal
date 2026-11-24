@@ -33,7 +33,8 @@ set -euo pipefail
 cd -P "$(dirname "$0")/.."
 command -v cargo >/dev/null || . "$HOME/.cargo/env"
 root=$PWD
-home=$(mktemp -d) && trap 'rm -rf "$home"' EXIT
+home=$(mktemp -d "${TMPDIR:-/tmp}/larsal-vendor.XXXXXX") || exit 1
+trap 'rm -rf "$home"' EXIT
 export CARGO_HOME=$home
 crates_io=registry+https://github.com/rust-lang/crates.io-index
 stubs=$(for f in vendor/crates-io/*/.cargo-checksum.json; do

@@ -6,17 +6,17 @@ Parity rows: SG-04
 
 ## What it does
 
-The Statistics tab of the Reports screen shows facts about the open vault: its name, file, dates, and counts of groups, entries, expired entries, reused, short and weak passwords, excluded entries, passkeys and one-time password entries, plus the average password length. Some rows carry a warning mark with an explanation. The numbers are computed in app-core. The command line tool prints the same numbers (INT-10).
+The Statistics tab of the Reports screen shows facts about the open vault: its name, file, dates, and counts of groups, entries, expired entries, reused, short and weak passwords, excluded entries, passkeys and one-time password entries, plus the average password length. Some rows carry a warning mark with an explanation. The numbers are computed in larsal-core. The command line tool prints the same numbers (INT-10).
 
 ## Inputs and outputs
 
-Input: the unlocked vault, the clock (for expiry), the vault file's path and modification time (from app-core storage), and whether the vault has unsaved changes.
+Input: the unlocked vault, the clock (for expiry), the vault file's path and modification time (from larsal-core storage), and whether the vault has unsaved changes.
 
 Output: one record of rows. Each row has a stable ID, a value, and an optional warning. No row ever holds a password or any other protected value.
 
-Labels are App's own wording; the rows are listed in App's screen order (FEA-07.19).
+Labels are Larsal's own wording; the rows are listed in Larsal's screen order (FEA-07.19).
 
-| ID | App label | Value type |
+| ID | Larsal label | Value type |
 |---|---|---|
 | `stat.entries` | Entries | whole number ≥ 0 |
 | `stat.groups` | Groups | whole number ≥ 0 |
@@ -87,7 +87,7 @@ FEA-07.15 **Information rows.**
 
 The mockup shows name, location, created and last saved. It does not show description or unsaved changes. Lead decision. Recommended: add both rows to the mockup's info card, because the reference shows them and an unsaved-changes warning matters when a save has failed (APP-05).
 
-FEA-07.16 **Warnings.** A row gets a warning mark, with the explanation shown on hover or as a note, when its condition holds. The explanations are paraphrased; App's own text goes to the screen strings.
+FEA-07.16 **Warnings.** A row gets a warning mark, with the explanation shown on hover or as a note, when its condition holds. The explanations are paraphrased; Larsal's own text goes to the screen strings.
 
 | Row | Warning when | Explanation (meaning) |
 |---|---|---|
@@ -100,20 +100,20 @@ FEA-07.16 **Warnings.** A row gets a warning mark, with the explanation shown on
 | `stat.excluded` | > 0 | excluded entries are not always a problem, but keep an eye on them |
 | `stat.avg_len` | < 10 and at least one password exists | the average is under ten characters |
 
-For the average, the reference also warns when there are no passwords at all (0 < 10). App does not warn then (lead decision: a vault with no passwords has no short average). The mockup's sample warning conditions (any reuse, reuse above 1) are illustrations only: the conditions above apply.
+For the average, the reference also warns when there are no passwords at all (0 < 10). Larsal does not warn then (lead decision: a vault with no passwords has no short average). The mockup's sample warning conditions (any reuse, reuse above 1) are illustrations only: the conditions above apply.
 
 FEA-07.17 **When it is computed.** The numbers are computed each time the Statistics tab is opened. They are not live: they do not change while the tab stays open. The work runs off the screen thread. While it runs, the tab shows a short progress note in place of the rows (architecture: slow work shows progress in place). Closing the tab or locking the vault cancels it and drops the partial results.
 
 FEA-07.18 **Length unit.** Lengths for FEA-07.9, FEA-07.10 and FEA-07.12 count UTF-16 code units, as the reference does. A character outside the Basic Multilingual Plane, such as `🔑`, counts as 2. Lead decision. Recommended: UTF-16 units, so the same vault shows the same numbers in both apps and in both command line tools. The other option is to count Unicode characters (code points).
 
-FEA-07.19 **Row order.** The reference puts the information rows first and then the counts, in its own order. App lays out the rows as the mockup does:
+FEA-07.19 **Row order.** The reference puts the information rows first and then the counts, in its own order. Larsal lays out the rows as the mockup does:
 - a grid of number tiles in the order entries, groups, unique, non-unique, maximum reuse, weak, short, expired, TOTP, passkeys, average, excluded;
 - then an info card holding name, location, created and last saved, and the two rows of FEA-07.15 if the lead adds them.
 The order is a layout matter. The values follow this card.
 
-FEA-07.20 **Times shown.** `info.created` and `info.last_saved` are shown in the Mac's local time zone, in the mockup's long date format. The reference shows the file time in local time, but the root group's creation time in the zone it was stored in, which is UTC. So `2026-01-10T10:00:00Z` shows as 10:00 even in a UTC+1 zone (observed). App converts both to local time. Lead decision.
+FEA-07.20 **Times shown.** `info.created` and `info.last_saved` are shown in the Mac's local time zone, in the mockup's long date format. The reference shows the file time in local time, but the root group's creation time in the zone it was stored in, which is UTC. So `2026-01-10T10:00:00Z` shows as 10:00 even in a UTC+1 zone (observed). Larsal converts both to local time. Lead decision.
 
-FEA-07.21 **One computation.** The Statistics tab and the command line tool's database-info output (INT-10) use the same app-core function, so they always agree.
+FEA-07.21 **One computation.** The Statistics tab and the command line tool's database-info output (INT-10) use the same larsal-core function, so they always agree.
 
 ## Edge cases and errors
 
@@ -132,8 +132,8 @@ FEA-07.21 **One computation.** The Statistics tab and the command line tool's da
 
 ## Security notes
 
-- The statistics command returns numbers and metadata text only (architecture, app-desktop Must). No password, hash or protected value reaches the screen, a log or an error (Rust rule 3, AT-E07, AT-C06).
-- Finding unique passwords means comparing secret values. App compares the vault's own values in place inside app-core; no set, map or digest of passwords is built (SR-07, LD-137).
+- The statistics command returns numbers and metadata text only (architecture, larsal-desktop Must). No password, hash or protected value reaches the screen, a log or an error (Rust rule 3, AT-E07, AT-C06).
+- Finding unique passwords means comparing secret values. Larsal compares the vault's own values in place inside larsal-core; no set, map or digest of passwords is built (SR-07, LD-137).
 - The weak count runs the strength estimate (FEA-05) on passwords. It must use the same in-memory path as Health Check, with no copies outside secret types.
 - Computing on a worker must not keep the vault alive after lock: lock cancels the work (FEA-07.17, APP-02).
 - Parity row SG-04 covers reporting weak, reused and expired passwords with exclusions. This card is its statistics half. FEA-05 is the Health Check half.
@@ -185,7 +185,7 @@ Demo vault **V4**: root group only.
 | T16 FEA-07.8, FEA-07.16 | 4 entries share `samepass1` | open Statistics | maximum reuse 4, with warning |
 | T17 FEA-07.1 | FEA-01 demo vault S1 (Archive has searching off) | open Statistics | groups 5 (Vault, Banking, Cards, Archive, Dev & Ops), entries 6, expired 1, unique 5, non-unique 1, maximum reuse 2, short 4, weak 6, excluded 0, average "8 characters", passkeys 0, TOTP 1. The Archive group and E5 count, because search flags do not matter |
 | T18 FEA-07.5 | Entries with `Abc` and `abc` | open Statistics | unique 2, non-unique 0 |
-| T19 FEA-07.15, FEA-07.20 | V3 saved at 2026-10-20T08:00:00Z to `/tmp/spec/v3.appvault`, zone Europe/Berlin (UTC+2 that day, UTC+1 in January) | open Statistics | `info.location` `/tmp/spec/v3.appvault`. `info.created` 10 January 2026, 11:00 (local). `info.last_saved` 20 October 2026, 10:00. `info.unsaved` no. The reference shows created as 10:00 |
+| T19 FEA-07.15, FEA-07.20 | V3 saved at 2026-10-20T08:00:00Z to `/tmp/spec/v3.larsalvault`, zone Europe/Berlin (UTC+2 that day, UTC+1 in January) | open Statistics | `info.location` `/tmp/spec/v3.larsalvault`. `info.created` 10 January 2026, 11:00 (local). `info.last_saved` 20 October 2026, 10:00. `info.unsaved` no. The reference shows created as 10:00 |
 | T20 FEA-07.15 | New vault, not yet saved | open Statistics | location empty, last saved empty, unsaved yes (with warning) |
 | T21 FEA-07.17 | V3, Statistics open | change an entry's password in another window | Numbers do not change until the tab is opened again |
 | T22 FEA-07.17 | Generated vault with 10,000 entries | open Statistics, then lock at once | Progress note shown; lock cancels; no numbers kept |

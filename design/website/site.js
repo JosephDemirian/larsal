@@ -1,6 +1,6 @@
 'use strict';
 /* Website behaviour: navigation, the hero demo, the sky, the logo strip, the app screens in every card,
-   carousels, the FAQ and the reveals. App screens are drawn by ../option-a/mockup.js, so the site always
+   carousels, the FAQ and the reveals. Larsal screens are drawn by ../option-a/mockup.js, so the site always
    shows the locked Option A design. Everything stays readable with scripts off. */
 
 ZOOM = '1';
@@ -276,7 +276,7 @@ const P = {
   importer: () => piece(DIALOGS.importDlg(), 560, 0, 360),
   menubar() {
     const m = dom(menuBarWin()), bar = m.querySelector('.mbar'), menu = m.querySelector('.menu');
-    drop(bar, (i) => i < 7); // only the right end of the menu bar: App's icon, Wi-Fi and the clock
+    drop(bar, (i) => i < 7); // only the right end of the menu bar: Larsal's icon, Wi-Fi and the clock
     menu.removeAttribute('style');
     return piece(`<div class="mbar-mini">${out(bar)}</div>${out(menu)}`, 302);
   },
@@ -304,20 +304,20 @@ q1('#bList').innerHTML = (() => {
 const CARDS = {
   vault: [
     { w: 1, t: 'Colorful Groups and Tags', d: 'Sort entries into groups with their own color and icon, like folders in Finder. Tags cut across them.', p: 'groups' },
-    { t: 'Real Logos for Every Site', d: 'Every entry shows its site’s logo from a set built into App, so nothing is fetched from the internet.', p: 'logos' },
+    { t: 'Real Logos for Every Site', d: 'Every entry shows its site’s logo from a set built into Larsal, so nothing is fetched from the internet.', p: 'logos' },
     { w: 1, t: 'Built-In Password Health', d: 'Reused, weak and expired passwords surface on their own, with the fix one click away.', p: 'health' },
     { t: 'Cards, Wi-Fi and Notes', d: 'Card numbers, Wi-Fi networks and secure notes each get a layout made for them.', p: 'card' },
     { w: 1, t: 'Every Change, Kept', d: 'Earlier versions of each entry stay in the vault, so a bad edit is one click from undone.', p: 'history' },
   ],
   extension: [
-    { t: 'Fill From the Toolbar', d: 'The App icon counts the logins it has for the site you are on. One click fills them in.', p: 'popup' },
-    { w: 1, t: 'Fill From the Field', d: 'Pick a login right in the sign-in field. App fills it in and leaves the Sign In button to you.', p: 'field' },
-    { t: 'Codes on the Next Step', d: 'When a site asks for a one-time code, App offers it, fresh every 30 seconds.', p: 'otp' },
-    { w: 1, t: 'Saves New Sign-Ins', d: 'Sign up somewhere new and App offers to keep it, already sorted into a group.', p: 'save' },
-    { t: 'Passkeys in the Browser', d: 'Sign in with a passkey from your vault. Touch ID in App confirms it.', p: 'passkey' },
+    { t: 'Fill From the Toolbar', d: 'The Larsal icon counts the logins it has for the site you are on. One click fills them in.', p: 'popup' },
+    { w: 1, t: 'Fill From the Field', d: 'Pick a login right in the sign-in field. Larsal fills it in and leaves the Sign In button to you.', p: 'field' },
+    { t: 'Codes on the Next Step', d: 'When a site asks for a one-time code, Larsal offers it, fresh every 30 seconds.', p: 'otp' },
+    { w: 1, t: 'Saves New Sign-Ins', d: 'Sign up somewhere new and Larsal offers to keep it, already sorted into a group.', p: 'save' },
+    { t: 'Passkeys in the Browser', d: 'Sign in with a passkey from your vault. Touch ID in Larsal confirms it.', p: 'passkey' },
   ],
   security: [
-    { w: 1, t: 'Touch ID Unlock', d: 'Unlock with your fingerprint. While the vault is locked, App shows nothing from inside it, not even a title.', p: 'touch' },
+    { w: 1, t: 'Touch ID Unlock', d: 'Unlock with your fingerprint. While the vault is locked, Larsal shows nothing from inside it, not even a title.', p: 'touch' },
     { t: 'Key Files and YubiKey', d: 'Add a key file or a hardware key, so a stolen password alone opens nothing.', p: 'keys' },
     { w: 1, t: 'AES-256 and Argon2id', d: 'Choose the cipher and how hard the key is to guess. The defaults follow current guidance.', p: 'cipher' },
     { t: 'A Clipboard That Forgets', d: 'Copied passwords and codes clear from the clipboard after 30 seconds.', p: 'clipboard' },
@@ -326,9 +326,9 @@ const CARDS = {
   developers: [
     { w: 1, t: 'SSH Agent Built In', d: 'Keys load into the agent when the vault unlocks and leave again when it locks.', p: 'ssh' },
     { t: 'Approve Every Key Use', d: 'Ask before each signature, so no program uses a key behind your back.', p: 'approve' },
-    { w: 1, t: 'Import From Other Managers', d: 'Bring logins over from Bitwarden, Proton Pass or a CSV file. App shows what it found first.', p: 'importer' },
+    { w: 1, t: 'Import From Other Managers', d: 'Bring logins over from Bitwarden, Proton Pass or a CSV file. Larsal shows what it found first.', p: 'importer' },
     { t: 'Always in Your Menu Bar', d: 'See which vaults are open, lock everything or make a password without opening the window.', p: 'menubar' },
-    { w: 1, t: 'Auto-Type Into Any App', d: 'Press ⌃⌥V in any window and App types the right login, even outside the browser.', p: 'autotype' },
+    { w: 1, t: 'Auto-Type Into Any Larsal', d: 'Press ⌃⌥V in any window and Larsal types the right login, even outside the browser.', p: 'autotype' },
   ],
 };
 const USES = {
@@ -390,16 +390,16 @@ if (hoverable.matches) { // a mouse or trackpad; touch screens have no pointer t
 
 // ---------- FAQ ----------
 const FAQ = [
-  ['How much does App cost?', 'The Mac app is open source. Pricing for the planned hosted options isn’t set yet, and you can always build App from its source and run it yourself.'],
+  ['How much does Larsal cost?', 'The plan keeps the local Mac app free. Hosted pricing isn’t set yet. The Larsal Source-Available License 1.0 allows unmodified personal, private family and internal business use. Modification, resale and use of its code or assets in a competing product require written permission; third-party licenses and earlier grants keep their own rights.'],
   ['Do I need an account?', 'No. The Mac app works without an account. A hosted sync option, if you choose one later, would use an account for syncing only.'],
-  ['Where are my passwords stored?', 'In one encrypted file, such as Personal.appvault, on your Mac or wherever you put it. Today App sends nothing to any server.'],
-  ['What happens if I forget my vault password?', 'Nobody can reset it, not even the people who make App; that is what keeps it safe. Write it down and keep it somewhere safe, and add Touch ID so you rarely type it.'],
-  ['Can I import from my current password manager?', 'Yes. Import a CSV file or an export from Bitwarden or Proton Pass. App shows what it found before it changes anything.'],
-  ['How do I sync between my Macs?', 'Keep the vault in iCloud Drive, Dropbox or any folder that syncs. If two Macs change it at the same time, App merges the changes. Sync through a server is planned.'],
-  ['Can I host it myself?', 'That is the plan. We are designing a sync server you can run anywhere, and a hosted version for people who would rather not. Nothing is final yet, and the Mac app works without either.'],
-  ['Is the browser extension safe?', 'The extension stores nothing. Each fill is a request to App on your Mac over an encrypted channel, and App asks before a site gets an entry for the first time.'],
-  ['Does App work on iPhone or Windows?', 'Not yet; the Mac comes first. Your vault uses an open format, so apps that read that format can open it today.'],
-  ['Has App been audited?', 'Not yet. The code is open, the security model is written down in plain words, and every part has tests anyone can run.'],
+  ['Where are my passwords stored?', 'In one encrypted file, such as Personal.larsalvault, on your Mac or wherever you put it. Today Larsal sends nothing to any server.'],
+  ['What happens if I forget my vault password?', 'Nobody can reset it, not even the people who make Larsal; that is what keeps it safe. Write it down and keep it somewhere safe, and add Touch ID so you rarely type it.'],
+  ['Can I import from my current password manager?', 'Yes. Import a CSV file or an export from Bitwarden or Proton Pass. Larsal shows what it found before it changes anything.'],
+  ['How do I sync between my Macs?', 'Keep the vault in iCloud Drive, Dropbox or any folder that syncs. If two Macs change it at the same time, Larsal merges the changes. Sync through a server is planned.'],
+  ['Can I host it myself?', 'The license permits self-hosting the unmodified server solely for your private family group or organization, subject to paid-feature restrictions. Hosting for customers or the public requires written permission. A packaged server release is planned; the Mac app works without it.'],
+  ['Is the browser extension safe?', 'The extension stores nothing. Each fill is a request to Larsal on your Mac over an encrypted channel, and Larsal asks before a site gets an entry for the first time.'],
+  ['Does Larsal work on iPhone or Windows?', 'Not yet; the Mac comes first. Your vault uses an open format, so apps that read that format can open it today.'],
+  ['Has Larsal been audited?', 'Not yet. The source is available for inspection, the security model is written down in plain words, and the repository includes tests.'],
 ];
 q1('#acc').innerHTML = FAQ.map(([qq, a], i) => `<div class="item" data-r style="--i:${i % 4}"><h3 style="margin:0"><button class="q" type="button" aria-expanded="false" aria-controls="faq-${i}" id="faq-q-${i}">${qq}<span class="plus" aria-hidden="true"></span></button></h3><div class="a" id="faq-${i}" role="region" aria-labelledby="faq-q-${i}"><div><p>${a}</p></div></div></div>`).join('');
 const openFaq = (item, open) => { item.classList.toggle('open', open); q1('.q', item).setAttribute('aria-expanded', open); };

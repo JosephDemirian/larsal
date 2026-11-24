@@ -1,0 +1,779 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "frame" : [
+            48,
+            55,
+            165,
+            18
+          ],
+          "label" : "Search settings",
+          "placeholder" : "Search settings…",
+          "role" : "AXTextField"
+        },
+        {
+          "frame" : [
+            10,
+            94,
+            212,
+            32
+          ],
+          "label" : "General",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            128,
+            212,
+            32
+          ],
+          "label" : "Security",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            162,
+            212,
+            32
+          ],
+          "label" : "Auto-Type",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            196,
+            212,
+            32
+          ],
+          "label" : "Browser Integration",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            10,
+            230,
+            212,
+            32
+          ],
+          "label" : "SSH Agent",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            264,
+            212,
+            32
+          ],
+          "label" : "Shared Groups",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            10,
+            298,
+            212,
+            32
+          ],
+          "label" : "Shortcuts",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        10,
+        16,
+        212,
+        314
+      ],
+      "label" : "Settings pages",
+      "role" : "AXGroup"
+    },
+    {
+      "frame" : [
+        253,
+        27,
+        16,
+        16
+      ],
+      "help" : "Back",
+      "label" : "Back",
+      "role" : "AXButton"
+    },
+    {
+      "disabled" : true,
+      "frame" : [
+        277,
+        27,
+        16,
+        16
+      ],
+      "help" : "Forward",
+      "label" : "Forward",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        301,
+        25.5,
+        140,
+        19
+      ],
+      "label" : "Browser Integration",
+      "role" : "AXHeading"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                93,
+                135.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Let browsers use Larsal"
+            },
+            {
+              "frame" : [
+                272,
+                113.5,
+                375.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Fill sign-ins, one-time codes and passkeys through the Larsal extension."
+            },
+            {
+              "frame" : [
+                818,
+                100.5,
+                34,
+                20
+              ],
+              "label" : "Browser",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            93,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            164.5,
+            57,
+            17
+          ],
+          "label" : "Browsers",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                201,
+                26,
+                26
+              ],
+              "label" : "Safari",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                308,
+                205,
+                36.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Safari"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                204,
+                34,
+                20
+              ],
+              "help" : "Browser setup files come with browser integration (E7).",
+              "label" : "Safari",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            201,
+            580,
+            26
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                248,
+                26,
+                26
+              ],
+              "label" : "Google Chrome",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                308,
+                252,
+                49.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Chrome"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                251,
+                34,
+                20
+              ],
+              "help" : "Browser setup files come with browser integration (E7).",
+              "label" : "Chrome",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            248,
+            580,
+            26
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                295,
+                26,
+                26
+              ],
+              "label" : "Firefox Browser",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                308,
+                299,
+                43.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Firefox"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                298,
+                34,
+                20
+              ],
+              "help" : "Browser setup files come with browser integration (E7).",
+              "label" : "Firefox",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            295,
+            580,
+            26
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                342,
+                26,
+                26
+              ],
+              "label" : "Brave",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                308,
+                346,
+                36.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Brave"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                345,
+                34,
+                20
+              ],
+              "help" : "Browser setup files come with browser integration (E7).",
+              "label" : "Brave",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            342,
+            580,
+            26
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                389,
+                26,
+                26
+              ],
+              "label" : "Vivaldi",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                308,
+                393,
+                42,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Vivaldi"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                392,
+                34,
+                20
+              ],
+              "help" : "Browser setup files come with browser integration (E7).",
+              "label" : "Vivaldi",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            389,
+            580,
+            26
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                436,
+                26,
+                26
+              ],
+              "label" : "Opera",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                308,
+                440,
+                38.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Opera"
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                818,
+                439,
+                34,
+                20
+              ],
+              "help" : "Browser setup files come with browser integration (E7).",
+              "label" : "Opera",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            436,
+            580,
+            26
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            497.5,
+            128.5,
+            17
+          ],
+          "label" : "When a browser asks",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                538,
+                120,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Show a notification"
+            },
+            {
+              "frame" : [
+                818,
+                537,
+                34,
+                20
+              ],
+              "label" : "Notify",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            537,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                584.5,
+                174.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Ask to unlock a locked vault"
+            },
+            {
+              "frame" : [
+                818,
+                583.5,
+                34,
+                20
+              ],
+              "label" : "Unlock",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            583.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                630.5,
+                173.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Offer only the best matches"
+            },
+            {
+              "frame" : [
+                818,
+                629.5,
+                34,
+                20
+              ],
+              "label" : "Best",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            629.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                676.5,
+                150.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Search every open vault"
+            },
+            {
+              "frame" : [
+                818,
+                675.5,
+                34,
+                20
+              ],
+              "label" : "All vaults",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            675.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                720,
+                192.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Never ask before giving access"
+            },
+            {
+              "frame" : [
+                272,
+                740.5,
+                302.5,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "Not recommended: any site that matches gets the entry."
+            },
+            {
+              "frame" : [
+                818,
+                727.5,
+                34,
+                20
+              ],
+              "label" : "Never ask",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            720,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                778,
+                176,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Allow passkeys on localhost"
+            },
+            {
+              "frame" : [
+                272,
+                798.5,
+                109,
+                15
+              ],
+              "role" : "AXStaticText",
+              "value" : "For web developers."
+            },
+            {
+              "frame" : [
+                818,
+                785.5,
+                34,
+                20
+              ],
+              "label" : "Localhost",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            778,
+            580,
+            35.5
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            259,
+            849.5,
+            60,
+            17
+          ],
+          "label" : "Advanced",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                890,
+                171,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Use my own proxy program"
+            },
+            {
+              "frame" : [
+                818,
+                889,
+                34,
+                20
+              ],
+              "label" : "Proxy",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "0"
+            }
+          ],
+          "frame" : [
+            272,
+            889,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                272,
+                936.5,
+                243.5,
+                18
+              ],
+              "role" : "AXStaticText",
+              "value" : "Rewrite the browser setup files at start"
+            },
+            {
+              "frame" : [
+                818,
+                935.5,
+                34,
+                20
+              ],
+              "label" : "Rewrite",
+              "role" : "AXCheckBox",
+              "subrole" : "AXToggle",
+              "value" : "1"
+            }
+          ],
+          "frame" : [
+            272,
+            935.5,
+            580,
+            20
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        233,
+        61,
+        658,
+        610
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    900,
+    680
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

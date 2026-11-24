@@ -35,7 +35,7 @@ A failed step sends the story back to `building` with the findings attached.
 ## Working in parallel
 
 - An active story owns a set of files. Two active stories never share a file. The lead writes the owner next to each active story on the board.
-- Before each sprint the lead copies the whole folder to a snapshot outside it (for example `../app-snapshots/sprint-3/`), so any mistake can be undone.
+- Before each sprint the lead copies the whole folder to a snapshot outside it (for example `../larsal-snapshots/sprint-3/`), so any mistake can be undone.
 - Git is authorized (decision D5, LD-342). After the baseline commit, use one branch per story and commit each checked change under the owner's name only. The four paused stories keep their private copies until their saved work is resumed after E14-S1.
 
 ## Reference access
@@ -75,7 +75,7 @@ Report: story ID, files changed, proof (commands and their result), open issues,
 ## Mac QA
 
 - Builds the app on this Mac and runs it with demo vaults from `testdata/`.
-- Drives it with the `AppUITests` suite (XCTest UI testing), computer use or macOS UI scripting, following `qa/scripts/`: unlock, browse, search, show and copy, edit, generator, reports, lock events, Touch ID, settings.
+- Drives it with the `LarsalUITests` suite (XCTest UI testing), computer use or macOS UI scripting, following `qa/scripts/`: unlock, browse, search, show and copy, edit, generator, reports, lock events, Touch ID, settings.
 - Puts each screenshot next to the matching frame of [design/option-a/mockup.html](../design/option-a/mockup.html) and lists every difference ([BUILD-AND-VERIFY.md](../design/option-a/BUILD-AND-VERIFY.md)).
 - Reports what it saw, not what it expected.
 
@@ -88,4 +88,4 @@ Report: story ID, files changed, proof (commands and their result), open issues,
 
 ## Talking to the owner
 
-Short and plain. What works, what was checked, what is open, what needs a decision. Ask the owner only about the decisions in [README.md](../README.md) and about anything that costs money or leaves this Mac.
+Short and plain. What works, what was checked, what is open, what needs a decision. Ask the owner only about product and commercial decisions in [spec/decisions.md](../spec/decisions.md) and about anything that costs money or leaves this Mac.

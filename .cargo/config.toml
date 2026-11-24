@@ -1,4 +1,4 @@
-# Every outside package is App's own copy in this tree (LD-221, story E0-S7):
+# Every outside package is Larsal's own copy in this tree (LD-221, story E0-S7):
 # crates.io is replaced by the folder that `cargo vendor --versioned-dirs`
 # made, so no build reaches the network or the cargo cache. Cargo.lock still
 # names crates.io and its checksums; cargo checks each copy against them.

@@ -3,9 +3,9 @@
 //! size (AT-A10, AT-A06).
 #![no_main]
 
-use app_format::inner::read_inner;
-use app_format::limits::Limits;
-use app_format::payload::gunzip;
+use larsal_format::inner::read_inner;
+use larsal_format::limits::Limits;
+use larsal_format::payload::gunzip;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

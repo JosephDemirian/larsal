@@ -268,11 +268,11 @@ def key_files():
               % (hashlib.sha256(v2).digest()[:4].hex().upper(),
                  " ".join(words[:4]), " ".join(words[4:])))
     return {
-        "key-binary32.appkey": (raw, raw),
-        "key-hex64.appkey": (hexkey.hex().encode(), hexkey),  # exactly 64 bytes, no newline
-        "key-hashed.appkey": (hashed, hashlib.sha256(hashed).digest()),
-        "key-xml-v1.appkey": (xml_v1.encode(), v1),
-        "key-xml-v2.appkey": (xml_v2.encode(), v2),
+        "key-binary32.larsalkey": (raw, raw),
+        "key-hex64.larsalkey": (hexkey.hex().encode(), hexkey),  # exactly 64 bytes, no newline
+        "key-hashed.larsalkey": (hashed, hashlib.sha256(hashed).digest()),
+        "key-xml-v1.larsalkey": (xml_v1.encode(), v1),
+        "key-xml-v2.larsalkey": (xml_v2.encode(), v2),
     }
 
 

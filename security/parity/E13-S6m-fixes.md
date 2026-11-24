@@ -19,9 +19,9 @@ All 7 items were re-tested (MOD-05.9 counted once), and none failed. Every new t
 
 ## Setup
 
-- Private copy: `rsync -a --exclude target --exclude app-shots --exclude .build` of the tree to `/tmp/e13s6m-verify-copy`, with its own `CARGO_TARGET_DIR=/tmp/e13s6m-verify-target` and `-derivedDataPath /tmp/e13s6m-verify-dd`. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` on every xcodebuild run.
-- `scripts/build-core.sh` in the copy: exit 0 (`build-core (debug): target/app-core/AppFFI.xcframework ...`).
-- Demo data only: the Option A Personal, Work and Family demo vaults (`testdata/option-a-*.appvault`, passwords `demo-pass-7`, `-8`, `-9`), copied per test into the copy's `target/option-a/`. My own files: a 64 × 48 PNG, a `run.command` holding `echo demo`, a `Linear.passkey` holding `x`.
+- Private copy: `rsync -a --exclude target --exclude larsal-shots --exclude .build` of the tree to `/tmp/e13s6m-verify-copy`, with its own `CARGO_TARGET_DIR=/tmp/e13s6m-verify-target` and `-derivedDataPath /tmp/e13s6m-verify-dd`. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` on every xcodebuild run.
+- `scripts/build-core.sh` in the copy: exit 0 (`build-core (debug): target/larsal-core/LarsalFFI.xcframework ...`).
+- Demo data only: the Option A Personal, Work and Family demo vaults (`testdata/option-a-*.larsalvault`, passwords `demo-pass-7`, `-8`, `-9`), copied per test into the copy's `target/option-a/`. My own files: a 64 × 48 PNG, a `run.command` holding `echo demo`, a `Linear.passkey` holding `x`.
 - Nothing was shown on screen. Keys go to the offscreen window's own `performKeyEquivalent`; menus are `NSHostingMenu` objects that are never opened; attachment Open goes to the tests' `FakeOpener`; the save and folder panels are replaced in every test (AGENTS.md rule 10). No pasteboard was used. No network: downloads stay off (S-ENTRY-11), so Rust refuses the icon fetch before any request.
 - Lints and the name guard ran on the shared tree in lint mode only. The shared files of part m were not changed by my runs: their md5 after the runs matches the snapshot taken before them, and `cmp` shows the copy I mutated was restored to the tree's text after each batch.
 - My own repro tests (`VerifyMReproTests`, 3 tests) were written in the copy only and deleted with it.
@@ -41,7 +41,7 @@ After:
 - HTML: the dialog with the warning as its banner and Name, A to Z / Name, Z to A / Order in the vault; Cancel writes nothing; OK with Z to A writes a page whose Work section comes before Banking, 0600.
 - Passkeys: MI04-30 with Rust's text first; No, Return and Escape leave the folder empty and ask no panel. Yes shows the list ("Each file is named after its entry's title."); with GitHub unticked, Export Selected asks the folder once and writes `Apple Account.passkey`, `Linear.passkey`, `Mastodon.passkey`, each 0600. MI04-32: No, Return and Escape leave `x` in place; Yes replaces it (content holds `linear.app`), 0600.
 - Verify's own: with the vault locked, File > Export is off (FEA-09.1, case 09-01). A cancelled save panel after Yes leaves no dialog and no file. MI04-32 No for Linear leaves `x` and still writes `Mastodon.passkey`.
-- Every path to a file goes through a warning: `askExport` is the only caller of the CSV, HTML and XML export (AppCommands.swift:106-108); `.export(.passkeys(rows))` is set only by MI04-30's Yes, and MI04-32 is reached only from `exportPasskeys` (grep of macos/App). Rust's own gate still holds: `cargo test -p app-ffi --features net sd_07` → `export::tests::sd_07_every_plain_export_warns ... ok`.
+- Every path to a file goes through a warning: `askExport` is the only caller of the CSV, HTML and XML export (LarsalCommands.swift:106-108); `.export(.passkeys(rows))` is set only by MI04-30's Yes, and MI04-32 is reached only from `exportPasskeys` (grep of macos/Larsal). Rust's own gate still holds: `cargo test -p larsal-ffi --features net sd_07` → `export::tests::sd_07_every_plain_export_warns ... ok`.
 
 Proof: ExportScreensTests `sd07CsvAndXmlAskFirst` (csv, xml), `sd07HtmlBanner`, `sd07PasskeyExportWarns`, all passed (baseline in the copy and the full run); VerifyMReproTests 3 of 3 passed, run alone. Mutants V1, V2, V3, V4 below.
 
@@ -89,13 +89,13 @@ Read: in `cutCopyWhileLocked` the override `rules.keyWindow = { other }` (line 2
 
 - `swift format lint --strict --recursive macos`: exit 0 (shared tree, 12:13).
 - `swiftlint lint --strict --quiet` in macos/ with `scripts/install-swiftlint.sh --path` (0.65.1): exit 0.
-- `wc -l macos/App/EditorEntryPage.swift`: 399 (under SwiftLint's 400-line limit); part h has signed (plan/epics.md).
+- `wc -l macos/Larsal/EditorEntryPage.swift`: 399 (under SwiftLint's 400-line limit); part h has signed (plan/epics.md).
 - `scripts/check-names.sh`: `names: PASS (3209 files scanned, 16 vault files name-only)`, exit 0.
 - No change in behaviour: the full app test run in the copy below.
 
 ## Full app test run (copy)
 
-`xcodebuild ... test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: 345 tests in 50 suites, 342 passed, 3 failed under load: ScreenTests FEA-01.34 (50 ms search timing), ParityEditorFilesTests `openAndRemove` (see advisory 3) and `expiry` (a 5 s clock bound, the test took 26 s). Run alone: ParityEditorFilesTests 5 of 5 passed, `ScreenTests/searchSpeed()` passed. ExportScreensTests, MacGapsTests, AccessibilityWalkTests, MenuKeysTests, CopySelectionTests, MenuBarTests and ReportsTests all passed in the full run.
+`xcodebuild ... test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: 345 tests in 50 suites, 342 passed, 3 failed under load: ScreenTests FEA-01.34 (50 ms search timing), ParityEditorFilesTests `openAndRemove` (see advisory 3) and `expiry` (a 5 s clock bound, the test took 26 s). Run alone: ParityEditorFilesTests 5 of 5 passed, `ScreenTests/searchSpeed()` passed. ExportScreensTests, MacGapsTests, AccessibilityWalkTests, MenuKeysTests, CopySelectionTests, MenuBarTests and ReportsTests all passed in the full run.
 
 ## Mutants (private copy, three batches; each batch's files restored and compared with the tree)
 

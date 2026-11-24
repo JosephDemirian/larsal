@@ -4,8 +4,8 @@
 //! passphrase from it has the asked number of words.
 #![no_main]
 
-use app_core::generator::passphrase::{self, Options};
-use app_core::generator::wordlist::{MAX_ENTRY, parse};
+use larsal_core::generator::passphrase::{self, Options};
+use larsal_core::generator::wordlist::{MAX_ENTRY, parse};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

@@ -1,5 +1,5 @@
 //! Fuzz target `onepux_import` (E4-S13): the .1pux import (FEA-08 section
-//! C), App's ZIP reader and the `export.data` mapping. Must never panic,
+//! C), Larsal's ZIP reader and the `export.data` mapping. Must never panic,
 //! hang or allocate by a hostile number (FEA-08.65, FEA-08.67; ZIP members
 //! inflate only up to their declared size and limit). A result keeps the
 //! model invariants, also after placement into an open vault.
@@ -10,9 +10,9 @@
 //! deflated), so the JSON mapping is reached with any content.
 #![no_main]
 
-use app_core::import::{self, Context, onepux};
-use app_core::time::Utc;
-use app_model::{Group, Time, Uuid, Vault};
+use larsal_core::import::{self, Context, onepux};
+use larsal_core::time::Utc;
+use larsal_model::{Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 use std::io::Write;
 use std::sync::atomic::AtomicBool;
@@ -90,13 +90,13 @@ fuzz_target!(|data: &[u8]| {
     let Ok(r) = onepux::read(&file, &ctx) else {
         return;
     };
-    assert_eq!(app_model::invariants::check(&r.vault), Ok(()));
+    assert_eq!(larsal_model::invariants::check(&r.vault), Ok(()));
     let _ = import::preview(&r);
     let mut root = Group::new(Uuid([1; 16]), "Root".into(), now);
     root.groups
         .push(Group::new(Uuid([2; 16]), "Work".into(), now));
     let mut target = Vault::new(root, now);
     if import::into_group(&mut target, Uuid([2; 16]), r, now).is_ok() {
-        assert_eq!(app_model::invariants::check(&target), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&target), Ok(()));
     }
 });

@@ -1,7 +1,7 @@
 // Design parity (Verify): the lead's decisions and the Verify notes that
 // compare.mjs reads. RULES classify a mockup string that the app shows
 // differently: `live` values match by format only; the others are known
-// differences the lead accepted (spec/decisions.md). `app` is the pattern the
+// differences the lead accepted (spec/decisions.md). `larsal` is the pattern the
 // app's counterpart must match, so an accepted string is still checked.
 
 const LEVEL_MOCKUP = /^(Strong|Weak|Fair|Very weak|Medium)$/;
@@ -44,7 +44,7 @@ export const RULES = [
     ['The name shows in the sidebar and on the lock screen.', /^The name shows in the vault list\. Name and description stay editable in Vault Settings\.$/, 'APP-07 M07-03 step 1 line'],
     ['The defaults suit almost everyone. They match what security reviews recommend today.', /^Choose how long an unlock takes\. /, 'APP-07 M07-05 step 2 line'],
     ['Choose a password', /^Password and keys$/, 'APP-07 step 3 title (Steps table)'],
-    ['You need it to open the vault. App cannot recover it.', /^Choose what opens this vault\. Only you should know it or have it\.$/, 'APP-07 M07-09 step 3 line'],
+    ['You need it to open the vault. Larsal cannot recover it.', /^Choose what opens this vault\. Only you should know it or have it\.$/, 'APP-07 M07-09 step 3 line'],
     ['Repeat it', /^Verify password$/, 'APP-07 M07-10 repeat label'],
     ['••••••••••••••••••', /^orchid-meteor-pine-quartz-41$/, 'APP-07.11: Show shows both fields together'],
     ['A second secret kept in a file. Without it the vault does not open.', /^Keep this file exactly as it is, and keep a copy somewhere safe: the vault opens only with this file, unchanged\.$/, 'APP-07 M07-12 key file note'],
@@ -65,10 +65,10 @@ export const RULES = [
     ['Use It Anyway', /^Use this password$/],
     ['Choose Another', /^Cancel$/],
   ].map(([m, app]) => ({ why: 'FEA-05.20 MSG-MK-WEAK with ACT-MK-USE-WEAK and Cancel (default); no password on screen (rule 4)', ref: 'FEA-05.20, BUILD-AND-VERIFY order 2; E5-S8 report', frames: ['dialogs-weak-vault-password'], test: (x) => x === m, app })),
-  { why: 'APP-07.13: the new key file is named "<vault name>.appkey"', ref: 'APP-07.13; E5-S8 report', frames: ['dialogs-create-key-file'], test: (m) => m === 'family.appkey', app: /^Family\.appkey$/ },
+  { why: 'APP-07.13: the new key file is named "<vault name>.larsalkey"', ref: 'APP-07.13; E5-S8 report', frames: ['dialogs-create-key-file'], test: (m) => m === 'family.larsalkey', app: /^Family\.larsalkey$/ },
   // E5-S10 (2026-10-28): the cards' messages and buttons over the mockup's words.
   ...[
-    ['dialogs-changed-on-disk', 'Another app saved it at 10:24, after you opened it. You have 2 changes that are not saved yet.', /^“Personal\.appvault” was changed by another program, and this vault has unsaved changes\.$/, 'APP-05.27 MSG-DISK-UNSAVED'],
+    ['dialogs-changed-on-disk', 'Another app saved it at 10:24, after you opened it. You have 2 changes that are not saved yet.', /^“Personal\.larsalvault” was changed by another program, and this vault has unsaved changes\.$/, 'APP-05.27 MSG-DISK-UNSAVED'],
     ['dialogs-changed-on-disk', 'Reload', /^Discard$/, 'APP-05.27 button Discard'],
     ['dialogs-changed-on-disk', 'Keep mine', /^Ignore$/, 'APP-05.27 button Ignore'],
     ['dialogs-changed-on-disk', 'Decide Later', /^Cancel$/, 'APP-05.27 button Cancel'],
@@ -82,7 +82,7 @@ export const RULES = [
   { live: true, why: 'save time of the demo file', test: (m) => /^Saved at \d\d:\d\d · encrypted$/.test(m), app: /^Saved at \d\d:\d\d · encrypted$/ },
   { live: true, why: 'lock time of this session', test: (m) => /^Locked at \d\d:\d\d$/.test(m), app: /^Locked at \d\d:\d\d$/ },
   {
-    live: true, why: 'vault path: the test copies the demo vaults to target/option-a/Passwords', test: (m) => /^~\/.*\/[A-Z][a-z]+\.appvault$/.test(m),
+    live: true, why: 'vault path: the test copies the demo vaults to target/option-a/Passwords', test: (m) => /^~\/.*\/[A-Z][a-z]+\.larsalvault$/.test(m),
     app: (m) => new RegExp(`^~/.*/Passwords/${m.split('/').pop().replace('.', '\\.')}$`),
   },
   { live: true, ref: 'LD-166', why: 'save state of the demo file (the app says "Saved just now" only for a file saved in this session)', test: (m) => m === 'Saved just now · encrypted', app: /^Saved (just now|at \d\d:\d\d) · encrypted$/ },
@@ -100,12 +100,12 @@ export const RULES = [
   },
   { why: 'APP-06 UL-TITLE "Unlock <name>"', ref: 'LD-163 (4)', test: (m) => /^(Personal|Work|Family) is locked$/.test(m), app: (m) => new RegExp(`^Unlock ${m.split(' ')[0]}$`) },
   { why: 'APP-04.15 "Use password instead"', ref: 'LD-163 (4)', test: (m) => m === 'Use vault password instead', app: /^Use password instead$/ },
-  { why: 'key file row: the test\'s key file in the card\'s form "name · folder" (UL-KEY)', ref: 'LD-163 (2), (4)', test: (m) => /\.appkey · /.test(m), app: /^key-hex64\.appkey · ~\/.+$/ },
+  { why: 'key file row: the test\'s key file in the card\'s form "name · folder" (UL-KEY)', ref: 'LD-163 (2), (4)', test: (m) => /\.larsalkey · /.test(m), app: /^key-hex64\.larsalkey · ~\/.+$/ },
   { why: 'key file row: the card\'s button "Browse…" (UL-KEY)', ref: 'LD-163 (2), (4)', test: (m) => m === 'Change…' || m === 'Choose…', app: /^Browse…$/ },
   { why: 'key file row: the card\'s placeholder "No key file" (UL-KEY)', ref: 'LD-163 (2), (4)', test: (m) => m === 'None', app: /^No key file$/ },
   { why: 'security key row: E10 control, drawn and disabled; no key chosen', ref: 'LD-163', test: (m) => /^YubiKey .* · serial \d+ · slot \d$/.test(m), app: /^Not used$/ },
   { why: 'APP-06 UL-PW placeholder "Password"', ref: 'LD-163 (4)', test: (m, kind) => kind === 'placeholder' && m === 'Vault password', app: /^Password$/ },
-  { why: 'welcome license line and the live version', ref: 'LD-163 (5)', test: (m) => /^Version [\d.]+ · open source · /.test(m), app: /^Version \d+\.\d+\.\d+ · open source · GPL-3\.0$/ },
+  { why: 'welcome source-available label and the live version', ref: 'LD-163 (5), LD-345', test: (m) => /^Version \d+\.\d+ · source available$/.test(m), app: /^Version \d+\.\d+\.\d+ · source available$/ },
   { why: 'needs-attention count by the card rules (7, mockup 6)', ref: 'LD-163 (4)', test: (m) => m === '6' || /6 need attention$/.test(m), app: /^(7|\d+ entries · 7 need attention|Password health, 7 need attention|Needs attention, 7)$/ },
   // E5-S5 editor and sheets (LD-192 (3), (5); LD-167; data of the demo vault).
   { why: 'FEA-05.4 strength words and the card estimator in the editor\'s password label', ref: 'LD-192 (5), LD-163 (4)', test: (m) => /^Password · (Strong|Weak|Fair|Very weak), about \d+ bits$/.test(m), app: /^Password · (Excellent|Good|Fair|Poor|Weak|Very poor|Bad), about \d+ bits$/ },
@@ -116,7 +116,7 @@ export const RULES = [
   { why: 'the card\'s words for the hide option', ref: 'LD-167, INT-02.29', test: (m) => m === 'Hide this entry from the browser', app: /^Never offer this entry to browsers$/ },
   { why: 'the demo vault\'s SSH key (comment and key line are data; a key no one holds)', ref: 'LD-166, testdata/README.md', test: (m) => m === 'alex@macbook' || /^ssh-ed25519 \S+ alex@macbook$/.test(m), app: /^(alex@morgan-labs|ssh-ed25519 \S+ alex@morgan-labs)$/ },
   { why: 'history size computed from the demo vault (MOD-03.7)', ref: 'LD-192 (5)', test: (m) => /^3 versions · [\d.]+ KB$/.test(m), app: /^3 versions · [\d.]+ KB$/ },
-  { why: 'the card\'s history limit words (MOD-03.6: the size limit is per entry)', ref: 'LD-192 (5)', test: (m) => m === 'App keeps the last 10 versions of each entry, up to 6 MB per vault.', app: /^App keeps the last 10 versions of each entry, up to 6 MB per entry\.$/ },
+  { why: 'the card\'s history limit words (MOD-03.6: the size limit is per entry)', ref: 'LD-192 (5)', test: (m) => m === 'Larsal keeps the last 10 versions of each entry, up to 6 MB per vault.', app: /^Larsal keeps the last 10 versions of each entry, up to 6 MB per entry\.$/ },
   { why: 'the two action buttons of a table row, read together in the mockup\'s innerText', ref: 'mockup `td.act`', test: (m) => m === 'Show Restore', all: [/^Show$/, /^Restore$/] },
   { why: 'the two action buttons of a table row, read together in the mockup\'s innerText', ref: 'mockup `td.act`', test: (m) => m === 'Open Save…', all: [/^Open$/, /^Save…$/] },
   { why: 'the discard sentence names the draft\'s real changes', ref: 'LD-192 (5)', test: (m) => m === 'You changed the password and added one tag.', app: /^You changed .+\.$/ },
@@ -126,7 +126,7 @@ export const RULES = [
   { why: 'MI04-34 in the card\'s words', ref: 'LD-192 (5), INT-04.46', test: (m) => m === 'Remove the passkey for github.com?', app: /^Remove the passkey\?$/ },
   { why: 'MI04-34 in the card\'s words', ref: 'LD-192 (5), INT-04.46', test: (m) => /^You can no longer sign in to github\.com with it\. The password and the one-time code stay\.$/.test(m), app: /^You can no longer sign in to github\.com with it\. The password stays\.$/ },
   {
-    why: 'copy notice in the card\'s words, APP-03.21 MSG-COPIED "<label> copied. Clears in <N> s."; N is App\'s clear delay (10 s, APP-03 settings; the mockup draws 30)',
+    why: 'copy notice in the card\'s words, APP-03.21 MSG-COPIED "<label> copied. Clears in <N> s."; N is Larsal\'s clear delay (10 s, APP-03 settings; the mockup draws 30)',
     ref: 'APP-03.21, BUILD-AND-VERIFY order (card over mockup); known difference for the lead (E6-S1)', frames: ['states-copied'],
     test: (m) => m === '· clipboard clears in 30 s', app: /^Password copied\. Clears in \d+ s\.$/,
   },
@@ -134,14 +134,14 @@ export const RULES = [
   ...[
     ['Save after every change', /^Save changes as you make them$/, 'S-FILE-01 "Shown as"; W-04 asks the owner to change the mockup text', 'LD-167, APP-01 S-FILE-01'],
     ['Asks GitHub once a day. Nothing else leaves this Mac.', /^Asks GitHub once a week\. Nothing else leaves this Mac\.$/, 'S-START-09 "Check for updates once a week" and APP-01.19 (next check now + 7 days); off by default, drawn disabled until E14', 'APP-01.19, D-01-2'],
-    ['{DB_FILENAME}.old.appvault', /^\{FILE_NAME\}\.old\.appvault$/, 'S-FILE-06 App default with the APP-05.20 token', 'APP-01.2, APP-05.20'],
+    ['{DB_FILENAME}.old.larsalvault', /^\{FILE_NAME\}\.old\.larsalvault$/, 'S-FILE-06 Larsal default with the APP-05.20 token', 'APP-01.2, APP-05.20'],
   ].map(([m, app, why, ref]) => ({ why: `${why} (card words over mockup)`, ref: `BUILD-AND-VERIFY order 2; ${ref}`, frames: ['settings-settings-general'], test: (x) => x === m, app })),
   // E5-S6 generator: the value and its bits are made live (BUILD-AND-VERIFY: generated passwords match the format).
   { live: true, why: 'generated password: 20 printable characters, one of each chosen type at least (FEA-02.8)', frames: ['generator-generator-in-the-window', 'generator-password'], test: (m) => /^[A-Za-z0-9]{20}$/.test(m), app: /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9])[\x21-\x7e]{20}$/ },
   { live: true, why: 'generated passphrase: 5 words of the built-in list joined with "-"', frames: ['generator-passphrase'], test: (m) => /^[a-z]+(-[a-z]+){4}$/.test(m), app: /^[a-z]+(-[a-z]+){4}$/ },
   { live: true, why: 'strength of the live value in whole bits (FEA-05 estimate, FEA-03.7 formula)', frames: ['generator-generator-in-the-window', 'generator-password', 'generator-passphrase'], test: (m) => /^\d+ bits$/.test(m), app: /^\d+ bits$/ },
   // E5-S11 Verify (2026-10-28): the window item of the menu bar icon's menu.
-  { why: 'APP-08.21 action.toggle_window: "Show Window" while the window is hidden, minimized or behind, "Hide Window" while in front (card words over mockup)', ref: 'APP-08.21, LD-214 (2), BUILD-AND-VERIFY order 2', frames: ['menubar-menu-bar-icon'], test: (m) => m === 'Show App', app: /^(Show|Hide) Window$/ },
+  { why: 'APP-08.21 action.toggle_window: "Show Window" while the window is hidden, minimized or behind, "Hide Window" while in front (card words over mockup)', ref: 'APP-08.21, LD-214 (2), BUILD-AND-VERIFY order 2', frames: ['menubar-menu-bar-icon'], test: (m) => m === 'Show Larsal', app: /^(Show|Hide) Window$/ },
 ];
 
 // Per frame: Verify notes (summary lines in the report), the smallest fix
@@ -162,10 +162,10 @@ const E5S6 = 'Built by E5-S6. The value and its bits are live (format only). The
 
 export const NOTES = {
   // E5-S9 settings (Verify 2026-10-28).
-  'settings-settings-general': { summary: ['Built by E5-S9. Card words over the mockup: "Save changes as you make them" (LD-167, W-04), "once a week" (APP-01.19), "{FILE_NAME}.old.appvault" (APP-01.2). Check for updates and Include beta versions drawn and disabled until E14 (D-01-2: off, nothing is sent). Open App at login goes through the LoginItem protocol (SMAppService; tests use a fake). Option A draws no OK or Cancel: closing the window is OK, Escape is Cancel (APP-01.3).', LATERS] },
+  'settings-settings-general': { summary: ['Built by E5-S9. Card words over the mockup: "Save changes as you make them" (LD-167, W-04), "once a week" (APP-01.19), "{FILE_NAME}.old.larsalvault" (APP-01.2). Check for updates and Include beta versions drawn and disabled until E14 (D-01-2: off, nothing is sent). Open Larsal at login goes through the LoginItem protocol (SMAppService; tests use a fake). Option A draws no OK or Cancel: closing the window is OK, Escape is Cancel (APP-01.3).', LATERS] },
   'settings-settings-security': { summary: ['Built by E5-S9. Unlock with Touch ID (E6-S3) and the capture switch (APP-10, E6-S5, never stored) drawn and disabled. The stored values reach the copy countdown, the lock timers and the search timer (Verify driver).', LATERS] },
   'settings-settings-auto-type': { summary: ['Built by E5-S9. Values stored under their APP-01 keys; Auto-Type reads them in E8; Change (the shortcut recorder) drawn and disabled. The mockup\'s row words stay until INT-05\'s mockup change (LD-167, D-INT05-12).', LATERS] },
-  'settings-settings-browser-integration': { summary: ['Built by E5-S9. Every row follows "Let browsers use App" (APP-01.5); the browser boxes write their setup files with E7 (INT-01.8), Safari waits for signing (INT-01.15). "Use my own proxy program" (LD-167) sits below the frame\'s fold, as the mockup\'s row does.', LATERS] },
+  'settings-settings-browser-integration': { summary: ['Built by E5-S9. Every row follows "Let browsers use Larsal" (APP-01.5); the browser boxes write their setup files with E7 (INT-01.8), Safari waits for signing (INT-01.15). "Use my own proxy program" (LD-167) sits below the frame\'s fold, as the mockup\'s row does.', LATERS] },
   'settings-settings-ssh-agent': { summary: ['Built by E5-S9. The status row is the frame\'s (a fake probe in tests; the user\'s agent is never asked). "Use a different socket" waits for W-05.', LATERS] },
   'settings-settings-shared-groups': { summary: ['Built by E5-S9. The identity is the frame\'s data; the key pair comes with E11 (D-01-6: Keychain, never in a settings file or export).', LATERS] },
   'settings-settings-shortcuts': {
@@ -221,7 +221,7 @@ export const NOTES = {
   'states-more-menu': { behind: ['main-main-window-light'], summary: ['Menu and its 11 items within 2 pt; items of later stories disabled with the reason. Strings behind the menu are found on main-main-window-light.', LIVE, MENUS] },
   'states-vault-switcher': { behind: ['main-main-window-light'], summary: ['Menu and items within 2 pt; Lock Personal and Work act (tests).', LIVE, MENUS] },
   'states-sort-menu': { behind: ['main-main-window-light'], geoSkip: ['button:Title'], summary: ['Sort menu within 2 pt; Title and the order marked. The header\'s "Title" button lies under the open menu and is not compared.', LIVE, MENUS] },
-  'states-copied': { summary: ['Built by E6-S1. Copy password (rail, field button, entry menu, ⌘C) copies in Rust; the value never reaches the screen layer. Known difference, card over mockup: APP-03.21 "Password copied. Clears in 10 s." for the mockup\'s "Password copied · clipboard clears in 30 s" (10 s is App\'s clear delay); the box is narrower for the shorter words (about 245 against 301 pt, centred on the same x); its place (centred, 20 above the foot), height 40, radius 10, --primary fill, ink, glyph and shadow are as drawn. The notice goes after 2.6 s, as in the mockup.', LIVE, LATERS] },
+  'states-copied': { summary: ['Built by E6-S1. Copy password (rail, field button, entry menu, ⌘C) copies in Rust; the value never reaches the screen layer. Known difference, card over mockup: APP-03.21 "Password copied. Clears in 10 s." for the mockup\'s "Password copied · clipboard clears in 30 s" (10 s is Larsal\'s clear delay); the box is narrower for the shorter words (about 245 against 301 pt, centred on the same x); its place (centred, 20 above the foot), height 40, radius 10, --primary fill, ink, glyph and shadow are as drawn. The notice goes after 2.6 s, as in the mockup.', LIVE, LATERS] },
   'states-recycle-bin': { summary: ['Restore, Delete forever and Empty Recycle Bin drawn and disabled (E5-S10). The X logo now carries its name.', LIVE, LATERS] },
   'states-new-empty-vault': { summary: ['The three first steps drawn and disabled until their stories. Save line: live (the demo file has a save time).', LATERS] },
   // E5-S8 (2026-10-28).
@@ -229,17 +229,17 @@ export const NOTES = {
   'vault-new-vault-step-2': { mask: [[36, 200, 648, 23], [36, 288, 648, 22]], geoShift: [{ x0: 0, y0: 180, y1: 640, dy: 20, ref: 'APP-07 M07-05: the card\'s step line takes two lines' }], summary: ['Built by E5-S8. Recommended is simple mode at 1.0 s (APP-07.6); Custom shows the drawn rows editable plus Parallel threads (APP-07.7). Card words: M07-05 (two lines, so the choices sit 20 pt lower; in dark the moved accent fill is most of the changed pixels).', 'Accepted (LD-210, Verify E5-S8 round 2): only the two strips where the Recommended card\'s accent fill moved (x 36 to 684; y 200 to 223 and 288 to 310 pt: the card is 200 to 290 pt drawn, 221 to 309.5 pt in the app) are masked for pixels and colours. With the 20 pt shift undone (the app\'s rows 200 to 660 pt moved up), the whole frame differs 1.72 % (light) and 1.66 % (dark).'] },
   'vault-new-vault-step-3': { colourOk: ['#e2eff2', '#10303a'], geoSkip: ['button:Create…', 'button:Choose…'], geoShift: [{ x0: 0, y0: 470, y1: 640, dy: 16, ref: 'APP-07 M07-12: the card\'s key file note takes two lines' }], summary: ['Built by E5-S8. The Password field has the focus as the step appears (APP-07.11). Show shows both fields (APP-07.11), so the repeat is in clear. Card words: step title, M07-09, M07-10, M07-12, M07-14; the key file buttons are wider for M07-12\'s "New Key File…" and "Choose Key File…", so their boxes are not compared. Security key and Touch ID drawn and disabled (E10, E6-S3).', LIVE, LATERS] },
   'vault-vault-settings-general': { summary: ['Built by E5-S8. Each control applies itself (no Apply drawn); the path is the test copy\'s.', LIVE] },
-  'vault-vault-settings-security': { summary: ['Built by E5-S8. The key file is a new one the test made (personal.appkey); encryption Argon2id 64 MiB, 2 threads, 1.0 s. Security key and Touch ID drawn and disabled (E10, E6-S3). The unlock time slider is linear from 0.1 to 5 s (APP-07.6), so its thumb sits at 18 % (drawn at 40 %).', LIVE, LATERS] },
+  'vault-vault-settings-security': { summary: ['Built by E5-S8. The key file is a new one the test made (personal.larsalkey); encryption Argon2id 64 MiB, 2 threads, 1.0 s. Security key and Touch ID drawn and disabled (E10, E6-S3). The unlock time slider is linear from 0.1 to 5 s (APP-07.6), so its thumb sits at 18 % (drawn at 40 %).', LIVE, LATERS] },
   'vault-vault-settings-recycle-bin': { summary: ['Built by E5-S8. "Empty entries older than" has no card rule yet: drawn and disabled with the reason.', LATERS] },
   'vault-vault-settings-history': { summary: ['Built by E5-S8 on the demo vault\'s history.', LIVE] },
   'vault-vault-settings-browser-keys': { summary: ['Built by E5-S8: the demo vault\'s two associations and four entries with site permissions; Disconnect and Remove all… ask first.', LIVE] },
   'dialogs-weak-vault-password': { geoSkip: ['button:Use It Anyway', 'button:Choose Another', 'dialog:This password is easy to'], summary: ['Built by E5-S8: FEA-05.20 MSG-MK-WEAK in the dialog look, one sentence as the title, so the sheet is shorter than drawn; it never names the password (rule 4).', 'Accepted (LD-210, Verify E5-S8 round 2): the sheet is 44 pt shorter (x, y and width equal); both buttons sit 44 pt higher, "Use this password" keeps the drawn left edge (25 pt wider) and Cancel the drawn right edge (59 pt narrower). These three boxes are not compared. The image sizes differ (460 × 148 against 460 × 192 pt), so pixels and colour shares are not measured; icon, title style and button styles were checked by eye.'] },
-  'dialogs-create-key-file': { summary: ['Built by E5-S8: APP-07.13\'s "<vault name>.appkey".'] },
+  'dialogs-create-key-file': { summary: ['Built by E5-S8: APP-07.13\'s "<vault name>.larsalkey".'] },
   // E5-S10 (2026-10-28).
   'dialogs-changed-on-disk': { geoSkip: ['button:Decide Later'], summary: ['Built by E5-S10: APP-05.27 (the vault has unsaved changes) with the card\'s message and buttons in the mockup\'s choice rows; the drawn descriptions stay. The same sheet asks APP-05.26 (Load, Keep), APP-05.28 (Merge then save, Discard, Overwrite) and APP-05.30 (Overwrite). Rust decides by checksum; the folder and file watch raises it (AT-I05 test).'] },
   'dialogs-close-with-unsaved-changes': { geoSkip: ['button:Don’t Save'], summary: ['Built by E5-S10: APP-02.15 step 8 MSG-LOCK-SAVE for Close Vault, Lock and Quit when the save on lock is off or failed; Save saves again, Discard lets the vault go, Cancel keeps it.'] },
   // E5-S11 Verify (2026-10-28).
-  'menubar-menu-bar-icon': { summary: ['Built by E5-S11. The live menu is a native NSMenu that macOS draws (APP-08.24, APP-08.25, LD-214 (2)); the snapshot is MenuBarIconFrame (test code) drawing that NSMenu\'s items, keys, badges and enabled states with Option A\'s menu parts over the mockup\'s desktop and bar, so its pixels prove the items, not macOS\'s own menu look (Mac QA).', 'Accepted (LD-214 (1)): the drawn menu bar reads App, File, Edit, View, Vault, Entry, the real SwiftUI order (Apple HIG: app menus after View); the mockup draws View after Entry.', 'The status item itself is never added in tests (FakeSlot; NoStatusSlot in a hidden launch); the icon on a real menu bar is Mac QA (owner\'s go).'] },
+  'menubar-menu-bar-icon': { summary: ['Built by E5-S11. The live menu is a native NSMenu that macOS draws (APP-08.24, APP-08.25, LD-214 (2)); the snapshot is MenuBarIconFrame (test code) drawing that NSMenu\'s items, keys, badges and enabled states with Option A\'s menu parts over the mockup\'s desktop and bar, so its pixels prove the items, not macOS\'s own menu look (Mac QA).', 'Accepted (LD-214 (1)): the drawn menu bar reads Larsal, File, Edit, View, Vault, Entry, the real SwiftUI order (Apple HIG: app menus after View); the mockup draws View after Entry.', 'The status item itself is never added in tests (FakeSlot; NoStatusSlot in a hidden launch); the icon on a real menu bar is Mac QA (owner\'s go).'] },
   // E8-S2 Builder (2026-10-28), for the lead.
   'menubar-auto-type-picker': { colourOk: ['#e2eff2', '#10303a'], summary: ['Built by E8-S2. The search field has the keyboard focus as the picker appears (INT-05.26): its accent ring and soft halo are drawn, as on vault-new-vault-step-1; the mockup draws no focus. The snapshot is AutoTypePickerFrame (test code): the mockup\'s desktop with the real AutoTypePickerView over the Personal demo vault plus the frame\'s "GitHub (work bot)" entry, with GitHub\'s second window rule left out in memory so the list holds the frame\'s two rows. ⏎ is drawn in the system font, as the mockup\'s font stack falls back to it.', 'Not drawn until the owner\'s mockup changes (W-06): the app name under the header (D-INT05-16 (3)), the small line\'s sequence and vault additions, the empty list MI05-45 and the row menu MI05-44 (D-INT05-16 (4)), and R05-6\'s hint line; MI05-43 stays as drawn.'] },
   'dialogs-save-failed': { summary: ['Built by E5-S10: APP-05.13 MSG-SAVE-FAILED as the mockup\'s sheet; the reason is the system\'s (the snapshot shows the mockup\'s demo reason). Save As… (APP-05.6), Close, Try Again.'] },
@@ -250,23 +250,23 @@ export const COMMANDS = `Run from the project root on 2026-10-28, in this order.
 1. \`node design/option-a/tools/export-reference.mjs\` (reference images and manifest from the current mockup)
    → \`light: 91 frames\`, \`dark: 91 frames\`, \`manifest.json: 91 frames\` (5 min 23 s).
 2. \`npm install --prefix /tmp/parity-tools pixelmatch pngjs\` → \`added 2 packages\`; versions pixelmatch 8.0.0, pngjs 7.0.0 (outside the project).
-3. \`scripts/build-core.sh\` → \`build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift\`, exit 0.
-4. \`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath target/xcode test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES\` (the check.sh G2 test step)
-   → \`✔ Suite SnapshotTests passed\`, \`✔ Suite ParityLockTests passed\`, \`✔ Suite ParityMainTests passed\`, \`✔ Suite ParityStatesTests passed\`, \`✔ Suite ScreenTests passed\`, \`✔ Suite ParityFontTests passed\`, \`✔ Test run with 41 tests in 10 suites passed after 30.276 seconds\`, \`** TEST SUCCEEDED **\`. SnapshotTests wrote app-shots/<theme>/<frame-id>.png and, new for this check, the accessibility tree next to each (\`<frame-id>.ax.json\`, test only). The Parity suites are new (test only, 27 tests): they press the mockup's controls through the accessibility tree. Log: target/parity/behaviour.log.
-5. \`swift format lint --strict macos/AppTests/*.swift\` and \`swiftlint lint --strict --quiet AppTests/\` (in macos/) → no findings.
+3. \`scripts/build-core.sh\` → \`build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift\`, exit 0.
+4. \`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath target/xcode test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES\` (the check.sh G2 test step)
+   → \`✔ Suite SnapshotTests passed\`, \`✔ Suite ParityLockTests passed\`, \`✔ Suite ParityMainTests passed\`, \`✔ Suite ParityStatesTests passed\`, \`✔ Suite ScreenTests passed\`, \`✔ Suite ParityFontTests passed\`, \`✔ Test run with 41 tests in 10 suites passed after 30.276 seconds\`, \`** TEST SUCCEEDED **\`. SnapshotTests wrote larsal-shots/<theme>/<frame-id>.png and, new for this check, the accessibility tree next to each (\`<frame-id>.ax.json\`, test only). The Parity suites are new (test only, 27 tests): they press the mockup's controls through the accessibility tree. Log: target/parity/behaviour.log.
+5. \`swift format lint --strict macos/LarsalTests/*.swift\` and \`swiftlint lint --strict --quiet LarsalTests/\` (in macos/) → no findings.
 6. \`node design/parity/tools/mockup-dom.mjs lock,main,states\` (mockup boxes, text runs, fonts, glyphs, controls; headless) → \`light: 21 frames, 2586 text runs\`, \`dark: 21 frames, 2586 text runs\`.
-7. \`swift design/parity/tools/ocr.swift app-shots/light/*.png app-shots/dark/*.png\` (on-device text recognition, only for strings kept out of the accessibility tree) → 36 images read.
+7. \`swift design/parity/tools/ocr.swift larsal-shots/light/*.png larsal-shots/dark/*.png\` (on-device text recognition, only for strings kept out of the accessibility tree) → 36 images read.
 8. \`node design/parity/tools/compare.mjs <section>\` (pixelmatch threshold 0.1, includeAA false; text, tokens, geometry, behaviour; writes this report).
 
 Measured looks (LD-169): \`ParityFontTests\` (new, test only). "Font check" reads the large code's font runs from the accessibility tree and compares the drawn glyphs of the large code and a row code with the same string set by Core Text in IBM Plex Mono 500 and in the system face. "Focus check" renders the focused row offscreen in light and dark and reads the outline back. A probe in /tmp showed that the font runs in the tree name the requested font even where the glyphs drawn differ, so the glyph comparison is the deciding check.
 
 E6-S1 re-run (Builder, 2026-10-28, sections lock, main and states; states-copied added): steps 1, 2 and 6 were not repeated (mockup.js and app.css are older than the reference images and target/parity/dom-*.json).
-3. \`scripts/build-core.sh\` → \`build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift\` (bindings with \`copyField\`, \`clearClipboard\`, \`Copied\`).
+3. \`scripts/build-core.sh\` → \`build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift\` (bindings with \`copyField\`, \`clearClipboard\`, \`Copied\`).
 4. The check.sh G2 test step as above → \`✔ Suite SnapshotTests passed\`, \`✔ Suite ParityStatesTests passed\`, \`✔ Test run with 45 tests in 10 suites passed after 32.980 seconds\`, \`** TEST SUCCEEDED **\`. New: the states-copied snapshot and three "Parity states-copied" tests. The offscreen windows are now pinned to sRGB: on 2026-10-28 the Mac's screen gave Display P3 renders (accent #1b6c80 read as 53,107,126), which failed the Focus check and would shift every colour; the reference images are sRGB. Log: target/parity/behaviour.log.
-7. \`swift design/parity/tools/ocr.swift app-shots/light/*.png app-shots/dark/*.png\` → 38 images read.
+7. \`swift design/parity/tools/ocr.swift larsal-shots/light/*.png larsal-shots/dark/*.png\` → 38 images read.
 8. \`node design/parity/tools/compare.mjs lock\` → \`lock: 4/4 PASS\`; \`node design/parity/tools/compare.mjs main\` → \`main: 2/2 PASS\`; \`node design/parity/tools/compare.mjs states\` → \`states: 13/13 PASS\` (states-copied light 1.57 %, dark 1.6 %).
 
-E6-S1 second pass (Builder, 2026-10-28, LD-181): app-ffi \`copy_code\` and \`copy_fingerprint\`; Copy One-Time Code (⌘T), the code row's Copy and Copy fingerprint work; the unlock form's shown password is an AppKit field whose own field editor has no Copy or Cut (APP-03.19).
+E6-S1 second pass (Builder, 2026-10-28, LD-181): larsal-ffi \`copy_code\` and \`copy_fingerprint\`; Copy One-Time Code (⌘T), the code row's Copy and Copy fingerprint work; the unlock form's shown password is an AppKit field whose own field editor has no Copy or Cut (APP-03.19).
 3. \`scripts/build-core.sh\` → bindings with \`copyCode\` and \`copyFingerprint\`.
 4. The check.sh G2 test step → \`✔ Test run with 47 tests in 10 suites passed after 30.581 seconds\`, \`** TEST SUCCEEDED **\`; general pasteboard change count 10124 before and after the run. Log: target/parity/behaviour.log.
 7. OCR as above → 38 images read.

@@ -1,6 +1,6 @@
 # E5-S6 Generator: Verify proof
 
-Story: E5-S6 Generator in the toolbar and in the editor (plan/epics.md). Checks: uses `app-core`; cards FEA-02 and FEA-03 cases pass through the screen.
+Story: E5-S6 Generator in the toolbar and in the editor (plan/epics.md). Checks: uses `larsal-core`; cards FEA-02 and FEA-03 cases pass through the screen.
 Cards: FEA-02, FEA-03, FEA-05 (levels where shown). Decisions: LD-163 (4), LD-181, LD-204 (W-10).
 Verify agent, 2026-10-28. I did not build or check this story before.
 
@@ -9,7 +9,7 @@ Verify agent, 2026-10-28. I did not build or check this story before.
 | Check | Result |
 |---|---|
 | A. Design parity, section `generator` | **3 of 3 frames PASS**, light and dark. Pixels: 1.28 / 1.28 %, 1.08 / 0.98 % and 1.53 / 1.39 %. Outside the accepted areas: 0.75 / 0.77, 0.56 / 0.48 and 0.38 / 0.25. 0 missing strings, 0 token mismatches, 0 boxes or text runs off by more than 2 pt, 0 unnamed controls. Static tokens 45 of 45. Contrast: 42 pairs, lowest 4.87:1. Report: [design/parity/generator/report.md](../../design/parity/generator/report.md) and report.html. |
-| B1. One random source | PASS. There is no random API in Swift. app-ffi calls only `app_crypto::random`. app-core's generator draws only through `app_crypto::random::below`. |
+| B1. One random source | PASS. There is no random API in Swift. larsal-ffi calls only `larsal_crypto::random`. larsal-core's generator draws only through `larsal_crypto::random::below`. |
 | B2. FEA-02 and FEA-03 cases through the screen | Every row the drawn screen can reach passes (table in section 2). The rest is one of three kinds: waiting for W-10 (controls Option A does not draw), a later story or the command line, or a test of the core alone. Each of those has its own test, and those tests pass. |
 | B3. Secrets | PASS. The value lives in Rust as a `SecretString`. Swift holds only the shown copy. Nothing is left after close, lock or a new value: the API checks show it, and so does a scan of the process's own memory. Debug hides the value. |
 | B4. Mutations (private copy) | 14 mutants: 11 in Rust, 3 in Swift. 13 were caught by the tests. One survived: an off-by-one in a duplicate guard. It is advisory, see open issue 1. |
@@ -17,9 +17,9 @@ Verify agent, 2026-10-28. I did not build or check this story before.
 All work ran in a private copy: `rsync -a --exclude /target --exclude /fuzz/target` to /tmp/e5s6v-copy at 12:48.
 
 - **Own directories.** `target` was linked to /tmp/e5s6v-target, with `CARGO_TARGET_DIR=/tmp/e5s6v-target` and `-derivedDataPath /tmp/e5s6v-dd`.
-- **The code checked is the code in the tree.** At 13:11, `cmp` showed these files have the same bytes in the copy and in the shared tree: `crates/app-ffi/src/generator.rs`, `crates/app-ffi/src/session.rs`, `crates/app-core/src/generator/mod.rs`, `macos/App/Generator.swift` and `macos/App/GeneratorPanel.swift`.
+- **The code checked is the code in the tree.** At 13:11, `cmp` showed these files have the same bytes in the copy and in the shared tree: `crates/larsal-ffi/src/generator.rs`, `crates/larsal-ffi/src/session.rs`, `crates/larsal-core/src/generator/mod.rs`, `macos/Larsal/Generator.swift` and `macos/Larsal/GeneratorPanel.swift`.
 - **Other agents' changes.** They changed other files meanwhile, such as reports, ssh and editor pages. Diffs of `EditorEntryPage.swift`, `EntryListView.swift`, `MainWindow.swift` and `Controls.swift` touch nothing about the generator.
-- **My own tests.** They existed only in the copy: `crates/app-ffi/tests/verify_e5s6.rs`, and `macos/AppTests/VerifyE5S6Tests.swift` with the suites `VerifyE5S6Tests` and `VerifyE5S6MemoryTests`.
+- **My own tests.** They existed only in the copy: `crates/larsal-ffi/tests/verify_e5s6.rs`, and `macos/LarsalTests/VerifyE5S6Tests.swift` with the suites `VerifyE5S6Tests` and `VerifyE5S6MemoryTests`.
 - **No product code was edited.** The copy and the /tmp folders were deleted at the end.
 - **Rule 10.** No window was opened, nothing took focus, and the general pasteboard was never written or read; only its change count was compared.
 
@@ -32,9 +32,9 @@ I followed design/option-a/BUILD-AND-VERIFY.md, "Prompt for the Verify fleet".
    - The fresh manifest is byte-equal to the tree's.
    - The generator-password and generator-passphrase references are byte-equal to the tree's, light and dark.
    - generator-generator-in-the-window differs in 13 of 4,329,600 pixels, in a strip at y 1048 to 1056 (2×). With pixelmatch threshold 0.1 that is 0 pixels, 0.000 %. This is rasteriser noise, so the tree's references are current.
-2. `scripts/build-core.sh` printed `build-core (debug): target/app-core/AppFFI.xcframework and target/app-core/Swift/AppCore.swift`. Time: 56.4 s wall, 272 s user.
+2. `scripts/build-core.sh` printed `build-core (debug): target/larsal-core/LarsalFFI.xcframework and target/larsal-core/Swift/LarsalCore.swift`. Time: 56.4 s wall, 272 s user.
 3. `node design/parity/tools/mockup-dom.mjs generator` printed `light: 3 frames, 280 text runs -> target/parity/dom-light.json` and `dark: 3 frames, 280 text runs -> target/parity/dom-dark.json`.
-4. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath /tmp/e5s6v-dd test -skip-testing:AppUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES > target/parity/behaviour.log`
+4. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath /tmp/e5s6v-dd test -skip-testing:LarsalUITests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES > target/parity/behaviour.log`
    - The first try stopped with `ParityEditorPagesTests.swift:316:35: error: ambiguous use of 'accessibilityValue()'`. That is unfinished E5-S5 work, not this story. The tree already had the fixed file, so I copied it in.
    - The second try passed:
      - `✔ Suite GeneratorSnapshotTests passed after 22.604 seconds.`
@@ -42,10 +42,10 @@ I followed design/option-a/BUILD-AND-VERIFY.md, "Prompt for the Verify fleet".
      - `✔ Test run with 110 tests in 18 suites passed after 73.104 seconds.`
      - `** TEST SUCCEEDED **`
 5. The final generator run is in Part B, run S2. It wrote the snapshots that were compared:
-   - app-shots/light/generator-generator-in-the-window.png, generator-password.png and generator-passphrase.png;
-   - app-shots/dark/ with the same three names;
+   - larsal-shots/light/generator-generator-in-the-window.png, generator-password.png and generator-passphrase.png;
+   - larsal-shots/dark/ with the same three names;
    - each with its `.ax.json`.
-6. `swift design/parity/tools/ocr.swift app-shots/light/generator-*.png app-shots/dark/generator-*.png` read 6 images (119, 16, 20, 124, 16 and 19 text boxes).
+6. `swift design/parity/tools/ocr.swift larsal-shots/light/generator-*.png larsal-shots/dark/generator-*.png` read 6 images (119, 16, 20, 124, 16 and 19 text boxes).
 7. `node design/parity/tools/compare.mjs generator` printed:
 
 ```
@@ -92,38 +92,38 @@ What I checked by eye on the images, with mockup and app stacked:
 ```
 $ grep -rnE '\.random\(|randomElement|shuffled\(|shuffle\(|SecRandom|arc4random|drand48|srand|SystemRandomNumberGenerator|GKRandom|RandomNumberGenerator|random_' macos --include='*.swift'
 (no output, exit 1)
-$ grep -rnE "rand::|getrandom|OsRng|thread_rng|rand_core|SystemTime.*seed|fastrand|random\(" crates/app-ffi/src crates/app-ffi/Cargo.toml
+$ grep -rnE "rand::|getrandom|OsRng|thread_rng|rand_core|SystemTime.*seed|fastrand|random\(" crates/larsal-ffi/src crates/larsal-ffi/Cargo.toml
 (no output)
-$ grep -rnE "rand::|getrandom|OsRng|thread_rng|rand_core|fastrand|StdRng|SmallRng" crates/app-core/src crates/app-core/Cargo.toml
+$ grep -rnE "rand::|getrandom|OsRng|thread_rng|rand_core|fastrand|StdRng|SmallRng" crates/larsal-core/src crates/larsal-core/Cargo.toml
 (no output)
-$ grep -rn "random" crates/app-ffi/src
-edit.rs:1029  app_crypto::random::bytes(128)        (shredding a file copy, not the generator)
-edit.rs:2259  app_crypto::random::below(36)        (a temp file name, not the generator)
-cli.rs:171    app_crypto::random::SOURCE_CRATES    (the crate guard)
+$ grep -rn "random" crates/larsal-ffi/src
+edit.rs:1029  larsal_crypto::random::bytes(128)        (shredding a file copy, not the generator)
+edit.rs:2259  larsal_crypto::random::below(36)        (a temp file name, not the generator)
+cli.rs:171    larsal_crypto::random::SOURCE_CRATES    (the crate guard)
 generator.rs:145  MSG_RANDOM text only
-$ grep -n "random\|below" crates/app-core/src/generator/mod.rs
-6:  //! - Every random index comes from `app_crypto::random::below`: the OS
-34:         app_crypto::random::below(n).ok()        (the only source: `impl Source for Os`)
-$ cargo tree -p app-ffi -e normal -i rand_core --depth 2
+$ grep -n "random\|below" crates/larsal-core/src/generator/mod.rs
+6:  //! - Every random index comes from `larsal_crypto::random::below`: the OS
+34:         larsal_crypto::random::below(n).ok()        (the only source: `impl Source for Os`)
+$ cargo tree -p larsal-ffi -e normal -i rand_core --depth 2
 rand_core v0.10.1
-├── app-crypto v0.1.0
-│   ├── app-core … app-ffi … app-format … app-model … app-sshagent
+├── larsal-crypto v0.1.0
+│   ├── larsal-core … larsal-ffi … larsal-format … larsal-model … larsal-sshagent
 ```
 
 The generator path is as follows:
 
-- In Rust, `make()` in `app-ffi/src/generator.rs` calls `app_core::generator::password::generate` and `passphrase::generate`.
-- Their only source is `Os::below`, which is `app_crypto::random::below` (`crates/app-core/src/generator/mod.rs:34`).
+- In Rust, `make()` in `larsal-ffi/src/generator.rs` calls `larsal_core::generator::password::generate` and `passphrase::generate`.
+- Their only source is `Os::below`, which is `larsal_crypto::random::below` (`crates/larsal-core/src/generator/mod.rs:34`).
 - Swift never makes a value: `GeneratorModel` only calls `session.generate(options:)`.
 
 The core tests pass:
 
-- `cargo test -p app-crypto below`: `random::tests::below_draws_again_after_a_rejected_value`, `below_fails_closed_on_a_stuck_source`, `below_zero_is_an_error_and_draws_nothing` and `below_stays_in_range`, all ok.
-- `cargo test -p app-core --test fea02 --test fea03`: `ok. 20 passed`, `ok. 16 passed`.
+- `cargo test -p larsal-crypto below`: `random::tests::below_draws_again_after_a_rejected_value`, `below_fails_closed_on_a_stuck_source`, `below_zero_is_an_error_and_draws_nothing` and `below_stays_in_range`, all ok.
+- `cargo test -p larsal-core --test fea02 --test fea03`: `ok. 20 passed`, `ok. 16 passed`.
 
 ### 2. Card cases through the screen
 
-The cases were driven through the same app-ffi calls that `GeneratorModel` makes: `generator_options`, `generate`, `edit_generated`, `copy_generated`, `use_generated` and `close_generator`. Each case uses only values the drawn controls can set:
+The cases were driven through the same larsal-ffi calls that `GeneratorModel` makes: `generator_options`, `generate`, `edit_generated`, `copy_generated`, `use_generated` and `close_generator`. Each case uses only values the drawn controls can set:
 
 - the five chips;
 - look-alikes on or off;
@@ -137,11 +137,11 @@ Screen-only behaviour was driven through `GeneratorModel` and the accessibility 
 
 Test sets:
 
-- **R**: builder's `crates/app-ffi/tests/generator.rs`, 12 tests, plus the unit test `generator::tests::d_02_5_lock_during_rating_keeps_nothing`.
+- **R**: builder's `crates/larsal-ffi/tests/generator.rs`, 12 tests, plus the unit test `generator::tests::d_02_5_lock_during_rating_keeps_nothing`.
 - **V**: my `verify_e5s6.rs`, 15 tests.
 - **S**: builder's `ParityGeneratorTests` (9 tests) and `GeneratorSnapshotTests`.
 - **VS**: my `VerifyE5S6Tests` (2 tests) and `VerifyE5S6MemoryTests` (1 test).
-- **C**: app-core and app-crypto tests.
+- **C**: larsal-core and larsal-crypto tests.
 
 How to read the Result column:
 
@@ -175,9 +175,9 @@ How to read the Result column:
 | FEA-02.10 screen range | W-10 (the 1–999 number field is not drawn; the range is 8–64, LD-204) | What is drawn: the range clamps, and a length above 64 puts the thumb at the end (`RangeSlider`). R `fea_02_17_start_length`: 1,500 gives 999. |
 | FEA-02.10, .11, .21 command line rows | Later (INT-10, E12) | none |
 | FEA-02.11 defaults | PASS | R `fea_02_11_defaults`: password tab, 20, the four chips on, Äéß off, look-alikes and every group on; 200 values each have one of every type and no look-alike. S `openClose`: 20 characters. |
-| FEA-02.12 App simple view | PASS | V `v_fea02_12_app_simple_view`: defaults at a 4-character field's length 4, 10,000 values. Each has exactly one lower, one upper, one digit and one symbol, and no look-alike. |
-| FEA-02.12 hidden options; FEA-02.13 App hex | W-10 (Advanced) | C `fea02_13_hex_preset` ok |
-| FEA-02.12 reference rows, FEA-02.13 reference hex | The reference app's behaviour, not App's | none |
+| FEA-02.12 Larsal simple view | PASS | V `v_fea02_12_app_simple_view`: defaults at a 4-character field's length 4, 10,000 values. Each has exactly one lower, one upper, one digit and one symbol, and no look-alike. |
+| FEA-02.12 hidden options; FEA-02.13 Larsal hex | W-10 (Advanced) | C `fea02_13_hex_preset` ok |
+| FEA-02.12 reference rows, FEA-02.13 reference hex | The reference app's behaviour, not Larsal's | none |
 | FEA-02.14 live | PASS for the drawn controls; the extra field is W-10 | S `passwordControls`: New password, each chip, the range (VoiceOver increment to 21) and look-alikes each make a new value. S `passphraseControls`: tab, separator, case and words. |
 | FEA-02.14 invalid | PASS | V: lower and upper at length 2 is valid; length 1 gives no value, `MSG-GEN-TOO-SHORT`, Copy empty and Use refused. S `invalid` and `refusedEdit`: Copy and Use password are disabled. |
 | FEA-02.15 strength | PASS, in the mockup's "level · whole bits" (LD-204) | V `v_fea02_15_strength_line`: `YQC3kbXbjC652dTDH` has E 88.77 and shows Good · 89 bits (17 characters); `Bs5ZFfthWzR8DGFEjaCM6bGqhmCT4km` has E 174.00 and shows Excellent · 174 bits (31). VS `copy`: the screen's strings hold the level and "N bits" that Rust rated. The character count is kept, but Option A's line does not draw it (LD-204). |
@@ -191,7 +191,7 @@ How to read the Result column:
 | FEA-02.20 copy | PASS | V `v_fea02_20_copy_markers_and_clear`: label `Password`, 10 s; private pasteboard types `org.nspasteboard.ConcealedType`, `org.nspasteboard.TransientType`, `public.utf8-plain-text`; after 11 s the value is gone. VS `copy`: through the screen, the toast is "Password copied." / "Clears in 10 s." (LD-181), the popover stays open (LD-204), both markers are on the private board, the board is cleared after 11 s, and the general change count is unchanged. |
 | FEA-02.22 scalar | W-10 (extra) | C `fea02_22_unicode_scalar_values` ok |
 | FEA-02.23 secret | PASS at model level | VS `memory`, see section 3 |
-| FEA-02.23 logs | PASS | There is no logging in the generator code: no `log::`, `tracing::` or `println!` in generator.rs and app-core/generator, and the Swift app's 3 `Logger` calls print no values. The 3 values from the final snapshots (from `.ax.json`) appear in none of the 5 logs. |
+| FEA-02.23 logs | PASS | There is no logging in the generator code: no `log::`, `tracing::` or `println!` in generator.rs and larsal-core/generator, and the Swift app's 3 `Logger` calls print no values. The 3 values from the final snapshots (from `.ax.json`) appear in none of the 5 logs. |
 | FEA-02 AT-B04 | PASS | Section 1 |
 
 #### FEA-03
@@ -257,14 +257,14 @@ VERIFY E5S6 memory after lock: C utf8 0 utf16 0; A utf8 0 utf16 0; B utf8 0 utf1
 
 While the value is shown there are two copies: the Swift string and Rust's `SecretString`. After a new value, after close and after lock there are none.
 
-This scan is model level, without the rendered text field. A dump of the real App.app with lldb is Mac QA: developer mode is off, as noted in E6-S6.
+This scan is model level, without the rendered text field. A dump of the real Larsal.app with lldb is Mac QA: developer mode is off, as noted in E6-S6.
 
 ### 4. Mutations (private copy only; each restored and checked with `cmp` afterwards)
 
-Rust: `/tmp/e5s6v-mutate.sh <id> <file> <line> <perl-subst>` ran `cargo test --no-fail-fast -p app-ffi --test generator --test verify_e5s6 --lib -- --skip v_fea02_20 --skip v_fea02_7 --skip v_fea03_6 --skip v_fea02_9`, which skips my 4 slow statistical and timer tests.
+Rust: `/tmp/e5s6v-mutate.sh <id> <file> <line> <perl-subst>` ran `cargo test --no-fail-fast -p larsal-ffi --test generator --test verify_e5s6 --lib -- --skip v_fea02_20 --skip v_fea02_7 --skip v_fea03_6 --skip v_fea02_9`, which skips my 4 slow statistical and timer tests.
 
-- The lib binary's 2 failing `reports::tests` are baseline. They fail without any mutant: `cargo test -p app-ffi --lib` gives `39 passed; 2 failed` (`fea_05_15_health_report_matches_the_sidebar`, `fea_05_26_expire_now_from_the_report`). That is unfinished E5-S7 work in the copy, so they are left out below.
-- Swift: `/tmp/e5s6v-swiftmut.sh` ran `xcodebuild … test -only-testing:AppTests/ParityGeneratorTests -only-testing:AppTests/VerifyE5S6Tests`.
+- The lib binary's 2 failing `reports::tests` are baseline. They fail without any mutant: `cargo test -p larsal-ffi --lib` gives `39 passed; 2 failed` (`fea_05_15_health_report_matches_the_sidebar`, `fea_05_26_expire_now_from_the_report`). That is unfinished E5-S7 work in the copy, so they are left out below.
+- Swift: `/tmp/e5s6v-swiftmut.sh` ran `xcodebuild … test -only-testing:LarsalTests/ParityGeneratorTests -only-testing:LarsalTests/VerifyE5S6Tests`.
 
 | ID | Mutant | Caught by |
 |---|---|---|
@@ -277,15 +277,15 @@ Rust: `/tmp/e5s6v-mutate.sh <id> <file> <line> <perl-subst>` ran `cargo test --n
 | M7 | generator.rs:200 `exclude_lookalike: false` | R `fea_02_11_defaults`, `fea_02_1_chips`; V `v_fea02_12_app_simple_view`, `v_fea02_2_removed_set` FAILED |
 | M8 | generator.rs:179 the passphrase is rated by the estimate, not the FEA-03.7 formula | R `fea_03_7_passphrases`, V `v_fea03_3_defaults_and_7_bands` FAILED. The first form did not compile (E0382); it was rewritten as `let bits = estimate(&value); return Ok((value, bits));` |
 | M9 | generator.rs:236 Bad is no longer shown as Poor (`level == Level::Excellent`) | R `fea_03_7_passphrases`, `d_02_3_invalid_options`; V `v_fea03_3_defaults_and_7_bands`, `v_fea02_15_strength_line` FAILED |
-| M10 | generator.rs:224 `too_long` lets a 65-character separator through (`nth(MAX_SEPARATOR + 1)`) | **Survived.** Generation is still refused by app-core's own check (`SeparatorTooLong`, mapped to the same message). Only `close_generator`'s save filter is weaker, and no test saves a separator of exactly 65 characters. Open issue 1. |
-| M11 | app-core generator/mod.rs:34 the source becomes `Some(n - 1)` (no randomness) | V `v_fea02_1_sets_each_chip_alone`, `v_fea02_2_removed_set`, `v_secret_drops` FAILED. app-core `--test fea02`: 10 failed (`fea02_06_os_source_without_bias`, `fea02_07_uniform_picks`, …); `--test fea03`: `fea03_06_uniform_picks_with_replacement` FAILED. The builder's 12 R tests all pass on this mutant: they show values only, never randomness. That is covered by C and V. |
+| M10 | generator.rs:224 `too_long` lets a 65-character separator through (`nth(MAX_SEPARATOR + 1)`) | **Survived.** Generation is still refused by larsal-core's own check (`SeparatorTooLong`, mapped to the same message). Only `close_generator`'s save filter is weaker, and no test saves a separator of exactly 65 characters. Open issue 1. |
+| M11 | larsal-core generator/mod.rs:34 the source becomes `Some(n - 1)` (no randomness) | V `v_fea02_1_sets_each_chip_alone`, `v_fea02_2_removed_set`, `v_secret_drops` FAILED. larsal-core `--test fea02`: 10 failed (`fea02_06_os_source_without_bias`, `fea02_07_uniform_picks`, …); `--test fea03`: `fea03_06_uniform_picks_with_replacement` FAILED. The builder's 12 R tests all pass on this mutant: they show values only, never randomness. That is covered by C and V. |
 | M12 | Generator.swift:87 `close()` keeps the Swift value | S `openClose`, `newEntry`, `lock`; VS `saving`, `copy` FAILED (5 issues) |
 | M13 | Generator.swift:60 the last chip may turn off | S `passwordControls` FAILED: `Expectation failed: generator.options.special` |
 | M14 | GeneratorPanel.swift:34 Use password is not disabled on an empty value | S `invalid` and `refusedEdit` FAILED: `screen.node(name)?.isAccessibilityEnabled?() == false` |
 
 ## Test runs and their output
 
-**R1.** `cargo test -p app-ffi --test generator`
+**R1.** `cargo test -p larsal-ffi --test generator`
 
 ```
 running 12 tests
@@ -304,13 +304,13 @@ test fea_02_16_refused_edit_drops_the_value ... ok
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
 ```
 
-**R2.** `cargo test -p app-ffi --lib generator`
+**R2.** `cargo test -p larsal-ffi --lib generator`
 
 ```
 test generator::tests::d_02_5_lock_during_rating_keeps_nothing ... ok
 ```
 
-**R3.** `cargo test -p app-core generator`
+**R3.** `cargo test -p larsal-core generator`
 
 ```
 test generator::password::tests::chars_buffer_round_trips_and_swaps ... ok
@@ -326,9 +326,9 @@ test result: ok. 9 passed
 test fea05_09_generator ... ok
 ```
 
-**R3, continued.** `cargo test -p app-core --test fea02 --test fea03` printed `ok. 20 passed` and `ok. 16 passed`.
+**R3, continued.** `cargo test -p larsal-core --test fea02 --test fea03` printed `ok. 20 passed` and `ok. 16 passed`.
 
-**R4.** `cargo test -p app-ffi --test generator --test verify_e5s6 -- --nocapture --test-threads 8` (final run, code equal to the tree) printed `ok. 12 passed` and `ok. 15 passed; 0 failed … finished in 57.78s`.
+**R4.** `cargo test -p larsal-ffi --test generator --test verify_e5s6 -- --nocapture --test-threads 8` (final run, code equal to the tree) printed `ok. 12 passed` and `ok. 15 passed; 0 failed … finished in 57.78s`.
 
 The first run of V had 1 failure, and it was in my own test: the `!@#$` set check left out `|`, which is allowed with look-alikes off. I fixed the test and the code was unchanged. The V lines:
 
@@ -346,7 +346,7 @@ V FEA-02.5 no characters: problem Some("Choose at least one character type.")
 V FEA-02.7 uniform: 0–9 alone, look-alikes off (one group), 10,000 x 100: chi-square 21.40 (bar 44.81)
 V FEA-02.7 extended: Äéß alone, look-alikes on, 10,000 x 93: 93 characters seen, U+00B7 seen false, chi-square 90.98 (bar 171.40)
 V FEA-02.9 small groups: A–Z a–z 0–9, look-alikes on, length 32, 20,000: mean digits 4.290 (4.283 ± 0.06), pool 53 characters
-V FEA-02.12 App simple view: defaults at the field's length 4, 10,000: each one lower, one upper, one digit, one symbol, no look-alike
+V FEA-02.12 Larsal simple view: defaults at the field's length 4, 10,000: each one lower, one upper, one digit, one symbol, no look-alike
 V FEA-02.15 strength: YQC3kbXbjC652dTDH: FEA-05 E 88.77 -> shown Good · 89 bits, 17 chars
 V FEA-02.15 strength: Bs5ZFfthWzR8DGFEjaCM6bGqhmCT4km: FEA-05 E 174.00 -> shown Excellent · 174 bits, 31 chars
 V FEA-02.15 empty: shown Poor · 0 bits, 0 chars; copy empty true
@@ -380,7 +380,7 @@ V secrets: a new value replaces the old (Copy holds the new); Debug Generated { 
 **S2.** The final generator run:
 
 ```
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/App.xcodeproj -scheme App -destination platform=macOS -derivedDataPath /tmp/e5s6v-dd test -only-testing:AppTests/GeneratorSnapshotTests -only-testing:AppTests/ParityGeneratorTests -only-testing:AppTests/VerifyE5S6Tests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination platform=macOS -derivedDataPath /tmp/e5s6v-dd test -only-testing:LarsalTests/GeneratorSnapshotTests -only-testing:LarsalTests/ParityGeneratorTests -only-testing:LarsalTests/VerifyE5S6Tests SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
 ```
 
 The general pasteboard change count was 10145 before and 10145 after. Output:
@@ -406,18 +406,18 @@ VERIFY E5S6 copy: after 11 s private pasteboard holds the value: false
 ** TEST SUCCEEDED **
 ```
 
-**S3.** `xcodebuild … test -only-testing:AppTests/VerifyE5S6MemoryTests` printed `✔ Test run with 1 test in 1 suite passed after 1.542 seconds.` and `** TEST SUCCEEDED **`. The scan output is in section 3.
+**S3.** `xcodebuild … test -only-testing:LarsalTests/VerifyE5S6MemoryTests` printed `✔ Test run with 1 test in 1 suite passed after 1.542 seconds.` and `** TEST SUCCEEDED **`. The scan output is in section 3.
 
 ## Noise and other agents' work
 
 - **The general pasteboard count over the full run.** It went from 10142 to 10143 during the 110-test run. That run also had other agents' tests and the owner at work. The generator suites run alone left it at 10145 and 10145, and the in-test check (`ParityGeneratorTests` `copy`) passed both times. Per the brief, this is noise, not a fail.
 - **ParityEditorPagesTests.swift compile error.** The copy had E5-S5's unfinished version; the tree's fixed file built.
-- **`reports::tests` failures.** Two of them fail in the copy's app-ffi lib. That is unfinished E5-S7 work.
+- **`reports::tests` failures.** Two of them fail in the copy's larsal-ffi lib. That is unfinished E5-S7 work.
 
 ## Open issues (advisory; not fails)
 
-1. **M10 survived.** `close_generator`'s separator filter is not tested at its boundary. The smallest fix is to add a case to R `d_03_5_oversized_separator_is_not_saved`: save a 65-character separator, then expect the saved options to be unchanged. Generation itself is guarded twice (app-ffi and app-core).
-2. **The builder's R tests never check randomness (M11).** That is covered by app-core `fea02` and `fea03` and by Verify's statistical rows. If more cover is wanted, one R test could assert that two values differ.
+1. **M10 survived.** `close_generator`'s separator filter is not tested at its boundary. The smallest fix is to add a case to R `d_03_5_oversized_separator_is_not_saved`: save a 65-character separator, then expect the saved options to be unchanged. Generation itself is guarded twice (larsal-ffi and larsal-core).
+2. **The builder's R tests never check randomness (M11).** That is covered by larsal-core `fea02` and `fea03` and by Verify's statistical rows. If more cover is wanted, one R test could assert that two values differ.
 3. **W-10 (LD-204).** These are waiting for the owner's mockup addition, then their build and Verify:
    - the length field 1 to 999 and the words field 1 to 100;
    - every group;
@@ -425,7 +425,7 @@ VERIFY E5S6 copy: after 11 s private pasteboard holds the value: false
    - the mixed case chip;
    - the word-list picker.
 4. **The check box tick.** The shared `CheckMark` draws Phosphor `check` at 12 pt, thinner than the mockup's 2-px CSS tick. This is inside the pixel limit, and it is the same in every section.
-5. **Mac QA.** Focus on a real key window (LD-169), and an lldb memory dump of App.app with the field rendered (AT-C02; developer mode is off on this Mac).
+5. **Mac QA.** Focus on a real key window (LD-169), and an lldb memory dump of Larsal.app with the field rendered (AT-C02; developer mode is off on this Mac).
 
 ## Files
 

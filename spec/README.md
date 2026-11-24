@@ -115,7 +115,7 @@ Status: CRY-04 reviewed 2026-10-31 (E16-S1, Verify signed).
 | FEA-08 | Import formats | E4-S13 |
 | FEA-09 | Export formats | E4-S13 |
 
-### App (`spec/app/`)
+### Larsal (`spec/app/`)
 
 | ID | Card | Built in |
 |---|---|---|

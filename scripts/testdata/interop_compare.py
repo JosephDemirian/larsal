@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare a vault and App's copy of it through the reference CLI (G4).
+"""Compare a vault and Larsal's copy of it through the reference CLI (G4).
 
     REF_CLI=<reference CLI> [INTEROP_PASSWORD=<password>] \
         interop_compare.py ORIGINAL COPY [KEY FILE [COPY KEY FILE]]
@@ -19,21 +19,21 @@ the original (default: the same one).
    export holds no attachment bytes, and history attachments cannot be
    exported, so history attachments are compared by name only.)
 
-Version-form rules (App always writes version 4; FMT-16.18):
+Version-form rules (Larsal always writes version 4; FMT-16.18):
 - Times are compared as seconds since year 1, whatever form the export used
   (text in version 3, base64 in version 4; FMT-12).
 - Meta/Binaries (the version 3 attachment pool) is dropped and attachment Ref
   numbers are ignored: both are file-local; step 2 checks the content.
 - Meta/SettingsChanged is ignored when the original has none (version 3
-  files never do; App writes the open time, FMT-10.10 row 25).
+  files never do; Larsal writes the open time, FMT-10.10 row 25).
 
-Save rules (true of every save, App's and the reference's):
+Save rules (true of every save, Larsal's and the reference's):
 - The random padding item of CRY-03.7 (custom data key ending in
   "_RANDOM_SLUG") is new on every save, so it is left out of both exports.
   Adding it stamps the vault's "_LAST_MODIFIED" item; a vault custom data
   block that then holds only that item counts as empty (FMT-14.18).
 - A time the original file does not hold is filled at load: by the reference
-  with the current time, by App with its open time, which App then writes
+  with the current time, by Larsal with its open time, which Larsal then writes
   (FMT-10.10). Such a time is "now" in both exports; two times that are both
   within 10 minutes of this run's start compare equal.
 

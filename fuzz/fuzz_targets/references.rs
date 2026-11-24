@@ -13,9 +13,9 @@
 //! (n + 1) × 256 times, so small inputs reach large values.
 #![no_main]
 
-use app_core::refs::{Context, MAX_OUTPUT, resolve};
-use app_crypto::secret::SecretString;
-use app_model::{Entry, Field, Group, Time, Uuid, Vault};
+use larsal_core::refs::{Context, MAX_OUTPUT, resolve};
+use larsal_crypto::secret::SecretString;
+use larsal_model::{Entry, Field, Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 
 const SEPARATOR: u8 = 0x1E;

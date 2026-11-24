@@ -1,0 +1,26 @@
+[package]
+name = "larsal-share"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E11-S2: shared groups (spec INT-08). The share settings item is larsal-format's
+# (`share_item`, E11-S3: larsal-core's references read it too); containers
+# read through larsal-core's own ZIP reader and larsal-format's vault reader, and
+# written by larsal-format and larsal-core's storage (LD-142 (2), LD-267 (5)).
+# No signatures (D-INT08-1 (a)), no new outside crate.
+[dependencies]
+larsal-core = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-format = { workspace = true }
+larsal-model = { workspace = true }
+
+[dev-dependencies]
+# The tests build zip archives (deflate members, CRC-32).
+flate2 = { workspace = true }
+# Rust rule 10: the settings item round trip.
+proptest = { workspace = true }
+
+[lints]
+workspace = true

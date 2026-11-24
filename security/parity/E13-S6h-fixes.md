@@ -22,22 +22,22 @@ All 9 rows are fixed and re-tested. Verdict: **signed (9 re-tested)**.
 
 ### Round 2 setup
 
-- **What changed since round 1.** Only F-103's files: `crates/app-core/src/attachments.rs` (10:33), `crates/app-ffi/tests/edit.rs` (10:33) and the new `macos/AppTests/AttachmentKindsTests.swift` (10:46). Every other part h file is older than round 1's copy (09:49), and round 1 found the copy and the tree equal: keyring.rs, sshagent tests, app-ffi ssh.rs and edit.rs, secret.rs, write_version.rs, EditorEntryPage.swift, ShownPasswordField.swift, deny.toml and the two plan texts. So for those 8 rows I re-ran the tests and one or two mutants each, and I re-ran F-106's and F-105's steps.
-- **Shared tree, own target** `/tmp/e13s6h-verify-target`: `env -u SSH_AUTH_SOCK cargo test --locked -p app-sshagent -p app-ffi -p app-core -p app-format -p app-crypto` gave 81 suites, 2,093 passed, 0 failed, 51 ignored. These named tests are `ok`:
+- **What changed since round 1.** Only F-103's files: `crates/larsal-core/src/attachments.rs` (10:33), `crates/larsal-ffi/tests/edit.rs` (10:33) and the new `macos/LarsalTests/AttachmentKindsTests.swift` (10:46). Every other part h file is older than round 1's copy (09:49), and round 1 found the copy and the tree equal: keyring.rs, sshagent tests, larsal-ffi ssh.rs and edit.rs, secret.rs, write_version.rs, EditorEntryPage.swift, ShownPasswordField.swift, deny.toml and the two plan texts. So for those 8 rows I re-ran the tests and one or two mutants each, and I re-ran F-106's and F-105's steps.
+- **Shared tree, own target** `/tmp/e13s6h-verify-target`: `env -u SSH_AUTH_SOCK cargo test --locked -p larsal-sshagent -p larsal-ffi -p larsal-core -p larsal-format -p larsal-crypto` gave 81 suites, 2,093 passed, 0 failed, 51 ignored. These named tests are `ok`:
   - own_agent: `f_106_…`, `f_108_a_silent_agent_costs_the_lock_one_wait_not_one_per_key`, `f_108_an_add_running_at_the_lock_leaves_too`, `f_108_a_key_added_again_before_the_removals_stays`;
   - agent: `f_109_…`;
-  - app-ffi ssh: `f_108_a_silent_agent_never_holds_the_lock`, `f_108_quit_waits_for_the_locks_removals`;
-  - app-ffi edit: `f_103_every_type_that_runs_or_acts_asks_first`, `f_104_…`;
+  - larsal-ffi ssh: `f_108_a_silent_agent_never_holds_the_lock`, `f_108_quit_waits_for_the_locks_removals`;
+  - larsal-ffi edit: `f_103_every_type_that_runs_or_acts_asks_first`, `f_104_…`;
   - write_version: `f_100_…`, `cry_03_t11_one_random_source`;
-  - app-core `e4_b1_no_plain_copies_of_values`.
-- **Private copy.** `rsync -a --exclude target --exclude app-shots --exclude fuzz/target` to `/tmp/e13s6h-verify-copy` at 10:54. It had its own targets: `/tmp/e13s6h-verify-ctarget` for `scripts/build-core.sh` (exit 0), `/tmp/e13s6h-verify-mtarget` for the harness and the mutants, and DerivedData `/tmp/e13s6h-verify-dd`. `xcodebuild … build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` gave TEST BUILD SUCCEEDED. The copy-only harness was `verify_f103_round2_every_registered_extension` (tests/edit.rs) and `verify_r2_f106_red_team_steps` and `verify_r2_f105_agent_socket` (tests/ssh.rs). Each mutant was restored from the tree and checked with `cmp`.
+  - larsal-core `e4_b1_no_plain_copies_of_values`.
+- **Private copy.** `rsync -a --exclude target --exclude larsal-shots --exclude fuzz/target` to `/tmp/e13s6h-verify-copy` at 10:54. It had its own targets: `/tmp/e13s6h-verify-ctarget` for `scripts/build-core.sh` (exit 0), `/tmp/e13s6h-verify-mtarget` for the harness and the mutants, and DerivedData `/tmp/e13s6h-verify-dd`. `xcodebuild … build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` gave TEST BUILD SUCCEEDED. The copy-only harness was `verify_f103_round2_every_registered_extension` (tests/edit.rs) and `verify_r2_f106_red_team_steps` and `verify_r2_f105_agent_socket` (tests/ssh.rs). Each mutant was restored from the tree and checked with `cmp`.
 - **LaunchServices.** I used `lsregister -dump` (reads the database), then small Swift tools in `/tmp/e13s6h-verify-scripts`. They call `NSWorkspace.urlForApplication(toOpen:)` and `UTType` on empty demo files, and read apps' Info.plist. Nothing was opened.
-- **Lint.** `rustfmt --check` on the part h files: exit 0. `cargo fmt --check` on the 5 crates only reports `app-ffi/src/reports.rs` and `window.rs`, which another agent edited at 11:09 (not part h). `cargo clippy --locked --all-targets -p app-core -p app-ffi -p app-sshagent -p app-crypto -p app-format -- -D warnings`: exit 0. SwiftLint 0.65.1 `lint --strict` and `swift-format lint --strict` on AttachmentKindsTests.swift: exit 0. `scripts/check-names.sh`: names PASS.
+- **Lint.** `rustfmt --check` on the part h files: exit 0. `cargo fmt --check` on the 5 crates only reports `larsal-ffi/src/reports.rs` and `window.rs`, which another agent edited at 11:09 (not part h). `cargo clippy --locked --all-targets -p larsal-core -p larsal-ffi -p larsal-sshagent -p larsal-crypto -p larsal-format -- -D warnings`: exit 0. SwiftLint 0.65.1 `lint --strict` and `swift-format lint --strict` on AttachmentKindsTests.swift: exit 0. `scripts/check-names.sh`: names PASS.
 - **Rules.**
   - Demo data only: option-a-personal, the INT-06 demo keys, and keys made by `ssh-keygen` in /tmp.
   - The SSH runs used `env -u SSH_AUTH_SOCK` and throwaway agents, each stopped by its PID.
-  - The AppTests ran without a host app, with windows offscreen.
-  - Open copies made by the tests are wiped by the session. The one file left in the user's `App/open-attachments` folder is dated 10:02, before my run, so it is not mine and I left it alone.
+  - The LarsalTests ran without a host app, with windows offscreen.
+  - Open copies made by the tests are wiped by the session. The one file left in the user's `Larsal/open-attachments` folder is dated 10:02, before my run, so it is not mine and I left it alone.
 
 ### F-103 (Medium), round 2: the ask-first list
 
@@ -46,16 +46,16 @@ All 9 rows are fixed and re-tested. Verdict: **signed (9 re-tested)**.
   2. Every extension LaunchServices knows on this Mac: 1,369, from the `tags:` and `bindings:` lines of `lsregister -dump`. Each one goes through the list, and each listed one through `open_attachment`.
   3. Each extension's default app (empty demo file), and each acting system app's document types expanded to extensions (`CFBundleTypeExtensions` plus `LSItemContentTypes` → `UTType` tags).
   4. Each extension's types, all of them (`UTType.types(tag:tagClass:conformingTo:)`, not only the preferred one), against the quarantine list's types. Then each unlisted extension's types against each listed extension's type.
-  5. The new AppTest and the f_103 test, with mutants.
+  5. The new LarsalTest and the f_103 test, with mutants.
 - **Before (round 1).** 13 types opened without asking: shtm, xhtm, jhtml, xslt, xbl, asif, udif, dvdr, dmgpart, nslloc, webbookmark, networkconnect and internetconnect.
 - **After.**
   - All 13 give `AskFirst`, and so do the mixed-case names. x.term, x.xhtml, x.terminal, x.html, demo.p\u{212A}g and DEMO.SHTML give `AskFirst`; x.txt gives `Opened`.
   - Of the 1,369, 95 calls asked first (84 registered listed types plus the 11 extra names) and 1 opened (x.txt). The set that asks is exactly the listed set. icp, x11app and ipg are listed but not registered on this Mac.
-  - Default apps: every extension whose default is Terminal, Script Editor, Automator, Automator Installer, Installer, iOS App Installer, JavaLauncher, DiskImageMounter, System Settings, Shortcuts, Screen Sharing, RegisterPluginIMApp, SystemUIServer or Safari is listed. Finder's are listed except clippings and saved searches. The default browser here is Dia, and its html, htm, shtml, shtm, xhtml, xht and xhtm are all listed.
+  - Default apps: every extension whose default is Terminal, Script Editor, Automator, Automator Installer, Installer, iOS Larsal Installer, JavaLauncher, DiskImageMounter, System Settings, Shortcuts, Screen Sharing, RegisterPluginIMApp, SystemUIServer or Safari is listed. Finder's are listed except clippings and saved searches. The default browser here is Dia, and its html, htm, shtml, shtm, xhtml, xht and xhtm are all listed.
   - Document types: Terminal, System Settings, DiskImageMounter, Automator, Installer, JavaLauncher, Shortcuts and the installers have no unlisted extension. Every Default or Owner type in Safari's Info.plist is listed: web archive, bookmark, history, webloc, download, extension, HTML, url, XHTML and XML. Safari's js, css and images are Alternate.
   - The unlisted system defaults are all kinds that import or show content: Archive Utility's archives, Keychain Access's certificates, ProfileHelper's profiles, Calendar, Contacts, Mail, Font Book, Pass Viewer, Finder clippings, System Information, Software Update's sucatalog and VoiceOver's voprefs. The system's own list (CoreTypes `System`, `LSRiskCategorySafe`) names mobileconfig, configprofile, provisionprofile, ics and vcard as safe, which supports the builder's choice to leave them out.
 - **Mutants** (private copy; each type was swapped for a word that matches nothing):
-  - AttachmentKindsTests failed for: dvdr out (`["cdr: dvdr", "toast: dvdr"]`); xslt out (`["xbl: xslt", "xsl: xslt"]`); internetconnect out (`["networkconnect: internetconnect"]`); shtm out (`["htm: shtm", "html: shtm", "shtml: shtm"]`). nslloc out passes the AppTest, because it is in its own Finder type.
+  - AttachmentKindsTests failed for: dvdr out (`["cdr: dvdr", "toast: dvdr"]`); xslt out (`["xbl: xslt", "xsl: xslt"]`); internetconnect out (`["networkconnect: internetconnect"]`); shtm out (`["htm: shtm", "html: shtm", "shtml: shtm"]`). nslloc out passes the LarsalTest, because it is in its own Finder type.
   - f_103 failed at edit.rs:605 for: nslloc out (`demo.nslloc` gave Opened), bash out and download out.
 - **Not counted, for the lead.**
   1. dist and distz (`com.apple.installer-distribution-package`, on the quarantine list), and placeholder and remoteplaceholder (application placeholders under `com.apple.application`). These are bundle types. As a plain file, .dist gets no default app, and .placeholder is treated as an app itself, as .app and .service are, which a flat file cannot be. Round 1's conformance check used only each extension's preferred type, so it missed them. Listing them would add 4 words.
@@ -67,7 +67,7 @@ All 9 rows are fixed and re-tested. Verdict: **signed (9 re-tested)**.
 - **F-106.**
   - Steps: copy-only `verify_r2_f106_red_team_steps`. Throwaways A and B, and K1e with remove-on-lock. Unlock with A, then `set_ssh_agent(true, B)` (what Settings > OK calls through `save_settings`). Lock, then wait 1 s. Next, the turn-off in the same change as the switch. Last, A stopped after the switch.
   - Before (red team): A kept the key and there was no banner.
-  - After: `step 1: A 1 keys, B 0 keys`; `lock after switch, 1 s later: A 0 keys, B 0 keys, banner None`; `off with switch: A before 1, after 0 keys`; `A stopped: … banner Some("App couldn't take the key of “Server root · web-01” out of the SSH agent. …")`.
+  - After: `step 1: A 1 keys, B 0 keys`; `lock after switch, 1 s later: A 0 keys, B 0 keys, banner None`; `off with switch: A before 1, after 0 keys`; `A stopped: … banner Some("Larsal couldn't take the key of “Server root · web-01” out of the SSH agent. …")`.
   - Mutant M1 (records follow the setting): the harness shows `A 1 keys` after the lock and after the turn-off, with `banner None` (the red team's result). f_106 FAILED at own_agent.rs:795 ("lock: the key stayed in A").
 - **F-108.** The 5 f_108 tests pass on the tree. M2 (no failed-agent cache) FAILED at own_agent.rs:880 ("the silent agent was asked again", 3). M3 (the lock joins its removal thread) FAILED at ssh.rs:394 ("the lock waited: 2.002188s"). Round 1's red team harness (38 µs lock; quit 2.03 s) ran on the same keyring.rs and ssh.rs.
 - **F-109.** f_109 passes. At load average 17 to 18 from other agents, `agent` passed 5 of 5 runs (25 passed each) and `own_agent` 2 of 2 runs (38 passed each). M4 (`answers` does not wait) FAILED at agent.rs:561 ("returned before the agent listened: 667ns").
@@ -77,13 +77,13 @@ All 9 rows are fixed and re-tested. Verdict: **signed (9 re-tested)**.
 - **F-100.**
   - `cargo deny --frozen check bans`: bans ok.
   - Probes in the copy, each against `cry_03_t11`, each FAILED and named the word and the file:
-    - RT-B3's `libc::arc4random_buf` line in app-cli zone.rs;
+    - RT-B3's `libc::arc4random_buf` line in larsal-cli zone.rs;
     - `RandomState::new()` in zone.rs;
-    - `SecRandomCopyBytes(…)` in AppMain.swift;
-    - `drand48()` in AppMain.swift.
+    - `SecRandomCopyBytes(…)` in LarsalMain.swift;
+    - `drand48()` in LarsalMain.swift.
   - M8b (f_100's Swift check with no words) FAILED at write_version.rs:800 on `Int.random(in: 0..<10)`.
   - Restored: write_version 33 passed.
-- **F-105.** plan/attacks-and-checks.md:68 and plan/security.md:95 still name App's own agent socket of INT-06.32. Copy-only `verify_r2_f105_agent_socket`: `socket mode 140600 uid 501; folder 40700; lsof -U lines naming agent.sock: 1; lsof -i lines: 0`; after turn-off, `socket exists: false`.
+- **F-105.** plan/attacks-and-checks.md:68 and plan/security.md:95 still name Larsal's own agent socket of INT-06.32. Copy-only `verify_r2_f105_agent_socket`: `socket mode 140600 uid 501; folder 40700; lsof -U lines naming agent.sock: 1; lsof -i lines: 0`; after turn-off, `socket exists: false`.
 
 ## Round 1
 
@@ -92,50 +92,50 @@ Date: 2026-10-29 (the runs took place from 09:49 to 10:25 on 2026-10-30 by the M
 | Finding | Result | One line |
 |---|---|---|
 | F-106 (Medium) | **fixed, re-tested** | The red team's own steps through `save_settings`: after the switch to B and the lock, A is empty after 1 s (before: A still held the key). The turn-off in the same OK empties A too. With A stopped, MI06-19 names the key. |
-| F-108 | **fixed, re-tested** | A proxy that never answers a remove, 3 marked keys and 1 asking key: `Session::lock` returns in 38 µs (before: 6.0 s). `lock_all` and `close` take 39 to 41 µs. App's own key is gone at once, and one 2 s wait covers all 3 keys. |
+| F-108 | **fixed, re-tested** | A proxy that never answers a remove, 3 marked keys and 1 asking key: `Session::lock` returns in 38 µs (before: 6.0 s). `lock_all` and `close` take 39 to 41 µs. Larsal's own key is gone at once, and one 2 s wait covers all 3 keys. |
 | F-109 | **fixed, re-tested** | The helper now waits until the agent answers. Under 24 extra busy processes (load average up to 82), 10 runs of `agent` and 3 runs of `own_agent` had 0 failures. |
 | F-102 (Medium) | **fixed, re-tested** | RT-E-2's own steps (a rich-v4 copy with "E07 entry", its random password made in another process): 0 copies after lock and after close (before: 1). One residual for the lead: a press into the shown password makes the field, and 3 copies stay. |
 | F-103 (Medium) | **re-test failed** | RT-E-3's repro now asks first. But 13 more types that this Mac's own apps open in the browser, Safari, Finder, System Settings or DiskImageMounter still open without asking. 5 of them have the very same type as a listed extension: shtm, xhtm, asif, udif, dvdr. |
 | F-104 | **fixed, re-tested** | The red team's calls now answer `UnknownVault` for ids u64::MAX, 0 and 999999, `UnknownField` for a missing name and `Locked` for a locked vault (before: `Ok(AskFirst)`). |
 | F-099 | **fixed, re-tested** | RT-B2's 8 classes: the fixed compare stays within \|t\| 2.23. The old `subtle` slice compare, run in the same process as the control, reaches \|t\| 70 at byte 8 and later. |
 | F-100 | **fixed, re-tested** | RT-B3's arc4random line and 7 more probes now make `cry_03_t11` fail. Calls the word list does not name are listed for the lead. |
-| F-105 | **fixed, re-tested** | The AT-E08 row and SR-15 now name App's own agent socket. That socket is a Unix listener, 0600 in a 0700 folder, with no internet socket, and it is gone after turn-off. |
+| F-105 | **fixed, re-tested** | The AT-E08 row and SR-15 now name Larsal's own agent socket. That socket is a Unix listener, 0600 in a 0700 folder, with no internet socket, and it is gone after turn-off. |
 
 8 of the 9 rows are fixed and re-tested. F-103 failed its re-test: the fix follows RT-E-3's list instead of the ruling's rule (macOS's own kinds), so it misses sibling types. Verdict: **failed (1)**.
 
 ## Setup
 
-- **Private copy.** `rsync -a --exclude target --exclude app-shots --exclude fuzz/target` to `/tmp/e13s6h-verify-copy`, made at 09:49. It had its own targets: `/tmp/e13s6h-verify-ctarget` for `scripts/build-core.sh`, `/tmp/e13s6h-verify-mtarget` for my harness and the mutants, and DerivedData `/tmp/e13s6h-verify-dd`. At the end, `cmp` showed these files equal in the tree and the copy: keyring.rs, app-ffi ssh.rs and edit.rs, attachments.rs, secret.rs, write_version.rs, the sshagent tests common/mod.rs, own_agent.rs and agent.rs, app-crypto tests/secret.rs, ShownPasswordField.swift, EditorEntryPage.swift, MainWindowModel.swift, deny.toml, plan/attacks-and-checks.md, plan/security.md, app-platform lib.rs, app-cli zone.rs and AppMain.swift. So nothing in part h changed during my run.
+- **Private copy.** `rsync -a --exclude target --exclude larsal-shots --exclude fuzz/target` to `/tmp/e13s6h-verify-copy`, made at 09:49. It had its own targets: `/tmp/e13s6h-verify-ctarget` for `scripts/build-core.sh`, `/tmp/e13s6h-verify-mtarget` for my harness and the mutants, and DerivedData `/tmp/e13s6h-verify-dd`. At the end, `cmp` showed these files equal in the tree and the copy: keyring.rs, larsal-ffi ssh.rs and edit.rs, attachments.rs, secret.rs, write_version.rs, the sshagent tests common/mod.rs, own_agent.rs and agent.rs, larsal-crypto tests/secret.rs, ShownPasswordField.swift, EditorEntryPage.swift, MainWindowModel.swift, deny.toml, plan/attacks-and-checks.md, plan/security.md, larsal-platform lib.rs, larsal-cli zone.rs and LarsalMain.swift. So nothing in part h changed during my run.
 - **Harness, copy only.** These files are deleted with the copy:
-  - appended to `crates/app-ffi/tests/ssh.rs`: `verify_f106_red_team_steps`, `verify_f108_red_team_steps`, `verify_f105_agent_socket_listener`;
-  - appended to `crates/app-ffi/tests/edit.rs`: `verify_f104_red_team_calls`, `verify_f103_red_team_repro_and_probes`;
-  - new: `crates/app-ffi/tests/verify_e07.rs` (RT-E-2 step 1, in its own process), `crates/app-crypto/tests/verify_f099.rs` and `macos/AppTests/VerifyE13S6hTests.swift`;
+  - appended to `crates/larsal-ffi/tests/ssh.rs`: `verify_f106_red_team_steps`, `verify_f108_red_team_steps`, `verify_f105_agent_socket_listener`;
+  - appended to `crates/larsal-ffi/tests/edit.rs`: `verify_f104_red_team_calls`, `verify_f103_red_team_repro_and_probes`;
+  - new: `crates/larsal-ffi/tests/verify_e07.rs` (RT-E-2 step 1, in its own process), `crates/larsal-crypto/tests/verify_f099.rs` and `macos/LarsalTests/VerifyE13S6hTests.swift`;
   - in the copy's `EditorMemoryTests.swift`, `MaskedNeedle.init(masked:mask:)` lost its `private`, so my test can build the needle from the other process's masked bytes.
 - **LaunchServices queries.** Swift scripts in `/tmp/e13s6h-verify-scripts` ask `NSWorkspace.urlForApplication(toOpen:)` and `UTType` about empty demo files. Nothing was opened.
 - **Shared tree, own target** (`/tmp/e13s6h-verify-target`, `--locked`):
-  - `cargo test --locked -p app-sshagent -p app-ffi -p app-core -p app-format -p app-crypto`: 81 targets, 2,093 passed, 0 failed, 51 ignored (09:52 to 09:55).
+  - `cargo test --locked -p larsal-sshagent -p larsal-ffi -p larsal-core -p larsal-format -p larsal-crypto`: 81 targets, 2,093 passed, 0 failed, 51 ignored (09:52 to 09:55).
   - Every named part h test is `ok`:
     - own_agent: `f_106_keys_leave_the_agent_they_went_to_after_the_socket_changed`, `f_108_a_silent_agent_costs_the_lock_one_wait_not_one_per_key`, `f_108_an_add_running_at_the_lock_leaves_too`, `f_108_a_key_added_again_before_the_removals_stays`;
     - agent: `f_109_the_throwaway_helper_waits_until_the_agent_answers`;
-    - app-ffi ssh: `f_108_a_silent_agent_never_holds_the_lock`, `f_108_quit_waits_for_the_locks_removals`;
-    - app-ffi edit: `f_103_every_type_that_runs_or_acts_asks_first`, `f_104_open_attachment_checks_the_vault_and_the_name_before_it_asks`;
+    - larsal-ffi ssh: `f_108_a_silent_agent_never_holds_the_lock`, `f_108_quit_waits_for_the_locks_removals`;
+    - larsal-ffi edit: `f_103_every_type_that_runs_or_acts_asks_first`, `f_104_open_attachment_checks_the_vault_and_the_name_before_it_asks`;
     - write_version: `f_100_the_guard_catches_the_systems_own_random_calls`, `cry_03_t11_one_random_source`;
-    - app-crypto secret: 10 passed; the ignored `f_099_…` test was run in release (see F-099).
+    - larsal-crypto secret: 10 passed; the ignored `f_099_…` test was run in release (see F-099).
 - **Swift in the copy.**
   - `scripts/build-core.sh`: exit 0.
-  - `xcodebuild -project macos/App.xcodeproj -scheme App -destination 'platform=macOS' -derivedDataPath /tmp/e13s6h-verify-dd build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: TEST BUILD SUCCEEDED.
-  - Then `test-without-building -only-testing:AppTests/VerifyE13S6hTests -only-testing:AppTests/EditorMemoryTests`.
+  - `xcodebuild -project macos/Larsal.xcodeproj -scheme Larsal -destination 'platform=macOS' -derivedDataPath /tmp/e13s6h-verify-dd build-for-testing SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`: TEST BUILD SUCCEEDED.
+  - Then `test-without-building -only-testing:LarsalTests/VerifyE13S6hTests -only-testing:LarsalTests/EditorMemoryTests`.
 - **Rules.**
   - Demo data only: option-a-personal (demo-pass-7), a rich-v4 copy (demo-pass-5) in `/tmp/e13s6h-verify-run`, the INT-06 demo keys and keys made by `ssh-keygen` in /tmp.
   - The SSH tests ran under `env -u SSH_AUTH_SOCK`, against throwaway `ssh-agent -D` processes stopped by their PID (the shared helper).
-  - AppTests ran without a host app. Windows were offscreen at (-20000, -20000) and never ordered front. No window, focus, key events or general pasteboard.
+  - LarsalTests ran without a host app. Windows were offscreen at (-20000, -20000) and never ordered front. No window, focus, key events or general pasteboard.
   - The 24 `yes` load processes were stopped by their PIDs.
   - At the end, `pgrep -fl ssh-agent` shows only the system's `/usr/bin/ssh-agent -l` and another agent's `/tmp/spec-int05-07` agent, and no `/tmp/e9s1-*` folder is left.
 
 ## F-106 (Medium): the lock removes the key from the agent it went to
 
 - **Steps (F-H1, demo data).** Two throwaway agents, A and B. A vault with one entry: K1 (Ed25519) in attachment `id_key`, with Allow, Add on unlock and remove-on-lock on. Then:
-  1. A `Session` with App's agent socket in /tmp; `save_settings` with `ssh.enabled` on and `ssh.socket_override` A; unlock; `SSH_AUTH_SOCK=A ssh-add -l`.
+  1. A `Session` with Larsal's agent socket in /tmp; `save_settings` with `ssh.enabled` on and `ssh.socket_override` A; unlock; `SSH_AUTH_SOCK=A ssh-add -l`.
   2. `save_settings` with `ssh.socket_override` B (Settings > OK).
   3. Lock, then wait 1 s; `ssh-add -l` on A and on B, and `take_banner()`.
   4. The same with `ssh.enabled` off and the override B in one `save_settings`.
@@ -148,23 +148,23 @@ Date: 2026-10-29 (the runs took place from 09:49 to 10:25 on 2026-10-30 by the M
   step 3: A lists: "256 SHA256:R3aMsbAq88Fv8wlNcuy3oN+ZIl7yqPd3lRkAP/AP+uc demo@app (ED25519)"
   step 6 (after 1 s): A "The agent has no identities."; B "The agent has no identities."; banner None
   off (after 1 s): A "The agent has no identities."; banner None
-  A stopped: banner Some("App couldn't take the key of “Server root · web-01” out of the SSH agent. Use Remove All Keys from SSH Agent… to clear it.")
+  A stopped: banner Some("Larsal couldn't take the key of “Server root · web-01” out of the SSH agent. Use Remove All Keys from SSH Agent… to clear it.")
   ```
 - **Mutant M1** (records follow the setting again: `set_agent_settings` points every system record at the new socket):
   - own_agent `f_106_…` FAILED at own_agent.rs:795;
   - my `verify_f106_red_team_steps` FAILED, with "step 6 (after 1 s): A "256 SHA256:R3aMsbAq88… demo@app (ED25519)"", which is the red team's result.
-- **Code read.** `Record.agent` is set by `load_held`. `remove_from_system` (lock, `remove_left`, `turn_off`) and `unload` use it, not `system_agent()`. A second load after the switch removes the key from the old agent first (R06-5). A record of App's own agent has `None` and is skipped there.
+- **Code read.** `Record.agent` is set by `load_held`. `remove_from_system` (lock, `remove_left`, `turn_off`) and `unload` use it, not `system_agent()`. A second load after the switch removes the key from the old agent first (R06-5). A record of Larsal's own agent has `None` and is skipped there.
 
 ## F-108: a silent system agent never holds the lock
 
 - **Steps (F-H2, demo data).** A proxy in front of a throwaway agent passes every message on, except remove (18), which it reads and never answers. The vault has 3 remove-on-lock keys (K1e with its passphrase, a P-256 key and an Ed25519 key) and 1 key with "Ask before each use". Then:
   1. Unlock, `ssh_settled`.
   2. Time `Session::lock(id)`.
-  3. Read App's own agent's list at once and the vault's lock state.
+  3. Read Larsal's own agent's list at once and the vault's lock state.
   4. `ssh_settled`, then count the removes the proxy saw and read the banner.
   - The same for `lock_all` and `close`, and quit as the window does it (`lock_all`, then `stop_ssh_agent`).
   - The test is copy-only `verify_f108_red_team_steps`.
-- **Before** (red team): `Session::lock` returned after 6.0 s (2 s per key) on the window's main thread. App's own key was gone at 52 ms.
+- **Before** (red team): `Session::lock` returned after 6.0 s (2 s per key) on the window's main thread. Larsal's own key was gone at 52 ms.
 - **After.**
 
   ```
@@ -173,7 +173,7 @@ Date: 2026-10-29 (the runs took place from 09:49 to 10:25 on 2026-10-30 by the M
   close:    returned in 41.417µs; own after 0; locked true; settled at 2.002252292s; removes sent 1
   quit:     lock_all 38.125µs, stop_ssh_agent returned at 2.032544792s; banner names all 3 keys
   ```
-  The window calls `session.lock`, `session.lockAll` and `session.close` on the main thread (MainWindowModel.swift:183, :211, :230), so it never waits for the agent. Quit waits once (INT-06.25), so App never ends before the removals.
+  The window calls `session.lock`, `session.lockAll` and `session.close` on the main thread (MainWindowModel.swift:183, :211, :230), so it never waits for the agent. Quit waits once (INT-06.25), so Larsal never ends before the removals.
 - **Mutants**, each in the copy, each FAILED:
   - M2 (no failed-agent cache): own_agent `f_108_a_silent_…` at :880. My harness showed "removes sent 3", settled at 6.004 s;
   - M3 (the lock waits for its thread): `f_108_a_silent_agent_never_holds_the_lock` at ssh.rs:394. My harness showed "returned in 2.002125041s";
@@ -197,8 +197,8 @@ Date: 2026-10-29 (the runs took place from 09:49 to 10:25 on 2026-10-30 by the M
 ## F-102 (Medium): the editor's Show leaves no copy after lock and close
 
 - **Steps (RT-E-2, demo data).**
-  1. `verify_e07.rs`, in its own process, copies rich-v4 and adds "E07 entry" with a random 26-character password from app-crypto random. It saves the vault and writes only the XOR-masked bytes and the mask.
-  2. The AppTest `VerifyE13S6hTests/rtE2Steps` uses `ParityDemo.session()`, opens and unlocks the copy (demo-pass-5) and renders `MainWindow` offscreen (`Screen`).
+  1. `verify_e07.rs`, in its own process, copies rich-v4 and adds "E07 entry" with a random 26-character password from larsal-crypto random. It saves the vault and writes only the XOR-masked bytes and the mask.
+  2. The LarsalTest `VerifyE13S6hTests/rtE2Steps` uses `ParityDemo.session()`, opens and unlocks the copy (demo-pass-5) and renders `MainWindow` offscreen (`Screen`).
   3. It selects "E07 entry", `main.edit()`, `editor.toggleShowPassword()` twice, `main.cancelEditor()`, `window.lock(id)`, `window.close(id)`.
   4. It scans the process's own memory with the red team's method (`MemoryScan`: `mach_vm_region_recurse`, `mincore`, `mach_vm_read_overwrite`).
   - The builder's `EditorMemoryTests/f102EditorShowLeavesNoCopy` ran in the same run.
@@ -238,7 +238,7 @@ Date: 2026-10-29 (the runs took place from 09:49 to 10:25 on 2026-10-30 by the M
   | networkconnect, internetconnect | com.apple.preference.network, System Settings' "Internet Connect Document" (Editor) | System Settings | (none: it acts) | Opened |
 
   An HTML or XHTML copy opened in the browser runs its scripts, as .html does. A disk image mounts, as .dmg and .iso do. The 13 rows are in the very apps and kinds the fix's own doc comment names ("the browser, Safari, … Finder's server … links, … the disk image mounter"). LD-225 (1) asks the list to follow macOS's own kinds, but the fix took RT-E-3's examples, so it misses their siblings. Checker 1 sent back dylib and war for the same reason (types that conform to a listed one).
-- **Smallest fix.** Add the 13 (shtm, xhtm, jhtml, xslt, xbl, asif, udif, dvdr, dmgpart, nslloc, webbookmark, networkconnect, internetconnect) to `attachments::risky`, and add them to f_103. A guard that stops the next miss: an AppTest that, for each listed extension, asks `UTType(filenameExtension:)` for its type's other extensions and expects each to be listed (5 of the 13 are of that kind).
+- **Smallest fix.** Add the 13 (shtm, xhtm, jhtml, xslt, xbl, asif, udif, dvdr, dmgpart, nslloc, webbookmark, networkconnect, internetconnect) to `attachments::risky`, and add them to f_103. A guard that stops the next miss: a LarsalTest that, for each listed extension, asks `UTType(filenameExtension:)` for its type's other extensions and expects each to be listed (5 of the 13 are of that kind).
 - **For the lead, not counted in the failure.**
   - On this Mac, .xml opens in Xcode, but Safari claims .xml as "XML document" Viewer (Default). On a Mac without Xcode, .xml may open in Safari, as xsl does.
   - Third-party apps add more: Chrome's .crwebloc opens a URL like .webloc; Claude's .dxt and .mcpb install an extension. The ruling limits the list to macOS's own types.
@@ -268,31 +268,31 @@ Date: 2026-10-29 (the runs took place from 09:49 to 10:25 on 2026-10-30 by the M
 ## F-100: the one-random-source guard
 
 - **Steps (RT-B3).**
-  1. `cargo tree --offline --locked -p app-ffi -e normal -i getrandom` and `-i fastrand`, and `cargo deny --frozen check bans` on the tree.
+  1. `cargo tree --offline --locked -p larsal-ffi -e normal -i getrandom` and `-i fastrand`, and `cargo deny --frozen check bans` on the tree.
   2. In the copy, RT-B3's own line `pub fn rt_b3_probe(buf: &mut [u8]) { unsafe { libc::arc4random_buf(buf.as_mut_ptr().cast(), buf.len()) } }`, then `cry_03_t11`.
   3. More probe lines, one at a time.
   4. Mutants of the word lists.
 - **Before** (red team): the arc4random line passed `cry_03_t11`, and no guard read the Swift code.
 - **After.**
-  - `cargo tree`: tempfile 3.27.0 (through uniffi_pipeline) still links getrandom and fastrand into app-ffi, and app-crypto is the other getrandom caller. deny.toml now allows getrandom only through app-crypto, tempfile, ring and rand, and fastrand only through tempfile. `cargo deny --frozen check bans`: `bans ok`.
-  - The RT-B3 line made `cry_03_t11` FAIL with "arc4random in …/crates/app-cli/src/zone.rs". In app-platform itself, that line no longer compiles (the crate denies `unsafe` and missing docs), so I put it in a file app-format does not build, as Checker 1 did.
+  - `cargo tree`: tempfile 3.27.0 (through uniffi_pipeline) still links getrandom and fastrand into larsal-ffi, and larsal-crypto is the other getrandom caller. deny.toml now allows getrandom only through larsal-crypto, tempfile, ring and rand, and fastrand only through tempfile. `cargo deny --frozen check bans`: `bans ok`.
+  - The RT-B3 line made `cry_03_t11` FAIL with "arc4random in …/crates/larsal-cli/src/zone.rs". In larsal-platform itself, that line no longer compiles (the crate denies `unsafe` and missing docs), so I put it in a file larsal-format does not build, as Checker 1 did.
   - Probes caught (`cry_03_t11` FAILED, naming the word and the file):
     - Rust: `libc::getentropy`, `RandomState::new()`, a `File::open("/dev/urandom")`;
-    - Swift: `SecRandomCopyBytes`, `getentropy`, `arc4random_uniform` (in a new file macos/App/VerifyProbe.swift) and `Int.random(in:)`.
+    - Swift: `SecRandomCopyBytes`, `getentropy`, `arc4random_uniform` (in a new file macos/Larsal/VerifyProbe.swift) and `Int.random(in:)`.
   - Mutants, each FAILED f_100: M8 (the old 5-word Rust list) at write_version.rs:769, and M8b (no Swift words) at :786.
   - After every probe was restored, write_version passed 33 of 33.
 - **Left for the lead (not caught, and no product code uses them today).** Swift: `rand()`, `lrand48()`, `GKRandomSource`, `SecKeyCreateRandomKey`, CryptoKit `SymmetricKey(size:)` and `CFUUIDCreate`. Rust: a hand-declared `extern "C" fn rand` and `libc::lrand48`. Each made `cry_03_t11` pass in the copy. Checker 1 listed the first four kinds too. Adding "rand(", "rand48", "GKRandom", "SecKeyCreateRandomKey", "SymmetricKey(" and "CFUUIDCreate" would close them. tempfile's own random path stays linked, by the deny.toml wrapper ruling.
 
-## F-105: the AT-E08 row names App's agent socket
+## F-105: the AT-E08 row names Larsal's agent socket
 
 - **Steps (RT-E-5).**
   - Read the row and SR-15.
-  - Then check the listener itself without launching App: a `Session` with S-SSH-01 on and the agent socket in /tmp. Read the socket's and folder's modes, `lsof -nP -a -U -p <pid>` and `lsof -nP -a -i -p <pid>`, then turn the feature off (copy-only `verify_f105_agent_socket_listener`).
+  - Then check the listener itself without launching Larsal: a `Session` with S-SSH-01 on and the agent socket in /tmp. Read the socket's and folder's modes, `lsof -nP -a -U -p <pid>` and `lsof -nP -a -i -p <pid>`, then turn the feature off (copy-only `verify_f105_agent_socket_listener`).
 - **Before:** the row named only the instance socket and the bridge sockets.
 - **After.**
-  - plan/attacks-and-checks.md:68 now says "the listeners are the instance socket of APP-09.14, with the SSH agent on (S-SSH-01) App's own agent socket of INT-06.32, and, with the browser bridge on, the bridge sockets of INT-01 …".
-  - plan/security.md:95 (SR-15) says "with the SSH agent on (S-SSH-01), App's own agent socket of INT-06.32".
-  - Listener: `socket mode 140600 uid 501; folder 40700; lsof unix: [… unix … /tmp/e9s1-95936-v50/App/agent.sock]; lsof -i lines: 0`. After turn-off, the socket exists: false. This matches INT-06.32 and the red team's observation.
+  - plan/attacks-and-checks.md:68 now says "the listeners are the instance socket of APP-09.14, with the SSH agent on (S-SSH-01) Larsal's own agent socket of INT-06.32, and, with the browser bridge on, the bridge sockets of INT-01 …".
+  - plan/security.md:95 (SR-15) says "with the SSH agent on (S-SSH-01), Larsal's own agent socket of INT-06.32".
+  - Listener: `socket mode 140600 uid 501; folder 40700; lsof unix: [… unix … /tmp/e9s1-95936-v50/Larsal/agent.sock]; lsof -i lines: 0`. After turn-off, the socket exists: false. This matches INT-06.32 and the red team's observation.
 
 ## Mutant summary
 

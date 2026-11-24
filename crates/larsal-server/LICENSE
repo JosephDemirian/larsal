@@ -1,0 +1,75 @@
+Larsal Source-Available License 1.0
+
+Copyright (c) 2026 Joseph Demirian. All rights reserved.
+
+1. Scope
+
+This license covers Larsal's original source code, executables, documentation
+and assets that are distributed with this license (the Software). It does not
+replace the licenses of third-party material described in section 4.
+
+2. Permission to inspect and use
+
+Subject to these terms, you may read, inspect, download and make unmodified
+copies of the Software. You may compile the unmodified source code and install
+and run the Software for personal or private family use, or your organization's
+internal use, including internal business use. This includes self-hosting solely
+for members of your private family group or your organization. It does not
+include providing a hosted service to customers or the public.
+
+You may share unmodified source code or executables without charging a fee,
+provided you retain this license, all copyright notices and all required
+third-party notices. Each recipient receives permission directly under these
+same terms. Ordinary build configuration and runtime settings are permitted;
+changing the source code or bypassing a feature restriction is not.
+
+3. Restrictions
+
+Without prior written permission from Joseph Demirian, you may not:
+
+- modify, adapt, translate or create derivative works of the Software;
+- sell, resell, rent, lease or sublicense the Software, or charge for access to
+  or distribution of the Software;
+- use the Software, or copy its code or assets, to develop, offer or operate a
+  competing product or service, including hosting for customers or the public;
+- rebrand the Software or remove or alter its copyright, license or other
+  required notices; or
+- bypass license checks, paid-feature restrictions or other access controls.
+
+These restrictions concern use of the Software and its protected material.
+They do not prohibit independently created software that does not copy that
+material. No trademark rights are granted, except truthful identification of
+unmodified copies as Larsal.
+
+4. Third-party material and existing rights
+
+Third-party code, generated material covered by another license, fonts, icons,
+word lists and other third-party data retain their own licenses. Their notices
+and source locations are listed in THIRD-PARTY-NOTICES.md, resource license
+files and the relevant source directories. This includes MPL-2.0 material and
+modifications covered by that license, the CC BY word list and OFL fonts.
+
+Nothing in this license limits rights granted by those third-party licenses.
+If these terms conflict with a third-party license, that license governs its
+material. Nothing here revokes rights already granted under an earlier license
+or restricts rights that applicable law does not permit a license to restrict.
+
+5. Ownership and termination
+
+Joseph Demirian retains all rights not expressly granted here. This is a
+source-available license, not an open-source license. Any use outside these
+permissions requires a separate written agreement.
+
+Permission under this license terminates automatically if you violate its
+terms. After termination, stop using and distributing the Software under this
+license. Termination does not remove rights you hold independently under a
+third-party license or applicable law.
+
+6. No warranty or liability
+
+The Software is provided AS IS, with NO WARRANTY. To the fullest extent allowed
+by applicable law, Joseph Demirian disclaims express and implied warranties,
+including merchantability, fitness for a particular purpose and noninfringement,
+and is not liable for losses or damages arising from use of the Software.
+
+For separate permission, contact hello@JosephDemirian.com.

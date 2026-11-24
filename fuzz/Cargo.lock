@@ -46,142 +46,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "app-autotype"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "regex-syntax",
-]
-
-[[package]]
-name = "app-browser"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "app-platform",
-]
-
-[[package]]
-name = "app-core"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-format",
- "app-model",
- "app-platform",
- "flate2",
- "png",
- "regex-automata",
- "regex-syntax",
- "zxcvbn",
-]
-
-[[package]]
-name = "app-crypto"
-version = "0.1.0"
-dependencies = [
- "aes",
- "aes-gcm",
- "argon2",
- "base64ct",
- "bcrypt-pbkdf",
- "cbc",
- "chacha20",
- "ed25519-dalek",
- "getrandom",
- "hkdf",
- "hmac",
- "hpke",
- "p256",
- "pbkdf2",
- "rand_core",
- "salsa20",
- "sha1",
- "sha2",
- "ssh-key",
- "subtle",
- "twofish",
- "x25519-dalek",
- "zeroize",
-]
-
-[[package]]
-name = "app-format"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-model",
- "app-platform",
- "flate2",
- "quick-xml",
-]
-
-[[package]]
-name = "app-fuzz"
-version = "0.0.0"
-dependencies = [
- "app-autotype",
- "app-browser",
- "app-core",
- "app-crypto",
- "app-format",
- "app-model",
- "app-proto",
- "app-share",
- "app-sshagent",
- "flate2",
- "libfuzzer-sys",
- "png",
-]
-
-[[package]]
-name = "app-model"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
-]
-
-[[package]]
-name = "app-platform"
-version = "0.1.0"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "app-proto"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-model",
-]
-
-[[package]]
-name = "app-share"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-format",
- "app-model",
-]
-
-[[package]]
-name = "app-sshagent"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "app-platform",
- "quick-xml",
-]
-
-[[package]]
 name = "arbitrary"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -635,6 +499,142 @@ checksum = "1c00acbd29eabad4a2392fa0e921c874934dbbf4194312ad20f04a0ed67a3cb3"
 dependencies = [
  "getrandom",
  "libc",
+]
+
+[[package]]
+name = "larsal-autotype"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "regex-syntax",
+]
+
+[[package]]
+name = "larsal-browser"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+]
+
+[[package]]
+name = "larsal-core"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+ "larsal-platform",
+ "png",
+ "regex-automata",
+ "regex-syntax",
+ "zxcvbn",
+]
+
+[[package]]
+name = "larsal-crypto"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "aes-gcm",
+ "argon2",
+ "base64ct",
+ "bcrypt-pbkdf",
+ "cbc",
+ "chacha20",
+ "ed25519-dalek",
+ "getrandom",
+ "hkdf",
+ "hmac",
+ "hpke",
+ "p256",
+ "pbkdf2",
+ "rand_core",
+ "salsa20",
+ "sha1",
+ "sha2",
+ "ssh-key",
+ "subtle",
+ "twofish",
+ "x25519-dalek",
+ "zeroize",
+]
+
+[[package]]
+name = "larsal-format"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+ "quick-xml",
+]
+
+[[package]]
+name = "larsal-fuzz"
+version = "0.0.0"
+dependencies = [
+ "flate2",
+ "larsal-autotype",
+ "larsal-browser",
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+ "larsal-proto",
+ "larsal-share",
+ "larsal-sshagent",
+ "libfuzzer-sys",
+ "png",
+]
+
+[[package]]
+name = "larsal-model"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+]
+
+[[package]]
+name = "larsal-platform"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "larsal-proto"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+ "larsal-model",
+]
+
+[[package]]
+name = "larsal-share"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+]
+
+[[package]]
+name = "larsal-sshagent"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+ "quick-xml",
 ]
 
 [[package]]

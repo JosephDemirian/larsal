@@ -9,7 +9,7 @@
 //! guard is only for real hangs: the sanitizer build runs about 50 times
 //! slower than release, where a run stays under 250 ms.
 //!
-//! The vault here and the one in app-core's `fea01_32_fuzz_regressions`
+//! The vault here and the one in larsal-core's `fea01_32_fuzz_regressions`
 //! test are the same; change both together.
 //!
 //! Input: a flag byte (bit 0 case-sensitive, bit 1 limit to group `Sub`,
@@ -17,9 +17,9 @@
 //! query text.
 #![no_main]
 
-use app_core::search::{Options, QueryError, RUN_BUDGET, search, search_tags};
-use app_crypto::secret::SecretString;
-use app_model::{Entry, Field, Group, Switch, Time, Uuid, Vault};
+use larsal_core::search::{Options, QueryError, RUN_BUDGET, search, search_tags};
+use larsal_crypto::secret::SecretString;
+use larsal_model::{Entry, Field, Group, Switch, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 
 fn set(e: &mut Entry, name: &str, value: &str) {
@@ -98,7 +98,7 @@ fuzz_target!(|data: &[u8]| {
         ..Options::new(Time(63_928_466_236))
     };
     let started = std::time::Instant::now();
-    let parsed = app_core::search::parse::parse(&query);
+    let parsed = larsal_core::search::parse::parse(&query);
     let result = search(&v, &query, &o);
     assert_eq!(parsed.is_ok(), result.is_ok());
     let too_long = query.chars().count() > 1_024;

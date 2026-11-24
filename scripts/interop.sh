@@ -1,11 +1,11 @@
 #!/bin/bash
-# G4 interop (plan/attacks-and-checks.md): App's saves open in the reference
+# G4 interop (plan/attacks-and-checks.md): Larsal's saves open in the reference
 # CLI with the same export as the original.
 #
 #   REF_CLI=<reference CLI> scripts/interop.sh [cases file]
 #
-# For each case App opens the vault and saves a version 4 copy into a temp
-# folder (example `resave`, the real `app_format::save`); then
+# For each case Larsal opens the vault and saves a version 4 copy into a temp
+# folder (example `resave`, the real `larsal_format::save`); then
 # scripts/testdata/interop_compare.py has the reference CLI export both files
 # and compares them field by field, attachments byte for byte (its header says
 # exactly what is compared and the only version-form rules applied).
@@ -29,23 +29,23 @@ export REF_CLI
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 DATA=$ROOT/testdata
 command -v cargo >/dev/null || . "$HOME/.cargo/env"
-cargo build -q --offline --locked --manifest-path "$ROOT/Cargo.toml" -p app-format --example resave || die "build failed"
+cargo build -q --offline --locked --manifest-path "$ROOT/Cargo.toml" -p larsal-format --example resave || die "build failed"
 RESAVE=$ROOT/target/debug/examples/resave
-TMP=$(mktemp -d)
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/larsal-interop.XXXXXX") || die "cannot create a private temporary folder"
 trap 'rm -rf "$TMP"' EXIT
 
 # The testdata/README.md vault table.
 builtin_cases() {
   local k
-  printf '%s\t%s\t%s\t%s\n' password-only "$DATA/password-only.appvault" demo-pass-1 ""
+  printf '%s\t%s\t%s\t%s\n' password-only "$DATA/password-only.larsalvault" demo-pass-1 ""
   for k in binary32 hex64 hashed xml-v1 xml-v2 cli-made; do
-    printf '%s\t%s\t%s\t%s\n' "keyfile-$k" "$DATA/keyfile-$k.appvault" - "$DATA/key-$k.appkey"
+    printf '%s\t%s\t%s\t%s\n' "keyfile-$k" "$DATA/keyfile-$k.larsalvault" - "$DATA/key-$k.larsalkey"
   done
-  printf '%s\t%s\t%s\t%s\n' password-and-keyfile "$DATA/password-and-keyfile.appvault" demo-pass-2 "$DATA/key-hex64.appkey" \
-    default-time "$DATA/default-time.appvault" demo-pass-3 "" \
-    rich-v3 "$DATA/rich-v3.appvault" demo-pass-4 "" \
-    rich-v4 "$DATA/rich-v4.appvault" demo-pass-5 "" \
-    big-10000 "$DATA/big-10000.appvault" demo-pass-6 ""
+  printf '%s\t%s\t%s\t%s\n' password-and-keyfile "$DATA/password-and-keyfile.larsalvault" demo-pass-2 "$DATA/key-hex64.larsalkey" \
+    default-time "$DATA/default-time.larsalvault" demo-pass-3 "" \
+    rich-v3 "$DATA/rich-v3.larsalvault" demo-pass-4 "" \
+    rich-v4 "$DATA/rich-v4.larsalvault" demo-pass-5 "" \
+    big-10000 "$DATA/big-10000.larsalvault" demo-pass-6 ""
 }
 
 cases() { builtin_cases; [ $# -eq 0 ] || grep -v '^#' "$1"; }
@@ -54,10 +54,10 @@ failed=0 total=0
 while IFS=$'\t' read -r name vault pass key; do
   [ -n "$name" ] || continue
   total=$((total + 1))
-  copy=$TMP/$total.appvault
+  copy=$TMP/$total.larsalvault
   line=$pass; [ "$pass" = - ] && line=""
   if ! printf '%s\n' "$line" | "$RESAVE" "$vault" "$copy" ${key:+"$key"} >"$TMP/resave.log" 2>&1; then
-    echo "FAIL $name: App could not resave it: $(tail -n 1 "$TMP/resave.log")"
+    echo "FAIL $name: Larsal could not resave it: $(tail -n 1 "$TMP/resave.log")"
     failed=$((failed + 1))
     continue
   fi

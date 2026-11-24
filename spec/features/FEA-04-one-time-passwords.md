@@ -6,7 +6,7 @@ Parity rows: SF-09, SR-07, SC-01, SC-02, SC-03, SC-04 (option to hide one-time c
 
 ## What it does
 
-An entry can hold a time-based one-time password (TOTP, RFC 6238) secret. App reads the secret and its settings from the entry's string fields, computes the current code, shows how many seconds it stays valid, shows the settings as a QR code, and writes new settings from a setup screen.
+An entry can hold a time-based one-time password (TOTP, RFC 6238) secret. Larsal reads the secret and its settings from the entry's string fields, computes the current code, shows how many seconds it stays valid, shows the settings as a QR code, and writes new settings from a setup screen.
 
 The settings are never stored on their own. They are derived from the entry's string fields every time a field changes (FEA-04.2), so a file written by any tool works.
 
@@ -37,11 +37,11 @@ Words used here:
 | URI | text (form U), for the QR screen, copy and CSV export |
 | Fields to write | the field changes of FEA-04.16 |
 
-Builder note: the code function takes the time as an argument. Time 0 is a real time (counter 0), not "now". The reference uses 0 to mean "now"; App must not copy that.
+Builder note: the code function takes the time as an argument. Time 0 is a real time (counter 0), not "now". The reference uses 0 to mean "now"; Larsal must not copy that.
 
 ## Rules
 
-FEA-04.1 **Which form wins.** A field is "present" when its key exists, whatever its value (empty counts). App checks in this order and stops at the first match:
+FEA-04.1 **Which form wins.** A field is "present" when its key exists, whatever its value (empty counts). Larsal checks in this order and stops at the first match:
 
 | Step | Condition | Result |
 |---|---|---|
@@ -52,7 +52,7 @@ FEA-04.1 **Which form wins.** A field is "present" when its key exists, whatever
 
 So `TOTP Seed` alone gives none, an empty `TOTP Settings` hides a valid `otp`, and `otp` beats form T. Observed with 2.7.11 for every row (test case 04-22).
 
-FEA-04.2 **Derived, never stored.** The settings are recomputed whenever any string field of the entry is added, changed or removed. App keeps no other copy in the file.
+FEA-04.2 **Derived, never stored.** The settings are recomputed whenever any string field of the entry is added, changed or removed. Larsal keeps no other copy in the file.
 
 FEA-04.3 **Settings text.** Start from the defaults (FEA-04.8) and the fallback secret. If the text and the fallback secret are both empty, the result is none. Otherwise try these forms in order:
 
@@ -79,11 +79,11 @@ Then, for (a), (b) and (c): digits are clamped to 1..10 and the period to 1..864
 
 FEA-04.4 **Numbers.** A number is a decimal unsigned 32-bit value. Spaces before and after and one leading `+` are allowed. Anything else gives 0: empty text, a minus sign, letters (`8abc`), hex, overflow above 4294967295. Observed: ` 8`, `+8` and `%208` give 8; `-3` and `abc` give 0.
 
-FEA-04.5 **Percent-decoding (forms U and K).** Each `%XX` (hex digits, any case) becomes its byte, except `%25` and `%2B`, which stay as the three literal characters. `+` stays `+` (not a space). Bytes are read as UTF-8. Observed with 2.7.11: `%3D`, `%20`, `%26`, `%23`, `%38` and `%C3%A9` are decoded; `%2B` and `%25` are not (in a secret, their `2`, `B` and `5` survive cleaning and change the key). Escapes of control characters, observed by Verify in Sprint 3 with the installed command line tool: the reference keeps `%00` to `%1F` and `%7F` as the three literal characters, like `%25` and `%2B`, so FEA-04.9's cleaning turns their digits into key characters (`%00` adds `OO`, `%1F` adds `LF`, `%7F` adds `7F`, `%0A` adds `OA`; `%09` adds `O` and drops `9`, which leaves a length that cannot be decoded, invalid key). App decodes them to their bytes, which the cleaning drops, so such a secret gives a different key in App: a difference for the lead to rule on. App (LD-128): a secret that holds a control character after decoding (an escape from `%00` to `%1F`, or `%7F`) is invalid, so there is no code; the reference keeps such escapes as text.
+FEA-04.5 **Percent-decoding (forms U and K).** Each `%XX` (hex digits, any case) becomes its byte, except `%25` and `%2B`, which stay as the three literal characters. `+` stays `+` (not a space). Bytes are read as UTF-8. Observed with 2.7.11: `%3D`, `%20`, `%26`, `%23`, `%38` and `%C3%A9` are decoded; `%2B` and `%25` are not (in a secret, their `2`, `B` and `5` survive cleaning and change the key). Escapes of control characters, observed by Verify in Sprint 3 with the installed command line tool: the reference keeps `%00` to `%1F` and `%7F` as the three literal characters, like `%25` and `%2B`, so FEA-04.9's cleaning turns their digits into key characters (`%00` adds `OO`, `%1F` adds `LF`, `%7F` adds `7F`, `%0A` adds `OA`; `%09` adds `O` and drops `9`, which leaves a length that cannot be decoded, invalid key). Larsal decodes them to their bytes, which the cleaning drops, so such a secret gives a different key in Larsal: a difference for the lead to rule on. Larsal (LD-128): a secret that holds a control character after decoding (an escape from `%00` to `%1F`, or `%7F`) is invalid, so there is no code; the reference keeps such escapes as text.
 
 FEA-04.6 **Algorithm and encoder names.** Algorithm, compared without case: `SHA512` or `HMAC-SHA-512` gives SHA-512; `SHA256` or `HMAC-SHA-256` gives SHA-256; anything else gives SHA-1, including `SHA-256` with one hyphen, `SHA1` and empty (observed). Encoder: exactly `steam` (case-sensitive) gives Steam; anything else gives decimal (`STEAM` and `S` give decimal, observed). In form U the encoder does not change the digits: `encoder=steam` without `digits` gives 6 Steam characters (observed).
 
-FEA-04.7 **Form T.** If `TimeOtp-Secret-Base32` is empty, the result is none. Otherwise start from the defaults with that secret, then for each of `TimeOtp-Algorithm` (FEA-04.6), `TimeOtp-Length` (digits, FEA-04.4) and `TimeOtp-Period` (period, FEA-04.4): a non-empty value replaces the default. The reference does not clamp these: 0 gives the invalid digits or invalid step state, and large values are used as they are (`TimeOtp-Length` = `12` gave a 12-character code, observed). App: lead decision D-04-8. App reads form T but never writes, converts or removes it on its own (FMT-14.22), except as D-04-7 says.
+FEA-04.7 **Form T.** If `TimeOtp-Secret-Base32` is empty, the result is none. Otherwise start from the defaults with that secret, then for each of `TimeOtp-Algorithm` (FEA-04.6), `TimeOtp-Length` (digits, FEA-04.4) and `TimeOtp-Period` (period, FEA-04.4): a non-empty value replaces the default. The reference does not clamp these: 0 gives the invalid digits or invalid step state, and large values are used as they are (`TimeOtp-Length` = `12` gave a 12-character code, observed). Larsal: lead decision D-04-8. Larsal reads form T but never writes, converts or removes it on its own (FMT-14.22), except as D-04-7 says.
 
 FEA-04.8 **Defaults.** SHA-1, 6 digits, period 30, decimal encoder, form U. Steam always means 5 characters when chosen in the setup screen or by `;S`.
 
@@ -97,11 +97,11 @@ FEA-04.10 **Validity.** Checked in this order before a code is made:
 
 | Error kind | When | State text (paraphrase, our ID) |
 |---|---|---|
-| invalid key | the secret cannot be decoded (FEA-04.9); in App also when the key bytes are empty (D-04-1) | `MSG-OTP-INVALID-KEY` "Invalid key" |
+| invalid key | the secret cannot be decoded (FEA-04.9); in Larsal also when the key bytes are empty (D-04-1) | `MSG-OTP-INVALID-KEY` "Invalid key" |
 | invalid step | period is 0 (only form T can give this) | `MSG-OTP-INVALID-STEP` "Invalid step" |
 | invalid digits | digits is 0 (only form T can give this) | `MSG-OTP-INVALID-DIGITS` "Invalid digits" |
 
-What the reference does with an empty secret: 2.7.11 makes a code with an empty HMAC key (observed: `otpauth://totp/x?issuer=y`, `key=` and `otpauth:secret=X` all give the empty-key code). From reading the source, the newer build does the same for every undecodable secret, so it would never show "invalid key": check with Verify. App shows invalid key for both (D-04-1).
+What the reference does with an empty secret: 2.7.11 makes a code with an empty HMAC key (observed: `otpauth://totp/x?issuer=y`, `key=` and `otpauth:secret=X` all give the empty-key code). From reading the source, the newer build does the same for every undecodable secret, so it would never show "invalid key": check with Verify. Larsal shows invalid key for both (D-04-1).
 
 FEA-04.11 **Code: the number V.** RFC 6238 with T0 = 0 and step X = period:
 1. counter = floor(unix seconds / period), as 8 bytes big-endian;
@@ -113,7 +113,7 @@ FEA-04.12 **Decimal code.** Code = V mod 10^digits, written in decimal and padde
 
 FEA-04.13 **Steam code.** Alphabet of 26 characters: `23456789BCDFGHJKMNPQRTVWXY`. For i = 0 to digits − 1: character i (counted from the left) = alphabet[(V div 26^i) mod 26]. So the least significant symbol comes first. Compute in 64 bits. With digits other than 5 (form U `digits=`), use that count (observed: 6 and 10 characters).
 
-FEA-04.14 **Seconds left.** R = period − (unix seconds mod period). R runs from period down to 1; the code changes when R goes from 1 back to period. Every place that shows a countdown uses this R and refreshes at least once a second. (The reference's code window shows R + 1, and 1 at the exact period start; its entry preview shows R. App uses R everywhere: D-04-10.)
+FEA-04.14 **Seconds left.** R = period − (unix seconds mod period). R runs from period down to 1; the code changes when R goes from 1 back to period. Every place that shows a countdown uses this R and refreshes at least once a second. (The reference's code window shows R + 1, and 1 at the exact period start; its entry preview shows R. Larsal uses R everywhere: D-04-10.)
 
 FEA-04.15 **Showing a code.** The shown code gets one space after the first floor(length / 2) characters: `123 456`, `1234 5678`, `PV 9M4`, `123 4567`, `10942 87082`. The space is only for the screen: copy, type, browser fill and placeholders never include it. An entry with settings in an error state shows its state text (FEA-04.10), no countdown, and its copy actions do nothing (D-04-4).
 
@@ -140,7 +140,7 @@ FEA-04.17 **Form U text.** Exactly:
 `otpauth://totp/` L `:` N `?secret=` K `&period=` P `&digits=` D `&issuer=` L
 
 then `&encoder=steam` if the encoder is Steam, then `&algorithm=SHA256` or `&algorithm=SHA512` if the algorithm is not SHA-1. Where:
-- L = the entry title with placeholders resolved (MOD-08), percent-encoded; if empty, the product name. The reference writes its own name, `4B 65 65 50 61 73 73 58 43` (stored encoded, name rule); App writes `App` (D-04-2).
+- L = the entry title with placeholders resolved (MOD-08), percent-encoded; if empty, the product name. The reference writes its own name, `4B 65 65 50 61 73 73 58 43` (stored encoded, name rule); Larsal writes `Larsal` (D-04-2).
 - N = the username with placeholders resolved, percent-encoded; if empty, `none`.
 - Percent-encoding: the UTF-8 bytes; every byte except `A`–`Z`, `a`–`z`, `0`–`9`, `-`, `.`, `_`, `~` becomes `%` plus two uppercase hex digits. So `:` is `%3A`, space `%20`, `@` `%40`.
 - K = the cleaned and padded secret of FEA-04.9 step 1, percent-encoded (each `=` becomes `%3D`).
@@ -166,14 +166,14 @@ FEA-04.22 **Setup screen** (`ACT-OTP-SETUP`, our ID; title "Set up one-time pass
 
 - The Custom controls are disabled unless Custom is chosen.
 - Pre-fill from the current settings: the time step always; Steam if the encoder is Steam; else Custom with digits and algorithm if the settings are custom (FEA-04.21); else Standard. A banner `MSG-OTP-SETUP-INVALID` ("the secret key is invalid") shows at the top when the current settings are in an error state.
-- On Save, the secret text is uppercased, every space and `=` is removed, and the ends are trimmed. The result must contain only `A`–`Z` and `2`–`7`. Otherwise the screen shows `MSG-OTP-BAD-SECRET` ("This secret key can't be used. It may hold only the letters A to Z and the digits 2 to 7, for example JBSWY3DPEHPK3PXP.") and stays open. The reference accepts a cleaned length of 1, 3 or 6 modulo 8 and only later shows invalid key; App refuses it with the same message (D-04-5).
+- On Save, the secret text is uppercased, every space and `=` is removed, and the ends are trimmed. The result must contain only `A`–`Z` and `2`–`7`. Otherwise the screen shows `MSG-OTP-BAD-SECRET` ("This secret key can't be used. It may hold only the letters A to Z and the digits 2 to 7, for example JBSWY3DPEHPK3PXP.") and stays open. The reference accepts a cleaned length of 1, 3 or 6 modulo 8 and only later shows invalid key; Larsal refuses it with the same message (D-04-5).
 - Empty secret: if the entry has a one-time password, ask `MSG-OTP-CONFIRM-REMOVE` ("Remove the one-time password settings of this entry?", buttons Delete and Cancel, default Cancel); Delete removes it (FEA-04.20). If the entry has none, close with no change.
 - Values used: Standard: 6, 30, SHA-1. Steam: 5, 30, SHA-1, Steam encoder. Custom: the three controls.
 - The stored secret is the cleaned text (uppercase, no padding); FEA-04.17 and FEA-04.18 add the padding.
 - Cancel and lock close the screen without change.
 
 FEA-04.23 **QR screen** (`ACT-OTP-QR`, enabled when the entry has a one-time password).
-- Content: the form U text of FEA-04.17, built from the current settings, always form U whatever the stored form. The reference uses the title and username here without resolving placeholders (unlike FEA-04.17 on Save). App does the same.
+- Content: the form U text of FEA-04.17, built from the current settings, always form U whatever the stored form. The reference uses the title and username here without resolving placeholders (unlike FEA-04.17 on Save). Larsal does the same.
 - QR symbol: error correction level H, the smallest version that fits, byte mode, a quiet zone of 4 modules (source, re-read by Verify in Sprint 3: the encoder is called with error correction level High by default, automatic version, byte mode, and the picture is drawn with a margin of 4 modules).
 - When the settings are custom or Steam: note `MSG-OTP-QR-CUSTOM` ("Not every authenticator app can use these settings. Check that its codes match before you rely on it.").
 - If the text does not fit in a QR symbol: message `MSG-OTP-QR-ERROR` ("The QR code could not be made") and the screen closes.
@@ -186,7 +186,7 @@ FEA-04.24 **Actions and where codes appear.** IDs are ours; shortcuts are owned 
 | ID | Action | Enabled when | Does |
 |---|---|---|---|
 | `ACT-OTP-COPY` | Copy one-time code | one entry selected | valid settings: copy the code (APP-03). No valid settings: open the setup screen instead |
-| `ACT-OTP-COPY-PW` | Copy password and code | one entry selected and it has settings | copy the password (placeholders resolved) directly followed by the code, no separator. App: only with valid settings (D-04-4) |
+| `ACT-OTP-COPY-PW` | Copy password and code | one entry selected and it has settings | copy the password (placeholders resolved) directly followed by the code, no separator. Larsal: only with valid settings (D-04-4) |
 | `ACT-OTP-SHOW` | Show code window | one entry selected and it has settings | window with the code (FEA-04.15), a progress bar for R (FEA-04.14), Copy button and Cmd+C. Closes on lock |
 | `ACT-OTP-QR` | Show QR code | as above | FEA-04.23 |
 | `ACT-OTP-SETUP` | Set up one-time password | one entry selected | FEA-04.22 |
@@ -199,7 +199,7 @@ Other places:
 - Auto-Type `{TOTP}` computes the code at the moment of typing, including the delays before it, and stops with an error when the settings are invalid (INT-05).
 - CSV export writes the form U text of FEA-04.17 (with resolved title and username) whatever the stored form (FEA-09).
 
-FEA-04.25 **Placeholder.** `{TOTP}` (any case) resolves to the current code without the space. No settings: empty text. Error state: the reference inserts the state text (observed: `x{TOTP}y` gives `xInvalid Keyy`); App inserts empty text (D-04-4). The source also accepts `{TIMEOTP}` as the same placeholder; 2.7.11 leaves `{TIMEOTP}` as literal text (differs in installed version, observed). App accepts both (D-04-11). MOD-08 owns the engine and nesting.
+FEA-04.25 **Placeholder.** `{TOTP}` (any case) resolves to the current code without the space. No settings: empty text. Error state: the reference inserts the state text (observed: `x{TOTP}y` gives `xInvalid Keyy`); Larsal inserts empty text (D-04-4). The source also accepts `{TIMEOTP}` as the same placeholder; 2.7.11 leaves `{TIMEOTP}` as literal text (differs in installed version, observed). Larsal accepts both (D-04-11). MOD-08 owns the engine and nesting.
 
 FEA-04.26 **Clock.** Codes use the system clock in UTC seconds. There is no time offset setting.
 
@@ -215,16 +215,16 @@ FEA-04.26 **Clock.** Codes use the system clock in UTC seconds. There is no time
 | `TOTP Settings` = `60;s` (lowercase) | period 60, digits 1. Observed |
 | `TOTP Settings` = `30;S;9` | Steam, 5 characters. Observed |
 | Form U with two `secret` items | the first wins. Observed |
-| Form U `otpauth:secret=X` (no `?`) | empty secret: reference makes the empty-key code; App invalid key. Observed |
-| Form U `otpauth://hotp/…&counter=5` | reference: read as TOTP, counter ignored (observed). App: D-04-3 |
+| Form U `otpauth:secret=X` (no `?`) | empty secret: reference makes the empty-key code; Larsal invalid key. Observed |
+| Form U `otpauth://hotp/…&counter=5` | reference: read as TOTP, counter ignored (observed). Larsal: D-04-3 |
 | Secret `GEZDGNBV=GY3TQOJQ`, `GEZDGNBV+GY3TQOJQ` or with `é` inside | the character is dropped: same key as `GEZDGNBVGY3TQOJQ`. Observed |
 | Secret `ABC`, `GEZDGNBVG` (9) or `GEZDGN` (6) | invalid key. Observed |
 | Secret with `9` | `9` dropped; the rest decides. Observed |
 | Form T `TimeOtp-Length` = `0` / `TimeOtp-Period` = `0` or `abc` | invalid digits / invalid step. Observed |
 | Form T `TimeOtp-Algorithm` = `SHA-256` | SHA-1 (one hyphen is not a known name). Observed |
-| Form K with Steam chosen in setup | reference writes form K without the encoder; it reads back as 5 decimal digits. App: D-04-6 |
-| Existing digits outside 6..10 (for example 5 from form K, or 1) with Custom pre-filled | the reference's code size control cannot show it and shows its nearest limit; Save then writes that value. App: D-04-12 |
-| User removes the one-time password of an entry that also has form T fields | reference: `otp`, `TOTP Seed`, `TOTP Settings` go, form T stays, so the entry still has a one-time password. App: D-04-7 |
+| Form K with Steam chosen in setup | reference writes form K without the encoder; it reads back as 5 decimal digits. Larsal: D-04-6 |
+| Existing digits outside 6..10 (for example 5 from form K, or 1) with Custom pre-filled | the reference's code size control cannot show it and shows its nearest limit; Save then writes that value. Larsal: D-04-12 |
+| User removes the one-time password of an entry that also has form T fields | reference: `otp`, `TOTP Seed`, `TOTP Settings` go, form T stays, so the entry still has a one-time password. Larsal: D-04-7 |
 | Placeholder `{TOTP}` in a field of an entry without settings | empty text |
 | QR text too long | `MSG-OTP-QR-ERROR`, screen closes |
 | Lock while the setup, code or QR screen is open | the screen closes; nothing is saved from the setup screen |
@@ -234,7 +234,7 @@ FEA-04.26 **Clock.** Codes use the system clock in UTC seconds. There is no time
 | ID | Question | Options | Recommended |
 |---|---|---|---|
 | D-04-1 | Empty or undecodable secret | (a) compute with an empty HMAC key, as 2.7.11 does for empty and the source does for all; (b) invalid key | (b) |
-| D-04-2 | Label and issuer when the title is empty | (a) the reference's own name; (b) `App` (renamed with D1) | (b) |
+| D-04-2 | Label and issuer when the title is empty | (a) the reference's own name; (b) `Larsal` (renamed with D1) | (b) |
 | D-04-3 | Form U type other than `totp` | (a) ignore the type, as the reference; (b) `totp` or an empty type only; anything else is an error state "unsupported type" (our ID `MSG-OTP-UNSUPPORTED`), field kept | (b): a counter-based secret never gives a right code from the clock |
 | D-04-4 | Settings in an error state, for `{TOTP}`, copy-with-password and preview double-click | (a) insert or copy the state text, as the reference; (b) empty text, no copy | (b) |
 | D-04-5 | Setup screen secret whose cleaned length is 1, 3 or 6 modulo 8 | (a) accept, as the reference; (b) refuse with `MSG-OTP-BAD-SECRET` | (b) |
@@ -277,7 +277,7 @@ Secrets used: R = `GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ` (ASCII `1234567890123456789
 | 04-13 clamps | form U secret R with `digits=0`; `digits=12`; `digits=10`; `period=0`; `period=90000` | code at 59 | `2` (1 digit); `1094287082`; `1094287082`; `083773` (period 1); `755224` (period 86400). Observed. FEA-04.3, 04.12 |
 | 04-14 numbers | form U secret R with `digits=8abc`; `digits=-3`; `digits=+8`; `digits=%208`; `period=abc` | settings | digits 1; 1; 8; 8; period 1. Observed. FEA-04.4 |
 | 04-15 scheme case, no trim | `otp` = `OTPAUTH://totp/Demo:alice?secret=R`; second entry `otp` = ` otpauth://totp/Demo:alice?secret=R` (leading space) | settings | first: defaults, code at 59 `287082`; second: none. Observed. FEA-04.3 (a) |
-| 04-16 names case-sensitive | `otp` = `otpauth://totp/Demo:alice?SECRET=R` | settings | form U with an empty secret: App invalid key; 2.7.11 shows the empty-key code (`812658` at 59). Observed. FEA-04.3, 04.10 |
+| 04-16 names case-sensitive | `otp` = `otpauth://totp/Demo:alice?SECRET=R` | settings | form U with an empty secret: Larsal invalid key; 2.7.11 shows the empty-key code (`812658` at 59). Observed. FEA-04.3, 04.10 |
 | 04-17 form K | `otp` = `key=R&size=8&step=60&otpHashMode=Sha256` | code at 59 and 1111111109 | `74875740`, `69648066`. Observed match. FEA-04.3 (b), 04.6 |
 | 04-18 form K decoding | `otp` = `key=GEZDGNBVGY3TQOJQ%3d&size=6` | settings | key text `GEZDGNBVGY3TQOJQ=`, 10 key bytes; code at 59 `263420`. Observed. FEA-04.3 (b), 04.5 |
 | 04-19 form L | `TOTP Seed` = R, `TOTP Settings` = `30;8` | code at 59 | `94287082`. Observed. FEA-04.3 (c) |
@@ -286,29 +286,29 @@ Secrets used: R = `GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ` (ASCII `1234567890123456789
 | 04-22 precedence | entry A: `TOTP Settings` empty plus valid `otp`; B: `TOTP Seed` = R only; C: `otp` = `…secret=R&digits=8` plus `TimeOtp-Secret-Base32` = `AAAAAAAA`; D: `TOTP Seed` = `AAAAAAAA`, `TOTP Settings` = `otpauth://totp/Demo:alice?secret=R&digits=8` | settings | A none; B none; C the `otp` settings (8 digits, secret R); D secret R, 8 digits. Observed. FEA-04.1 |
 | 04-23 form T | `TimeOtp-Secret-Base32` = R, `TimeOtp-Length` = `8`, `TimeOtp-Algorithm` = `HMAC-SHA-512` | code at 59 | `69342147`. Observed match. FEA-04.7 |
 | 04-24 form T errors | form T secret R with `TimeOtp-Length` = `0`; another with `TimeOtp-Period` = `0`; another with `TimeOtp-Secret-Base32` empty | state | invalid digits; invalid step; none. Observed. FEA-04.7, 04.10 |
-| 04-25 form T large | `TimeOtp-Secret-Base32` = R, `TimeOtp-Length` = `12` | code at 59 | reference `001094287082` (observed). App: per D-04-8 (recommended: `1094287082`, clamped to 10). FEA-04.7, 04.12 |
+| 04-25 form T large | `TimeOtp-Secret-Base32` = R, `TimeOtp-Length` = `12` | code at 59 | reference `001094287082` (observed). Larsal: per D-04-8 (recommended: `1094287082`, clamped to 10). FEA-04.7, 04.12 |
 | 04-26 Base32 cleaning | form U secrets `GEZDGNBVGY3TQ0J8` and `GEZDGNBVGY3TQOJB` | key bytes | equal (0 becomes O, 8 becomes B). Observed same code. FEA-04.9 |
 | 04-27 Base32 trailing bits | secrets `GEZDGNBVGY3TQOJ` and `GEZDGNBVGY3TQOK` | key bytes | equal, 9 bytes; code at 59 `053248`. Observed same code. FEA-04.9 |
 | 04-28 Base32 dropped characters | secret `GEZDGNBVGY3TQOJ9` | key | cleaned `GEZDGNBVGY3TQOJ=`, 9 bytes, code at 59 `053248`. Observed. FEA-04.9 |
 | 04-29 Base32 invalid lengths | secrets `ABC`, `GEZDGNBVG`, `GEZDGN` | state | invalid key, all three. Observed. FEA-04.9, 04.10 |
 | 04-30 percent rules | secrets `GEZDGNBV%3DGY3TQOJQ`, `GEZDGNBV%26GY3TQOJQ`, `GEZDGNBV%2BGY3TQOJQ`, `GEZDGNBV%25GY3TQOJQ` | key text after cleaning | `GEZDGNBVGY3TQOJQ`, `GEZDGNBVGY3TQOJQ`, `GEZDGNBV2BGY3TQOJQ` + padding, `GEZDGNBV25GY3TQOJQ` + padding. Observed by code. FEA-04.5 |
-| 04-31 empty secret | `otp` = `otpauth://totp/x?issuer=y`; `otp` = `key=` | state | App: invalid key, no code, copy actions do nothing. 2.7.11: shows a code from an empty HMAC key (`812658` at 59). FEA-04.10 |
+| 04-31 empty secret | `otp` = `otpauth://totp/x?issuer=y`; `otp` = `key=` | state | Larsal: invalid key, no code, copy actions do nothing. 2.7.11: shows a code from an empty HMAC key (`812658` at 59). FEA-04.10 |
 | 04-32 write form U | new entry, title `Demo Site`, username `alice@example.com`, setup: secret `jbsw y3dp ehpk 3px`, Standard | Save | `otp` (protected) = `otpauth://totp/Demo%20Site:alice%40example.com?secret=JBSWY3DPEHPK3PX%3D&period=30&digits=6&issuer=Demo%20Site`; no `TOTP Seed`, no `TOTP Settings`. FEA-04.16, 04.17, 04.22 |
 | 04-33 write form U custom | title `Bank`, username empty, setup: secret J, Custom SHA-256, 60 s, 8 digits | Save | `otp` = `otpauth://totp/Bank:none?secret=JBSWY3DPEHPK3PXP&period=60&digits=8&issuer=Bank&algorithm=SHA256`. FEA-04.17 |
-| 04-34 write form U Steam, empty title | title empty, username `bob`, setup: secret J, Steam | Save | App: `otp` = `otpauth://totp/App:bob?secret=JBSWY3DPEHPK3PXP&period=30&digits=5&issuer=App&encoder=steam`. The reference writes its own name in both places (D-04-2). FEA-04.17 |
+| 04-34 write form U Steam, empty title | title empty, username `bob`, setup: secret J, Steam | Save | Larsal: `otp` = `otpauth://totp/Larsal:bob?secret=JBSWY3DPEHPK3PXP&period=30&digits=5&issuer=Larsal&encoder=steam`. The reference writes its own name in both places (D-04-2). FEA-04.17 |
 | 04-35 write keeps form L | entry with `TOTP Seed` = J, `TOTP Settings` = `30;6`; setup: Steam | Save | `TOTP Seed` (protected) = `JBSWY3DPEHPK3PXP`, `TOTP Settings` (plain) = `30;S`; no `otp`. FEA-04.16, 04.19 |
 | 04-36 legacy to URI on Custom | same entry; setup: Custom SHA-1, 30 s, 7 digits | Save | `TOTP Seed` and `TOTP Settings` removed; `otp` = `otpauth://totp/…?secret=JBSWY3DPEHPK3PXP&period=30&digits=7&issuer=…`. FEA-04.16 |
 | 04-37 write keeps form K | entry `otp` = `key=JBSWY3DPEHPK3PXP&size=6&step=30`; setup: Custom SHA-512, 30 s, 6 digits | Save | `otp` = `key=JBSWY3DPEHPK3PXP&size=6&step=30&otpHashMode=SHA512`. FEA-04.18 |
 | 04-38 round trip | each text written in 04-32 to 04-37 | read back by FEA-04.1 | the same settings that were saved. FEA-04.16, 04.20 |
-| 04-39 setup rejects | setup secret `JBSWY3DP-EHPK3PXP`; `JBSWY3DPEHPK3PX1`; `ABC` | Save | `MSG-OTP-BAD-SECRET`, screen stays open, entry unchanged (the third only in App, D-04-5). FEA-04.22 |
+| 04-39 setup rejects | setup secret `JBSWY3DP-EHPK3PXP`; `JBSWY3DPEHPK3PX1`; `ABC` | Save | `MSG-OTP-BAD-SECRET`, screen stays open, entry unchanged (the third only in Larsal, D-04-5). FEA-04.22 |
 | 04-40 setup remove | entry with form U settings; setup secret emptied | Save, then Delete | `otp`, `TOTP Seed`, `TOTP Settings` gone; entry has no one-time password; one history item (MOD-03). With Cancel: unchanged. FEA-04.20, 04.22 |
 | 04-41 setup pre-fill | entry `otp` = `otpauth://totp/a:b?secret=JBSWY3DPEHPK3PXP%3D%3D&period=45&digits=8` | open setup | secret field `JBSWY3DPEHPK3PXP`; Custom chosen; time step 45; code size 8; algorithm SHA-1. FEA-04.21, 04.22 |
 | 04-42 display | codes `287082`, `94287082`, `PV9M4`, `1094287082` | shown | `287 082`, `9428 7082`, `PV 9M4`, `10942 87082`; copy gives the code without the space. FEA-04.15 |
 | 04-43 QR content | entry title `{USERNAME} site` (a placeholder), username `alice`, form L `TOTP Seed` = J, `TOTP Settings` = `30;6` | open QR screen | QR encodes `otpauth://totp/%7BUSERNAME%7D%20site:alice?secret=JBSWY3DPEHPK3PXP&period=30&digits=6&issuer=%7BUSERNAME%7D%20site` (unresolved title); no custom note; countdown shows 44. FEA-04.23 |
 | 04-44 QR custom note and close | entry with Steam settings | open QR screen; wait | custom note shown; screen closes 44 seconds after opening; locking earlier closes it at once. FEA-04.23 |
-| 04-45 copy actions | entry A valid (secret R, at time 59), password `pw`; entry B with `otp` = `otpauth://totp/x?secret=ABC`; entry C without settings | `ACT-OTP-COPY` and `ACT-OTP-COPY-PW` on each | A: `287082`, then `pw287082`. B: copy opens the setup screen; copy-with-password does nothing (App). C: copy opens the setup screen; copy-with-password disabled. FEA-04.24 |
-| 04-46 placeholder | A: secret R, password `a{TOTP}b\|{totp}\|{TIMEOTP}`; B: secret `ABC`, password `x{TOTP}y`; C: no settings, password `x{TOTP}y` | resolve the password at time 59 | App: A `a287082b\|287082\|287082`; B `xy`; C `xy`. 2.7.11 (observed): A ends in the literal `{TIMEOTP}`; B `xInvalid Keyy`. FEA-04.25 |
-| 04-47 hotp URI | `otp` = `otpauth://hotp/Demo:alice?secret=R&counter=5` | settings | reference: TOTP code as in 04-05 (observed). App: per D-04-3 (recommended: invalid, state "unsupported type"). FEA-04.3 |
+| 04-45 copy actions | entry A valid (secret R, at time 59), password `pw`; entry B with `otp` = `otpauth://totp/x?secret=ABC`; entry C without settings | `ACT-OTP-COPY` and `ACT-OTP-COPY-PW` on each | A: `287082`, then `pw287082`. B: copy opens the setup screen; copy-with-password does nothing (Larsal). C: copy opens the setup screen; copy-with-password disabled. FEA-04.24 |
+| 04-46 placeholder | A: secret R, password `a{TOTP}b\|{totp}\|{TIMEOTP}`; B: secret `ABC`, password `x{TOTP}y`; C: no settings, password `x{TOTP}y` | resolve the password at time 59 | Larsal: A `a287082b\|287082\|287082`; B `xy`; C `xy`. 2.7.11 (observed): A ends in the literal `{TIMEOTP}`; B `xInvalid Keyy`. FEA-04.25 |
+| 04-47 hotp URI | `otp` = `otpauth://hotp/Demo:alice?secret=R&counter=5` | settings | reference: TOTP code as in 04-05 (observed). Larsal: per D-04-3 (recommended: invalid, state "unsupported type"). FEA-04.3 |
 | 04-48 derived on change | entry `otp` = `…secret=R`; then the field is edited to `…secret=R&digits=8` without the setup screen | settings | 8 digits right after the edit. FEA-04.2 |
 | 04-49 defaults | `otp` = `otpauth://totp/a:b?secret=R` | settings; code at 59 | SHA-1, 6 digits, period 30, decimal, form U; `287082`. FEA-04.8 |
 | 04-50 clock in UTC | secret R, defaults; system clock at 1234567890 (2009-02-13 23:31:30 UTC); Mac time zone set to UTC+2, then UTC−8 | code | `005924` in both time zones. FEA-04.26 |

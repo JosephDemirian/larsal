@@ -1,0 +1,29 @@
+[package]
+name = "larsal-bridge"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E7-S6: the host program the browsers start (INT-01.1 to INT-01.5,
+# plan/architecture.md): a relay of length-prefixed frames between standard
+# input and output and Larsal's bridge socket. It holds no key and opens no box,
+# so it links no larsal-crypto, larsal-format or larsal-core; larsal-platform without
+# features is libc only (the hardening of APP-11 and the user temp folder).
+[[bin]]
+name = "larsal-bridge"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+larsal-platform = { workspace = true }
+
+[dev-dependencies]
+# The tests' Larsal side: Larsal's own bridge socket and channel (E7-S1), so a
+# hello through larsal-bridge gets Larsal's real reply. Tests only, never linked
+# into larsal-bridge.
+larsal-browser = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-model = { workspace = true }

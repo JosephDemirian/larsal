@@ -1,17 +1,17 @@
 //! Fuzz target `document` (E3-S10): the vault document reader on arbitrary
 //! XML, with a ChaCha20 field stream and an empty pool. Must never panic,
 //! hang or allocate past the limits (AT-A10, AT-A07); every vault it reads
-//! must hold the model invariants, and App must read back what it writes
-//! of it (FMT-08.12: App never writes what it would refuse to read).
+//! must hold the model invariants, and Larsal must read back what it writes
+//! of it (FMT-08.12: Larsal never writes what it would refuse to read).
 //! `@R` in the input stands for the root element name (see `expand`).
 #![no_main]
 
-use app_crypto::secret::SecretBytes;
-use app_crypto::stream::FieldStream;
-use app_format::document::write::{SaveStamp, minor_version, write};
-use app_format::document::{Options, read};
-use app_format::limits::Limits;
-use app_model::Time;
+use larsal_crypto::secret::SecretBytes;
+use larsal_crypto::stream::FieldStream;
+use larsal_format::document::write::{SaveStamp, minor_version, write};
+use larsal_format::document::{Options, read};
+use larsal_format::limits::Limits;
+use larsal_model::Time;
 use libfuzzer_sys::fuzz_target;
 
 /// The document root element name, stored encoded (name rule).
@@ -50,7 +50,7 @@ fuzz_target!(|data: &[u8]| {
     let Ok(doc) = read(&data, &mut stream(), &[], &opts) else {
         return;
     };
-    assert_eq!(app_model::invariants::check(&doc.vault), Ok(()));
+    assert_eq!(larsal_model::invariants::check(&doc.vault), Ok(()));
     let stamp = SaveStamp {
         padding_hex: "a5".repeat(64),
         time: Time(0),
@@ -62,6 +62,6 @@ fuzz_target!(|data: &[u8]| {
         limits: &default,
         ..opts
     };
-    let back = read(w.xml(), &mut stream(), &pool, &again).expect("App reads what it writes");
-    assert_eq!(app_model::invariants::check(&back.vault), Ok(()));
+    let back = read(w.xml(), &mut stream(), &pool, &again).expect("Larsal reads what it writes");
+    assert_eq!(larsal_model::invariants::check(&back.vault), Ok(()));
 });

@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """Makes the import samples of the FEA-08 tests (story E4-S13) in
-crates/app-core/tests/data/, from public standards only: PBKDF2 (RFC 8018)
+crates/larsal-core/tests/data/, from public standards only: PBKDF2 (RFC 8018)
 from hashlib, HKDF-Expand (RFC 5869) and HMAC-SHA-256 from hmac, AES-256
 in CBC and ECB mode from the `openssl enc` command, ZIP from Python's
-zipfile module. None of it uses App's code, so the tests check App's
+zipfile module. None of it uses Larsal's code, so the tests check Larsal's
 readers against independent writers.
 
 Files: the two password-protected JSON exports (part 1); part 2:
 demo.1pux, demo.opvault/ (password `demo-opv-pass`), and version 1 files
-v1-*.bin with their key files v1-*.appkey (passwords below).
+v1-*.bin with their key files v1-*.larsalkey (passwords below).
 
 Demo data only. Fixed IVs, so a re-run gives the same files.
 
   python3 -I scripts/testdata/make_import_samples.py
 
 Argon2id: this Mac has no independent Argon2 tool, so K for the Argon2id
-sample is given below; it was computed with app-crypto's import_argon2id
-(RFC 9106 vectors checked in crates/app-crypto/src/kdf.rs). Everything
+sample is given below; it was computed with larsal-crypto's import_argon2id
+(RFC 9106 vectors checked in crates/larsal-crypto/src/kdf.rs). Everything
 after K (HKDF, HMAC, AES) is computed here.
 """
 import base64
@@ -26,7 +26,7 @@ import json
 import pathlib
 import subprocess
 
-OUT = pathlib.Path(__file__).resolve().parents[2] / "crates" / "app-core" / "tests" / "data"
+OUT = pathlib.Path(__file__).resolve().parents[2] / "crates" / "larsal-core" / "tests" / "data"
 IV_CHECK = bytes(range(0, 16))
 IV_DATA = bytes(range(16, 32))
 VALIDATION = b"demo-validation-value"
@@ -413,11 +413,11 @@ def v1_file(name, raw, rounds=50, flags=2):
 
 sha = lambda b: hashlib.sha256(b).digest()
 hex_key = bytes(range(0xA0, 0xC0))
-(OUT / "v1-hex.appkey").write_text(hex_key.hex())
+(OUT / "v1-hex.larsalkey").write_text(hex_key.hex())
 bin_key = bytes(range(0xC0, 0xE0))
-(OUT / "v1-binary.appkey").write_bytes(bin_key)
+(OUT / "v1-binary.larsalkey").write_bytes(bin_key)
 hashed_key = b"demo key file of another length, not 32 or 64 bytes\n"
-(OUT / "v1-hashed.appkey").write_bytes(hashed_key)
+(OUT / "v1-hashed.larsalkey").write_bytes(hashed_key)
 v1_file("v1-aes.bin", sha(b"demo-v1-pass"))
 v1_file("v1-keyfile-hex.bin", hex_key)
 v1_file("v1-composite.bin", sha(sha(b"demo-v1-pass") + bin_key))

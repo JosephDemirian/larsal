@@ -5,7 +5,7 @@ Date: 2026-10-28.
 Role: Verify. I did not build or review this story. No reference access was needed, and none was used.
 Result: **signed.**
 
-- **Tests:** `cargo test -p app-sshagent` 32 passed (8 unit, 24 integration); app-crypto `ssh` 3 passed; app-platform `pipe` test passed in debug and `--release`.
+- **Tests:** `cargo test -p larsal-sshagent` 32 passed (8 unit, 24 integration); larsal-crypto `ssh` 3 passed; larsal-platform `pipe` test passed in debug and `--release`.
 - **Own driver against throwaway OpenSSH 10.3 agents:** lifetime 2 s listed at 0.01 s and 1.01 s and gone at 3.01 s by `ssh-add -l`. Lifetime 0 and 1,000,000,000 give MI06-17 and nothing is sent. Confirm is refused without askpass. With a scripted askpass the agent asks on every use (3 signs, 3 prompts, the deny fails). Remove, remove absent, remove all and list all match `ssh-add -l`.
 - **AT-H01:** remove plus `ssh-add -l` took 12 ms (limit 1 s).
 - **AT-H02:** the lifetime is enforced by the agent, and the confirm limit is set: the agent refuses or asks on use.
@@ -24,17 +24,17 @@ Result: **signed.**
   - older forms: `-m PEM` RSA plain and protected, `-m PEM` ECDSA, `-m PKCS8` plain and protected;
   - a DSA key from `openssl dsaparam -genkey 1024`, which gives `DSA PRIVATE KEY`;
   - the same DSA numbers (p 1024 bits, q 160 bits) written into an OpenSSH-format file by a small script, because `ssh-keygen` 10.3 says `unknown key type dsa`.
-- **Driver.** A separate crate in `/tmp/v-e9s1/driver`, outside the workspace. It uses path dependencies on `app-sshagent` and `app-crypto`, the workspace `Cargo.lock` and `--offline`. Only the public API is used: `SshKey::read`, `unlock`, `Agent::at`, `add`, `remove`, `remove_all`, `list`, `Error::id` and `message`. The scenarios ran from Python scripts in `/tmp/v-e9s1/scripts`. None of the Builder's test code was used.
+- **Driver.** A separate crate in `/tmp/v-e9s1/driver`, outside the workspace. It uses path dependencies on `larsal-sshagent` and `larsal-crypto`, the workspace `Cargo.lock` and `--offline`. Only the public API is used: `SshKey::read`, `unlock`, `Agent::at`, `add`, `remove`, `remove_all`, `list`, `Error::id` and `message`. The scenarios ran from Python scripts in `/tmp/v-e9s1/scripts`. None of the Builder's test code was used.
 - **Nothing in the project changed** except this file and the E9-S1 status line. `find crates fuzz/fuzz_targets fuzz/corpus -newer <first demo key>` printed nothing. Fuzz artifacts went to `/tmp`.
 
 ## 1. Builder tests and INT-06 case map
 
-`cargo test -p app-sshagent`: `32 passed (3 suites, 11.12s)`. A second run listed every test as `ok`:
+`cargo test -p larsal-sshagent`: `32 passed (3 suites, 11.12s)`. A second run listed every test as `ok`:
 
 - **Unit tests:** `agent::tests::{add_message_is_exact_and_bounded, identities_parse_and_bounds, override_wins_then_environment, hostile_identities_never_panic}`, `messages::tests::{fill_is_one_pass, messages_fill_in_the_cards_words, table_has_every_id_once_in_order}`, `key::tests::hostile_key_files_never_panic`. Total: 8 passed.
 - **Integration tests:** `tests/agent.rs`, 24 passed, in 11.07 s.
 
-`cargo test -p app-crypto ssh`: `ssh::tests::{other_labels_and_garbage_are_none, k1_public_parts_match_the_card, k1_agent_form_is_type_public_and_seed_with_public}`, 3 passed.
+`cargo test -p larsal-crypto ssh`: `ssh::tests::{other_labels_and_garbage_are_none, k1_public_parts_match_the_card, k1_agent_form_is_type_public_and_seed_with_public}`, 3 passed.
 
 Cases owned by E9-S1 (the client and key reading):
 
@@ -68,7 +68,7 @@ Cases owned by E9-S1 (the client and key reading):
 
 Not covered at E9-S1:
 
-- **E9-S2.** These need the entry settings, sources, records, lock or unlock, App's own agent or screens: T01 to T13, T15, T19, T23, T24 (the memory scan needs a load from an entry and the debug wipe hook), T38 to T59, T61 to T67, and T69 to T74.
+- **E9-S2.** These need the entry settings, sources, records, lock or unlock, Larsal's own agent or screens: T01 to T13, T15, T19, T23, T24 (the memory scan needs a load from an entry and the debug wipe hook), T38 to T59, T61 to T67, and T69 to T74.
 - **Kept for history only** (option (a), LD-173): T60.
 - **Missing:** only the other-user half of T26 (above).
 
@@ -127,7 +127,7 @@ The confirm steps are in section 4.
   askpass exits 0: sign rc=0 signature=made
   askpass log (3 prompts): "Allow use of key ed@verify? Key fingerprint SHA256:tc6CYrObBUi++NQcdzscWE+Y+9pamZOBdX6BYQCUTp0." each time
   ```
-- **Under (b).** LD-173 sends keys that ask before each use to App's own agent, not to the system agent. That part of AT-H02 is E9-S2 (T51, T53, T57). The client still sends the limit correctly when asked (T29).
+- **Under (b).** LD-173 sends keys that ask before each use to Larsal's own agent, not to the system agent. That part of AT-H02 is E9-S2 (T51, T53, T57). The client still sends the limit correctly when asked (T29).
 
 ## 5. Key handling
 
@@ -161,7 +161,7 @@ rsa4096p  RSA 4096     enc=true  SHA256:V5q5ztioQt8DBOUalMqCj6x2Q/wV3SiBr/4Tl4UH
   - `old-dsa-pem`, `old-rsa-pem`, `old-rsa-pem-enc`, `old-ec-pem`, `old-pkcs8` (`PRIVATE KEY`), `old-pkcs8-enc` (`ENCRYPTED PRIVATE KEY`): each `ERR MI06-11 | <name> uses an older key format. Convert a copy with "ssh-keygen -p -f <path>", then use the converted file.`
   - A text file gives MI06-10, an empty file MI06-09, and 1,048,577 bytes MI06-08.
 - **Rounds.**
-  - The 1,001-round key (made by `ssh-keygen -a 1001`), 3 runs: each `UNLOCK ms=0`, `ERR MI06-16 | This key's passphrase protection uses 1001 rounds; App allows at most 1,000. ...`, and `real 0.00` for the whole process.
+  - The 1,001-round key (made by `ssh-keygen -a 1001`), 3 runs: each `UNLOCK ms=0`, `ERR MI06-16 | This key's passphrase protection uses 1001 rounds; Larsal allows at most 1,000. ...`, and `real 0.00` for the whole process.
   - The 1,000-round key: `UNLOCK OK ms=8229`, at the cap and accepted.
 - **Leak check** (my own, not asked for): read plus unlock, 200,000 times in one process. RSS stayed flat:
   - Ed25519 8,720 to 8,864 KB;
@@ -213,17 +213,17 @@ rsa4096p  RSA 4096     enc=true  SHA256:V5q5ztioQt8DBOUalMqCj6x2Q/wV3SiBr/4Tl4UH
 
 ## 8. `pipe.rs` (LD-179)
 
-`cargo test -p app-platform pipe` and `cargo test -p app-platform --release pipe` both pass:
+`cargo test -p larsal-platform pipe` and `cargo test -p larsal-platform --release pipe` both pass:
 `macos::pipe::tests::a_write_to_a_closed_socket_is_an_error_not_a_signal ... ok`, 1 passed. Its child `broken_pipe_child` is ignored when run on its own, by design.
 
 - **What the test proves.** The control child, without the call, must die by SIGPIPE; the guarded child must exit 0.
-- **Product call.** `crates/app-ffi/src/start.rs:232` calls `ignore_broken_pipes()` in `harden()`, at the start of the window app.
+- **Product call.** `crates/larsal-ffi/src/start.rs:232` calls `ignore_broken_pipes()` in `harden()`, at the start of the window app.
 
 ## Open points (none blocks E9-S1)
 
 1. **T26, other user's socket.** It needs a root fixture in CI, which does not exist yet. The path, link, file, length and missing cases pass, but the `getpeereid` refusal of a socket owned by another user is not proven on this Mac.
 2. **V-INT06-3, the macOS system agent.** Not run: that agent is the owner's own, which this brief forbids. It waits for the owner's go.
-3. **Timing in D-INT06-3.** In App's release build, 24 rounds take 0.195 s and 1,000 rounds 8.2 s. The card's figures, 0.15 s and 6.2 s, were measured with `ssh-keygen -y`. The cap holds; the card's worst-case number could say 8 s.
+3. **Timing in D-INT06-3.** In Larsal's release build, 24 rounds take 0.195 s and 1,000 rounds 8.2 s. The card's figures, 0.15 s and 6.2 s, were measured with `ssh-keygen -y`. The cap holds; the card's worst-case number could say 8 s.
 4. **Not in this story.** AT-H01's lock path and the confirm half of AT-H02 under (b) belong to E9-S2.
 5. **LD-183.** INT-06 now carries both LD-183 points in its MI06-03 and MI06-10 rows, which closes the Checker's note.
 

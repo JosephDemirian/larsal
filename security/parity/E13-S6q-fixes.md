@@ -4,7 +4,7 @@ Story: E13-S6 part q ([plan/epics.md](../../plan/epics.md)). Rulings read: LD-24
 
 | # | Item | Result | Test |
 |---|---|---|---|
-| 1 | F-134: `damaged_speed_record_is_measured_again` fails in a release build on this Mac | fixed (test only) | `f_134_damaged_speed_record_is_measured_again` (crates/app-crypto/tests/kdf.rs) |
+| 1 | F-134: `damaged_speed_record_is_measured_again` fails in a release build on this Mac | fixed (test only) | `f_134_damaged_speed_record_is_measured_again` (crates/larsal-crypto/tests/kdf.rs) |
 
 ## 1. F-134
 
@@ -27,14 +27,14 @@ So the estimate is at least 7 times the new 1,000 ms limit.
 
 | Command | Load (uptime) | Result |
 |---|---|---|
-| `cargo test --offline --locked --release -p app-crypto --test kdf f_134`, 4 runs | 3.73 | 4 of 4 passed |
+| `cargo test --offline --locked --release -p larsal-crypto --test kdf f_134`, 4 runs | 3.73 | 4 of 4 passed |
 | same, 3 runs, after the comment edit | 5.99 to 6.15 | 3 of 3 passed |
-| `cargo test --offline --locked -p app-crypto --test kdf f_134` (debug), 3 runs | 6.39 | 3 of 3 passed |
+| `cargo test --offline --locked -p larsal-crypto --test kdf f_134` (debug), 3 runs | 6.39 | 3 of 3 passed |
 | same, 3 runs, after the comment edit | 6.14 | 3 of 3 passed |
-| `cargo test --offline --locked --release -p app-crypto --test kdf` | 6.67 | 35 passed, 3 ignored |
-| `cargo test --offline --locked -p app-crypto` (debug, whole crate) | 6.67 | every binary ok (kdf: 35 passed, 3 ignored) |
-| `cargo clippy --offline --locked -p app-crypto --all-targets -- -D warnings` | | no issues |
-| `rustfmt --edition 2024 --check crates/app-crypto/tests/kdf.rs` | | exit 0 |
+| `cargo test --offline --locked --release -p larsal-crypto --test kdf` | 6.67 | 35 passed, 3 ignored |
+| `cargo test --offline --locked -p larsal-crypto` (debug, whole crate) | 6.67 | every binary ok (kdf: 35 passed, 3 ignored) |
+| `cargo clippy --offline --locked -p larsal-crypto --all-targets -- -D warnings` | | no issues |
+| `rustfmt --edition 2024 --check crates/larsal-crypto/tests/kdf.rs` | | exit 0 |
 | `scripts/check-names.sh` (shared tree) | | PASS |
 
 **Mutant proof** (private copy; each mutant undone after its run):
@@ -45,15 +45,15 @@ So the estimate is at least 7 times the new 1,000 ms limit.
 | A | debug, 2 runs | 5.49 | 2 of 2 passed: the old shape passes in debug (check.sh), as in the row |
 | B: `assess` keeps any stored record (`Some(record) => *record`, src/kdf.rs, private copy only) | release, 2 runs | 5.50 to 5.70 | 2 of 2 FAILED at kdf.rs:451, 'expected Ask, got Ok(Run(...))': the test still catches a damaged record that is not measured again |
 
-After the runs the shared crates/app-crypto/src/kdf.rs and tests/kdf.rs match the copy's restored files (cmp), and the shared src/kdf.rs, Cargo.lock and Cargo.toml match the sums taken before the copy (shasum -c OK).
+After the runs the shared crates/larsal-crypto/src/kdf.rs and tests/kdf.rs match the copy's restored files (cmp), and the shared src/kdf.rs, Cargo.lock and Cargo.toml match the sums taken before the copy (shasum -c OK).
 
 ## Verify (2026-10-30)
 
-Role: Verify. I did not find, build or check this fix. Private copy /tmp/e13s6q-verify-copy (rsync with anchored excludes `/target`, `/fuzz/target`, `/app-shots`), CARGO_TARGET_DIR=/tmp/e13s6q-verify-target, every build `--offline --locked`. Before the copy I took sums of the shared Cargo.lock, Cargo.toml, crates/app-crypto/Cargo.toml, src/kdf.rs and tests/kdf.rs; at the end `shasum -c` was OK for all five, cmp showed the shared src/kdf.rs and tests/kdf.rs match the copy's restored files, and both /tmp folders are deleted. Result: **1 re-tested, 0 failed.**
+Role: Verify. I did not find, build or check this fix. Private copy /tmp/e13s6q-verify-copy (rsync with anchored excludes `/target`, `/fuzz/target`, `/larsal-shots`), CARGO_TARGET_DIR=/tmp/e13s6q-verify-target, every build `--offline --locked`. Before the copy I took sums of the shared Cargo.lock, Cargo.toml, crates/larsal-crypto/Cargo.toml, src/kdf.rs and tests/kdf.rs; at the end `shasum -c` was OK for all five, cmp showed the shared src/kdf.rs and tests/kdf.rs match the copy's restored files, and both /tmp folders are deleted. Result: **1 re-tested, 0 failed.**
 
 ### 1. F-134
 
-**Steps.** The row's own command, `cargo test --offline --locked --release -p app-crypto --test kdf damaged_speed_record_is_measured_again` (the filter still matches the renamed test), then the same in debug. For "before", the old test (old name, `ask_with` with the shared CEILINGS, `ask_ms: 10_000`) was put back in the copy only.
+**Steps.** The row's own command, `cargo test --offline --locked --release -p larsal-crypto --test kdf damaged_speed_record_is_measured_again` (the filter still matches the renamed test), then the same in debug. For "before", the old test (old name, `ask_with` with the shared CEILINGS, `ask_ms: 10_000`) was put back in the copy only.
 
 **Before** (old test, copy only):
 
@@ -68,10 +68,10 @@ Role: Verify. I did not find, build or check this fix. Private copy /tmp/e13s6q-
 |---|---|---|
 | the row's command, release, 4 runs | 5.54 | 4 of 4 passed (`f_134_damaged_speed_record_is_measured_again ... ok`) |
 | same, debug, 3 runs | 5.31 to 5.34 | 3 of 3 passed |
-| `cargo test --offline --locked --release -p app-crypto --test kdf` | 5.56 | 35 passed, 3 ignored |
-| `cargo test --offline --locked -p app-crypto` (debug, whole crate) | 5.44 | every binary ok (kdf: 35 passed, 3 ignored) |
-| `cargo clippy --offline --locked -p app-crypto --all-targets -- -D warnings` | | no issues |
-| `rustfmt --edition 2024 --check crates/app-crypto/tests/kdf.rs` | | exit 0 |
+| `cargo test --offline --locked --release -p larsal-crypto --test kdf` | 5.56 | 35 passed, 3 ignored |
+| `cargo test --offline --locked -p larsal-crypto` (debug, whole crate) | 5.44 | every binary ok (kdf: 35 passed, 3 ignored) |
+| `cargo clippy --offline --locked -p larsal-crypto --all-targets -- -D warnings` | | no issues |
+| `rustfmt --edition 2024 --check crates/larsal-crypto/tests/kdf.rs` | | exit 0 |
 | `scripts/check-names.sh` (shared tree) | | PASS (11624 files) |
 
 **Probe** (an `eprintln!` of `estimated_ms()` and the new record, copy only):
@@ -92,6 +92,6 @@ So in release a billion rounds is under the old 10,000 ms limit and at least 8 t
 
 (Mutant A, the old limit, is the "before" table above.)
 
-**Scope.** The product code under test did not change: crates/app-crypto/src/kdf.rs was last written 2026-10-28, and tests/kdf.rs (18:38 today) is the only file of the fix. By grep, the test name is used in no script, Swift file or CI file. No other test checks a real calibration against the 10 s limit and expects Ask: the other billion-round tests (kdf.rs:503, :560) use the fixed host() record, and `missing_aes_record_is_calibrated_once` uses 1,000 rounds and expects Run.
+**Scope.** The product code under test did not change: crates/larsal-crypto/src/kdf.rs was last written 2026-10-28, and tests/kdf.rs (18:38 today) is the only file of the fix. By grep, the test name is used in no script, Swift file or CI file. No other test checks a real calibration against the 10 s limit and expects Ask: the other billion-round tests (kdf.rs:503, :560) use the fixed host() record, and `missing_aes_record_is_calibrated_once` uses 1,000 rounds and expects Run.
 
 **Proof result.** F-134 row set to "fixed, re-tested (Verify 2026-10-30)".

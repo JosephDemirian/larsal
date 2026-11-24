@@ -52,233 +52,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
-name = "app-autotype"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "app-platform",
- "regex-syntax",
-]
-
-[[package]]
-name = "app-bridge"
-version = "0.1.0"
-dependencies = [
- "app-browser",
- "app-crypto",
- "app-model",
- "app-platform",
-]
-
-[[package]]
-name = "app-browser"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "app-platform",
-]
-
-[[package]]
-name = "app-cli"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-format",
- "app-hwkey",
- "app-model",
- "app-platform",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
-]
-
-[[package]]
-name = "app-core"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-format",
- "app-model",
- "app-platform",
- "flate2",
- "png",
- "proptest",
- "regex-automata",
- "regex-syntax",
- "zxcvbn",
-]
-
-[[package]]
-name = "app-crypto"
-version = "0.1.0"
-dependencies = [
- "aes",
- "aes-gcm",
- "app-platform",
- "argon2",
- "base64ct",
- "bcrypt-pbkdf",
- "cbc",
- "chacha20",
- "ed25519-dalek",
- "getrandom 0.4.3",
- "hkdf",
- "hmac",
- "hpke",
- "p256",
- "pbkdf2",
- "proptest",
- "rand_core",
- "salsa20",
- "sha1",
- "sha2",
- "ssh-key",
- "subtle",
- "twofish",
- "x25519-dalek",
- "zeroize",
-]
-
-[[package]]
-name = "app-ffi"
-version = "0.1.0"
-dependencies = [
- "app-autotype",
- "app-browser",
- "app-core",
- "app-crypto",
- "app-format",
- "app-hwkey",
- "app-model",
- "app-platform",
- "app-share",
- "app-sshagent",
- "app-sync",
- "qrcode",
- "uniffi",
-]
-
-[[package]]
-name = "app-format"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-format",
- "app-model",
- "app-platform",
- "flate2",
- "proptest",
- "quick-xml",
-]
-
-[[package]]
-name = "app-hwkey"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-format",
- "app-hwkey",
- "app-model",
- "objc2-core-foundation",
- "objc2-io-kit",
-]
-
-[[package]]
-name = "app-model"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
-]
-
-[[package]]
-name = "app-platform"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-server",
- "libc",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "rcgen",
- "rustls",
- "security-framework",
- "tokio",
- "ureq",
-]
-
-[[package]]
-name = "app-proto"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-format",
- "app-model",
-]
-
-[[package]]
-name = "app-server"
-version = "0.1.0"
-dependencies = [
- "app-crypto",
- "app-proto",
- "app-server",
- "http-body-util",
- "hyper",
- "hyper-util",
- "rcgen",
- "rusqlite",
- "tokio",
- "tokio-rustls",
-]
-
-[[package]]
-name = "app-share"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-format",
- "app-model",
- "flate2",
- "proptest",
-]
-
-[[package]]
-name = "app-sshagent"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "app-platform",
- "proptest",
- "quick-xml",
-]
-
-[[package]]
-name = "app-sync"
-version = "0.1.0"
-dependencies = [
- "app-core",
- "app-crypto",
- "app-model",
- "app-platform",
- "app-proto",
- "app-server",
- "app-sync",
- "rcgen",
- "rustls",
- "tokio",
-]
-
-[[package]]
 name = "argon2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1058,6 +831,233 @@ name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "larsal-autotype"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+ "regex-syntax",
+]
+
+[[package]]
+name = "larsal-bridge"
+version = "0.1.0"
+dependencies = [
+ "larsal-browser",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+]
+
+[[package]]
+name = "larsal-browser"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+]
+
+[[package]]
+name = "larsal-cli"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-hwkey",
+ "larsal-model",
+ "larsal-platform",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+]
+
+[[package]]
+name = "larsal-core"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+ "larsal-platform",
+ "png",
+ "proptest",
+ "regex-automata",
+ "regex-syntax",
+ "zxcvbn",
+]
+
+[[package]]
+name = "larsal-crypto"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "aes-gcm",
+ "argon2",
+ "base64ct",
+ "bcrypt-pbkdf",
+ "cbc",
+ "chacha20",
+ "ed25519-dalek",
+ "getrandom 0.4.3",
+ "hkdf",
+ "hmac",
+ "hpke",
+ "larsal-platform",
+ "p256",
+ "pbkdf2",
+ "proptest",
+ "rand_core",
+ "salsa20",
+ "sha1",
+ "sha2",
+ "ssh-key",
+ "subtle",
+ "twofish",
+ "x25519-dalek",
+ "zeroize",
+]
+
+[[package]]
+name = "larsal-ffi"
+version = "0.1.0"
+dependencies = [
+ "larsal-autotype",
+ "larsal-browser",
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-hwkey",
+ "larsal-model",
+ "larsal-platform",
+ "larsal-share",
+ "larsal-sshagent",
+ "larsal-sync",
+ "qrcode",
+ "uniffi",
+]
+
+[[package]]
+name = "larsal-format"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+ "larsal-platform",
+ "proptest",
+ "quick-xml",
+]
+
+[[package]]
+name = "larsal-hwkey"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-hwkey",
+ "larsal-model",
+ "objc2-core-foundation",
+ "objc2-io-kit",
+]
+
+[[package]]
+name = "larsal-model"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+]
+
+[[package]]
+name = "larsal-platform"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+ "larsal-server",
+ "libc",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "rcgen",
+ "rustls",
+ "security-framework",
+ "tokio",
+ "ureq",
+]
+
+[[package]]
+name = "larsal-proto"
+version = "0.1.0"
+dependencies = [
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+]
+
+[[package]]
+name = "larsal-server"
+version = "0.1.0"
+dependencies = [
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "larsal-crypto",
+ "larsal-proto",
+ "larsal-server",
+ "rcgen",
+ "rusqlite",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
+name = "larsal-share"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-format",
+ "larsal-model",
+ "proptest",
+]
+
+[[package]]
+name = "larsal-sshagent"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+ "proptest",
+ "quick-xml",
+]
+
+[[package]]
+name = "larsal-sync"
+version = "0.1.0"
+dependencies = [
+ "larsal-core",
+ "larsal-crypto",
+ "larsal-model",
+ "larsal-platform",
+ "larsal-proto",
+ "larsal-server",
+ "larsal-sync",
+ "rcgen",
+ "rustls",
+ "tokio",
+]
 
 [[package]]
 name = "libc"

@@ -1,4 +1,4 @@
-//! Fuzz target `proto_routes` (E16-S4, SYN-01.15, AT-L09): app-proto's route
+//! Fuzz target `proto_routes` (E16-S4, SYN-01.15, AT-L09): larsal-proto's route
 //! match and its `If-Match` and `If-None-Match` readers (SYN-01.3,
 //! SYN-01.6) on arbitrary bytes, as a hostile client sends them. Must never
 //! panic or hang. The input splits at newlines: the method, the path, then
@@ -10,9 +10,9 @@
 //! and reads back from its canonical line.
 #![no_main]
 
-use app_crypto::base64::{self, Form};
-use app_proto::messages::VaultId;
-use app_proto::routes::{self, Match, Precondition, PreconditionError, Route};
+use larsal_crypto::base64::{self, Form};
+use larsal_proto::messages::VaultId;
+use larsal_proto::routes::{self, Match, Precondition, PreconditionError, Route};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

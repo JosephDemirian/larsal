@@ -1,16 +1,16 @@
 # INT-06 SSH agent
 
 Status: reviewed (LD-173, LD-175)
-Epics: E9-S1 (agent client, limits), E9-S2 (keys from attachments and files, unlock and lock); the editor page and the detail row are built with E9-S2 on top of E5-S5; INT-06.31 to INT-06.36 (App's own agent) are built in E9-S2 too (decided: spec/decisions.md LD-173, no new story)
+Epics: E9-S1 (agent client, limits), E9-S2 (keys from attachments and files, unlock and lock); the editor page and the detail row are built with E9-S2 on top of E5-S5; INT-06.31 to INT-06.36 (Larsal's own agent) are built in E9-S2 too (decided: spec/decisions.md LD-173, no new story)
 Parity rows: SI-07, SD-05, SR-16, SR-07, SR-12 (the "SSH key" file dialog folder only)
 
 ## What it does
 
-An entry can carry an SSH private key: as one of its attachments, or as a path to a key file on this Mac. A small settings attachment in the same entry says how App uses that key with an SSH agent: add it when the vault unlocks, remove it when the vault locks, ask before each use, remove it after a time limit.
+An entry can carry an SSH private key: as one of its attachments, or as a path to a key file on this Mac. A small settings attachment in the same entry says how Larsal uses that key with an SSH agent: add it when the vault unlocks, remove it when the vault locks, ask before each use, remove it after a time limit.
 
-App does not sign anything for normal keys. It is a client of the agent that already runs on the Mac: it decrypts the key in memory, sends it to the agent with the OpenSSH agent protocol (add with a lifetime and a confirm limit, remove one, remove all, list), and wipes its own copy. Programs such as `ssh` and `git` then use the key through the agent. On macOS that agent is the system `ssh-agent`, started by launchd on demand; its socket path reaches App through `SSH_AUTH_SOCK`.
+Larsal does not sign anything for normal keys. It is a client of the agent that already runs on the Mac: it decrypts the key in memory, sends it to the agent with the OpenSSH agent protocol (add with a lifetime and a confirm limit, remove one, remove all, list), and wipes its own copy. Programs such as `ssh` and `git` then use the key through the agent. On macOS that agent is the system `ssh-agent`, started by launchd on demand; its socket path reaches Larsal through `SSH_AUTH_SOCK`.
 
-For keys marked "Ask before each use" the system agent cannot ask the user on a stock Mac (observed, see INT-06.37). The locked design shows App's own question instead. Decided (D-INT06-1 (b), LD-173): App runs a small agent inside App for those keys only (INT-06.31 to INT-06.36).
+For keys marked "Ask before each use" the system agent cannot ask the user on a stock Mac (observed, see INT-06.37). The locked design shows Larsal's own question instead. Decided (D-INT06-1 (b), LD-173): Larsal runs a small agent inside Larsal for those keys only (INT-06.31 to INT-06.36).
 
 Neighbor cards: FMT-14 (the settings attachment name, stored encoded), FMT-13 and MOD-05 (attachments), MOD-04 (recycle bin), MOD-08 (placeholders in the password), APP-01 (S-SSH-01 to S-SSH-03, the file dialog folder roles), APP-02 (lock steps), APP-03 (clipboard for the public key and fingerprint), APP-06.22 (after-unlock steps), APP-08 (menu items, ⌃H and ⌃⇧H, M08-04), FEA-08 (imports that carry SSH keys), INT-07 (security keys for vaults; not the same thing as SSH keys that live on a security key).
 
@@ -22,13 +22,13 @@ Public standards a Builder needs: the SSH agent protocol (IETF draft-ietf-sshm-s
 
 **The key.** Either another attachment of the same entry, or a file on disk named by a path in the settings. The private key may be encrypted; then the entry's Password field holds its passphrase.
 
-**The agent.** A Unix domain socket. Path: S-SSH-02 when set, else `SSH_AUTH_SOCK` from App's environment. On this Mac (macOS 26.6) launchd gives `/var/run/com.apple.launchd.<random>/Listeners`; older macOS releases used `/private/tmp/com.apple.launchd.<random>/Listeners` (the mockup's example). The random part changes at every login.
+**The agent.** A Unix domain socket. Path: S-SSH-02 when set, else `SSH_AUTH_SOCK` from Larsal's environment. On this Mac (macOS 26.6) launchd gives `/var/run/com.apple.launchd.<random>/Listeners`; older macOS releases used `/private/tmp/com.apple.launchd.<random>/Listeners` (the mockup's example). The random part changes at every login.
 
-**App settings** (APP-01): S-SSH-01 `ssh.enabled` (off), S-SSH-02 `ssh.socket_override` (empty), S-SSH-03 `ssh.sk_provider_override` (empty).
+**Larsal settings** (APP-01): S-SSH-01 `ssh.enabled` (off), S-SSH-02 `ssh.socket_override` (empty), S-SSH-03 `ssh.sk_provider_override` (empty).
 
 **Outputs.** Messages to the agent; the "Loaded" state on the detail view and the editor page; the public key line and fingerprint (not secret); the messages of this card.
 
-**Limits** (App's own unless marked as the reference's):
+**Limits** (Larsal's own unless marked as the reference's):
 
 | Limit | Value | Rule |
 |---|---|---|
@@ -47,7 +47,7 @@ Public standards a Builder needs: the SSH agent protocol (IETF draft-ietf-sshm-s
 
 INT-06.1 **Settings document.** UTF-8 XML. Root element `EntrySettings`. Child elements, each holding text; element names are exact and case-sensitive:
 
-| Element | Type | Default | Meaning in App |
+| Element | Type | Default | Meaning in Larsal |
 |---|---|---|---|
 | `AllowUseOfSshKey` | boolean | false | The editor's main switch "Use this entry's key with the SSH agent" |
 | `AddAtDatabaseOpen` | boolean | false | "Add the key when the vault unlocks" |
@@ -58,65 +58,65 @@ INT-06.1 **Settings document.** UTF-8 XML. Root element `EntrySettings`. Child e
 | `Location` | element | | Holds the four elements below |
 | `Location/SelectedType` | text | `file` | `attachment` or `file` |
 | `Location/AttachmentName` | text | empty | Name of the key attachment |
-| `Location/SaveAttachmentToTempFile` | boolean | false | Kept as read, never used (App never writes a key to disk) |
+| `Location/SaveAttachmentToTempFile` | boolean | false | Kept as read, never used (Larsal never writes a key to disk) |
 | `Location/FileName` | text | empty | Path of the key file |
 
 INT-06.2 **Reading.**
 - Booleans: true when the text starts with `t` or `T`, otherwise false (reference).
-- The integer: decimal digits with an optional sign; any other text gives 0 (reference). INT-06.20 decides what App does with a value below 1.
+- The integer: decimal digits with an optional sign; any other text gives 0 (reference). INT-06.20 decides what Larsal does with a value below 1.
 - `SelectedType`: exactly `attachment` selects the attachment; any other value selects the file (reference).
 - Unknown elements, at the top level or inside `Location`, are skipped.
 - Elements may come in any order; a later duplicate wins.
-- App goes further: a settings attachment over 64 KiB, one that is not well-formed XML, one whose root is not `EntrySettings`, or one with a DTD gives "settings cannot be read": the entry has no usable SSH key (INT-06.4) and the editor shows MI06-24. App never changes such an attachment unless the user saves the SSH page (INT-06.3). The reference stops reading at the first XML error and uses what it read so far.
+- Larsal goes further: a settings attachment over 64 KiB, one that is not well-formed XML, one whose root is not `EntrySettings`, or one with a DTD gives "settings cannot be read": the entry has no usable SSH key (INT-06.4) and the editor shows MI06-24. Larsal never changes such an attachment unless the user saves the SSH page (INT-06.3). The reference stops reading at the first XML error and uses what it read so far.
 
-INT-06.3 **Writing.** App writes the settings attachment only when the user saves the entry editor after the SSH page was shown and its values differ from what was read. Then:
-- When every value equals its default (INT-06.1), App removes the attachment (reference).
-- Otherwise App writes this layout, UTF-8, LF line ends, two spaces per level, a final LF: the line `<?xml version="1.0" encoding="UTF-8"?>`; the root start tag with the two namespace declarations `xmlns:xsd="http://www.w3.org/2001/XMLSchema"` and `xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`; the six top-level elements in the order of INT-06.1, booleans as `true` or `false`, the integer in decimal; `Location` with its four elements in that order; an empty `AttachmentName` or `FileName` written as an empty element (`<FileName/>`). Text is escaped as XML requires. This is the reference's layout, so the reference reads App's documents.
+INT-06.3 **Writing.** Larsal writes the settings attachment only when the user saves the entry editor after the SSH page was shown and its values differ from what was read. Then:
+- When every value equals its default (INT-06.1), Larsal removes the attachment (reference).
+- Otherwise Larsal writes this layout, UTF-8, LF line ends, two spaces per level, a final LF: the line `<?xml version="1.0" encoding="UTF-8"?>`; the root start tag with the two namespace declarations `xmlns:xsd="http://www.w3.org/2001/XMLSchema"` and `xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`; the six top-level elements in the order of INT-06.1, booleans as `true` or `false`, the integer in decimal; `Location` with its four elements in that order; an empty `AttachmentName` or `FileName` written as an empty element (`<FileName/>`). Text is escaped as XML requires. This is the reference's layout, so the reference reads Larsal's documents.
 - Unknown elements read from the old document are not written back (reference).
-- `AllowUseOfSshKey` is the main switch. Reference difference: the reference's editor ignores its old value and writes it as "add on unlock or remove on lock". So a document App wrote with the switch on and both boxes off reads in the reference as allowed; a document with the switch off and a box on becomes allowed again after the reference saves the entry (expected interop difference, harmless: the reference only adds on unlock when both are true).
+- `AllowUseOfSshKey` is the main switch. Reference difference: the reference's editor ignores its old value and writes it as "add on unlock or remove on lock". So a document Larsal wrote with the switch on and both boxes off reads in the reference as allowed; a document with the switch off and a box on becomes allowed again after the reference saves the entry (expected interop difference, harmless: the reference only adds on unlock when both are true).
 - The settings attachment is never listed in the key picker (INT-06.41) and is managed only through the SSH page; it stays visible and removable in the attachment list (MOD-05). Removing it there in the editor resets the SSH page to the defaults (reference).
 
-INT-06.4 **"The entry has an SSH key".** True when all hold: S-SSH-01 is on; the entry is not in the recycle bin (App goes further for menus: the reference shows its menu items for bin entries too; SD-05); the settings attachment exists and can be read; `AllowUseOfSshKey` is true; and the selected source is set (a non-empty attachment name, or a non-empty file name). This test drives the menu items "Load into SSH Agent" and "Remove from SSH Agent" (APP-08), the detail view row (INT-06.43) and the add on unlock (INT-06.22). Whether the key itself can be read is checked only when it is used or shown.
+INT-06.4 **"The entry has an SSH key".** True when all hold: S-SSH-01 is on; the entry is not in the recycle bin (Larsal goes further for menus: the reference shows its menu items for bin entries too; SD-05); the settings attachment exists and can be read; `AllowUseOfSshKey` is true; and the selected source is set (a non-empty attachment name, or a non-empty file name). This test drives the menu items "Load into SSH Agent" and "Remove from SSH Agent" (APP-08), the detail view row (INT-06.43) and the add on unlock (INT-06.22). Whether the key itself can be read is checked only when it is used or shown.
 
 INT-06.5 **The key source.**
 - Attachment: the entry's attachment with exactly the stored name. Missing: MI06-06. The settings attachment itself is never a key.
-- File: the stored path, expanded once: a leading `~/` becomes the home folder; then each `$NAME` (a letter, then letters, digits or `_`) becomes the value of that environment variable, or nothing when it is unset. App expands in one pass, left to right; text produced by an expansion is not expanded again. Reference difference: it repeats until no `$NAME` is left, so a variable whose value contains its own name never ends. `${NAME}` and `%NAME%` are not expanded (reference). A relative result is taken from the folder of the vault file (reference). The file is read when the key is used or shown, never cached, never written.
+- File: the stored path, expanded once: a leading `~/` becomes the home folder; then each `$NAME` (a letter, then letters, digits or `_`) becomes the value of that environment variable, or nothing when it is unset. Larsal expands in one pass, left to right; text produced by an expansion is not expanded again. Reference difference: it repeats until no `$NAME` is left, so a variable whose value contains its own name never ends. `${NAME}` and `%NAME%` are not expanded (reference). A relative result is taken from the folder of the vault file (reference). The file is read when the key is used or shown, never cached, never written.
 - Both: more than 1 MiB gives MI06-08 before anything is parsed; zero bytes gives MI06-09; a file that cannot be opened (missing, a folder, no permission) gives MI06-07.
 
-INT-06.6 **Key forms App reads** (D-INT06-2).
+INT-06.6 **Key forms Larsal reads** (D-INT06-2).
 - The OpenSSH private key format (PEM label `OPENSSH PRIVATE KEY`, content starting with the 15 bytes `openssh-key-v1` and a zero byte), unencrypted or encrypted. `ssh-keygen` writes this form by default since OpenSSH 7.8 (2018).
 - Key types: `ssh-ed25519`, `ecdsa-sha2-nistp256`, `ecdsa-sha2-nistp384`, `ecdsa-sha2-nistp521`, `ssh-rsa`, `sk-ssh-ed25519@openssh.com`, `sk-ecdsa-sha2-nistp256@openssh.com`. These are the reference's types except DSA.
 - `ssh-dss` (DSA): MI06-12. OpenSSH 10.0 removed DSA; the reference still reads it.
 - The older PEM forms (labels `RSA PRIVATE KEY`, `DSA PRIVATE KEY`, `EC PRIVATE KEY`), PKCS#8 (`PRIVATE KEY`, `ENCRYPTED PRIVATE KEY`) and PuTTY files: MI06-11. Reference difference: it reads `RSA PRIVATE KEY` and `DSA PRIVATE KEY`, unencrypted or encrypted with AES-128-CBC or AES-256-CBC through the MD5-based key derivation; it refuses `EC PRIVATE KEY`, PKCS#8 and PuTTY.
 - Anything else, or a broken file: MI06-10.
-- A file may list several keys; App uses the first, as the reference does (`ssh-keygen` always writes one).
+- A file may list several keys; Larsal uses the first, as the reference does (`ssh-keygen` always writes one).
 
-INT-06.7 **The public part.** The OpenSSH format stores the public key outside the encrypted part, so App shows the type, the fingerprint and the public key line without the passphrase.
-- Fingerprint: `SHA256:` followed by the SHA-256 of the public key blob in standard base64 without `=` padding, as `ssh-keygen -l` prints. App shows only this form. Reference difference: it shows the MD5 form too.
+INT-06.7 **The public part.** The OpenSSH format stores the public key outside the encrypted part, so Larsal shows the type, the fingerprint and the public key line without the passphrase.
+- Fingerprint: `SHA256:` followed by the SHA-256 of the public key blob in standard base64 without `=` padding, as `ssh-keygen -l` prints. Larsal shows only this form. Reference difference: it shows the MD5 form too.
 - Public key line: the type name, a space, the blob in standard base64, and, when the comment is known, a space and the comment (the `.pub` line `ssh-keygen` writes).
 - Type names on screen: `ED25519`, `ECDSA` (with the curve size when it is not 256: `ECDSA P-384`), `RSA` (with the bit length: `RSA 3072`), `ED25519-SK`, `ECDSA-SK`.
 
-INT-06.8 **The comment.** The comment stored inside the private part of the key. When it is empty, App uses `<entry user name>@<attachment name or file name>` (reference). A protected user name (its own flag or the vault's flag) is left out together with its `@`, and an empty result becomes `App key` (LD-213 (2)): no protected value goes into a comment that other programs can list. The comment is not secret: every program that lists the agent sees it. For an encrypted key the comment is known only after the key is decrypted (MI06-27 until then).
+INT-06.8 **The comment.** The comment stored inside the private part of the key. When it is empty, Larsal uses `<entry user name>@<attachment name or file name>` (reference). A protected user name (its own flag or the vault's flag) is left out together with its `@`, and an empty result becomes `Larsal key` (LD-213 (2)): no protected value goes into a comment that other programs can list. The comment is not secret: every program that lists the agent sees it. For an encrypted key the comment is known only after the key is decrypted (MI06-27 until then).
 
 INT-06.9 **Encrypted keys.**
 - The passphrase is the entry's Password field after placeholders and references are resolved, as Copy Password resolves them (MOD-08). Reference difference: it uses the raw field text, so a password that is a reference to another entry never unlocks the key in the reference.
 - An empty passphrase for an encrypted key: MI06-14, nothing else tried.
-- KDF `bcrypt` with its salt and round count from the key file. The round count must be 1 to 1,000 (D-INT06-3), checked before any work: else MI06-16. Measured on this Mac (Apple M4 Pro) with `ssh-keygen -y`: 24 rounds (the `ssh-keygen` default in OpenSSH 10.3) take 0.15 s, 1,000 rounds take 6.2 s. The reference has no bound (SI-07, LD-73). App's own build takes about 0.2 s for 24 rounds and 8.2 s for 1,000 (Verify E9-S1, 2026-10-28), so the worst case is about 8 s.
+- KDF `bcrypt` with its salt and round count from the key file. The round count must be 1 to 1,000 (D-INT06-3), checked before any work: else MI06-16. Measured on this Mac (Apple M4 Pro) with `ssh-keygen -y`: 24 rounds (the `ssh-keygen` default in OpenSSH 10.3) take 0.15 s, 1,000 rounds take 6.2 s. The reference has no bound (SI-07, LD-73). Larsal's own build takes about 0.2 s for 24 rounds and 8.2 s for 1,000 (Verify E9-S1, 2026-10-28), so the worst case is about 8 s.
 - Ciphers: those the `ssh-key` crate decrypts, at least `aes256-ctr` (the `ssh-keygen` default), `aes128-ctr`, `aes192-ctr`, `aes256-gcm@openssh.com` and `chacha20-poly1305@openssh.com`; others give MI06-13 with the cipher name. Reference difference: it refuses `aes256-gcm@openssh.com` and treats `chacha20-poly1305@openssh.com` as plain ChaCha20, so such keys fail there.
 - A wrong passphrase (the two check numbers at the start of the decrypted part differ, or the authentication tag fails): MI06-15.
-- Decryption runs off the main thread. The editor never decrypts by itself; decryption happens only for an add (INT-06.22, INT-06.27) and for App's own agent (INT-06.33).
+- Decryption runs off the main thread. The editor never decrypts by itself; decryption happens only for an add (INT-06.22, INT-06.27) and for Larsal's own agent (INT-06.33).
 
-INT-06.10 **Secret handling.** The decrypted private key, the passphrase and every buffer that held them live only in App's secret types in Rust and are wiped right after the add message is sent (or, for App's own agent, when the key leaves it). They never go to logs, error values, crash reports or the screen layer (AGENTS rule 4, SR-07). The screen gets only the type, the fingerprint, the comment, the public key line and the Loaded state.
+INT-06.10 **Secret handling.** The decrypted private key, the passphrase and every buffer that held them live only in Larsal's secret types in Rust and are wiped right after the add message is sent (or, for Larsal's own agent, when the key leaves it). They never go to logs, error values, crash reports or the screen layer (AGENTS rule 4, SR-07). The screen gets only the type, the fingerprint, the comment, the public key line and the Loaded state.
 
 ### Talking to the agent
 
-INT-06.11 **Which agent.** S-SSH-02 when it is not empty after trimming spaces, else `SSH_AUTH_SOCK` from App's own environment, read when each request starts. Neither set: MI06-01, no request. On macOS an app started from Finder, the Dock or at login gets `SSH_AUTH_SOCK` from launchd, which also starts the system agent on the first connection (the agent's launchd job: `/usr/bin/ssh-agent -l`, socket key `SSH_AUTH_SOCK`; read with `plutil` and `launchctl print` on this Mac).
+INT-06.11 **Which agent.** S-SSH-02 when it is not empty after trimming spaces, else `SSH_AUTH_SOCK` from Larsal's own environment, read when each request starts. Neither set: MI06-01, no request. On macOS an app started from Finder, the Dock or at login gets `SSH_AUTH_SOCK` from launchd, which also starts the system agent on the first connection (the agent's launchd job: `/usr/bin/ssh-agent -l`, socket key `SSH_AUTH_SOCK`; read with `plutil` and `launchctl print` on this Mac).
 
-INT-06.12 **One request per connection.** App connects, writes one message, reads one reply and closes, as the reference does. Messages never overlap: App sends at most one request at a time to the agent.
+INT-06.12 **One request per connection.** Larsal connects, writes one message, reads one reply and closes, as the reference does. Messages never overlap: Larsal sends at most one request at a time to the agent.
 
-INT-06.13 **Socket checks** (App goes further; the reference only checks that the path exists). Before connecting: the path is at most 103 bytes, it is a socket (checked without following a final link), and its owner is the current user. After connecting: the peer's user id (`getpeereid`) is the current user's. Any failure: MI06-03, nothing sent. Observed on this Mac: the launchd socket and its folder belong to the user, folder mode 0700.
+INT-06.13 **Socket checks** (Larsal goes further; the reference only checks that the path exists). Before connecting: the path is at most 103 bytes, it is a socket (checked without following a final link), and its owner is the current user. After connecting: the peer's user id (`getpeereid`) is the current user's. Any failure: MI06-03, nothing sent. Observed on this Mac: the launchd socket and its folder belong to the user, folder mode 0700.
 
-INT-06.14 **Framing.** Each message is a `uint32` length in big-endian order followed by that many bytes; the first byte is the message number. The connect and the whole reply must finish within 2 seconds; a reply longer than 262,144 bytes is refused. Timeout, closed connection or oversize reply: MI06-02. Reply numbers: 6 success, 5 failure, 12 identity list; anything else to App's request is a protocol error (MI06-02).
+INT-06.14 **Framing.** Each message is a `uint32` length in big-endian order followed by that many bytes; the first byte is the message number. The connect and the whole reply must finish within 2 seconds; a reply longer than 262,144 bytes is refused. Timeout, closed connection or oversize reply: MI06-02. Reply numbers: 6 success, 5 failure, 12 identity list; anything else to Larsal's request is a protocol error (MI06-02).
 
 INT-06.15 **Add.** Message 17 (add identity) when no limit applies, else 25 (add identity with limits). Body: `string` key type, the private key fields of the table below, `string` comment (INT-06.8); then, for message 25, in this order: the lifetime limit (byte 1, `uint32` seconds) when the lifetime switch is on; the confirm limit (byte 2) when "Ask before each use" is on and D-INT06-1 is (a); for the two `sk-` types always the extension limit (byte 255, `string` `sk-provider@openssh.com`, `string` the provider of INT-06.38). The fields are copied from the key's private part as stored in the OpenSSH file (the same encoding):
 
@@ -130,29 +130,29 @@ INT-06.15 **Add.** Message 17 (add identity) when no limit applies, else 25 (add
 
 Reply 6: added. Reply 5: MI06-04 with the hints that apply. Observed on a throwaway OpenSSH 10.3 agent: an unknown limit byte and the provider extension on a key that is not `sk-` both give 5.
 
-INT-06.16 **Adding again.** Adding a key the agent already holds succeeds and replaces its comment and its limits: a second add without the lifetime takes the time limit away, a second add without confirm takes the confirm away (observed on a throwaway OpenSSH 10.3 agent). App uses this: "Load into SSH Agent" on a loaded key refreshes its limits.
+INT-06.16 **Adding again.** Adding a key the agent already holds succeeds and replaces its comment and its limits: a second add without the lifetime takes the time limit away, a second add without confirm takes the confirm away (observed on a throwaway OpenSSH 10.3 agent). Larsal uses this: "Load into SSH Agent" on a loaded key refreshes its limits.
 
-INT-06.17 **Remove one.** Message 18, `string` public key blob (RFC 4253 section 6.6). This needs no passphrase. Reply 6: removed. Reply 5 means the agent does not hold the key (observed); App then shows the Not loaded state without an error.
+INT-06.17 **Remove one.** Message 18, `string` public key blob (RFC 4253 section 6.6). This needs no passphrase. Reply 6: removed. Reply 5 means the agent does not hold the key (observed); Larsal then shows the Not loaded state without an error.
 
-INT-06.18 **Remove all.** Message 19 (remove all identities). Reply 6: MI06-20; otherwise MI06-21. Reference difference: it then sends a second request meant as the protocol version 1 remove-all (message 9), but because it reuses the first request's buffer the bytes sent are `13 09`, a second remove-all with a stray byte (OpenSSH 10.3 answers both `09` alone and `13 09` with success; observed on a throwaway agent); it treats any reply as success. App sends one message 19.
+INT-06.18 **Remove all.** Message 19 (remove all identities). Reply 6: MI06-20; otherwise MI06-21. Reference difference: it then sends a second request meant as the protocol version 1 remove-all (message 9), but because it reuses the first request's buffer the bytes sent are `13 09`, a second remove-all with a stray byte (OpenSSH 10.3 answers both `09` alone and `13 09` with success; observed on a throwaway agent); it treats any reply as success. Larsal sends one message 19.
 
-INT-06.19 **List.** Message 11; reply 12: `uint32` count, then per key `string` public key blob and `string` comment. App reads at most as many entries as the reply holds and refuses a count that cannot fit the reply (MI06-02). A key is Loaded when its blob is in the list.
+INT-06.19 **List.** Message 11; reply 12: `uint32` count, then per key `string` public key blob and `string` comment. Larsal reads at most as many entries as the reply holds and refuses a count that cannot fit the reply (MI06-02). A key is Loaded when its blob is in the list.
 
-INT-06.20 **Lifetime.** The agent removes the key by itself when the lifetime ends. App sends the stored seconds unchanged when they are 1 to 999,999,999. A stored value below 1 with the lifetime switch on: MI06-17 and no add. Observed: an OpenSSH agent given lifetime 0 accepts the key and drops it at once, so the reference's "0" silently loads nothing. The editor control (INT-06.40) shows minutes and steps by 1 minute from 1 to 1,440 (24 hours); a stored value that is not a whole number of minutes shows rounded up, and the stored value is kept until the user moves the stepper (D-INT06-4).
+INT-06.20 **Lifetime.** The agent removes the key by itself when the lifetime ends. Larsal sends the stored seconds unchanged when they are 1 to 999,999,999. A stored value below 1 with the lifetime switch on: MI06-17 and no add. Observed: an OpenSSH agent given lifetime 0 accepts the key and drops it at once, so the reference's "0" silently loads nothing. The editor control (INT-06.40) shows minutes and steps by 1 minute from 1 to 1,440 (24 hours); a stored value that is not a whole number of minutes shows rounded up, and the stored value is kept until the user moves the stepper (D-INT06-4).
 
 ### When keys go in and out
 
-INT-06.21 **Feature off.** While S-SSH-01 is off App never contacts any agent and never opens App's own agent socket. The editor's SSH page, the detail view row and the SSH menu items are hidden (APP-08, reference). Settings attachments in entries are kept unchanged.
+INT-06.21 **Feature off.** While S-SSH-01 is off Larsal never contacts any agent and never opens Larsal's own agent socket. The editor's SSH page, the detail view row and the SSH menu items are hidden (APP-08, reference). Settings attachments in entries are kept unchanged.
 
-INT-06.22 **On unlock.** When the "vault unlocked" signal arrives (APP-06.22 step 10, after the vault shows), App goes through its entries in tree order (a group's own entries in their stored order first, then its subgroups, depth-first; reference) and, for each entry with an SSH key (INT-06.4) whose `AddAtDatabaseOpen` is true, reads, decrypts and adds the key (INT-06.15 or, with "Ask before each use" under D-INT06-1 (b), INT-06.31). This runs in the background; the user can work meanwhile. Failures (key not readable, not decrypted, refused by the agent, or refused by INT-06.23) are collected and shown once as MI06-18, listing each entry title with its reason. Reference difference: it says nothing when a key cannot be read or decrypted; it shows each agent refusal as its own message, so only the last one stays visible; and it stays silent when the key is already in its records from any vault, which hides the other-vault refusal of INT-06.23.
+INT-06.22 **On unlock.** When the "vault unlocked" signal arrives (APP-06.22 step 10, after the vault shows), Larsal goes through its entries in tree order (a group's own entries in their stored order first, then its subgroups, depth-first; reference) and, for each entry with an SSH key (INT-06.4) whose `AddAtDatabaseOpen` is true, reads, decrypts and adds the key (INT-06.15 or, with "Ask before each use" under D-INT06-1 (b), INT-06.31). This runs in the background; the user can work meanwhile. Failures (key not readable, not decrypted, refused by the agent, or refused by INT-06.23) are collected and shown once as MI06-18, listing each entry title with its reason. Reference difference: it says nothing when a key cannot be read or decrypted; it shows each agent refusal as its own message, so only the last one stays visible; and it stays silent when the key is already in its records from any vault, which hides the other-vault refusal of INT-06.23.
 
-INT-06.23 **App's records.** For every key App added, App keeps: its public key blob, the vault session that added it, its remove-on-lock flag, and whether it sits in the system agent or in App's own agent. These records live in memory only. Adding a key that App's records hold for another open vault is refused with MI06-05 (reference).
+INT-06.23 **Larsal's records.** For every key Larsal added, Larsal keeps: its public key blob, the vault session that added it, its remove-on-lock flag, and whether it sits in the system agent or in Larsal's own agent. These records live in memory only. Adding a key that Larsal's records hold for another open vault is refused with MI06-05 (reference).
 
-INT-06.24 **On lock.** As step 10 of the lock (APP-02.15), for the vault being locked: each recorded key with remove-on-lock is removed (INT-06.17, or from App's own agent); then every record of that vault is dropped, also those whose key stays in the agent (reference). Closing a vault locks it first, so close does the same (reference). The removals finish within 1 second of the lock (AT-H01) unless the agent does not answer (2 s timeout each). A failed removal never holds the lock; MI06-19 shows after it.
+INT-06.24 **On lock.** As step 10 of the lock (APP-02.15), for the vault being locked: each recorded key with remove-on-lock is removed (INT-06.17, or from Larsal's own agent); then every record of that vault is dropped, also those whose key stays in the agent (reference). Closing a vault locks it first, so close does the same (reference). The removals finish within 1 second of the lock (AT-H01) unless the agent does not answer (2 s timeout each). A failed removal never holds the lock; MI06-19 shows after it.
 
-INT-06.25 **On quit.** Every unlocked vault is locked (APP-02), so INT-06.24 runs for each. Keys without remove-on-lock stay in the system agent after App quits (reference). Keys in App's own agent always go away with it (INT-06.32).
+INT-06.25 **On quit.** Every unlocked vault is locked (APP-02), so INT-06.24 runs for each. Keys without remove-on-lock stay in the system agent after Larsal quits (reference). Keys in Larsal's own agent always go away with it (INT-06.32).
 
-INT-06.26 **Feature turned off.** When S-SSH-01 goes from on to off, App removes every key in its records, with or without remove-on-lock, then drops all records and closes App's own agent socket. It never removes keys other programs added (decided: spec/decisions.md LD-63). Reference difference: it removes only the keys marked remove-on-lock.
+INT-06.26 **Feature turned off.** When S-SSH-01 goes from on to off, Larsal removes every key in its records, with or without remove-on-lock, then drops all records and closes Larsal's own agent socket. It never removes keys other programs added (decided: spec/decisions.md LD-63). Reference difference: it removes only the keys marked remove-on-lock.
 
 INT-06.27 **Per entry.**
 - "Load into SSH Agent" (APP-08, ⌃H), the detail view's "Load key" button, and the editor's "Add to agent now": read, decrypt and add the selected entry's key. In the editor, the page's current values are used, saved or not (reference). The record's remove-on-lock flag comes from those values.
@@ -160,46 +160,46 @@ INT-06.27 **Per entry.**
 - Changing "Remove the key when the vault locks" on the editor page while the key is recorded changes the record at once, before the entry is saved (reference).
 - Each action shows its result in place: the Loaded state, or the error message.
 
-INT-06.28 **Remove all keys.** Tools menu "Remove All Keys from SSH Agent…", after M08-04 (APP-08): message 19 to the system agent, every key leaves App's own agent too, all records are dropped. This also removes keys other programs added to the system agent; M08-04 says so (SI-07).
+INT-06.28 **Remove all keys.** Tools menu "Remove All Keys from SSH Agent…", after M08-04 (APP-08): message 19 to the system agent, every key leaves Larsal's own agent too, all records are dropped. This also removes keys other programs added to the system agent; M08-04 says so (SI-07).
 
 INT-06.29 **Entry changes while a key is loaded.** Moving the entry to the recycle bin, deleting it, editing its key or settings, or deleting the key attachment does not touch the agent. The key stays until the vault locks (if marked), the lifetime ends, or the user removes it (reference). The record stays with the vault.
 
-INT-06.30 **The Loaded state.** App lists the agent (INT-06.19) when the detail view or the editor's SSH page shows an entry with an SSH key, and after each add or remove. A key whose lifetime ended shows Not loaded at the next list. No polling.
+INT-06.30 **The Loaded state.** Larsal lists the agent (INT-06.19) when the detail view or the editor's SSH page shows an entry with an SSH key, and after each add or remove. A key whose lifetime ended shows Not loaded at the next list. No polling.
 
 ### Ask before each use (D-INT06-1)
 
 Rules INT-06.31 to INT-06.36 apply: option (b) was decided (spec/decisions.md LD-173). INT-06.37 records why option (a) was not chosen; INT-06.37, MI06-34 and test cases T29, T32 and T60 are kept for history and are not built.
 
-INT-06.31 **Where these keys go.** A key with "Ask before each use" on is never sent to the system agent. App keeps it, decrypted, inside its own agent (INT-06.32) from the add until it is removed: by the lock of its vault (always, whatever remove-on-lock says: App keeps no decrypted key of a locked vault, AT-C01), by lifetime, by "Remove from SSH Agent", by "Remove All Keys…", by turning the feature off, or by quitting. The add, remove and record rules of INT-06.22 to INT-06.29 apply unchanged.
+INT-06.31 **Where these keys go.** A key with "Ask before each use" on is never sent to the system agent. Larsal keeps it, decrypted, inside its own agent (INT-06.32) from the add until it is removed: by the lock of its vault (always, whatever remove-on-lock says: Larsal keeps no decrypted key of a locked vault, AT-C01), by lifetime, by "Remove from SSH Agent", by "Remove All Keys…", by turning the feature off, or by quitting. The add, remove and record rules of INT-06.22 to INT-06.29 apply unchanged.
 
-INT-06.32 **App's own agent socket.** Path `~/Library/Application Support/App/agent.sock` (placeholder name, renamed with D1), mode 0600 in a folder of mode 0700. App creates it when S-SSH-01 is on and App runs, removes a stale file of that name first only when it is a socket owned by the user, and deletes it at quit or when the feature is turned off. Every connection must come from the current user (`getpeereid`); others are closed at once. App reads the same message framing and limits as INT-06.14.
+INT-06.32 **Larsal's own agent socket.** Path `~/Library/Application Support/Larsal/agent.sock` (placeholder name, renamed with D1), mode 0600 in a folder of mode 0700. Larsal creates it when S-SSH-01 is on and Larsal runs, removes a stale file of that name first only when it is a socket owned by the user, and deletes it at quit or when the feature is turned off. Every connection must come from the current user (`getpeereid`); others are closed at once. Larsal reads the same message framing and limits as INT-06.14.
 
-INT-06.33 **What App's agent answers.**
+INT-06.33 **What Larsal's agent answers.**
 - 11 (list): the public blobs and comments of the keys it holds (all of them belong to unlocked vaults, INT-06.31), followed by the list of the system agent (INT-06.11) when one is reachable.
-- 13 (sign: `string` key blob, `string` data, `uint32` flags): for a key it holds, App asks the question (INT-06.34); Allow Once signs the data and replies 14 (`string` signature: `string` algorithm name, `string` signature blob); Deny, the timeout or a lock reply 5. RSA follows the flags: 2 means `rsa-sha2-256`, 4 means `rsa-sha2-512`, neither means `ssh-rsa` with SHA-1, which App refuses with 5 (OpenSSH has not used it by default since 8.8). For a key it does not hold, App forwards the request to the system agent and passes the reply back.
-- 27 (extension) named `session-bind@openssh.com`: App records the host key for that connection (used by INT-06.34) and replies 6 after the signature in it checks with the host key; other extensions are forwarded.
+- 13 (sign: `string` key blob, `string` data, `uint32` flags): for a key it holds, Larsal asks the question (INT-06.34); Allow Once signs the data and replies 14 (`string` signature: `string` algorithm name, `string` signature blob); Deny, the timeout or a lock reply 5. RSA follows the flags: 2 means `rsa-sha2-256`, 4 means `rsa-sha2-512`, neither means `ssh-rsa` with SHA-1, which Larsal refuses with 5 (OpenSSH has not used it by default since 8.8). For a key it does not hold, Larsal forwards the request to the system agent and passes the reply back.
+- 27 (extension) named `session-bind@openssh.com`: Larsal records the host key for that connection (used by INT-06.34) and replies 6 after the signature in it checks with the host key; other extensions are forwarded.
 - Every other message (17, 18, 19, 25 and the rest) is forwarded to the system agent byte for byte. With no system agent: 5.
-- Signing uses only approved crates through app-crypto (AGENTS rule 3): Ed25519 (`ed25519-dalek`) and ECDSA P-256 (`p256`). RSA needs an RSA crate (the same question as D-INT04-2) and P-384, P-521 and the `sk-` types are not signed by App. For those types the switch "Ask before each use" is disabled with MI06-33.
+- Signing uses only approved crates through larsal-crypto (AGENTS rule 3): Ed25519 (`ed25519-dalek`) and ECDSA P-256 (`p256`). RSA needs an RSA crate (the same question as D-INT04-2) and P-384, P-521 and the `sk-` types are not signed by Larsal. For those types the switch "Ask before each use" is disabled with MI06-33.
 
-INT-06.34 **The question** (frame `dialogs-ssh-key-use`). App comes to the front and shows a dialog: title MI06-29, text MI06-30 (or MI06-31 when the host is unknown), buttons "Deny" and "Allow Once" (the primary button, as drawn; Return chooses it, Escape chooses Deny).
+INT-06.34 **The question** (frame `dialogs-ssh-key-use`). Larsal comes to the front and shows a dialog: title MI06-29, text MI06-30 (or MI06-31 when the host is unknown), buttons "Deny" and "Allow Once" (the primary button, as drawn; Return chooses it, Escape chooses Deny).
 - The program is the name of the process at the other end of the socket, read from the kernel by its process id (`LOCAL_PEERPID`), for example `ssh` or `git`.
-- The host is known when the connection sent a checked session binding (INT-06.33), the data to sign is a `publickey` sign-in request (RFC 4252 section 7: the session ID, byte 50, user name, service, method `publickey` or the host-bound form `publickey-hostbound-v00@openssh.com`, TRUE, the algorithm and the key being used, then for the host-bound form the server host key, which must be the bound one; nothing after it) carrying the session ID of the connection's last checked binding, and the bound host key matches a line of `~/.ssh/known_hosts` with a plain host name; hashed lines cannot be named. App shows the first matching name. Any other data leaves the host unknown (MI06-31), so a process that binds a session of its own cannot have App name that host for other data (LD-203 (2); OpenSSH's agent checks the same for keys limited to hosts).
+- The host is known when the connection sent a checked session binding (INT-06.33), the data to sign is a `publickey` sign-in request (RFC 4252 section 7: the session ID, byte 50, user name, service, method `publickey` or the host-bound form `publickey-hostbound-v00@openssh.com`, TRUE, the algorithm and the key being used, then for the host-bound form the server host key, which must be the bound one; nothing after it) carrying the session ID of the connection's last checked binding, and the bound host key matches a line of `~/.ssh/known_hosts` with a plain host name; hashed lines cannot be named. Larsal shows the first matching name. Any other data leaves the host unknown (MI06-31), so a process that binds a session of its own cannot have Larsal name that host for other data (LD-203 (2); OpenSSH's agent checks the same for keys limited to hosts).
 - One question at a time; further sign requests wait in order. No answer within 60 seconds: Deny. A lock of the key's vault closes the question as Deny (SR-16). There is no "always allow" (each use asks, as the setting says).
 
-INT-06.35 **Lifetime in App's agent.** App removes the key from its own agent when the lifetime ends, counted from the add.
+INT-06.35 **Lifetime in Larsal's agent.** Larsal removes the key from its own agent when the lifetime ends, counted from the add.
 
-INT-06.36 **Setting it up.** SSH clients reach App's agent only when told to. The settings page shows App's socket and a button that copies the line `IdentityAgent "<path>"` for `~/.ssh/config` (MI06-32). Because App's agent forwards everything it does not handle, a host pointed at it still sees the system agent's keys while App runs. When App is not running, the socket is gone and `ssh` falls back to its key files.
+INT-06.36 **Setting it up.** SSH clients reach Larsal's agent only when told to. The settings page shows Larsal's socket and a button that copies the line `IdentityAgent "<path>"` for `~/.ssh/config` (MI06-32). Because Larsal's agent forwards everything it does not handle, a host pointed at it still sees the system agent's keys while Larsal runs. When Larsal is not running, the socket is gone and `ssh` falls back to its key files.
 
-INT-06.37 **Option (a) instead.** "Ask before each use" sends the confirm limit (INT-06.15) to the system agent, which then asks through its askpass helper before every use. A stock Mac has no helper: the launchd job of the system agent has no `SSH_ASKPASS` and no `DISPLAY` in its environment (observed with `launchctl print`), and an OpenSSH agent without a helper refuses every signature of such a key (observed on a throwaway agent: reply 5). So under (a) App shows MI06-34 when the switch is turned on and with each add of such a key; the dialog frame is not used.
+INT-06.37 **Option (a) instead.** "Ask before each use" sends the confirm limit (INT-06.15) to the system agent, which then asks through its askpass helper before every use. A stock Mac has no helper: the launchd job of the system agent has no `SSH_ASKPASS` and no `DISPLAY` in its environment (observed with `launchctl print`), and an OpenSSH agent without a helper refuses every signature of such a key (observed on a throwaway agent: reply 5). So under (a) Larsal shows MI06-34 when the switch is turned on and with each add of such a key; the dialog frame is not used.
 
 ### Settings page
 
 INT-06.38 **SSH Agent settings page** (frame `settings-settings-ssh-agent`; APP-01.31).
 - "Work with the SSH agent" (VoiceOver "SSH") with the line "Adds keys from entries to the system agent.": S-SSH-01. The rows below, under the heading "Agent", are disabled while it is off (APP-01.5).
-- "Status": the socket path in use (INT-06.11) in the code font, or "Not set"; and the state: "Connected" when a list request (INT-06.19) succeeds, else "Not connected" with the reason (MI06-01, MI06-02 or MI06-03). App checks when the page opens, when the switch turns on and when the socket setting changes.
+- "Status": the socket path in use (INT-06.11) in the code font, or "Not set"; and the state: "Connected" when a list request (INT-06.19) succeeds, else "Not connected" with the reason (MI06-01, MI06-02 or MI06-03). Larsal checks when the page opens, when the switch turns on and when the socket setting changes.
 - "Use a different socket": a switch (VoiceOver "Socket"); on, it shows a path field for S-SSH-02 (spaces trimmed on save). Off clears S-SSH-02.
-- "Security key provider", "For sk-ed25519 keys on a hardware key.": a picker with "Built-in" (sends `internal`) and "Choose a library…" (MI06-26; a file chooser; the path is stored in S-SSH-03). With S-SSH-03 empty, the provider is `SSH_SK_PROVIDER` from App's environment, else `internal` (reference). MI06-28 shows under the picker when "Built-in" is chosen: observed on this Mac, the system OpenSSH has no built-in provider (`ssh-keygen -t ed25519-sk` says no provider was given), and an OpenSSH agent accepts only provider libraries in its allowed folders.
-- Under D-INT06-1 (b): one more row, "App's agent", with App's socket path, the state "Ready" or the error, and the button "Copy Setup Line" (MI06-32). The mockup has no such row (D-INT06-7).
+- "Security key provider", "For sk-ed25519 keys on a hardware key.": a picker with "Built-in" (sends `internal`) and "Choose a library…" (MI06-26; a file chooser; the path is stored in S-SSH-03). With S-SSH-03 empty, the provider is `SSH_SK_PROVIDER` from Larsal's environment, else `internal` (reference). MI06-28 shows under the picker when "Built-in" is chosen: observed on this Mac, the system OpenSSH has no built-in provider (`ssh-keygen -t ed25519-sk` says no provider was given), and an OpenSSH agent accepts only provider libraries in its allowed folders.
+- Under D-INT06-1 (b): one more row, "Larsal's agent", with Larsal's socket path, the state "Ready" or the error, and the button "Copy Setup Line" (MI06-32). The mockup has no such row (D-INT06-7).
 
 ### Editor page and detail view
 
@@ -209,7 +209,7 @@ INT-06.40 **Editor page** (frame `editor-editor-ssh-agent`), top to bottom:
 - Main switch "Use this entry's key with the SSH agent" (`AllowUseOfSshKey`; VoiceOver name "SSH agent"), with the line "‹entry title› · the entry's password unlocks the key" when the key is encrypted, else "‹entry title›".
 - "Private key": two choices. "From an attachment" with a picker of the entry's attachments (INT-06.41); "From a file on this Mac" with the path (home shown as `~`) and a Choose button. The choice is `SelectedType`.
 - A key panel (INT-06.42): "Type", "Fingerprint" (code font), "Comment", "Public key" (code font, wrapping) and "Copy public key".
-- "Agent": "Add the key when the vault unlocks" (VoiceOver "Add on unlock"), "Remove the key when the vault locks" ("Remove on lock"), "Ask before each use" ("Confirm") with the line "App shows a question every time a program wants to sign with the key." (under (b); under (a) MI06-34 replaces it), "Remove the key after" with a minutes stepper ("Less", "More") and its switch ("Lifetime").
+- "Agent": "Add the key when the vault unlocks" (VoiceOver "Add on unlock"), "Remove the key when the vault locks" ("Remove on lock"), "Ask before each use" ("Confirm") with the line "Larsal shows a question every time a program wants to sign with the key." (under (b); under (a) MI06-34 replaces it), "Remove the key after" with a minutes stepper ("Less", "More") and its switch ("Lifetime").
 - "Add to agent now", "Remove from agent", and the state "Loaded in agent" or "Not loaded".
 - Every control except the two buttons changes the entry draft (saved with the editor's Save). The two buttons act at once (INT-06.27). Controls below the main switch stay enabled when it is off, so the user can prepare the settings.
 
@@ -219,38 +219,38 @@ INT-06.42 **The key panel.** It reads the selected key whenever the source chang
 
 INT-06.43 **Detail view row** (frame `states-server-with-ssh-key`). For an entry with an SSH key: a field "SSH key · ‹type›" with the fingerprint and a copy button ("Copy fingerprint"); a field "SSH agent" with the state ("Loaded" or "Not loaded") and a note: "Removed when the vault locks" when remove-on-lock is on or the key asks before each use (INT-06.31), else "Stays loaded after the vault locks", with ", removed after ‹n› min" added when the lifetime switch is on (MI06-25). The quick action "Load key" runs INT-06.27. A key that cannot be read shows its message in the field instead.
 
-INT-06.44 **No key generator.** App does not create SSH keys (D-INT06-6). The reference's editor has a generator (RSA 2048 to 4096, ECDSA 256 to 521, Ed25519) that writes the new key as an attachment named after its type.
+INT-06.44 **No key generator.** Larsal does not create SSH keys (D-INT06-6). The reference's editor has a generator (RSA 2048 to 4096, ECDSA 256 to 521, Ed25519) that writes the new key as an attachment named after its type.
 
 ### Messages
 
-App's own wording; IDs are ours; ‹…› marks a placeholder. No text is taken from the reference.
+Larsal's own wording; IDs are ours; ‹…› marks a placeholder. No text is taken from the reference.
 
-| ID | Kind | Rule | App text |
+| ID | Kind | Rule | Larsal text |
 |---|---|---|---|
 | MI06-01 | error | INT-06.11 | No SSH agent was found. macOS normally provides one through SSH_AUTH_SOCK; you can also set a socket in SSH Agent settings. |
-| MI06-02 | error | INT-06.14, INT-06.19 | App couldn't reach the SSH agent at ‹path›. |
-| MI06-03 | error | INT-06.13 | App won't use ‹path›: it is not an SSH agent socket that belongs to you. (Also for a missing socket or folder: nothing is sent, LD-183.) |
+| MI06-02 | error | INT-06.14, INT-06.19 | Larsal couldn't reach the SSH agent at ‹path›. |
+| MI06-03 | error | INT-06.13 | Larsal won't use ‹path›: it is not an SSH agent socket that belongs to you. (Also for a missing socket or folder: nothing is sent, LD-183.) |
 | MI06-04 | error | INT-06.15 | The SSH agent did not take the key of “‹title›”. Then, per case: "It may not accept a time limit." (lifetime on); "Keys on a security key need a provider the agent accepts. Check SSH Agent settings." (`sk-` type) |
 | MI06-05 | error | INT-06.23 | This key is already loaded from another open vault, ‹vault name›. Lock that vault or remove the key there first. |
 | MI06-06 | error | INT-06.5 | “‹title›” has no attachment named ‹name›. |
-| MI06-07 | error | INT-06.5 | App can't open the key file ‹path›. |
+| MI06-07 | error | INT-06.5 | Larsal can't open the key file ‹path›. |
 | MI06-08 | error | INT-06.5 | ‹name› is over 1 MiB, so it can't be an SSH key. |
 | MI06-09 | error | INT-06.5 | ‹name› has no content. |
-| MI06-10 | error | INT-06.6 | ‹name› is not an SSH private key App can read. (Also for an unknown cipher name, which the key reader refuses while reading, before MI06-13 could apply; LD-183.) |
+| MI06-10 | error | INT-06.6 | ‹name› is not an SSH private key Larsal can read. (Also for an unknown cipher name, which the key reader refuses while reading, before MI06-13 could apply; LD-183.) |
 | MI06-11 | error | INT-06.6 | ‹name› uses an older key format. Convert a copy with "ssh-keygen -p -f ‹file›", then use the converted file. |
 | MI06-12 | error | INT-06.6 | ‹name› is a DSA key, which OpenSSH no longer supports. Use an Ed25519 key instead. |
-| MI06-13 | error | INT-06.9 | ‹name› uses ‹cipher or type›, which App can't read. |
+| MI06-13 | error | INT-06.9 | ‹name› uses ‹cipher or type›, which Larsal can't read. |
 | MI06-14 | error | INT-06.9 | This key is protected by a passphrase. Put the passphrase in the entry's Password field. |
 | MI06-15 | error | INT-06.9 | The entry's password does not unlock this key. |
-| MI06-16 | error | INT-06.9 | This key's passphrase protection uses ‹n› rounds; App allows at most 1,000. Protect it again with fewer rounds, for example "ssh-keygen -p -a 100 -f ‹file›". |
+| MI06-16 | error | INT-06.9 | This key's passphrase protection uses ‹n› rounds; Larsal allows at most 1,000. Protect it again with fewer rounds, for example "ssh-keygen -p -a 100 -f ‹file›". |
 | MI06-17 | error | INT-06.20 | The time limit must be at least 1 minute. |
 | MI06-18 | banner | INT-06.22 | Some SSH keys were not loaded: ‹titles›. Button "Details" lists each title with its message. |
-| MI06-19 | banner | INT-06.24 | App couldn't take the key of “‹title›” out of the SSH agent. Use Remove All Keys from SSH Agent… to clear it. |
+| MI06-19 | banner | INT-06.24 | Larsal couldn't take the key of “‹title›” out of the SSH agent. Use Remove All Keys from SSH Agent… to clear it. |
 | MI06-20 | toast | INT-06.18 | Every key was removed from the SSH agent. |
 | MI06-21 | error | INT-06.18 | The SSH agent did not remove its keys. |
 | MI06-22 | state | INT-06.38 | Connected / Not connected |
 | MI06-23 | state | INT-06.40, INT-06.43 | Loaded in agent / Loaded / Not loaded |
-| MI06-24 | note | INT-06.2 | App can't read this entry's SSH settings. Saving this page replaces them. |
+| MI06-24 | note | INT-06.2 | Larsal can't read this entry's SSH settings. Saving this page replaces them. |
 | MI06-25 | note | INT-06.43 | Removed when the vault locks / Stays loaded after the vault locks / , removed after ‹n› min |
 | MI06-26 | label | INT-06.38 | Built-in / Choose a library… |
 | MI06-27 | placeholder | INT-06.8, INT-06.42 | Shown after the key is unlocked |
@@ -258,7 +258,7 @@ App's own wording; IDs are ours; ‹…› marks a placeholder. No text is taken
 | MI06-29 | dialog title | INT-06.34 | Allow ‹program› to use “‹entry title›”? |
 | MI06-30 | dialog text | INT-06.34 | ‹program› wants to sign in to ‹host› with this key. |
 | MI06-31 | dialog text | INT-06.34 | ‹program› wants to sign with this key. |
-| MI06-32 | row | INT-06.36 | App's agent · ‹path› · Ready. Button "Copy Setup Line"; toast after copying: Setup line copied. Add it to ~/.ssh/config for the hosts that should use keys that ask first. |
+| MI06-32 | row | INT-06.36 | Larsal's agent · ‹path› · Ready. Button "Copy Setup Line"; toast after copying: Setup line copied. Add it to ~/.ssh/config for the hosts that should use keys that ask first. |
 | MI06-33 | hint | INT-06.33 | Asking before each use works with Ed25519 and ECDSA P-256 keys. |
 | MI06-34 | warning | INT-06.37 | The SSH agent in macOS can't ask you. With this on, every use of the key is refused unless the agent has an askpass helper. |
 | MI06-35 | toast | INT-06.42, INT-06.43 | Public key copied / Fingerprint copied |
@@ -271,9 +271,9 @@ App's own wording; IDs are ours; ‹…› marks a placeholder. No text is taken
 - **Agent socket replaced by another user's socket** (an override pointing into `/tmp`): refused by INT-06.13 before anything is sent.
 - **Two open vaults with the same key:** the second add is refused (MI06-05) while the first vault holds the record; after the first vault locks, its records are gone and the second vault may add the key (reference).
 - **Same key in two entries of one vault:** allowed; one record; the last add sets the limits (INT-06.16).
-- **A key added by another program before App:** App's add succeeds and replaces its limits (INT-06.16); App records it and, with remove-on-lock, removes it at lock, also though another program added it first (reference does the same).
+- **A key added by another program before Larsal:** Larsal's add succeeds and replaces its limits (INT-06.16); Larsal records it and, with remove-on-lock, removes it at lock, also though another program added it first (reference does the same).
 - **Lifetime ended before lock:** the removal at lock gets reply 5, which is not an error (INT-06.17).
-- **Agent restarted** (logout, `launchctl kickstart`): all keys are gone; App's records stay until lock; removals get reply 5 and stay silent.
+- **Agent restarted** (logout, `launchctl kickstart`): all keys are gone; Larsal's records stay until lock; removals get reply 5 and stay silent.
 - **Key file on an unplugged drive:** MI06-07 at the add; the entry keeps its settings.
 - **Encrypted key, entry password empty:** MI06-14; the reference says the same with its own text.
 - **Entry password is a placeholder or reference:** resolved first (INT-06.9).
@@ -283,7 +283,7 @@ App's own wording; IDs are ours; ‹…› marks a placeholder. No text is taken
 - **Hostile settings attachment** (huge, a DTD, deep nesting): bounded by INT-06.2; no entity is expanded.
 - **Hostile key file:** size bounded (INT-06.5), rounds bounded (INT-06.9); parsing goes through the `ssh-key` crate and never panics; a malformed key is MI06-10.
 - **Many keys at unlock:** the background task adds one key after another; locking the vault while it runs stops it after the current key, and that key is then handled by the lock rules.
-- **Under (b), `ssh` asks App's agent while the vault is locked:** the key left App's agent at the lock (INT-06.31), so it is not listed and `ssh` tries other keys; App does not prompt to unlock (App's own choice; the reference has no own agent). Bitwarden instead prompts to unlock (its help page, "Behavior by vault state").
+- **Under (b), `ssh` asks Larsal's agent while the vault is locked:** the key left Larsal's agent at the lock (INT-06.31), so it is not listed and `ssh` tries other keys; Larsal does not prompt to unlock (Larsal's own choice; the reference has no own agent). Bitwarden instead prompts to unlock (its help page, "Behavior by vault state").
 - **Not on Mac.** The reference on Windows talks to Pageant, the OpenSSH named pipe `\\.\pipe\openssh-ssh-agent`, or both (S-NOMAC-08, -09); a Pageant message is limited to 8,192 bytes.
 
 ## Lead decisions
@@ -292,32 +292,32 @@ Decided: spec/decisions.md LD-173, all seven as recommended. D-INT06-1 (b) is bu
 
 | ID | Question | Options | Recommended, with evidence |
 |---|---|---|---|
-| D-INT06-1 | Who answers "Ask before each use" (INT-06.31 to INT-06.37) | (a) Send the confirm limit to the system agent, as the reference does; warn that a stock Mac cannot ask. (b) System agent for every other key; keys that ask live in a small agent inside App that shows App's own question and forwards all else to the system agent. (c) App runs its own agent for every key, as Bitwarden, Strongbox and Secretive do | (b). Every proven Mac password manager or key app with a per-use question shows its own question from its own agent: Bitwarden ("Ask for authorization when using SSH agent", own socket `~/.bitwarden-ssh-agent.sock`), Strongbox (own socket, "approve or deny the request", shows the process), Secretive ("notifies you whenever your keys are accessed"). The stock system agent cannot ask (INT-06.37, observed). The locked mockup shows App's question (`dialogs-ssh-key-use`) and the system agent socket on the settings page, and only (b) fits both. Cost: App signs for those keys (Ed25519 and P-256 with approved crates; RSA waits for an RSA crate) and the user adds one `IdentityAgent` line. (c) would also change the settings frame and lose the reference's behavior for normal keys. LD-173: INT-06.31 to INT-06.36 are built in E9-S2 |
+| D-INT06-1 | Who answers "Ask before each use" (INT-06.31 to INT-06.37) | (a) Send the confirm limit to the system agent, as the reference does; warn that a stock Mac cannot ask. (b) System agent for every other key; keys that ask live in a small agent inside Larsal that shows Larsal's own question and forwards all else to the system agent. (c) Larsal runs its own agent for every key, as Bitwarden, Strongbox and Secretive do | (b). Every proven Mac password manager or key app with a per-use question shows its own question from its own agent: Bitwarden ("Ask for authorization when using SSH agent", own socket `~/.bitwarden-ssh-agent.sock`), Strongbox (own socket, "approve or deny the request", shows the process), Secretive ("notifies you whenever your keys are accessed"). The stock system agent cannot ask (INT-06.37, observed). The locked mockup shows Larsal's question (`dialogs-ssh-key-use`) and the system agent socket on the settings page, and only (b) fits both. Cost: Larsal signs for those keys (Ed25519 and P-256 with approved crates; RSA waits for an RSA crate) and the user adds one `IdentityAgent` line. (c) would also change the settings frame and lose the reference's behavior for normal keys. LD-173: INT-06.31 to INT-06.36 are built in E9-S2 |
 | D-INT06-2 | Key forms (INT-06.6) | (a) OpenSSH format only, every type but DSA; (b) also the old PEM RSA and DSA forms with the MD5-based derivation, as the reference; (c) also PKCS#8 | (a). `ssh-keygen` writes the OpenSSH format by default since 2018; Strongbox requires it ("Be stored in the standard OpenSSH format", other formats "need conversion with ssh-keygen"); Bitwarden takes OpenSSH or PKCS#8. The approved `ssh-key` crate reads only the OpenSSH format; (b) would add DER parsing, MD5 and old ciphers for a form users can convert in one command (MI06-11) |
-| D-INT06-3 | bcrypt-pbkdf round ceiling (INT-06.9; LD-73) | 1,000 rounds; or another number | 1,000: 6.2 s on this Mac (measured), 40 times the OpenSSH 10.3 default of 24 and 10 times the common hardening advice of 100; anything above it looks like an attack on App's time |
+| D-INT06-3 | bcrypt-pbkdf round ceiling (INT-06.9; LD-73) | 1,000 rounds; or another number | 1,000: 6.2 s on this Mac (measured), 40 times the OpenSSH 10.3 default of 24 and 10 times the common hardening advice of 100; anything above it looks like an attack on Larsal's time |
 | D-INT06-4 | Lifetime control (INT-06.20) | (a) minutes 1 to 1,440 with the stored seconds kept until changed; (b) seconds 0 to 999,999,999 as the reference | (a): the mockup draws a minutes stepper ("10 min"); 0 seconds loads nothing (observed), so it is refused |
 | D-INT06-5 | Passphrase source (INT-06.9) | (a) the Password field resolved like Copy Password; (b) the raw field text as the reference | (a): a reference to another entry is a normal way to share one passphrase; the reference's raw use fails silently for it |
 | D-INT06-6 | Key generator (INT-06.44) | leave it out; or build one | Leave it out: the mockup has no generator; `ssh-keygen` makes keys; Bitwarden generates Ed25519 only. Add later if users ask |
-| D-INT06-7 | Mockup gaps | (1) Under (b), the settings page row "App's agent" with "Copy Setup Line" (INT-06.38); (2) the "Not loaded" state and the note texts of INT-06.43 that the frames do not draw; (3) MI06-27 for an encrypted key's comment | Add all three to the mockup with the owner's approval (AT-K05) |
+| D-INT06-7 | Mockup gaps | (1) Under (b), the settings page row "Larsal's agent" with "Copy Setup Line" (INT-06.38); (2) the "Not loaded" state and the note texts of INT-06.43 that the frames do not draw; (3) MI06-27 for an encrypted key's comment | Add all three to the mockup with the owner's approval (AT-K05) |
 
 Check with Verify:
 
 | ID | What to check |
 |---|---|
-| V-INT06-1 | The reference reads a settings document written by App (INT-06.3) and adds the key; read the reference's settings reader again for whitespace inside boolean elements |
+| V-INT06-1 | The reference reads a settings document written by Larsal (INT-06.3) and adds the key; read the reference's settings reader again for whitespace inside boolean elements |
 | V-INT06-2 | The exact bytes the reference writes for a settings document (declaration, attribute order, final line end), to confirm INT-06.3 |
 | V-INT06-3 | The macOS system agent (not a throwaway one) accepts the lifetime limit and drops the key in time (AT-H02), with a demo key, and that nothing else is in it before and after |
-| V-INT06-4 | Under (b): `ssh -o IdentityAgent=...` to a local demo `sshd` sends `session-bind@openssh.com`, and App names the host from a plain `known_hosts` line |
+| V-INT06-4 | Under (b): `ssh -o IdentityAgent=...` to a local demo `sshd` sends `session-bind@openssh.com`, and Larsal names the host from a plain `known_hosts` line |
 
 ## Security notes
 
-- **SI-07** (parity row): add on unlock, lifetime 600 s by default when on, confirm, both off by default per entry; remove marked keys on lock and quit; Remove All also removes other programs' keys (asked first, M08-04); refuse a key another open vault added. App goes further: rounds bounded (INT-06.9, LD-73); turning the feature off removes every key App added (LD-63); socket owner and peer checks (INT-06.13); one-pass path expansion (INT-06.5); DSA and the MD5-based PEM form not read (D-INT06-2).
-- **AT-H01:** keys marked remove-on-lock leave the agent within 1 second of the lock (INT-06.24); keys in App's own agent always leave it at the lock (INT-06.31). **AT-H02:** the lifetime limit reaches the system agent (INT-06.15, T28, T31; proof by behavior, because `ssh-add -l` does not print limits); under (b) the confirm limit is App's own question: such a key never reaches the system agent and every signature needs Allow Once (T51, T53, T57).
+- **SI-07** (parity row): add on unlock, lifetime 600 s by default when on, confirm, both off by default per entry; remove marked keys on lock and quit; Remove All also removes other programs' keys (asked first, M08-04); refuse a key another open vault added. Larsal goes further: rounds bounded (INT-06.9, LD-73); turning the feature off removes every key Larsal added (LD-63); socket owner and peer checks (INT-06.13); one-pass path expansion (INT-06.5); DSA and the MD5-based PEM form not read (D-INT06-2).
+- **AT-H01:** keys marked remove-on-lock leave the agent within 1 second of the lock (INT-06.24); keys in Larsal's own agent always leave it at the lock (INT-06.31). **AT-H02:** the lifetime limit reaches the system agent (INT-06.15, T28, T31; proof by behavior, because `ssh-add -l` does not print limits); under (b) the confirm limit is Larsal's own question: such a key never reaches the system agent and every signature needs Allow Once (T51, T53, T57).
 - **SD-05:** recycle bin entries are never added on unlock and never offered in menus.
 - **SR-16:** the lock removes marked keys; a failed removal never blocks the lock; under (b) a lock closes an open question as Deny.
-- **SR-07 and AGENTS rule 4:** decrypted keys and passphrases live only in Rust secret types and are wiped right after use (INT-06.10). Under (b) the keys that ask stay decrypted in App's memory while loaded and their vault is unlocked, and are wiped at its lock (INT-06.31); that is the same exposure as the system agent's memory, inside App's hardened process (APP-11).
-- **The question's program name is a hint:** any process of the same user can choose its own name, so the name helps the user notice an unexpected request but proves nothing. "Ask before each use" protects only the copy in App's agent: a copy of the same key that another program added to the system agent is used without asking.
-- **What must never happen:** a key sent to a socket that belongs to another user; a private key, passphrase or decrypted byte in a log, error text or the Swift layer; a hang from a hostile key file; a key App added staying in the agent after the feature is turned off; a signature under (b) without the user's Allow Once.
+- **SR-07 and AGENTS rule 4:** decrypted keys and passphrases live only in Rust secret types and are wiped right after use (INT-06.10). Under (b) the keys that ask stay decrypted in Larsal's memory while loaded and their vault is unlocked, and are wiped at its lock (INT-06.31); that is the same exposure as the system agent's memory, inside Larsal's hardened process (APP-11).
+- **The question's program name is a hint:** any process of the same user can choose its own name, so the name helps the user notice an unexpected request but proves nothing. "Ask before each use" protects only the copy in Larsal's agent: a copy of the same key that another program added to the system agent is used without asking.
+- **What must never happen:** a key sent to a socket that belongs to another user; a private key, passphrase or decrypted byte in a log, error text or the Swift layer; a hang from a hostile key file; a key Larsal added staying in the agent after the feature is turned off; a signature under (b) without the user's Allow Once.
 - **What the agent itself exposes:** any process of the same user can use a loaded key through the agent without asking, unless the key asks first; the comment and public key are visible to any such process. This is how agents work; "Ask before each use" is the protection (the OpenSSH manual says the same of its confirm option).
 
 ## Test cases
@@ -338,7 +338,7 @@ Public key line: `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBcFDq2T71wERCeKk/6BZCGHIL
 
 Made in the test setup with `ssh-keygen` from K1: K1e (K1 protected with `ssh-keygen -p -N demo-ssh-pass`: `aes256-ctr`, `bcrypt`, 24 rounds, 16-byte salt; same fingerprint), K1big (the same with `-a 1001`), Kp (`ssh-keygen -t rsa -b 2048 -m PEM -N demo-ssh-pass`: label `RSA PRIVATE KEY`, `DEK-Info: AES-128-CBC`), K8 (`-m PKCS8`, unencrypted), K2 (`-t ecdsa -b 256`, comment `ecdsa@app`), Kr (`-t rsa -b 3072`, unencrypted).
 
-Demo vault V (`ssh-demo.appvault`, password `demo-ssh-vault`, S-SSH-01 on):
+Demo vault V (`ssh-demo.larsalvault`, password `demo-ssh-vault`, S-SSH-01 on):
 - E1 "Server root · web-01": user `root`, password `demo-ssh-pass`, attachment `id_ed25519` = K1e, settings S1 = allow, add, remove on; confirm and lifetime off; 600; `attachment`, `id_ed25519`.
 - E2 "Plain key": user `alex`, password empty, attachment `id_plain` = K1 with its comment removed (`ssh-keygen -c -C ""`), settings allow and add on, remove off.
 - E3 "File key": settings allow on, add off, `file`, `~/keys/k2` (= K2 under the test HOME).
@@ -348,7 +348,7 @@ Demo vault V (`ssh-demo.appvault`, password `demo-ssh-vault`, S-SSH-01 on):
 
 | Case | Given | When | Then |
 |---|---|---|---|
-| T01 INT-06.1 | S1 as App writes it (INT-06.3) | Read | allow, add, remove true; confirm, lifetime false; 600; `attachment`; `id_ed25519`; temp-file false; file empty |
+| T01 INT-06.1 | S1 as Larsal writes it (INT-06.3) | Read | allow, add, remove true; confirm, lifetime false; 600; `attachment`; `id_ed25519`; temp-file false; file empty |
 | T02 INT-06.2 | Booleans `True`, `tRUE`, `yes`, empty; lifetime `abc`, `-5`, `90` | Read | true, true, false, false; 0, -5, 90 |
 | T03 INT-06.2 | `SelectedType` `Attachment`; an unknown element `Foo` before `Location`; `AddAtDatabaseOpen` twice (false, then true) | Read | file selected (exact match only); Foo skipped; add true |
 | T04 INT-06.2 | Settings with a DTD; a 70 KiB settings attachment; root `Settings` | Open the editor's SSH page; unlock V | MI06-24 each time; the entry has no SSH key (no add, no menu items); the attachment bytes unchanged after the vault is saved |
@@ -360,7 +360,7 @@ Demo vault V (`ssh-demo.appvault`, password `demo-ssh-vault`, S-SSH-01 on):
 | T10 INT-06.4 | S-SSH-01 off | Select E1, open the editor | No SSH menu items, no detail row, no SSH page (INT-06.21, INT-06.39) |
 | T11 INT-06.5 | E3 with `~/keys/k2`; then with `$HOME/keys/k2`; then `$NOPE/k2` | Show the key panel | First two: ECDSA, K2's fingerprint; third: MI06-07 for `/k2` |
 | T12 INT-06.5 | Environment `LOOP='$LOOP'`, file name `$LOOP/k` | Show the key panel | Returns at once with MI06-07 for `$LOOP/k` (one pass); no hang |
-| T13 INT-06.5 | Vault at `/tmp/spec-int06/v/V.appvault`, file name `k2rel` with K2 at `/tmp/spec-int06/v/k2rel` | Show | ECDSA key read from the vault's folder |
+| T13 INT-06.5 | Vault at `/tmp/spec-int06/v/V.larsalvault`, file name `k2rel` with K2 at `/tmp/spec-int06/v/k2rel` | Show | ECDSA key read from the vault's folder |
 | T14 INT-06.5 | Key attachment of 1,048,577 bytes; empty attachment; file name pointing to a folder | Load into SSH Agent each | MI06-08 (nothing parsed); MI06-09; MI06-07 |
 | T15 INT-06.5 | E1 with `AttachmentName` `id_missing` | Load | MI06-06 |
 | T16 INT-06.6 | E4 (Kp); K8; a DSA key file made by an older `ssh-keygen` (test asset); a text file | Show the key panel | MI06-11; MI06-11; MI06-12; MI06-10 |
@@ -389,21 +389,21 @@ Demo vault V (`ssh-demo.appvault`, password `demo-ssh-vault`, S-SSH-01 on):
 | T39 INT-06.22 | V locked; throwaway agent empty | Unlock V | E1 and E2 hold the same key K1, so the agent lists one key, with the comment of the later add in tree order (`alex@id_plain`); E3 is not added (add off); E4 fails; E5 is not tried; MI06-18 names "Old key" only |
 | T40 INT-06.22 | V unlocked with E1 added, S-SSH-01 on | Lock, unlock again with E1 still in the agent (remove-on-lock turned off first) | No message for E1 |
 | T41 INT-06.23 | V and a copy W (other path, same keys) | Unlock V, then W | W's adds of K1 fail with MI06-05 naming V |
-| T42 INT-06.24 | V unlocked; then Load into SSH Agent on E1 (remove on; this later add of K1 sets its record, INT-06.16) and on E3 (K2, remove off) | Lock V; list the agent within 1 s | K1 gone, K2 still there (AT-H01); App holds no record of V |
+| T42 INT-06.24 | V unlocked; then Load into SSH Agent on E1 (remove on; this later add of K1 sets its record, INT-06.16) and on E3 (K2, remove off) | Lock V; list the agent within 1 s | K1 gone, K2 still there (AT-H01); Larsal holds no record of V |
 | T43 INT-06.24 | Agent killed after unlock | Lock V | The lock finishes; MI06-19 for E1 after the unlock view shows |
 | T44 INT-06.24 | Close V's window instead of locking | List the agent | Same as T42 |
-| T45 INT-06.25 | E1 and K2 loaded as in T42 | Quit App | K1 gone, K2 stays |
-| T46 INT-06.26 | V unlocked; E1 (remove on) and E3's K2 (remove off) loaded by App; K9 added by `ssh-add` | Turn S-SSH-01 off | K1 and K2 gone; K9 stays (LD-63) |
+| T45 INT-06.25 | E1 and K2 loaded as in T42 | Quit Larsal | K1 gone, K2 stays |
+| T46 INT-06.26 | V unlocked; E1 (remove on) and E3's K2 (remove off) loaded by Larsal; K9 added by `ssh-add` | Turn S-SSH-01 off | K1 and K2 gone; K9 stays (LD-63) |
 | T47 INT-06.27 | E1 in the editor, unsaved change: remove-on-lock off | Add to agent now; then lock V without saving (discard) | Added; at lock K1 stays (the record took the page value) |
 | T48 INT-06.27 | E1 loaded with remove on | Open the editor, turn remove-on-lock off, Cancel the editor, lock | K1 stays (the record changed at once, as the reference) |
 | T49 INT-06.29 | E1 loaded | Move E1 to the recycle bin; list the agent | K1 still listed |
 | T50 INT-06.30 | E1 loaded with lifetime 2 (throwaway agent) | Open the detail view after 4 s | "Not loaded" |
-| T51 INT-06.31 | (b): E1 with confirm on; E2's add on unlock off (E2 holds the same K1) | Unlock V | The system agent does not list K1; App's agent lists K1 followed by the system agent's keys |
-| T52 INT-06.32 | (b): App running, feature on | `stat` App's socket and folder; connect as another user (CI fixture) | Modes 0600 and 0700; the other user's connection is closed at once |
-| T53 INT-06.33 | (b): E1 with confirm loaded; `ssh-keygen -Y sign` through App's socket | Answer Allow Once | A valid Ed25519 signature (checked with `ssh-keygen -Y verify`) |
+| T51 INT-06.31 | (b): E1 with confirm on; E2's add on unlock off (E2 holds the same K1) | Unlock V | The system agent does not list K1; Larsal's agent lists K1 followed by the system agent's keys |
+| T52 INT-06.32 | (b): Larsal running, feature on | `stat` Larsal's socket and folder; connect as another user (CI fixture) | Modes 0600 and 0700; the other user's connection is closed at once |
+| T53 INT-06.33 | (b): E1 with confirm loaded; `ssh-keygen -Y sign` through Larsal's socket | Answer Allow Once | A valid Ed25519 signature (checked with `ssh-keygen -Y verify`) |
 | T54 INT-06.33 | (b): K2 (ECDSA P-256) with confirm; Kr with the switch | Open the page for Kr; sign with K2 | Kr: "Ask before each use" disabled with MI06-33; K2: signature checks |
-| T55 INT-06.33 | (b): App's agent; `ssh-add -l` and `ssh-add k9` through App's socket | Run | The list shows App's keys then the system agent's; K9 lands in the system agent (forwarded) |
-| T56 INT-06.33 | (b): RSA key in App's agent (only if an RSA crate is approved); sign request with flags 0 | Send | Reply 5 |
+| T55 INT-06.33 | (b): Larsal's agent; `ssh-add -l` and `ssh-add k9` through Larsal's socket | Run | The list shows Larsal's keys then the system agent's; K9 lands in the system agent (forwarded) |
+| T56 INT-06.33 | (b): RSA key in Larsal's agent (only if an RSA crate is approved); sign request with flags 0 | Send | Reply 5 |
 | T57 INT-06.34 | (b): sign request from `ssh` with a checked session binding for host key H; `known_hosts` has `web01.example H` | Show | Title "Allow ssh to use “Server root · web-01”?", text with `web01.example`; Escape gives 5 |
 | T58 INT-06.34 | (b): two sign requests at once; no answer | Wait | One dialog at a time; the first ends as Deny after 60 s (fake clock), then the second shows |
 | T59 INT-06.34 | (b): dialog open | Lock V | Dialog closes; reply 5 |
@@ -416,12 +416,12 @@ Demo vault V (`ssh-demo.appvault`, password `demo-ssh-vault`, S-SSH-01 on):
 | T66 INT-06.43 | E1 loaded, remove on, lifetime on 10 min | Show the detail view | "SSH key · ED25519", the fingerprint, "Loaded", "Removed when the vault locks, removed after 10 min", button "Load key" |
 | T67 INT-06.44 | Editor SSH page | Look for a key generator | None |
 | T68 INT-06.12 | Fake agent that records connections and answers slowly (1 s) | Load E1, and press Remove from SSH Agent while the add runs | Two connections one after the other, each with exactly one message; the remove starts only after the add's reply |
-| T69 INT-06.21 | S-SSH-01 off; fake agent at S-SSH-02 counting connections | Unlock V, select E1, open the editor | Zero connections; App's own agent socket does not exist |
-| T70 INT-06.28 | (b): App's agent holds K1 (E1 with ask on); the system agent holds K2 from E3 | Remove All Keys from SSH Agent…, Remove All; then lock V | Both agents empty, App's records empty; the lock sends no remove message |
-| T71 INT-06.35 | (b): E1 with ask on and lifetime 2 | List App's socket at once and after 4 s | Listed, then not listed |
-| T72 INT-06.36 | (b): settings page | Press Copy Setup Line | The clipboard holds `IdentityAgent "` + App's socket path + `"`; MI06-32's toast shows |
+| T69 INT-06.21 | S-SSH-01 off; fake agent at S-SSH-02 counting connections | Unlock V, select E1, open the editor | Zero connections; Larsal's own agent socket does not exist |
+| T70 INT-06.28 | (b): Larsal's agent holds K1 (E1 with ask on); the system agent holds K2 from E3 | Remove All Keys from SSH Agent…, Remove All; then lock V | Both agents empty, Larsal's records empty; the lock sends no remove message |
+| T71 INT-06.35 | (b): E1 with ask on and lifetime 2 | List Larsal's socket at once and after 4 s | Listed, then not listed |
+| T72 INT-06.36 | (b): settings page | Press Copy Setup Line | The clipboard holds `IdentityAgent "` + Larsal's socket path + `"`; MI06-32's toast shows |
 | T73 INT-06.39 | S-SSH-01 on; E6 (no settings) | Open the editor | The SSH Agent page is listed and shows the defaults (main switch off, `From a file on this Mac` selected, 10 min) |
-| T74 INT-06.31 | (b): E1 with confirm on and remove-on-lock off, loaded; debug build with the secret wipe hook | Lock V; list App's socket; scan the process memory for K1's seed after 1 s | Nothing listed from V; the detail note before the lock read "Removed when the vault locks"; seed not found (AT-C01 method) |
+| T74 INT-06.31 | (b): E1 with confirm on and remove-on-lock off, loaded; debug build with the secret wipe hook | Lock V; list Larsal's socket; scan the process memory for K1's seed after 1 s | Nothing listed from V; the detail note before the lock read "Removed when the vault locks"; seed not found (AT-C01 method) |
 
 ## How this was learned
 
@@ -434,16 +434,16 @@ Demo vault V (`ssh-demo.appvault`, password `demo-ssh-vault`, S-SSH-01 on):
 
 Second Spec review. Checked against the reference source (the agent client, the entry settings reader and writer, the lock and unlock handlers, the editor page's screen definition), the OpenSSH agent protocol (draft-miller-ssh-agent, now draft-ietf-sshm-ssh-agent), LD-173, the frames `settings-settings-ssh-agent`, `editor-editor-ssh-agent`, `dialogs-ssh-key-use` and `states-server-with-ssh-key`, and on a throwaway OpenSSH 10.3 agent in `/tmp` (own `SSH_AUTH_SOCK`, stopped by its PID; the user's agent was never contacted). Re-observed: K1's fingerprint, public key line and seed; add with lifetime 120, add again (comment and limits replaced), remove (6), remove of an absent key (5), lifetime 0 (accepted, gone at once), lifetime 2 (gone after 3 s), an unknown limit byte (5), the provider extension on a normal key (5), message `09` alone and `13 09` (both 6), message 99 (5). Stat of the launchd socket: owned by the user, folder mode 0700.
 
-Fixes made (16): Epics line and "What it does" follow LD-173; the "Ask before each use" intro marks INT-06.37, MI06-34, T29, T32 and T60 as not built; the Lead decisions intro and D-INT06-1 say LD-173; INT-06.18 states what the reference really sends for its second remove-all (`13 09`, any reply taken as success); INT-06.22 gives the reference's entry order (a group's own entries, then its subgroups); INT-06.22's reference difference corrected (silent on unreadable keys and on already-recorded keys) and its clause about "a key App already holds for this vault" removed, because no record of a vault exists when it unlocks; INT-06.31 removes keys from App's agent at every lock of their vault (the card's own edge case and INT-06.33 already assumed it; AT-C01), with INT-06.33's list wording, the INT-06.43 note and the edge case aligned; INT-06.38 gains the frame's line "Adds keys from entries to the system agent.", the heading "Agent" and the VoiceOver names "SSH" and "Socket"; security notes: AT-H01 and AT-H02 under (b), the SR-07 line, a note that the question's program name is only a hint and that a copy of the key in the system agent is not asked about; the test setup now forbids the user's `SSH_AUTH_SOCK` and the general pasteboard; T42 and T45 load E1 by hand (E2's later add of the same K1 with remove off would otherwise set the record and keep K1 at lock); T51 turns E2's add on unlock off; new T74 for the lock rule of INT-06.31.
+Fixes made (16): Epics line and "What it does" follow LD-173; the "Ask before each use" intro marks INT-06.37, MI06-34, T29, T32 and T60 as not built; the Lead decisions intro and D-INT06-1 say LD-173; INT-06.18 states what the reference really sends for its second remove-all (`13 09`, any reply taken as success); INT-06.22 gives the reference's entry order (a group's own entries, then its subgroups); INT-06.22's reference difference corrected (silent on unreadable keys and on already-recorded keys) and its clause about "a key Larsal already holds for this vault" removed, because no record of a vault exists when it unlocks; INT-06.31 removes keys from Larsal's agent at every lock of their vault (the card's own edge case and INT-06.33 already assumed it; AT-C01), with INT-06.33's list wording, the INT-06.43 note and the edge case aligned; INT-06.38 gains the frame's line "Adds keys from entries to the system agent.", the heading "Agent" and the VoiceOver names "SSH" and "Socket"; security notes: AT-H01 and AT-H02 under (b), the SR-07 line, a note that the question's program name is only a hint and that a copy of the key in the system agent is not asked about; the test setup now forbids the user's `SSH_AUTH_SOCK` and the general pasteboard; T42 and T45 load E1 by hand (E2's later add of the same K1 with remove off would otherwise set the record and keep K1 at lock); T51 turns E2's add on unlock off; new T74 for the lock rule of INT-06.31.
 
 Findings, each with a proposed ruling (the default rule of spec/decisions.md applies until the lead rules):
 
 | ID | Finding | Proposed ruling |
 |---|---|---|
 | R06-1 | After the INT-06.31 fix, a key that asks before each use always leaves at lock, but the editor's "Remove the key when the vault locks" switch can still show off for it. | While "Ask before each use" is on, that switch shows on and is disabled; the stored `RemoveAtDatabaseClose` value is kept unchanged (so the reference reads the document as before). Test: T63 extended. |
-| R06-2 | INT-06.33 does not say how App's agent talks to the system agent for forwarded requests. One new connection per forwarded request loses the session binding: the OpenSSH agent then treats the request as local use and skips the destination limits a user set with `ssh-add -h`. The card also does not say which host the question names when one connection carries several bindings (agent forwarding), or what happens with a host key App cannot check (RSA, P-384, P-521). | For each client connection App opens one connection to the system agent and keeps it for the life of that client connection; every `session-bind@openssh.com` is checked by App when it can (Ed25519, P-256), then forwarded on that connection, and the system agent's reply goes back. The question names the host of the last checked binding; when any binding on the connection says it is forwarded, the text says "‹program› wants to sign in to ‹host› through a forwarded connection." (new MI06-37). A binding App cannot check leaves the host unknown (MI06-31). Tests: V-INT06-4 extended with `ssh -A` and with an RSA host key. |
-| R06-3 | Requests on App's socket that touch App's own keys are forwarded: `ssh-add -d` (18) and `ssh-add -D` (19) through App's socket leave App's keys in place, and `ssh-add -x` (22) locks only the system agent while App's keys stay usable. | 18 for a key App's agent holds removes it there, drops its record and replies 6; 19 empties App's agent and drops those records, then is forwarded; 22 and 23 are answered 5 and not forwarded (App's agent has no agent lock; the vault lock does that job). Tests: three rows next to T55. |
-| R06-4 | Self-loop: a user who points `SSH_AUTH_SOCK` (for example with `launchctl setenv`) or S-SSH-02 at App's own socket makes App's agent forward to itself, and App's own adds go to App's agent. | Before connecting, INT-06.13 also compares the target with App's own socket (same device and inode); a match counts as "no system agent": App's client requests show MI06-01, and App's agent answers only for its own keys (5 for the rest). Test: S-SSH-02 set to App's socket; load E3; sign through App's socket; no hang, MI06-01, reply 5. |
-| R06-5 | The same key in two entries, one that asks and one that does not (E1 and E2 in the demo vault), lands in both App's agent and the system agent, so it can be used without asking. | A key lives in one place only: adding it to one agent first removes App's own copy from the other (INT-06.16's "the last add decides" carried over to (b)), and the record notes where it now is. Test: unlock V with both E1 (asks) and E2 (does not); then only the system agent holds K1, without confirm; load E1 by hand; then only App's agent holds it. |
-| R06-6 | INT-06.34 lets Return choose "Allow Once". The dialog comes up without any action in App, often while the user is still typing in a terminal, so a stray Return can allow a signature. | Keep "Allow Once" drawn as the primary button (frame), but Return and Space do nothing for the first second after the dialog shows; Escape and clicks on Deny work at once. Browsers delay the default button of their install and permission prompts by about one second for the same reason (for example the `security.dialog_enable_delay` preference, 1,000 ms). Test: a fake clock; Return at 0.5 s does nothing, Return at 1.1 s allows. |
+| R06-2 | INT-06.33 does not say how Larsal's agent talks to the system agent for forwarded requests. One new connection per forwarded request loses the session binding: the OpenSSH agent then treats the request as local use and skips the destination limits a user set with `ssh-add -h`. The card also does not say which host the question names when one connection carries several bindings (agent forwarding), or what happens with a host key Larsal cannot check (RSA, P-384, P-521). | For each client connection Larsal opens one connection to the system agent and keeps it for the life of that client connection; every `session-bind@openssh.com` is checked by Larsal when it can (Ed25519, P-256), then forwarded on that connection, and the system agent's reply goes back. The question names the host of the last checked binding; when any binding on the connection says it is forwarded, the text says "‹program› wants to sign in to ‹host› through a forwarded connection." (new MI06-37). A binding Larsal cannot check leaves the host unknown (MI06-31). Tests: V-INT06-4 extended with `ssh -A` and with an RSA host key. |
+| R06-3 | Requests on Larsal's socket that touch Larsal's own keys are forwarded: `ssh-add -d` (18) and `ssh-add -D` (19) through Larsal's socket leave Larsal's keys in place, and `ssh-add -x` (22) locks only the system agent while Larsal's keys stay usable. | 18 for a key Larsal's agent holds removes it there, drops its record and replies 6; 19 empties Larsal's agent and drops those records, then is forwarded; 22 and 23 are answered 5 and not forwarded (Larsal's agent has no agent lock; the vault lock does that job). Tests: three rows next to T55. |
+| R06-4 | Self-loop: a user who points `SSH_AUTH_SOCK` (for example with `launchctl setenv`) or S-SSH-02 at Larsal's own socket makes Larsal's agent forward to itself, and Larsal's own adds go to Larsal's agent. | Before connecting, INT-06.13 also compares the target with Larsal's own socket (same device and inode); a match counts as "no system agent": Larsal's client requests show MI06-01, and Larsal's agent answers only for its own keys (5 for the rest). Test: S-SSH-02 set to Larsal's socket; load E3; sign through Larsal's socket; no hang, MI06-01, reply 5. |
+| R06-5 | The same key in two entries, one that asks and one that does not (E1 and E2 in the demo vault), lands in both Larsal's agent and the system agent, so it can be used without asking. | A key lives in one place only: adding it to one agent first removes Larsal's own copy from the other (INT-06.16's "the last add decides" carried over to (b)), and the record notes where it now is. Test: unlock V with both E1 (asks) and E2 (does not); then only the system agent holds K1, without confirm; load E1 by hand; then only Larsal's agent holds it. |
+| R06-6 | INT-06.34 lets Return choose "Allow Once". The dialog comes up without any action in Larsal, often while the user is still typing in a terminal, so a stray Return can allow a signature. | Keep "Allow Once" drawn as the primary button (frame), but Return and Space do nothing for the first second after the dialog shows; Escape and clicks on Deny work at once. Browsers delay the default button of their install and permission prompts by about one second for the same reason (for example the `security.dialog_enable_delay` preference, 1,000 ms). Test: a fake clock; Return at 0.5 s does nothing, Return at 1.1 s allows. |
 | R06-7 | The settings frame says "For sk-ed25519 keys on a hardware key."; LD-101 (3) says user-facing text says "security key", and the provider also serves `sk-ecdsa` keys. | Change the line to "For keys that live on a security key." in the mockup, with the owner's approval together with D-INT06-7 (AT-K05). |

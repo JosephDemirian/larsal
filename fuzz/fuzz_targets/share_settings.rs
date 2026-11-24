@@ -9,8 +9,8 @@
 //! `@S` stands for the root element name (see `expand`).
 #![no_main]
 
-use app_crypto::base64::{self, Form};
-use app_share::settings::{self, ROOT};
+use larsal_crypto::base64::{self, Form};
+use larsal_share::settings::{self, ROOT};
 use libfuzzer_sys::fuzz_target;
 
 /// `data` with every `@S` replaced by the root element name: the stored

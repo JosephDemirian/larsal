@@ -1,5 +1,5 @@
 //! `uniffi-bindgen-swift`: writes the Swift bindings, the C header and the
-//! module map for app-ffi (scripts/build-core.sh). App's own command line
+//! module map for larsal-ffi (scripts/build-core.sh). Larsal's own command line
 //! (E0-S7 step 5): only the options build-core.sh passes, so UniFFI's `cli`
 //! feature, and clap with it, is not needed.
 #![forbid(unsafe_code)]
@@ -78,7 +78,7 @@ mod tests {
         assert_eq!((o.module_name, o.modulemap_filename), (None, None));
 
         let o = parse(args(
-            "--headers --modulemap --module-name AppFFI --modulemap-filename module.modulemap lib.a out/include",
+            "--headers --modulemap --module-name LarsalFFI --modulemap-filename module.modulemap lib.a out/include",
         ))
         .unwrap();
         assert!(!o.generate_swift_sources && o.generate_headers && o.generate_modulemap);
@@ -86,7 +86,7 @@ mod tests {
             (o.source.as_str(), o.out_dir.as_str()),
             ("lib.a", "out/include")
         );
-        assert_eq!(o.module_name.as_deref(), Some("AppFFI"));
+        assert_eq!(o.module_name.as_deref(), Some("LarsalFFI"));
         assert_eq!(o.modulemap_filename.as_deref(), Some("module.modulemap"));
         // The options the old command line had and build-core.sh never passes stay off.
         assert!(!o.xcframework && !o.metadata_no_deps && o.link_frameworks.is_empty());

@@ -12,10 +12,10 @@
 //! - a registrable domain, when there is one, ends the host it is of.
 #![no_main]
 
-use app_browser::{Page, Site, note, registrable_domain};
-use app_core::refs::Context;
-use app_crypto::secret::SecretString;
-use app_model::{Entry, Field, Time, Uuid};
+use larsal_browser::{Page, Site, note, registrable_domain};
+use larsal_core::refs::Context;
+use larsal_crypto::secret::SecretString;
+use larsal_model::{Entry, Field, Time, Uuid};
 use libfuzzer_sys::fuzz_target;
 
 const RATES: [u8; 9] = [0, 40, 50, 60, 70, 80, 85, 90, 100];

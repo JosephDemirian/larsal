@@ -1,0 +1,531 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A50000000000000000000101 /* LarsalCore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000000000000000000501 /* LarsalCore */; };
+		A50000000000000000000102 /* LarsalCore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000000000000000000502 /* LarsalCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A50000000000000000000201 /* Larsal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Larsal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A50000000000000000000202 /* LarsalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LarsalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A50000000000000000000E01 /* Exceptions for "Larsal" folder in "LarsalTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LarsalSettingsModel.swift,
+				LarsalSettingsMorePages.swift,
+				LarsalSettingsPages.swift,
+				LarsalSettingsParts.swift,
+				LarsalSettingsView.swift,
+				LarsalSettingsWindow.swift,
+				LarsalCommands.swift,
+				LarsalCommandsVault.swift,
+				AutoType.swift,
+				AutoTypePicker.swift,
+				AutoTypeTyping.swift,
+				AuxWindows.swift,
+				BrowserAsk.swift,
+				CapsLock.swift,
+				ContextMenus.swift,
+				Controls.swift,
+				Copy.swift,
+				DebugUI.swift,
+				DetailFields.swift,
+				DialogSheets.swift,
+				Dialogs.swift,
+				EditorEntryPage.swift,
+				EditorModel.swift,
+				EditorMorePages.swift,
+				EditorPages.swift,
+				EditorPasswordField.swift,
+				EditorProtected.swift,
+				EditorScreen.swift,
+				EntryListView.swift,
+				ExportScreens.swift,
+				FormParts.swift,
+				Formats.swift,
+				Forms.swift,
+				Generator.swift,
+				GeneratorPanel.swift,
+				Glyphs.swift,
+				GroupEditor.swift,
+				KeyChange.swift,
+				Logos.swift,
+				MainWindow.swift,
+				MainWindowModel.swift,
+				Menus.swift,
+				MenuBarIcon.swift,
+				NewVaultCredentials.swift,
+				NewVaultModel.swift,
+				NewVaultParts.swift,
+				NewVaultView.swift,
+				OpenURL.swift,
+				Platform/DiskWatch.swift,
+				Platform/FileAccess.swift,
+				Platform/FileOpen.swift,
+				Platform/Front.swift,
+				Platform/LockSignals.swift,
+				Platform/QuitSignals.swift,
+				Platform/ScreenProtection.swift,
+				Platform/SecureInput.swift,
+				Platform/ShownPasswordField.swift,
+				Platform/URLOpener.swift,
+				Platform/WindowChrome.swift,
+				Platform/WindowRules.swift,
+				PopMenu.swift,
+				PreviewSheet.swift,
+				RailView.swift,
+				ReportParts.swift,
+				ReportTabs.swift,
+				ReportsModel.swift,
+				ReportsView.swift,
+				"Resources/Assets.xcassets",
+				Saving.swift,
+				SavingQuit.swift,
+				SavingSheets.swift,
+				SecretFields.swift,
+				SecurityKeys.swift,
+				ShareModel.swift,
+				ShareViews.swift,
+				SidebarView.swift,
+				SshKeyUse.swift,
+				Theme.swift,
+				UnlockKeys.swift,
+				UnlockModel.swift,
+				UnlockView.swift,
+				VaultEdits.swift,
+				VaultModel.swift,
+				VaultModelParts.swift,
+				VaultSettingsActions.swift,
+				VaultSettingsModel.swift,
+				VaultSettingsPages.swift,
+				VaultSettingsView.swift,
+				VaultView.swift,
+				ViewOptions.swift,
+				WelcomeView.swift,
+				"Resources/Fonts/Phosphor-Fill.woff2",
+				"Resources/Fonts/Phosphor.woff2",
+				"Resources/Fonts/ibm-plex-mono-latin-400-normal.woff2",
+				"Resources/Fonts/ibm-plex-mono-latin-500-normal.woff2",
+				"Resources/Fonts/ibm-plex-sans-latin-400-normal.woff2",
+				"Resources/Fonts/ibm-plex-sans-latin-500-normal.woff2",
+				"Resources/Fonts/ibm-plex-sans-latin-600-normal.woff2",
+			);
+			target = A50000000000000000000702 /* LarsalTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A50000000000000000000301 /* Larsal */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A50000000000000000000E01 /* Exceptions for "Larsal" folder in "LarsalTests" target */,
+			);
+			path = Larsal;
+			sourceTree = "<group>";
+		};
+		A50000000000000000000302 /* LarsalTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LarsalTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A50000000000000000000401 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A50000000000000000000101 /* LarsalCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A50000000000000000000402 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A50000000000000000000102 /* LarsalCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A50000000000000000000601 = {
+			isa = PBXGroup;
+			children = (
+				A50000000000000000000301 /* Larsal */,
+				A50000000000000000000302 /* LarsalTests */,
+				A50000000000000000000602 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A50000000000000000000602 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A50000000000000000000201 /* Larsal.app */,
+				A50000000000000000000202 /* LarsalTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000701 /* Larsal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A50000000000000000000C02 /* Build configuration list for PBXNativeTarget "Larsal" */;
+			buildPhases = (
+				A50000000000000000000801 /* Sources */,
+				A50000000000000000000401 /* Frameworks */,
+				A50000000000000000000901 /* Resources */,
+				A50000000000000000000903 /* License and Notices */,
+				A50000000000000000000904 /* larsal-bridge */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A50000000000000000000301 /* Larsal */,
+			);
+			name = Larsal;
+			packageProductDependencies = (
+				A50000000000000000000501 /* LarsalCore */,
+			);
+			productName = Larsal;
+			productReference = A50000000000000000000201 /* Larsal.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A50000000000000000000702 /* LarsalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A50000000000000000000C03 /* Build configuration list for PBXNativeTarget "LarsalTests" */;
+			buildPhases = (
+				A50000000000000000000802 /* Sources */,
+				A50000000000000000000402 /* Frameworks */,
+				A50000000000000000000902 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A50000000000000000000302 /* LarsalTests */,
+			);
+			name = LarsalTests;
+			packageProductDependencies = (
+				A50000000000000000000502 /* LarsalCore */,
+			);
+			productName = LarsalTests;
+			productReference = A50000000000000000000202 /* LarsalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A50000000000000000000A01 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					A50000000000000000000701 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					A50000000000000000000702 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+				};
+			};
+			buildConfigurationList = A50000000000000000000C01 /* Build configuration list for PBXProject "Larsal" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A50000000000000000000601;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A50000000000000000000D01 /* XCLocalSwiftPackageReference "LarsalCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A50000000000000000000602 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000701 /* Larsal */,
+				A50000000000000000000702 /* LarsalTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A50000000000000000000901 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A50000000000000000000902 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A50000000000000000000903 /* License and Notices */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../LICENSE",
+				"$(SRCROOT)/LarsalCore/Generated/notices/THIRD-PARTY-NOTICES.md",
+				"$(SRCROOT)/LarsalCore/Generated/notices/rust-std-COPYRIGHT.html",
+				"$(SRCROOT)/LarsalCore/Generated/notices/sbom.cdx.json",
+			);
+			name = "License and Notices";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/LICENSE",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/THIRD-PARTY-NOTICES.md",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/rust-std-COPYRIGHT.html",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/sbom.cdx.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# E14-S2: Larsal's license text and the third-party notices that\n# scripts/build-core.sh makes (scripts/make-sbom.sh), into Resources.\nset -e\ncp \"$SCRIPT_INPUT_FILE_0\" \"$SCRIPT_OUTPUT_FILE_0\"\ncp \"$SCRIPT_INPUT_FILE_1\" \"$SCRIPT_OUTPUT_FILE_1\"\ncp \"$SCRIPT_INPUT_FILE_2\" \"$SCRIPT_OUTPUT_FILE_2\"\ncp \"$SCRIPT_INPUT_FILE_3\" \"$SCRIPT_OUTPUT_FILE_3\"\n";
+		};
+		A50000000000000000000904 /* larsal-bridge */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/LarsalCore/Generated/larsal-bridge",
+			);
+			name = "larsal-bridge";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/larsal-bridge",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# E7-S6: the browsers' host program (INT-01.4) next to Larsal's main\n# program, from scripts/build-core.sh, signed as Larsal is with its own\n# identifier, which INT-01.7's peer check names.\nset -e\ncp \"$SCRIPT_INPUT_FILE_0\" \"$SCRIPT_OUTPUT_FILE_0\"\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" --identifier app.larsal.desktop.bridge --options runtime \"$SCRIPT_OUTPUT_FILE_0\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A50000000000000000000801 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A50000000000000000000802 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A50000000000000000000B01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A50000000000000000000B02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A50000000000000000000B03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Larsal;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				OTHER_CODE_SIGN_FLAGS = "--options=runtime";
+				PRODUCT_BUNDLE_IDENTIFIER = app.larsal.desktop.debug; /* Debug builds never share Finder or Dock opens with Release */
+				PRODUCT_NAME = Larsal;
+			};
+			name = Debug;
+		};
+		A50000000000000000000B04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64; /* until the x86_64 slice, E14 */
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO; /* no get-task-allow in Release */
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Larsal;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				OTHER_CODE_SIGN_FLAGS = "--options=runtime";
+				PRODUCT_BUNDLE_IDENTIFIER = app.larsal.desktop;
+				PRODUCT_NAME = Larsal;
+			};
+			name = Release;
+		};
+		A50000000000000000000B05 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.larsal.desktop.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A50000000000000000000B06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64; /* until the x86_64 slice, E14 */
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.larsal.desktop.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A50000000000000000000C01 /* Build configuration list for PBXProject "Larsal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A50000000000000000000B01 /* Debug */,
+				A50000000000000000000B02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A50000000000000000000C02 /* Build configuration list for PBXNativeTarget "Larsal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A50000000000000000000B03 /* Debug */,
+				A50000000000000000000B04 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A50000000000000000000C03 /* Build configuration list for PBXNativeTarget "LarsalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A50000000000000000000B05 /* Debug */,
+				A50000000000000000000B06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A50000000000000000000D01 /* XCLocalSwiftPackageReference "LarsalCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = LarsalCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A50000000000000000000501 /* LarsalCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LarsalCore;
+		};
+		A50000000000000000000502 /* LarsalCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LarsalCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A50000000000000000000A01 /* Project object */;
+}

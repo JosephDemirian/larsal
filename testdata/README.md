@@ -34,34 +34,34 @@ All vaults use the cipher and key derivation the reference CLI offers. It has no
 
 | Vault | Password | Key file | Version | Rounds | Content |
 |---|---|---|---|---|---|
-| `password-only.appvault` | `demo-pass-1` | none | 3.1 | `-t 100` | basic |
-| `keyfile-binary32.appvault` | none | `key-binary32.appkey` | 3.1 | `-t 100` | basic |
-| `keyfile-hex64.appvault` | none | `key-hex64.appkey` | 3.1 | `-t 100` | basic |
-| `keyfile-hashed.appvault` | none | `key-hashed.appkey` | 3.1 | `-t 100` | basic |
-| `keyfile-xml-v1.appvault` | none | `key-xml-v1.appkey` | 3.1 | `-t 100` | basic |
-| `keyfile-xml-v2.appvault` | none | `key-xml-v2.appkey` | 3.1 | `-t 100` | basic |
-| `keyfile-cli-made.appvault` | none | `key-cli-made.appkey` | 3.1 | `-t 100` | basic |
-| `password-and-keyfile.appvault` | `demo-pass-2` | `key-hex64.appkey` | 3.1 | `-t 100` | basic |
-| `default-time.appvault` | `demo-pass-3` | none | 3.1 | default (1,000,000) | basic |
-| `rich-v3.appvault` | `demo-pass-4` | none | 3.1 | `-t 100` | rich, fields a 3.1 file holds |
-| `rich-v4.appvault` | `demo-pass-5` | none | 4.1 | `-t 100` | rich, plus fields only 4.x holds |
-| `big-10000.appvault` | `demo-pass-6` | none | 3.1 | `-t 100` | 10,000 small entries |
+| `password-only.larsalvault` | `demo-pass-1` | none | 3.1 | `-t 100` | basic |
+| `keyfile-binary32.larsalvault` | none | `key-binary32.larsalkey` | 3.1 | `-t 100` | basic |
+| `keyfile-hex64.larsalvault` | none | `key-hex64.larsalkey` | 3.1 | `-t 100` | basic |
+| `keyfile-hashed.larsalvault` | none | `key-hashed.larsalkey` | 3.1 | `-t 100` | basic |
+| `keyfile-xml-v1.larsalvault` | none | `key-xml-v1.larsalkey` | 3.1 | `-t 100` | basic |
+| `keyfile-xml-v2.larsalvault` | none | `key-xml-v2.larsalkey` | 3.1 | `-t 100` | basic |
+| `keyfile-cli-made.larsalvault` | none | `key-cli-made.larsalkey` | 3.1 | `-t 100` | basic |
+| `password-and-keyfile.larsalvault` | `demo-pass-2` | `key-hex64.larsalkey` | 3.1 | `-t 100` | basic |
+| `default-time.larsalvault` | `demo-pass-3` | none | 3.1 | default (1,000,000) | basic |
+| `rich-v3.larsalvault` | `demo-pass-4` | none | 3.1 | `-t 100` | rich, fields a 3.1 file holds |
+| `rich-v4.larsalvault` | `demo-pass-5` | none | 4.1 | `-t 100` | rich, plus fields only 4.x holds |
+| `big-10000.larsalvault` | `demo-pass-6` | none | 3.1 | `-t 100` | 10,000 small entries |
 
 "none" in the Password column means the vault has no password at all (open it with the key file only).
 
 ### Option A demo vaults (made by our own code)
 
-The screens' demo data (design/option-a/mockup.js: the Personal vault with its 25 entries, groups, tags, codes and passkeys; Work; an empty Family vault). Made by `cargo test -p app-ffi --test option_a -- --ignored make_option_a_vaults` (Argon2id, 1 MiB, 2 passes: demo vaults for screen tests), checked by the other tests in `crates/app-ffi/tests/option_a.rs`. The snapshot tests copy them to `target/option-a/Passwords/` as `Personal.appvault`, `Work.appvault` and `Family.appvault`. Not made by `scripts/make-testdata.sh` and not in its `--verify` list.
+The screens' demo data (design/option-a/mockup.js: the Personal vault with its 25 entries, groups, tags, codes and passkeys; Work; an empty Family vault). Made by `cargo test -p larsal-ffi --test option_a -- --ignored make_option_a_vaults` (Argon2id, 1 MiB, 2 passes: demo vaults for screen tests), checked by the other tests in `crates/larsal-ffi/tests/option_a.rs`. The snapshot tests copy them to `target/option-a/Passwords/` as `Personal.larsalvault`, `Work.larsalvault` and `Family.larsalvault`. Not made by `scripts/make-testdata.sh` and not in its `--verify` list.
 
 | Vault | Password | Version | Content |
 |---|---|---|---|
-| `option-a-personal.appvault` | `demo-pass-7` | 4.1 | the mockup's Personal vault: 23 live entries, 2 in the recycle bin, 7 groups, tags, 7 one-time codes, 4 passkeys, a card, a Wi-Fi entry, an SSH entry with a demo public key, site access hosts on GitHub, Google, Figma and Amazon, two connected browsers (Firefox on MacBook, Safari) with demo keys (E5-S7 Browser report); public colour `#22a6bd`, icon 0 |
-| `option-a-work.appvault` | `demo-pass-8` | 4.0 | one entry; public colour `#ff9500`, icon 1 |
-| `option-a-family.appvault` | `demo-pass-9` | 4.0 | empty, as right after the new vault wizard; public colour `#f2385a`, icon 2 |
-| `option-a-work-key-change.appvault` | `demo-pass-8` | as Work | the Work vault after one App save with the force-once request on (`MasterKeyChangeForceOnce`, MOD-13.13): it asks for a new master key at the next unlock (the forced prompt, MOD-13.8, F-074). Made by `cargo test -p app-ffi --lib make_key_change_forced_vault -- --ignored` |
+| `option-a-personal.larsalvault` | `demo-pass-7` | 4.1 | the mockup's Personal vault: 23 live entries, 2 in the recycle bin, 7 groups, tags, 7 one-time codes, 4 passkeys, a card, a Wi-Fi entry, an SSH entry with a demo public key, site access hosts on GitHub, Google, Figma and Amazon, two connected browsers (Firefox on MacBook, Safari) with demo keys (E5-S7 Browser report); public colour `#22a6bd`, icon 0 |
+| `option-a-work.larsalvault` | `demo-pass-8` | 4.0 | one entry; public colour `#ff9500`, icon 1 |
+| `option-a-family.larsalvault` | `demo-pass-9` | 4.0 | empty, as right after the new vault wizard; public colour `#f2385a`, icon 2 |
+| `option-a-work-key-change.larsalvault` | `demo-pass-8` | as Work | the Work vault after one Larsal save with the force-once request on (`MasterKeyChangeForceOnce`, MOD-13.13): it asks for a new master key at the next unlock (the forced prompt, MOD-13.8, F-074). Made by `cargo test -p larsal-ffi --lib make_key_change_forced_vault -- --ignored` |
 
 Fake data only: the names, addresses and passwords are the mockup's demo values; the one-time code secrets (`DEMOGITHUB234567` and the like) and the SSH key are our own demo values; the "private key" attachment is filler text.
-Each vault `<name>.appvault` has its expected content in `<name>.json`.
+Each vault `<name>.larsalvault` has its expected content in `<name>.json`.
 
 ### Content
 
@@ -85,16 +85,16 @@ All times are fixed in 2024. Fields never set (for example the last selected gro
 
 | File | Kind | What it holds |
 |---|---|---|
-| `key-binary32.appkey` | 32-byte binary | 32 fixed bytes, used as the key as they are |
-| `key-hex64.appkey` | 64 hex characters | exactly 64 bytes of hex text, no newline; the key is the 32 bytes the hex spells |
-| `key-hashed.appkey` | any other file | one line of text; the key is the SHA-256 of the whole file |
-| `key-xml-v1.appkey` | XML key file, version 1.00 | the 32 key bytes in base64 |
-| `key-xml-v2.appkey` | XML key file, version 2.0 | the 32 key bytes in hex, with a check value (first 4 bytes of their SHA-256) |
-| `key-cli-made.appkey` | made by the reference CLI | 128 random bytes, so it is the "any other file" kind (SHA-256 of the file) |
+| `key-binary32.larsalkey` | 32-byte binary | 32 fixed bytes, used as the key as they are |
+| `key-hex64.larsalkey` | 64 hex characters | exactly 64 bytes of hex text, no newline; the key is the 32 bytes the hex spells |
+| `key-hashed.larsalkey` | any other file | one line of text; the key is the SHA-256 of the whole file |
+| `key-xml-v1.larsalkey` | XML key file, version 1.00 | the 32 key bytes in base64 |
+| `key-xml-v2.larsalkey` | XML key file, version 2.0 | the 32 key bytes in hex, with a check value (first 4 bytes of their SHA-256) |
+| `key-cli-made.larsalkey` | made by the reference CLI | 128 random bytes, so it is the "any other file" kind (SHA-256 of the file) |
 
 The reference CLI opens all six, but warns that `key-binary32`, `key-hex64` and `key-xml-v1` use an old key file format. It does not warn for `key-hashed`, `key-xml-v2` or `key-cli-made`.
 
-The first five are written from fixed demo bytes on every run. `key-cli-made.appkey` is random, so the script makes it once (with the CLI's `db-create --set-key-file`) and reuses it; delete it only if you also remake every vault.
+The first five are written from fixed demo bytes on every run. `key-cli-made.larsalkey` is random, so the script makes it once (with the CLI's `db-create --set-key-file`) and reuses it; delete it only if you also remake every vault.
 
 ## The JSON files
 

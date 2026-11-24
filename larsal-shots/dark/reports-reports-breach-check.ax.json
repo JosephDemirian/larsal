@@ -1,0 +1,695 @@
+{
+  "children" : [
+    {
+      "frame" : [
+        206,
+        10,
+        32,
+        32
+      ],
+      "label" : "Hide sidebar (⌃⌘S)",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        496,
+        17,
+        438,
+        18
+      ],
+      "label" : "Search entries",
+      "placeholder" : "Search Personal…",
+      "role" : "AXTextField"
+    },
+    {
+      "frame" : [
+        947.75,
+        18.5,
+        19,
+        15
+      ],
+      "role" : "AXStaticText",
+      "value" : "⌘F"
+    },
+    {
+      "frame" : [
+        1205.5,
+        10,
+        102.5,
+        32
+      ],
+      "label" : "Lock, ⌘L",
+      "role" : "AXButton"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            12,
+            52,
+            224,
+            52
+          ],
+          "label" : "Switch vault",
+          "role" : "AXButton",
+          "value" : "Personal"
+        },
+        {
+          "frame" : [
+            12,
+            118,
+            224,
+            32
+          ],
+          "label" : "All entries, 23",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            152,
+            224,
+            32
+          ],
+          "label" : "Favorites, 5",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            186,
+            224,
+            32
+          ],
+          "label" : "One-time codes, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            220,
+            224,
+            32
+          ],
+          "label" : "Passkeys, 4",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            254,
+            224,
+            32
+          ],
+          "label" : "Password health, 7 need attention",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            20,
+            311.5,
+            40.5,
+            15
+          ],
+          "label" : "Groups",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            206,
+            308,
+            22,
+            22
+          ],
+          "label" : "New group",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            336,
+            224,
+            32
+          ],
+          "label" : "Email, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            370,
+            224,
+            32
+          ],
+          "label" : "Banking, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            404,
+            224,
+            32
+          ],
+          "label" : "Social, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            438,
+            224,
+            32
+          ],
+          "label" : "Shopping, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            472,
+            224,
+            32
+          ],
+          "label" : "Work, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            506,
+            224,
+            32
+          ],
+          "label" : "Servers, 3",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            540,
+            224,
+            32
+          ],
+          "label" : "Devices, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            20,
+            594.5,
+            40.5,
+            15
+          ],
+          "label" : "Tags",
+          "role" : "AXButton",
+          "value" : "closed"
+        },
+        {
+          "frame" : [
+            12,
+            712,
+            224,
+            32
+          ],
+          "label" : "Recycle Bin, 2",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            12,
+            746,
+            224,
+            32
+          ],
+          "label" : "Settings, ⌘,",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            39,
+            790.5,
+            145.5,
+            15
+          ],
+          "role" : "AXStaticText",
+          "value" : "Saved at 08:50 · encrypted"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        0,
+        52,
+        248,
+        768
+      ],
+      "label" : "Sidebar",
+      "role" : "AXScrollArea"
+    },
+    {
+      "frame" : [
+        273,
+        74.5,
+        79,
+        29
+      ],
+      "label" : "Reports",
+      "role" : "AXHeading"
+    },
+    {
+      "frame" : [
+        1157,
+        75,
+        130,
+        36
+      ],
+      "label" : "Check again",
+      "role" : "AXButton"
+    },
+    {
+      "frame" : [
+        273,
+        106,
+        243,
+        18
+      ],
+      "role" : "AXStaticText",
+      "value" : "Personal · 23 entries checked at 10:30"
+    },
+    {
+      "children" : [
+        {
+          "frame" : [
+            273,
+            143,
+            96,
+            38
+          ],
+          "label" : "Health check, 7",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            393,
+            143,
+            86.5,
+            38
+          ],
+          "label" : "Breach check",
+          "role" : "AXButton",
+          "selected" : true
+        },
+        {
+          "frame" : [
+            503.5,
+            143,
+            58,
+            38
+          ],
+          "label" : "Statistics",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            585.5,
+            143,
+            58,
+            38
+          ],
+          "label" : "Passkeys",
+          "role" : "AXButton"
+        },
+        {
+          "frame" : [
+            667.5,
+            143,
+            52.5,
+            38
+          ],
+          "label" : "Browser",
+          "role" : "AXButton"
+        }
+      ],
+      "frame" : [
+        273,
+        143,
+        447,
+        38
+      ],
+      "role" : "AXGroup"
+    },
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "frame" : [
+                313,
+                213.54999999999927,
+                837.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Checked online at 10:28. Larsal sent only the first 5 characters of each password's SHA-1 hash. The service never saw a password or a username."
+            },
+            {
+              "disabled" : true,
+              "frame" : [
+                313,
+                237.04999999999927,
+                224.5,
+                17
+              ],
+              "help" : "Checking with a downloaded list is in the command line tool: larsal analyze.",
+              "label" : "Check with a downloaded list instead",
+              "role" : "AXButton"
+            },
+            {
+              "frame" : [
+                549.5,
+                237.04999999999927,
+                47,
+                17
+              ],
+              "label" : "Turn off",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            201,
+            1014,
+            66
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "frame" : [
+            292,
+            303.60000610351562,
+            107.5,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Found in breaches, 4, passwords"
+        },
+        {
+          "frame" : [
+            629.66668701171875,
+            303.60000610351562,
+            63,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Not found, 17, passwords"
+        },
+        {
+          "frame" : [
+            967.33331298828125,
+            303.60000610351562,
+            101.49993896484375,
+            73
+          ],
+          "role" : "AXStaticText",
+          "value" : "Largest count, 214,876, times seen"
+        },
+        {
+          "frame" : [
+            283,
+            415.59999999999854,
+            29,
+            15
+          ],
+          "label" : "Entry",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            640.5,
+            415.59999999999854,
+            92.5,
+            15
+          ],
+          "label" : "Seen in breaches",
+          "role" : "AXHeading"
+        },
+        {
+          "frame" : [
+            753,
+            415.59999999999854,
+            58.5,
+            15
+          ],
+          "label" : "What to do",
+          "role" : "AXHeading"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                453.10000610351562,
+                87,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Router admin, admin"
+            },
+            {
+              "frame" : [
+                517.5,
+                462.09999999999854,
+                215.5,
+                18
+              ],
+              "help" : "214,876 times",
+              "role" : "AXStaticText",
+              "value" : "Seen 100,001 to 1,000,000 times"
+            },
+            {
+              "frame" : [
+                753,
+                462.59999999999854,
+                359,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Attackers try this password first. Change it on 192.168.178.1."
+            },
+            {
+              "frame" : [
+                1149.5,
+                457,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Router admin",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            441,
+            1014,
+            47.600006103515625
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                319,
+                512.0999755859375,
+                130.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Amazon, alex.morgan@posteo.de"
+            },
+            {
+              "frame" : [
+                538,
+                521.09999999999854,
+                195,
+                18
+              ],
+              "help" : "18,442 times",
+              "role" : "AXStaticText",
+              "value" : "Seen 10,001 to 100,000 times"
+            },
+            {
+              "frame" : [
+                753,
+                521.59999999999854,
+                367,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Attackers try this password first. Change it on www.amazon.de."
+            },
+            {
+              "frame" : [
+                1149.5,
+                516,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Amazon",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            500,
+            1014,
+            47.5999755859375
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                577,
+                24,
+                24
+              ],
+              "label" : "eBay",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                571.0999755859375,
+                77.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "eBay, alexmorgan88"
+            },
+            {
+              "frame" : [
+                538,
+                580.09999999999854,
+                195,
+                18
+              ],
+              "help" : "18,442 times",
+              "role" : "AXStaticText",
+              "value" : "Seen 10,001 to 100,000 times"
+            },
+            {
+              "frame" : [
+                753,
+                580.59999999999854,
+                353.5,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Attackers try this password first. Change it on signin.ebay.de."
+            },
+            {
+              "frame" : [
+                1149.5,
+                575,
+                127.5,
+                28
+              ],
+              "label" : "Change password of eBay",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            559,
+            1014,
+            47.5999755859375
+          ],
+          "role" : "AXGroup"
+        },
+        {
+          "children" : [
+            {
+              "frame" : [
+                283,
+                636,
+                24,
+                24
+              ],
+              "label" : "Reddit",
+              "role" : "AXImage"
+            },
+            {
+              "frame" : [
+                319,
+                630.0999755859375,
+                42.5,
+                35.5
+              ],
+              "role" : "AXStaticText",
+              "value" : "Reddit, alex_m"
+            },
+            {
+              "frame" : [
+                555,
+                639.09999999999854,
+                178,
+                18
+              ],
+              "help" : "3,107 times",
+              "role" : "AXStaticText",
+              "value" : "Seen 1,001 to 10,000 times"
+            },
+            {
+              "frame" : [
+                753,
+                639.59999999999854,
+                367,
+                17
+              ],
+              "role" : "AXStaticText",
+              "value" : "Attackers try this password first. Change it on www.reddit.com."
+            },
+            {
+              "frame" : [
+                1149.5,
+                634,
+                127.5,
+                28
+              ],
+              "label" : "Change password of Reddit",
+              "role" : "AXButton"
+            }
+          ],
+          "frame" : [
+            273,
+            618,
+            1014,
+            47.5999755859375
+          ],
+          "role" : "AXGroup"
+        }
+      ],
+      "disabled" : true,
+      "frame" : [
+        273,
+        181,
+        1014,
+        631
+      ],
+      "role" : "AXScrollArea"
+    }
+  ],
+  "disabled" : true,
+  "frame" : [
+    0,
+    0,
+    1320,
+    820
+  ],
+  "role" : "AXGroup",
+  "subrole" : "AXHostingView"
+}

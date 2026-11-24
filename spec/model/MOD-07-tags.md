@@ -15,9 +15,9 @@ Words used in this card: **live entry**, **history item**, **now**, **change bat
 - An entry's tags: in the model, a sorted list of distinct texts (MOD-07.2). In the file: the texts joined with `,` (FMT-11.26).
 - Tag text from the edit screen, from files, from imports (FEA-08) and from features that add a tag by themselves (MOD-07.11).
 - Outputs: the vault tag list (MOD-07.5) for the sidebar, the tag menu and the edit screen's suggestions; exact tag terms handed to FEA-01 (FEA-01.35).
-- Messages and actions, with our IDs: `act.tag_remove_everywhere`, `msg.tag_remove_confirm`, `msg.no_tags` (texts are App's own).
+- Messages and actions, with our IDs: `act.tag_remove_everywhere`, `msg.tag_remove_confirm`, `msg.no_tags` (texts are Larsal's own).
 
-Limits: the joined tags text of one entry is one text value and must fit the `text` limit of FMT-08.12, measured as FMT-12 says (App refuses an edit that passes it, as MOD-01.9). No other limit on the number or length of tags.
+Limits: the joined tags text of one entry is one text value and must fit the `text` limit of FMT-08.12, measured as FMT-12 says (Larsal refuses an edit that passes it, as MOD-01.9). No other limit on the number or length of tags.
 
 ## Rules
 
@@ -38,7 +38,7 @@ MOD-07.3 **Setting tags from text.** One function turns a text into a tag list. 
 4. Remove exact duplicates.
 5. Sort by UTF-16 code units.
 
-Example: `zeta; alpha,beta` TAB `alpha ,Alpha` gives `Alpha`, `alpha`, `beta`, `zeta`. The reference trims after it drops empty pieces, so a piece made only of spaces survives as an empty tag until the next read (FMT-11.26 note); App never keeps an empty tag.
+Example: `zeta; alpha,beta` TAB `alpha ,Alpha` gives `Alpha`, `alpha`, `beta`, `zeta`. The reference trims after it drops empty pieces, so a piece made only of spaces survives as an empty tag until the next read (FMT-11.26 note); Larsal never keeps an empty tag.
 
 MOD-07.4 **The tag box on the edit screen.** The entry's tags are shown as separate chips in stored order, followed by a typing area.
 - Enter, Return, `,` and `;` end the tag being typed: its text is trimmed and, when not empty, becomes a chip. `,` and `;` are never typed into a tag. When the suggestion pop-up is open with a suggestion highlighted, Enter takes that suggestion instead.
@@ -49,7 +49,7 @@ MOD-07.4 **The tag box on the edit screen.** The entry's tags are shown as separ
 
 MOD-07.5 **The vault tag list.** It holds every tag of every live entry that is not in the recycle bin, each text once (exact comparison). History items, entries in the recycle bin (MOD-04) and group tags are left out. The list is rebuilt after the vault is opened and after every change.
 
-Order: natural and case-insensitive. App compares two tags this way (lead decision D-07-1, recommended):
+Order: natural and case-insensitive. Larsal compares two tags this way (lead decision D-07-1, recommended):
 1. Cut each text into runs: a run of ASCII digits `0` to `9`, or a run of other characters.
 2. Compare the runs in order. Two digit runs: by numeric value (leading zeros ignored). A digit run against another run: the digit run comes first. Two other runs: code point by code point after Unicode simple case folding; the first difference decides by the folded code point value; a run that is the start of the other comes first.
 3. When one text runs out of runs first, it comes first.
@@ -63,11 +63,11 @@ MOD-07.7 **The tag menu for selected entries.** The entries menu has a tags sub-
 
 MOD-07.8 **Adding one tag.** Used by the tag menu, by imports and by features (MOD-07.11). The text is cleaned (separators removed from inside it, then white space trimmed from both ends); an empty result adds nothing (the reference would add an empty tag; only internal callers can reach that case); a tag already in the list (exact) adds nothing; otherwise the tag is added and the list stays sorted.
 
-MOD-07.9 **Removing a tag everywhere.** On a tag row of the sidebar the user chooses `act.tag_remove_everywhere`. App asks `msg.tag_remove_confirm` (remove tag T from all entries of this vault?) with Remove and Cancel; Cancel is the default. On Remove, the tag is removed (exact comparison) from every live entry of the vault, including entries in the recycle bin. History items keep it. It is one change batch: each entry that really changes gets a new modification time; no history items are made (MOD-01.32). Afterwards the tag is gone from the vault tag list.
+MOD-07.9 **Removing a tag everywhere.** On a tag row of the sidebar the user chooses `act.tag_remove_everywhere`. Larsal asks `msg.tag_remove_confirm` (remove tag T from all entries of this vault?) with Remove and Cancel; Cancel is the default. On Remove, the tag is removed (exact comparison) from every live entry of the vault, including entries in the recycle bin. History items keep it. It is one change batch: each entry that really changes gets a new modification time; no history items are made (MOD-01.32). Afterwards the tag is gone from the vault tag list.
 
-MOD-07.10 **No rename.** The reference offers no way to rename a tag across the vault. App offers none in E4 (lead decision D-07-2: parity recommended; a later rename would be "remove T and add U" on the same entries, as one change batch, with the effects of MOD-07.9).
+MOD-07.10 **No rename.** The reference offers no way to rename a tag across the vault. Larsal offers none in E4 (lead decision D-07-2: parity recommended; a later rename would be "remove T and add U" on the same entries, as one change batch, with the effects of MOD-07.9).
 
-MOD-07.11 **Tags App adds by itself.** Creating a passkey through the browser bridge adds the tag "Passkey" in App's UI language, and removing an entry's passkey removes that tag (INT-04). Some importers add tags such as "Favorite" and "Archived" in the UI language (FEA-08). These tags follow MOD-07.8.
+MOD-07.11 **Tags Larsal adds by itself.** Creating a passkey through the browser bridge adds the tag "Passkey" in Larsal's UI language, and removing an entry's passkey removes that tag (INT-04). Some importers add tags such as "Favorite" and "Archived" in the UI language (FEA-08). These tags follow MOD-07.8.
 
 MOD-07.12 **Tag changes move times.** Any real change of an entry's tag list moves its modification time (MOD-01.26). Building the vault tag list changes nothing.
 
@@ -75,7 +75,7 @@ MOD-07.12 **Tag changes move times.** Any real change of an entry's tag list mov
 
 | Case | Expected behavior |
 |---|---|
-| Tag text `a, ,b;;c` from a file | Tags `a`, `b`, `c` (App); no empty tag. |
+| Tag text `a, ,b;;c` from a file | Tags `a`, `b`, `c` (Larsal); no empty tag. |
 | Tag typed as `  Work  ` | Stored as `Work`. |
 | User types `a,b` in the tag box | Two chips: `a`, then `b` (the comma ends the first tag). |
 | Paste `x;y,z` | Chips `x;y` and `z`; on save the tags become `x`, `y`, `z`. |

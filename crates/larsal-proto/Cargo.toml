@@ -1,0 +1,27 @@
+[package]
+name = "larsal-proto"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E16-S3: Larsal's sync wire format (spec SYN-01), shared by larsal-server and,
+# from E16-S7a, larsal-sync. Records are read and written with larsal-model's
+# json.rs only (P14). It never names larsal-format, larsal-core or larsal-platform:
+# larsal-server links it, and the server never links the vault reader (P16).
+[dependencies]
+larsal-model = { workspace = true }
+# E16-S5: the sign-in message's field list and P-256 check (signin.rs,
+# CRY-04.2, CRY-04.4), base64url (SYN-01.8) and the wrap record (wrap.rs,
+# CRY-04.6). Crypto only through larsal-crypto (AGENTS.md rule 3).
+larsal-crypto = { workspace = true }
+
+[dev-dependencies]
+# Only to check that the vault body limit is FMT-01.31's (SYN-01.10). A
+# dev-dependency of larsal-proto is not in larsal-server's tree (P16).
+larsal-format = { workspace = true }
+# E16-S5: a software P-256 key signs the sign-in message in signin.rs's tests.
+larsal-crypto = { workspace = true, features = ["test-p256-key"] }
+
+[lints]
+workspace = true

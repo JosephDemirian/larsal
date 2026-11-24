@@ -1,5 +1,5 @@
 [package]
-# App's own stand-in for the `log` crate (E0-S7 R6, LD-221 (2)), put in its
+# Larsal's own stand-in for the `log` crate (E0-S7 R6, LD-221 (2)), put in its
 # place by [patch.crates-io] in the root Cargo.toml. 0.4.999 meets every
 # caller's 0.4 requirement and is no published version (as Firefox's own
 # crates in build/rust).
@@ -7,7 +7,7 @@ name = "log"
 version = "0.4.999"
 edition.workspace = true
 publish.workspace = true
-license.workspace = true
+license-file.workspace = true
 
 [lints]
 workspace = true

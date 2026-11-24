@@ -11,7 +11,7 @@ Verify agent for the name guard rows of E13-S6 parts c and c2 (story E0-S3, chec
 ## Setup
 
 - Guard under test: `scripts/check-names.sh`, SHA-256 `0b6dbde46e895766637adbf07de71ef335fb223f774dd5cfc9b65dcde3dd5d3a`.
-- Private copy: `rsync -a --exclude target --exclude app-shots` to `/tmp/e13s6c-verify-copy` (143 MB). Its guard is `cmp`-identical to the shared one.
+- Private copy: `rsync -a --exclude target --exclude larsal-shots` to `/tmp/e13s6c-verify-copy` (143 MB). Its guard is `cmp`-identical to the shared one.
 - W = banned word 1, decoded from WORDS_HEX; h = its first 3 letters, t = the rest. My driver (`/tmp/e13s6c-verify-work/drive.py`) reads them the same way and never holds them as text.
 - Each repro uses a new folder `/tmp/e13s6c-verify-r/rNNN` with an empty AGENTS.md:
   1. Run the guard on the clean folder: expect names: PASS, exit 0.
@@ -229,7 +229,7 @@ Every limit is real (a probe gives PASS, exit 0), and every nearby non-limit is 
 | a percent-encoded data: payload | W in a PNG tEXt chunk |
 | U+0138 (kra) for the first letter | W in an APNG fdAT chunk |
 | W in stored PNG pixel data | the vault signature and W under another extension |
-| W after the vault signature in *.appvault | the same CSI as UTF-8 U+009B |
+| W after the vault signature in *.larsalvault | the same CSI as UTF-8 U+009B |
 | raw byte 0x9B before 1m | 8 spaces instead of the tab |
 | U+0085 inside a 7-bit CSI | a CR overwrite in content |
 | a tab, then CR overwrite | |
@@ -240,7 +240,7 @@ The APNG fdAT item names a false-hit source, not an evasion: fdAT data is matche
 
 **Ordinary-work test of the limits.**
 
-- Foundation's JSONSerialization and JSONEncoder escape '/' as '\/' by default, and macos/AppTests/SnapshotTests.swift uses JSONSerialization. So I measured one-line base64 in such JSON:
+- Foundation's JSONSerialization and JSONEncoder escape '/' as '\/' by default, and macos/LarsalTests/SnapshotTests.swift uses JSONSerialization. So I measured one-line base64 in such JSON:
   - 20 text blobs holding W: 0 missed. Base64 of ASCII text holds no '/' unless every third byte is '?' or DEL.
   - 20 binary blobs with W inside: 10 missed.
   - That needs binary data holding W, base64-encoded by Swift's Foundation JSON into the tree. No such file exists: the 7 JSON files with base64 are written by our Rust tools and hold no '\/'. So ordinary_work is false, and the item stays a named limit.

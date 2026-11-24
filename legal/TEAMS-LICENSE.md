@@ -1,8 +1,12 @@
-# App Teams License 1.0
+# Larsal Teams License 1.0 — historical draft
 
-**Draft of 2026-10-31. Not offered to anyone yet. A lawyer reads this draft before the first sale ([README.md](README.md)).**
+**Withdrawn for new licenses.** This 2026-10-31 draft is retained for history, not offered for acceptance. Current repository permissions are in [LICENSE](../LICENSE). Any separate team license needs legal review before the first sale; see [README.md](README.md), which also retains this draft's source attribution.
 
-[Licensor legal name] offers these terms for the team features of App's server: the files in the server's team folder, each of which names this license in its first lines. App's Mac app and engine are never under these terms.
+This notice does not change any earlier signed agreement or rights already granted under an earlier license. The historical draft text below, including its former server-license description, is preserved.
+
+## Historical draft text (2026-10-31)
+
+[Licensor legal name] offers these terms for the team features of Larsal's server: the files in the server's team folder, each of which names this license in its first lines. Larsal's Mac app and engine are never under these terms.
 
 ## Acceptance
 
@@ -46,7 +50,7 @@ You must keep these terms, and the licensor's copyright and license notices, wit
 
 ## Other Parts of the Server
 
-These terms cover only the software. The rest of App's server is under the GNU Affero General Public License, version 3, and third-party code keeps its own license. These terms do not limit what those licenses allow for those parts.
+These terms cover only the software. The rest of Larsal's server is under the GNU Affero General Public License, version 3, and third-party code keeps its own license. These terms do not limit what those licenses allow for those parts.
 
 ## No Other Rights
 
@@ -66,7 +70,7 @@ The first time you are notified in writing that you have violated any of these t
 
 ## Definitions
 
-The **licensor** is [Licensor legal name], and the **software** is the files of App's server that name these terms in their first lines.
+The **licensor** is [Licensor legal name], and the **software** is the files of Larsal's server that name these terms in their first lines.
 
 **You** refers to the individual or entity agreeing to these terms.
 

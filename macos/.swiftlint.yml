@@ -1,6 +1,6 @@
 # SwiftLint (Swift rule 2). check.sh runs `swiftlint lint --strict` in macos/.
 excluded:
-  - AppCore/Generated # made by scripts/build-core.sh
+  - LarsalCore/Generated # made by scripts/build-core.sh
 # swift format adds a trailing comma to multi-line collections; agree with it.
 trailing_comma:
   mandatory_comma: true

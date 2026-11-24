@@ -121,7 +121,7 @@ INT-10 comment-7gram hits: 0 string-7gram hits: 0 verbatim code lines: 0
 
 ## 6. INT-09 spot check against the source
 
-I compared 18 INT-09 rules with the reference source at 09e34ba8. I read these parts: the settings store, the process wrapper, the handler, the settings page, the vault view's sync, unlock and message routines, the main window's menu builder and enable rule, the message widget's timer, and the custom data protected keys. The reference column of the card is what I checked. App's own choices are design, not parity.
+I compared 18 INT-09 rules with the reference source at 09e34ba8. I read these parts: the settings store, the process wrapper, the handler, the settings page, the vault view's sync, unlock and message routines, the main window's menu builder and enable rule, the message widget's timer, and the custom data protected keys. The reference column of the card is what I checked. Larsal's own choices are design, not parity.
 
 | Rule | What the card says about the reference | What I found in the source | Result |
 |---|---|---|---|
@@ -134,7 +134,7 @@ I compared 18 INT-09 rules with the reference source at 09e34ba8. I read these p
 | INT-09.8 | Only an empty text counts as empty. White space only starts nothing and is reported as "did not finish in time". | The sync checks only whether the text is empty. With no words the wrapper starts nothing. Waiting then returns at once as "not finished", which reports the timeout text and kills. | match |
 | INT-09.9 | Replaces in the whole text before splitting, in the command and the input | The wrapper replaces the placeholder first, then splits. The input goes through the same replace. | match |
 | INT-09.10 | Copy named with the prefix, a UUID without braces and the extension; in the toolkit's temp folder; never deleted | The name is built that way in the toolkit's temp folder. No routine in the sync, test or handler removes it. | match |
-| INT-09.11 | A start failure is reported as "did not finish in time". The working folder is App's own. | Waiting for the start does not stop the flow. The wait for the end then fails, and that gives the timeout text. No working folder is set, so the child gets the parent's. | match |
+| INT-09.11 | A start failure is reported as "did not finish in time". The working folder is Larsal's own. | Waiting for the start does not stop the flow. The wait for the end then fails, and that gives the timeout text. No working folder is set, so the child gets the parent's. | match |
 | INT-09.12 | Input plus a newline is written, then the channel is closed. With an empty input, standard input stays open. | Writing and closing happen only when the input is not empty | match |
 | INT-09.13 | Both outputs are kept whole and never shown | Both are read in full after the end into result fields marked "for future use". Neither is shown or logged by the sync. | match |
 | INT-09.15 | SIGKILL to the program only | The timeout path calls the process kill on the child alone. There is no process group. | match |
@@ -146,7 +146,7 @@ I compared 18 INT-09 rules with the reference source at 09e34ba8. I read these p
 
 INT-09.14 (ended by a signal is reported as an exit status) depends on how the toolkit fills in the exit code. The card marks it "check with Verify", and it stays open with the card's V-items. This needs a test build, not reading the source.
 
-No rule I compared is a rewrite of reference code line by line. Each one describes the reference's behaviour in its own words, next to App's own design.
+No rule I compared is a rewrite of reference code line by line. Each one describes the reference's behaviour in its own words, next to Larsal's own design.
 
 ## Edits
 

@@ -1,0 +1,52 @@
+[package]
+name = "larsal-sync"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license-file.workspace = true
+
+# E16-S7a: Larsal's sync client (spec SYN-03, SYN-04; P3, P4): sign-in with
+# the device key, the sync loop and its timing, the rollback guard and the
+# local state. Only larsal-ffi's `sync` feature links it, so an larsal-ffi built
+# without that feature links nothing of this crate (architecture, "Sync
+# server and sharing"). Its HTTP goes only through larsal-platform `net.rs`
+# (Rust rule 12), its crypto only through larsal-crypto (AGENTS.md rule 3).
+[features]
+# The sign-in key (SYN-04.1): larsal-platform `device_key.rs` behind
+# `client::Signer`. larsal-ffi's `sync` turns it on; without it this crate
+# links no keychain code.
+sync = ["larsal-platform/device-key"]
+# Tests only (LD-317 (2), LD-327 (6)): `test_server`, with larsal-server in
+# process, a scripted TLS server, the test proxy, a test clock and the
+# test-seam device key. larsal-sync's own tests turn it on through the
+# dev-dependency on itself below, larsal-ffi's through its dev-dependency;
+# never a product build.
+test-server = [
+    "sync",
+    "larsal-platform/test-device-key",
+    "dep:larsal-server",
+    "dep:tokio",
+    "dep:rustls",
+    "dep:rcgen",
+]
+
+[dependencies]
+larsal-proto = { workspace = true }
+larsal-crypto = { workspace = true }
+larsal-model = { workspace = true }
+# guard.rs (the rollback guard's measures) and the state file's safe write.
+larsal-core = { workspace = true }
+# `net`: the pinned HTTPS client (SYN-01.2); `macos::open_regular` for the
+# state file.
+larsal-platform = { workspace = true, features = ["net"] }
+# `test-server` only.
+larsal-server = { workspace = true, features = ["test-seams"], optional = true }
+tokio = { workspace = true, features = ["rt"], optional = true }
+rustls = { workspace = true, optional = true }
+rcgen = { workspace = true, optional = true }
+
+[dev-dependencies]
+larsal-sync = { workspace = true, features = ["test-server"] }
+
+[lints]
+workspace = true

@@ -10,12 +10,12 @@
 //! the entry's username, password and notes. Demo data only.
 #![no_main]
 
-use app_autotype::{
+use larsal_autotype::{
     Action, Layout, MAX_KEYS, MAX_PICK, MAX_WAITS_MS, Mods, Options, Picked, Shortcut, check, plan,
 };
-use app_core::refs::Context;
-use app_crypto::secret::SecretString;
-use app_model::{Entry, Field, Group, Time, Uuid, Vault};
+use larsal_core::refs::Context;
+use larsal_crypto::secret::SecretString;
+use larsal_model::{Entry, Field, Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 
 const SEPARATOR: u8 = 0x1E;

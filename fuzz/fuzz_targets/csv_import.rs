@@ -10,10 +10,12 @@
 //! file.
 #![no_main]
 
-use app_core::import::csv::{self, COMMENTS, Encoding, Mapping, Options, QUALIFIERS, SEPARATORS};
-use app_core::import::{self, Context};
-use app_core::time::Utc;
-use app_model::{Group, Time, Uuid, Vault};
+use larsal_core::import::csv::{
+    self, COMMENTS, Encoding, Mapping, Options, QUALIFIERS, SEPARATORS,
+};
+use larsal_core::import::{self, Context};
+use larsal_core::time::Utc;
+use larsal_model::{Group, Time, Uuid, Vault};
 use libfuzzer_sys::fuzz_target;
 use std::sync::atomic::AtomicBool;
 
@@ -58,11 +60,11 @@ fuzz_target!(|data: &[u8]| {
             r.vault.root.all_entries().count(),
             p.rows().saturating_sub(skip)
         );
-        assert_eq!(app_model::invariants::check(&r.vault), Ok(()));
+        assert_eq!(larsal_model::invariants::check(&r.vault), Ok(()));
         assert_eq!(import::preview(&r).len(), p.rows().saturating_sub(skip));
         let mut new = Vault::new(Group::new(Uuid([1; 16]), "New".into(), now), now);
         if import::into_new_vault(&mut new, r, now).is_ok() {
-            assert_eq!(app_model::invariants::check(&new), Ok(()));
+            assert_eq!(larsal_model::invariants::check(&new), Ok(()));
         }
     }
 });

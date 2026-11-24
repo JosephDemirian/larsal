@@ -1,6 +1,6 @@
 {
-  "name": "com.app.test.echo",
-  "description": "App test echo host",
+  "name": "app.larsal.test.echo",
+  "description": "Larsal test echo host",
   "path": "",
   "type": "stdio",
   "allowed_origins": []

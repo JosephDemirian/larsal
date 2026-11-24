@@ -3,8 +3,8 @@
 //! survive being written back and read again (FMT-03.21, FMT-03.22).
 #![no_main]
 
-use app_crypto::kdf::KdfParams;
-use app_format::kdf_params::{parse_kdf, parse_map, write_kdf, write_map};
+use larsal_crypto::kdf::KdfParams;
+use larsal_format::kdf_params::{parse_kdf, parse_map, write_kdf, write_map};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

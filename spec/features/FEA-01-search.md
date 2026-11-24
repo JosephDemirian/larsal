@@ -6,7 +6,7 @@ Parity rows: SC-08 (clear the search after idle, FEA-01.27). Related: SD-05 (rec
 
 ## What it does
 
-The user types a query in the search box. App splits it into terms, and lists every entry in scope that satisfies all the terms. A term can name a field (`user:alex`), exclude (`-github`), use wildcards (`git*b`), a regular expression (`*user:^a\d+$`) or an exact match (`+title:Gmail`). Without a field name, a term looks in title, username, URL, tags and notes. Passwords and custom fields are searched only when the user names them.
+The user types a query in the search box. Larsal splits it into terms, and lists every entry in scope that satisfies all the terms. A term can name a field (`user:alex`), exclude (`-github`), use wildcards (`git*b`), a regular expression (`*user:^a\d+$`) or an exact match (`+title:Gmail`). Without a field name, a term looks in title, username, URL, tags and notes. Passwords and custom fields are searched only when the user names them.
 
 The same language drives the sidebar's built-in views (Expired, Weak Passwords, TOTP entries, All Entries), clicks on tags, saved searches stored in the vault, and the expired-entries list after unlock. The command line tool's `search` command uses this language too, but its scope rules belong to INT-10. Auto-Type's entry picker also uses it (INT-05).
 
@@ -14,13 +14,13 @@ The same language drives the sidebar's built-in views (Expired, Weak Passwords, 
 
 | Input | Type | Notes |
 |---|---|---|
-| Query text | text, at most 1,024 characters in App (FEA-01.32) | From the search box, a built-in view or a saved search |
-| Exact tag terms (App) | list of tag texts | From a tag click in the sidebar (FEA-01.35) |
+| Query text | text, at most 1,024 characters in Larsal (FEA-01.32) | From the search box, a built-in view or a saved search |
+| Exact tag terms (Larsal) | list of tag texts | From a tag click in the sidebar (FEA-01.35) |
 | Base group | group id | The root group. With the limit option on and a group selected, the selected group (FEA-01.23) |
 | Case-sensitive option | bool, default off | FEA-01.24 |
 | Clock and time zone | now, local zone | Only for `is:expired` (FEA-01.16) |
 
-Output: an ordered list of entry ids (tree order, FEA-01.22), plus, in App, a flag saying that a regular expression was invalid (FEA-01.31). The search never returns field values to the screen. The screen asks for list views of the ids, which carry no secrets (architecture, app-desktop Must).
+Output: an ordered list of entry ids (tree order, FEA-01.22), plus, in Larsal, a flag saying that a regular expression was invalid (FEA-01.31). The search never returns field values to the screen. The screen asks for list views of the ids, which carry no secrets (architecture, larsal-desktop Must).
 
 Our setting IDs (APP-01 holds the inventory; if APP-01 names them differently, APP-01 wins):
 
@@ -44,7 +44,7 @@ FEA-01.2 **Term shape.** Each term is `[modifiers][field:]value`.
 - Modifiers count only before the field. In `t:-git` the value is the literal text `-git`.
 - A term with no colon has no field. `*hub` is the regular expression `hub` with no field. `t:*hub` is the wildcard value `*hub` in the title.
 
-FEA-01.3 **Quoted values.** When the value starts with `"`, App looks for a closing `"` that is followed by a space or the end of the query. Inside the quotes, `\"` stands for `"`. A backslash followed by any other character keeps both characters (`"a\b"` is the 3-character text `a\b`). A quoted value may hold spaces. When no such closing quote exists, the value is the plain text up to the next space, and the quote character is part of it. So `"PIN` searches for the 4 characters `"PIN`. For `"abc"def ghi`, the closing quote is followed by `d`, so the terms are `"abc"def` and `ghi`.
+FEA-01.3 **Quoted values.** When the value starts with `"`, Larsal looks for a closing `"` that is followed by a space or the end of the query. Inside the quotes, `\"` stands for `"`. A backslash followed by any other character keeps both characters (`"a\b"` is the 3-character text `a\b`). A quoted value may hold spaces. When no such closing quote exists, the value is the plain text up to the next space, and the quote character is part of it. So `"PIN` searches for the 4 characters `"PIN`. For `"abc"def ghi`, the closing quote is followed by `d`, so the terms are `"abc"def` and `ghi`.
 
 FEA-01.4 **Empty values.** A term whose value is empty is dropped. Examples: `title:`, `x:`, `""`, `-`, `*`, `+`, `**`. A query with no terms left matches every entry in scope. This is how All Entries works (its query is `*`).
 
@@ -67,7 +67,7 @@ FEA-01.5 **Field names.** Field names ignore case. A field name selects the firs
 | `_name` | the value of the field named `name` (FEA-01.6) |
 | empty, or anything else (`tags`, `user1`, `e`, `foo`, `https`, `12`) | not a field: the term searches the default fields (FEA-01.13) for the value after the colon |
 
-So `foo:github` searches the default fields for `github`, `https://github.com` searches them for `//github.com`, and `12:30` searches them for `30`. `tags:` is not an alias, even though the reference's help popup lists it: `tags:safe` searches the default fields for `safe`. App keeps this, so a saved search means the same in both apps (lead decision: the other option is to accept `tags` as an alias).
+So `foo:github` searches the default fields for `github`, `https://github.com` searches them for `//github.com`, and `12:30` searches them for `30`. `tags:` is not an alias, even though the reference's help popup lists it: `tags:safe` searches the default fields for `safe`. Larsal keeps this, so a saved search means the same in both apps (lead decision: the other option is to accept `tags` as an alias).
 
 FEA-01.6 **Field by name.** A field part that starts with `_` names one field of the entry: the text after the `_`, matched against field names exactly, with case. `_otp:JBSWY` looks in the field `otp`. `_UserName:alex` looks in the standard username field, using its stored text (no placeholder resolution, FEA-01.19). The standard field names are `Title`, `UserName`, `Password`, `URL`, `Notes` (FMT-11). A field name with a space, a hyphen or a non-ASCII letter cannot be named this way. `_Security:blue` looks for a field named `Security`, not `Security answer`. Use `attribute:` for those. When the entry has no field with that name, the term does not match. `_:x` names the empty field name and never matches.
 
@@ -83,9 +83,9 @@ FEA-01.7 **Plain values (no `*` modifier).** Every character is literal, except 
 
 So `.`, `(`, `[`, `\` and `$` are plain characters. Without `+`, a value matches when it occurs anywhere in the field text (substring). `t:gmail|bank` matches `Gmail` and `Big Bank`. A value made of `|` alone has an empty alternative, so it matches every field, empty ones too. A value of `?` alone matches any field that holds at least one character other than a line feed.
 
-FEA-01.8 **Regular expressions (`*` modifier).** The value is a regular expression, matched anywhere in the field text unless it anchors itself. Wildcards (FEA-01.7) do not apply. An invalid expression never matches. App uses the linear-time engine of LD-110 with the bounds of LD-113, LD-120 and LD-123: look-around, backreferences and Unicode category or script classes such as `\p{L}` are invalid. So the term fails, and an excluded invalid term (`-*t:[`) holds for every entry. The reference shows no message (it only writes a warning to its debug log). App adds a notice (FEA-01.31). Dialect: see FEA-01.32 and the lead decision there.
+FEA-01.8 **Regular expressions (`*` modifier).** The value is a regular expression, matched anywhere in the field text unless it anchors itself. Wildcards (FEA-01.7) do not apply. An invalid expression never matches. Larsal uses the linear-time engine of LD-110 with the bounds of LD-113, LD-120 and LD-123: look-around, backreferences and Unicode category or script classes such as `\p{L}` are invalid. So the term fails, and an excluded invalid term (`-*t:[`) holds for every entry. The reference shows no message (it only writes a warning to its debug log). Larsal adds a notice (FEA-01.31). Dialect: see FEA-01.32 and the lead decision there.
 
-FEA-01.9 **Exact match (`+` modifier).** The whole field text must match the whole value, alternatives included: `+t:Gmail|Big` matches the title `Gmail`, but not `Big Bank`. A field text with one extra line feed at its very end also matches (notes `hello` + LF matches `+n:hello`). This is the end-anchor rule of the reference's regex library. `+` combines with `*`: `+*t:G.*` is a regular expression that must match the whole title. In the source, `+` also makes the term case-sensitive. The installed version 2.7.11 does not do that: there `+t:github` matches `GitHub` (differs in installed version). App follows the source.
+FEA-01.9 **Exact match (`+` modifier).** The whole field text must match the whole value, alternatives included: `+t:Gmail|Big` matches the title `Gmail`, but not `Big Bank`. A field text with one extra line feed at its very end also matches (notes `hello` + LF matches `+n:hello`). This is the end-anchor rule of the reference's regex library. `+` combines with `*`: `+*t:G.*` is a regular expression that must match the whole title. In the source, `+` also makes the term case-sensitive. The installed version 2.7.11 does not do that: there `+t:github` matches `GitHub` (differs in installed version). Larsal follows the source.
 
 FEA-01.10 **Case.** By default, matching ignores case. It uses Unicode simple case folding per character, with no normalization: `éclair` matches `Éclair`, `STRAßE` matches `Straße`, `STRASSE` does not match `Straße`, and a precomposed `é` does not match `e` followed by a combining accent. Case is matched exactly when `search.case_sensitive` is on, or when the term has `+` (FEA-01.9). A regular expression may switch case itself with inline flags such as `(?i)`.
 
@@ -127,24 +127,24 @@ FEA-01.19 **Placeholders.** Title, username, password and URL are matched after 
 
 ### Scope, order and options
 
-FEA-01.20 **Which entries are searched.** App searches the base group and every group below it. A group's own entries are searched only when the group's resolved search flag is on. The flag is a tri-state (FMT-11.9): on, off, or inherit from the parent. Inherit at the root means on (MOD-02). A group set to on is searched even below a group set to off. A group set to off hides only the entries whose groups resolve to off. History items are never results. The command line tool ignores these flags (INT-10).
+FEA-01.20 **Which entries are searched.** Larsal searches the base group and every group below it. A group's own entries are searched only when the group's resolved search flag is on. The flag is a tri-state (FMT-11.9): on, off, or inherit from the parent. Inherit at the root means on (MOD-02). A group set to on is searched even below a group set to off. A group set to off hides only the entries whose groups resolve to off. History items are never results. The command line tool ignores these flags (INT-10).
 
-FEA-01.21 **Recycle bin.** The reference creates its recycle bin with searching off (MOD-04), so recycled entries do not appear. A vault from another writer can have a recycle bin with searching on (inherit). The reference then lists recycled entries in results, except for `is:expired`. App never lists entries that are in the recycle bin (the recycle bin group and everything below it), whatever any group flag says: the bin's own flag, or the flag of a group inside the bin set to on (decided: spec/decisions.md LD-57). This overrides FEA-01.20 for the bin. It matches the mockup, where search covers every entry except the bin's.
+FEA-01.21 **Recycle bin.** The reference creates its recycle bin with searching off (MOD-04), so recycled entries do not appear. A vault from another writer can have a recycle bin with searching on (inherit). The reference then lists recycled entries in results, except for `is:expired`. Larsal never lists entries that are in the recycle bin (the recycle bin group and everything below it), whatever any group flag says: the bin's own flag, or the flag of a group inside the bin set to on (decided: spec/decisions.md LD-57). This overrides FEA-01.20 for the bin. It matches the mockup, where search covers every entry except the bin's.
 
-FEA-01.22 **Result order.** The core returns results in tree order: the base group's entries in their stored order, then each child group in stored order, depth first (pre-order). The reference's screen re-sorts results by group name (collation-aware, digits compared as numbers), with ties left in tree order. App's screen applies the list's current sort, as the mockup does (default: last modified, newest first). Lead decision. The other option is to sort by group name as the reference does. The mockup has no group column.
+FEA-01.22 **Result order.** The core returns results in tree order: the base group's entries in their stored order, then each child group in stored order, depth first (pre-order). The reference's screen re-sorts results by group name (collation-aware, digits compared as numbers), with ties left in tree order. Larsal's screen applies the list's current sort, as the mockup does (default: last modified, newest first). Lead decision. The other option is to sort by group name as the reference does. The mockup has no group column.
 
 FEA-01.23 **Limit to the selected group.** With `search.limit_to_group` on and a group view showing, the base group is that group. The search flags of FEA-01.20 still apply, including flags inherited from groups above the base. When the user selects another group while a search is active:
 - option on: the search runs again in the new group;
 - option off: the search ends, the box is cleared and the group's entries show.
-In App, when the current view is not a group (All Entries, a tag, a built-in view), the base is the root group. The limit option also applies to tag clicks and saved searches. It never applies to the expired-entries list after unlock (FEA-01.28).
+In Larsal, when the current view is not a group (All Entries, a tag, a built-in view), the base is the root group. The limit option also applies to tag clicks and saved searches. It never applies to the expired-entries list after unlock (FEA-01.28).
 
-FEA-01.24 **Case-sensitive option.** `search.case_sensitive` changes only plain and wildcard terms, and `*` terms without their own inline flag. It is a toggle in the search menu. It applies at once to every open vault, re-runs the active search, and resets to off when App restarts.
+FEA-01.24 **Case-sensitive option.** `search.case_sensitive` changes only plain and wildcard terms, and `*` terms without their own inline flag. It is a toggle in the search menu. It applies at once to every open vault, re-runs the active search, and resets to off when Larsal restarts.
 
 FEA-01.25 **When the search runs.**
-- With `search.enter_to_search` off, the search runs as the user types. The reference waits until 500 ms pass with no typing. App runs at once on each change, as the mockup does, because the 50 ms target (FEA-01.34) allows it (lead decision; the other option is the 500 ms wait). Return in the box then opens the selected entry for editing, as the reference does (APP-08 owns the key).
+- With `search.enter_to_search` off, the search runs as the user types. The reference waits until 500 ms pass with no typing. Larsal runs at once on each change, as the mockup does, because the 50 ms target (FEA-01.34) allows it (lead decision; the other option is the 500 ms wait). Return in the box then opens the selected entry for editing, as the reference does (APP-08 owns the key).
 - With `search.enter_to_search` on, typing does not search. Return runs the search.
 - Built-in views, tag clicks and saved searches run at once, whatever the option says.
-- Text that is empty, or spaces only, ends the search and shows the normal list. The reference treats spaces-only text as a query with no terms and lists every entry. App follows the mockup, which trims (lead decision).
+- Text that is empty, or spaces only, ends the search and shows the normal list. The reference treats spaces-only text as a query with no terms and lists every entry. Larsal follows the mockup, which trims (lead decision).
 
 FEA-01.26 **Live results.** Any change to the vault while a search is active runs the same query again. The selected entry stays selected when it is still a result. Otherwise the first result is selected. Switching between open vaults restores each vault's own search text. The case and limit options are global.
 
@@ -156,16 +156,16 @@ It also ends when the vault locks (APP-02). Lock clears the text, so a query is 
 - focus coming back stops that timer;
 - while it runs, a change of selected entry or of view starts the full time again.
 
-FEA-01.28 **Built-in queries.** These views are queries in this language. App's views must give exactly these results:
+FEA-01.28 **Built-in queries.** These views are queries in this language. Larsal's views must give exactly these results:
 
 | ID | View | Query |
 |---|---|---|
 | `builtin.all` | All Entries | `*` |
 | `builtin.expired` | Expired | `is:expired` |
 | `builtin.weak` | Weak Passwords | `is:weak` |
-| `builtin.totp` | TOTP entries (in the reference's sidebar; App shows it if the mockup gains it) | `has:totp` |
-| `builtin.tag` | a click on tag T | App: one exact tag term (FEA-01.35). Reference: `tag:"T'"`, where T' is T with each `"` written as `\"` |
-| several tags selected | | App: one exact tag term per tag, all required. Reference: their tag queries joined with one space |
+| `builtin.totp` | TOTP entries (in the reference's sidebar; Larsal shows it if the mockup gains it) | `has:totp` |
+| `builtin.tag` | a click on tag T | Larsal: one exact tag term (FEA-01.35). Reference: `tag:"T'"`, where T' is T with each `"` written as `\"` |
+| several tags selected | | Larsal: one exact tag term per tag, all required. Reference: their tag queries joined with one space |
 | `builtin.unlock_expired` | after unlock, when MOD-09's setting is on, with N = its day offset | `is:expired-N`. The base is always the root group. When it has no results, nothing is shown and no search stays active. The banner says "expired entries" for N = 0 and "expiring within N days" otherwise (MOD-09, SR-08) |
 
 FEA-01.29 **Saved searches.** The user can save the current query under a name. Saved searches are stored in the vault, in one vault custom-data item holding a JSON object that maps each name to its query (FMT-14 gives the key and the layout). So they travel with the file and are shared with the reference.
@@ -173,14 +173,14 @@ FEA-01.29 **Saved searches.** The user can save the current query under a name. 
 - List: shown after the built-in views, ordered by name in code-unit order, so with case (`Zeta` before `alpha`).
 - Run: a click puts the query in the box and runs it at once (FEA-01.25).
 - Remove: a context-menu action removes that name, without a confirm step.
-- Reading: an item that is not a JSON object reads as no saved searches. The next save replaces it with an object that holds only the new search. App ignores members whose value is not text. The reference turns numbers and booleans into text, and other values into an empty query (source, re-read by Verify in Sprint 3: the stored text is read as a JSON document turned into a map, so anything that is not an object gives no searches, and each value becomes text through the toolkit's general conversion, which turns numbers and booleans into text and lists, objects and null into the empty text).
-- Whether App's sidebar shows saved searches: lead decision. Recommended: yes, a Searches section under the tags, because vaults shared with the reference carry them. Either way, App keeps the item on save (SD-06).
+- Reading: an item that is not a JSON object reads as no saved searches. The next save replaces it with an object that holds only the new search. Larsal ignores members whose value is not text. The reference turns numbers and booleans into text, and other values into an empty query (source, re-read by Verify in Sprint 3: the stored text is read as a JSON document turned into a map, so anything that is not an object gives no searches, and each value becomes text through the toolkit's general conversion, which turns numbers and booleans into text and lists, objects and null into the empty text).
+- Whether Larsal's sidebar shows saved searches: lead decision. Recommended: yes, a Searches section under the tags, because vaults shared with the reference carry them. Either way, Larsal keeps the item on save (SD-06).
 
 FEA-01.30 **Result header.** While a search is active, the list title says it is showing search results and shows the result count (mockup: "Search results" and the count). For a built-in view, the view's own title is shown instead. With no results, the mockup's empty state names the default fields: titles, usernames, URLs, notes and tags. That text must stay true to FEA-01.13.
 
-FEA-01.31 **Invalid expression notice (App).** When any `*` term is invalid, or exceeds the FEA-01.32 limits, the results are exactly as FEA-01.8 says. In addition, the search box shows a small notice that the regular expression is invalid. The notice never repeats any field value. Lead decision (the reference shows nothing).
+FEA-01.31 **Invalid expression notice (Larsal).** When any `*` term is invalid, or exceeds the FEA-01.32 limits, the results are exactly as FEA-01.8 says. In addition, the search box shows a small notice that the regular expression is invalid. The notice never repeats any field value. Lead decision (the reference shows nothing).
 
-FEA-01.32 **Limits and dialect (App).** The reference has no limits here. The numbers below are App's own (lead decision).
+FEA-01.32 **Limits and dialect (Larsal).** The reference has no limits here. The numbers below are Larsal's own (lead decision).
 - Query text: at most 1,024 characters. The box stops accepting input at the limit. The core refuses a longer query, for example from a hostile saved search, with a QueryTooLong error. The current results stay unchanged, and the screen shows a short notice.
 - Regular expressions run on an engine whose time grows linearly with the text length (no backtracking blow-up).
 - Compiled size and work: the bounds of LD-113, LD-116, LD-120, LD-122 and LD-123 (at most 256 KiB compiled, scaled down for long texts, one folding budget per query, one slow-engine budget per run). Nesting: at most 100 levels. A pattern over a limit counts as invalid.
@@ -190,11 +190,11 @@ FEA-01.32 **Limits and dialect (App).** The reference has no limits here. The nu
 - The other option is a backtracking engine closer to the reference's Perl-style dialect. It would need a step limit and carries hang risk.
 - The parser accepts every text without panicking (fuzz target `search_query`).
 
-FEA-01.33 **What leaves the core.** The search returns entry ids only. It never sends a field value, a resolved placeholder or a match position to the screen. Matching protected values (passwords, protected custom fields, one-time password secrets) happens inside app-core on secret types. Any temporary resolved copy is wiped right after it is compared (Rust rule 3).
+FEA-01.33 **What leaves the core.** The search returns entry ids only. It never sends a field value, a resolved placeholder or a match position to the screen. Matching protected values (passwords, protected custom fields, one-time password secrets) happens inside larsal-core on secret types. Any temporary resolved copy is wiped right after it is compared (Rust rule 3).
 
 FEA-01.34 **Speed.** A query of up to 5 terms over 10,000 entries returns in under 50 ms on this Mac (E4-S8). The query is parsed and compiled once per run, not once per entry.
 
-FEA-01.35 **Exact tag terms (App).** A tag click in the sidebar builds no query text. The sidebar hands the core one exact tag term per selected tag (decided: spec/decisions.md LD-66). An exact tag term holds when one of the entry's tags equals T exactly: code unit by code unit, case included, with no wildcards, no alternatives and no escaping. Several terms must all hold. Scope follows FEA-01.20 to FEA-01.23. The search box shows `tag:"T"` for each term as display text only. Typing in the box replaces the terms with a normal text query. Saving while exact tag terms are active saves the display text as a normal query (FEA-01.29). The reference builds text instead (FEA-01.28), so there case is ignored, `*`, `?` and `|` inside a tag act as wildcards, and a tag that ends in `\` or holds `\"` gives a different search.
+FEA-01.35 **Exact tag terms (Larsal).** A tag click in the sidebar builds no query text. The sidebar hands the core one exact tag term per selected tag (decided: spec/decisions.md LD-66). An exact tag term holds when one of the entry's tags equals T exactly: code unit by code unit, case included, with no wildcards, no alternatives and no escaping. Several terms must all hold. Scope follows FEA-01.20 to FEA-01.23. The search box shows `tag:"T"` for each term as display text only. Typing in the box replaces the terms with a normal text query. Saving while exact tag terms are active saves the display text as a normal query (FEA-01.29). The reference builds text instead (FEA-01.28), so there case is ignored, `*`, `?` and `|` inside a tag act as wildcards, and a tag that ends in `\` or holds `\"` gives a different search.
 
 ## Edge cases and errors
 
@@ -204,12 +204,12 @@ FEA-01.35 **Exact tag terms (App).** A tag click in the sidebar builds no query 
 | Unknown field (`foo:x`) | Not an error. Searches the default fields for `x` (FEA-01.5) |
 | Text with a colon that is not meant as a field (`12:30`, a URL) | The part before the colon is taken as a field name. If it is not a known field, the default fields are searched for the rest (FEA-01.5) |
 | Unterminated quote | The quote is a literal character (FEA-01.3) |
-| Invalid regular expression | That term fails. If excluded, it holds. App shows the notice (FEA-01.8, FEA-01.31) |
+| Invalid regular expression | That term fails. If excluded, it holds. Larsal shows the notice (FEA-01.8, FEA-01.31) |
 | Group name with spaces typed without quotes (`g:Dev & Ops`) | Becomes 3 terms (`g:Dev`, `&`, `Ops`). The user must quote it (`g:"Dev & Ops"`) |
 | Wildcard across lines in notes (`n:account*recovery` over `Work account` LF `recovery …`) | No match: `*` and `?` do not cross a line feed |
-| Carriage return in a value | `*` and `?` match it (the reference's regex library treats only a line feed as a line end, as far as could be seen). Observed by Verify in Sprint 3 with a carriage return written by App's saver: the reference command line tool's `search` and App both find the user name `a`, carriage return, `b` with `u:a?b`, `u:a*b`, `+u:a?b`, `+u:a*b` and the regular expressions `a.b` and `^a.b$` |
+| Carriage return in a value | `*` and `?` match it (the reference's regex library treats only a line feed as a line end, as far as could be seen). Observed by Verify in Sprint 3 with a carriage return written by Larsal's saver: the reference command line tool's `search` and Larsal both find the user name `a`, carriage return, `b` with `u:a?b`, `u:a*b`, `+u:a?b`, `+u:a*b` and the regular expressions `a.b` and `^a.b$` |
 | Base group has searching off (`Archive` with the limit on) | No results |
-| Root group named as the recycle bin by a hostile vault | App acts as if there is no bin (LD-76), so entries are searched normally |
+| Root group named as the recycle bin by a hostile vault | Larsal acts as if there is no bin (LD-76), so entries are searched normally |
 | Query over 1,024 characters | QueryTooLong. Results unchanged (FEA-01.32) |
 | Saved-search item is not valid JSON | No saved searches are listed. Nothing crashes (FEA-01.29) |
 | `is:expired-99999999999` (too large for a whole number) | Reads as 0 (not a number in range) |
@@ -217,9 +217,9 @@ FEA-01.35 **Exact tag terms (App).** A tag click in the sidebar builds no query 
 
 ## Security notes
 
-- Default search never looks at the password or custom fields directly. But resolved placeholders can pull secret text into searched fields, for example a username of `{PASSWORD}` or `{S:secret field}`. Then typing the secret finds the entry. This is reference behavior, and App keeps it for parity. It reveals nothing new to the person holding the unlocked vault.
-- `pw:`, `_Password:`, `attribute:` and `_name:` match protected values, including one-time password secrets. The match runs only in app-core, on secret types. No value, match position or resolved text goes to the screen or a log (FEA-01.33, SR-07, AT-C06, AT-E07).
-- The query text can itself hold a secret the user typed (`pw:hunter2`). App never logs query text. It clears the text on lock (FEA-01.27, SR-01, SR-02) and keeps it only in the screen and the session. A saved search is stored only inside the encrypted vault.
+- Default search never looks at the password or custom fields directly. But resolved placeholders can pull secret text into searched fields, for example a username of `{PASSWORD}` or `{S:secret field}`. Then typing the secret finds the entry. This is reference behavior, and Larsal keeps it for parity. It reveals nothing new to the person holding the unlocked vault.
+- `pw:`, `_Password:`, `attribute:` and `_name:` match protected values, including one-time password secrets. The match runs only in larsal-core, on secret types. No value, match position or resolved text goes to the screen or a log (FEA-01.33, SR-07, AT-C06, AT-E07).
+- The query text can itself hold a secret the user typed (`pw:hunter2`). Larsal never logs query text. It clears the text on lock (FEA-01.27, SR-01, SR-02) and keeps it only in the screen and the session. A saved search is stored only inside the encrypted vault.
 - Hostile vaults can carry saved searches (AT-A08). They are bounded: length cap, a linear-time regex engine, size and nesting limits, and MOD-08's resolution bounds (FEA-01.32). A saved search never runs on its own. It runs only when the user clicks it.
 - The optional clear-after-idle timer (FEA-01.27) is parity row SC-08 (option, off; 5 minutes; APP-01 S-TIME-05, S-TIME-06).
 - Recycled entries stay out of results (FEA-01.21, SD-05), so a deleted secret does not resurface in a search.
@@ -282,13 +282,13 @@ Strength scores (FEA-05 password-only): Tr0ub4dor&3 46, hunter2 low, oldpass low
 | T37 FEA-01.17, FEA-01.28 | S1 | `is:weak` (Weak Passwords view) | E1, E2, E3, E7 (E4 expired; E5, E6 out of scope) |
 | T38 FEA-01.11, FEA-01.9 | S1 | `+-t:Gmail` | E1, E3, E4, E7 |
 | T39 FEA-01.20 | S1 plus group `/Vault/Archive/Keep` (search **on**) holding E8 `Keep me` | `keep` | E8 (on below off is searched). E5 is still left out |
-| T40 FEA-01.21 | S1, but the bin's flag is inherit | `github`; `-is:expired` | App: E1; then E1, E2, E3, E7. The reference: E1, E6; then E1, E2, E3, E6, E7 |
+| T40 FEA-01.21 | S1, but the bin's flag is inherit | `github`; `-is:expired` | Larsal: E1; then E1, E2, E3, E7. The reference: E1, E6; then E1, E2, E3, E6, E7 |
 | T41 FEA-01.23 | S1, `search.limit_to_group` on, group `Banking` selected | `*` | E3, E4 |
 | T42 FEA-01.23, FEA-01.20 | S1, limit on, `Archive` selected | `github` | No results (Archive is off) |
 | T43 FEA-01.23 | S1, query `*` active, limit off | user selects group `Cards` | Search ends, box empty, list shows E4 |
 | T44 FEA-01.23 | S1, query `*` active, limit on, `Banking` selected | user selects `Cards` | Search runs again: E4 |
-| T45 FEA-01.22 | S1 | core search `alex` | Ids in order E1, E2, E3, E7. The reference's screen shows E3 (Banking), E7 (Dev & Ops), E1, E2 (Vault). App's screen: the list sort |
-| T46 FEA-01.24 | S1, `search.case_sensitive` on | `gmail`; `Gmail`; then App restarts and `gmail` is run | None (the URL holds `mail.google`, not `gmail`); E2; E2 (option back to off) |
+| T45 FEA-01.22 | S1 | core search `alex` | Ids in order E1, E2, E3, E7. The reference's screen shows E3 (Banking), E7 (Dev & Ops), E1, E2 (Vault). Larsal's screen: the list sort |
+| T46 FEA-01.24 | S1, `search.case_sensitive` on | `gmail`; `Gmail`; then Larsal restarts and `gmail` is run | None (the URL holds `mail.google`, not `gmail`); E2; E2 (option back to off) |
 | T47 FEA-01.26 | S1, query `pw:hunter` showing E2, E3, with E2 selected | E2's password is changed to `x` | Results: E3, and E3 is selected |
 | T48 FEA-01.27 | S1, query `github` active | vault locks, then unlocks | Search box empty, normal list |
 | T49 FEA-01.27 | `search.clear_when_idle` on, 5 minutes; query typed | focus leaves the box at 12:00:00 | Box cleared at 12:05:00. If focus returns at 12:03:00, nothing is cleared |
@@ -304,7 +304,7 @@ Strength scores (FEA-05 password-only): Tr0ub4dor&3 46, hunter2 low, oldpass low
 | T59 FEA-01.29 | Saved-search item holds `[1,2]` | open vault, then save `x` as `A` | No saved searches listed. After the save the item holds {"A": "x"} |
 | T60 FEA-01.32 | Saved search whose query is 2,000 characters | click it | QueryTooLong notice. Results unchanged. No hang |
 | T61 FEA-01.32 | S1 | `*t:(a+)+$`, with E1's title set to 40 × `a` + `!` | Returns in under 50 ms with no results |
-| T62 FEA-01.32 | S1 | `*t:(?=Git)G` (look-ahead) | App: invalid notice, no results. The reference: E1 (accepted difference) |
+| T62 FEA-01.32 | S1 | `*t:(?=Git)G` (look-ahead) | Larsal: invalid notice, no results. The reference: E1 (accepted difference) |
 | T63 FEA-01.33 | S1 | `pw:hunter2`, while the screen's command traffic is recorded | Only ids of E2 and E3 cross. No password text |
 | T64 FEA-01.34 | Generated vault: 10,000 entries | `user:alex -tag:work *n:\d{4} is:weak g:/Vault` | Under 50 ms |
 
@@ -339,7 +339,7 @@ Demo vault **S2** (all entries in root `Root`, flags inherit; clock 2026-10-25T1
 | T76 FEA-01.30 | S1 | `pw:hunter2`; then `<b>zzz</b>`; then the Expired view | List title for search results with count 2; then the empty state naming titles, usernames, URLs, notes and tags, with the query shown as plain text (AT-E01); then the title Expired with count 1 |
 | T77 FEA-01.35 | Vault: entry R with tag `a\`, entry S with tag `a`, entry U with tag `a\"b` | click `a\`; then click `a\"b` | R only; then U only (the reference's text search differs for both) |
 | T78 FEA-01.35 | Vault: entry G1 with tag `Work`, entry G2 with tag `work`, entry G3 with tag `x*`, entry G4 with tag `xyz` | click `work`; then click `x*` | G2 only (the reference: G1 and G2); then G3 only (the reference: G3 and G4) |
-| T79 FEA-01.21 | S1, plus group B2 inside the recycle bin with its own search flag on, holding entry E12 titled `github bin` | `github` | App: E1 only. The reference: E1 and E12 (LD-57) |
+| T79 FEA-01.21 | S1, plus group B2 inside the recycle bin with its own search flag on, holding entry E12 titled `github bin` | `github` | Larsal: E1 only. The reference: E1 and E12 (LD-57) |
 
 ## How this was learned
 
@@ -351,4 +351,4 @@ Demo vault **S2** (all entries in root `Root`, flags inherit; clock 2026-10-25T1
 
 ### Not on Mac
 
-- Linux secret-service lookups use this search engine with these settings: protected fields skipped, group flags ignored, and each attribute compared as an exact, case-sensitive literal. An empty attribute set there matches nothing. App has no secret-service bridge.
+- Linux secret-service lookups use this search engine with these settings: protected fields skipped, group flags ignored, and each attribute compared as an exact, case-sensitive literal. An empty attribute set there matches nothing. Larsal has no secret-service bridge.

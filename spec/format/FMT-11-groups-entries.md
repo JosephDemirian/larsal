@@ -18,31 +18,31 @@ Other cards own the neighbours. Meta is FMT-10. FMT-10 also owns the document fr
 
 Words used in this card:
 
-- **V**: the file version App writes. FMT-16 chooses it: 4.0 or 4.1 by content (FMT-16.18, FMT-16.19), or, while the vault holds kept unknown parts, at least the version the file was read as (FMT-16.24), which can be a higher 4.x minor such as 4.2. App never writes 3.x, so the gate "V ≥ 4.0" always holds for App. "V ≥ 4.1" means any 4.x minor of 1 or more; every known part is written in its 4.1 form then (FMT-16.24). The reference also writes 3.1 (FMT-16.1); the 3.1 forms in this card are reference facts, given so that App can read 3.1 files. They are never App write rules.
+- **V**: the file version Larsal writes. FMT-16 chooses it: 4.0 or 4.1 by content (FMT-16.18, FMT-16.19), or, while the vault holds kept unknown parts, at least the version the file was read as (FMT-16.24), which can be a higher 4.x minor such as 4.2. Larsal never writes 3.x, so the gate "V ≥ 4.0" always holds for Larsal. "V ≥ 4.1" means any 4.x minor of 1 or more; every known part is written in its 4.1 form then (FMT-16.24). The reference also writes 3.1 (FMT-16.1); the 3.1 forms in this card are reference facts, given so that Larsal can read 3.1 files. They are never Larsal write rules.
 - **id**: a 16-byte UUID, written as the base64 of its 16 bytes (FMT-12). **id(xx)** in the test cases means 16 bytes that are all 0xxx. For example, id(01) is written `AQEBAQEBAQEBAQEBAQEBAQ==`, id(10) is `EBAQEBAQEBAQEBAQEBAQEA==` and id(A1) is `oaGhoaGhoaGhoaGhoaGhoQ==`.
 - **zero id**: 16 zero bytes, written `AAAAAAAAAAAAAAAAAAAAAA==`. It means "none".
 - **live entry**: an entry that sits in a group. **history item**: an older copy of an entry, kept in that entry's `History`.
 - **fail**: the whole open fails with `Corrupt` (plan/architecture.md, error.rs). No part of the document is used. APP-06 owns the text shown on screen.
-- **open time**: one UTC timestamp in whole seconds, taken once when the read starts (FMT-10.10, FMT-12.7). App uses this one value for every time it fills in while reading the document. The reference instead reads the clock each time it needs such a value, so its values can differ from each other by the time the read takes; tests compare against App's single value.
+- **open time**: one UTC timestamp in whole seconds, taken once when the read starts (FMT-10.10, FMT-12.7). Larsal uses this one value for every time it fills in while reading the document. The reference instead reads the clock each time it needs such a value, so its values can differ from each other by the time the read takes; tests compare against Larsal's single value.
 - **text**: an XML text value. It is read exactly as it is, including leading and trailing white space.
 
 ## Inputs and outputs
 
 Read:
 - In: the XML document as UTF-8 bytes (FMT-08), the inner-stream cipher state (FMT-09) and the attachment pool (FMT-13).
-- Out: the `Vault` group tree in app-model, plus warnings for the debug log. Warnings name elements or ids. They never contain field values.
+- Out: the `Vault` group tree in larsal-model, plus warnings for the debug log. Warnings name elements or ids. They never contain field values.
 
 Write:
 - In: the `Vault`, the version V (FMT-16), the inner-stream cipher state (FMT-09) and the attachment index map (FMT-13).
 - Out: the XML document as UTF-8 bytes.
 
-Limits: app-format `limits.rs` sets the limits. FMT-08.12 owns every number (decided: spec/decisions.md LD-22); FMT-11.48 says how each one is counted. The reference has none of these limits.
+Limits: larsal-format `limits.rs` sets the limits. FMT-08.12 owns every number (decided: spec/decisions.md LD-22); FMT-11.48 says how each one is counted. The reference has none of these limits.
 
 ## Rules
 
 ### Document frame
 
-FMT-11.1 **Root element and frame on write (pointer).** FMT-10.1 (declaration) and FMT-10.4 (top structure) own this. In short: the root element, whose name is the 11 ASCII bytes `4B 65 65 50 61 73 73 46 69 6C 65` (stored encoded, name rule), holds `Meta` first and `Root` second, followed only by the unknown root children App keeps (FMT-10.20), which come after `Root`.
+FMT-11.1 **Root element and frame on write (pointer).** FMT-10.1 (declaration) and FMT-10.4 (top structure) own this. In short: the root element, whose name is the 11 ASCII bytes `4B 65 65 50 61 73 73 46 69 6C 65` (stored encoded, name rule), holds `Meta` first and `Root` second, followed only by the unknown root children Larsal keeps (FMT-10.20), which come after `Root`.
 
 FMT-11.2 **Reading the root element (pointer).** FMT-10.5 and FMT-10.7 own this: the first element must carry the root name (local name, case-sensitive), `Meta` may appear any number of times and anywhere, exactly one `Root` must be present, and any other child is an unknown element kept per FMT-10.20. Every rejection there is a fail.
 
@@ -70,12 +70,12 @@ FMT-11.6 **Group elements, in write order.**
 | 10 | `EnableAutoType` | tri-state (FMT-11.9) | `null` | all | always |
 | 11 | `EnableSearching` | tri-state | `null` | all | always |
 | 12 | `LastTopVisibleEntry` | id of an entry (FMT-11.37) | none | all | always; zero id when none |
-| 13 | `CustomData` | custom data block (FMT-14) | empty | 4.0 | only when not empty (V ≥ 4.0 always holds for App) |
-| 14 | `PreviousParentGroup` | id of a group (FMT-11.30) | none | 4.1 | only when V ≥ 4.1 and set; in App, V is then always 4.1 (FMT-11.30) |
+| 13 | `CustomData` | custom data block (FMT-14) | empty | 4.0 | only when not empty (V ≥ 4.0 always holds for Larsal) |
+| 14 | `PreviousParentGroup` | id of a group (FMT-11.30) | none | 4.1 | only when V ≥ 4.1 and set; in Larsal, V is then always 4.1 (FMT-11.30) |
 | 15 | `Entry`, repeated | the group's live entries | none | all | one per entry |
 | 16 | `Group`, repeated | the group's child groups | none | all | one per child group |
 
-"all" means: present in every file version, 3.1 included. App reads such an element in every version and writes it in every version App writes (4.0, 4.1, or a higher 4.x minor under FMT-16.24). Elements marked 4.0 or 4.1 are read in any file version. FMT-16 makes sure V is high enough for what the vault uses.
+"all" means: present in every file version, 3.1 included. Larsal reads such an element in every version and writes it in every version Larsal writes (4.0, 4.1, or a higher 4.x minor under FMT-16.24). Elements marked 4.0 or 4.1 are read in any file version. FMT-16 makes sure V is high enough for what the vault uses.
 
 FMT-11.7 **Entries before child groups.** Inside a group, the writer puts all `Entry` elements before all child `Group` elements. Entries and child groups are written in their stored order. Reading keeps document order.
 
@@ -115,7 +115,7 @@ FMT-11.12 **Times block.** Groups, live entries and history items each have one 
 | 6 | `UsageCount` | integer | 0 |
 | 7 | `LocationChanged` | time | open time |
 
-All seven exist in all versions and are always written. Times use FMT-12. App writes every time in the binary form (FMT-12.2): the base64 of 8 bytes, the little-endian count of seconds since 0001-01-01T00:00:00Z. The reader accepts the binary form and the text form in any file version (FMT-12.4). The text form `yyyy-MM-ddTHH:mm:ssZ` is what the reference writes in 3.1 files (FMT-12.3); App never writes it. If the whole `Times` element is missing, every child takes its default.
+All seven exist in all versions and are always written. Times use FMT-12. Larsal writes every time in the binary form (FMT-12.2): the base64 of 8 bytes, the little-endian count of seconds since 0001-01-01T00:00:00Z. The reader accepts the binary form and the text form in any file version (FMT-12.4). The text form `yyyy-MM-ddTHH:mm:ssZ` is what the reference writes in 3.1 files (FMT-12.3); Larsal never writes it. If the whole `Times` element is missing, every child takes its default.
 
 **Repeated Times.** The children of one `Times` block may come in any order; a child repeated inside one block: the last one wins. If a group, live entry or history item holds more than one `Times` block, each block starts from the defaults of the table above, and the last block replaces the whole result of the earlier ones. So a child that the last block lacks takes its default (open time, False or 0), even when an earlier block gave it. The writer writes one block, so this only happens in files from other writers. We do the same as the reference (AT-A11).
 
@@ -150,12 +150,12 @@ FMT-11.15 **Entry elements, in write order.** These apply to both live entries a
 | 6 | `OverrideURL` | text (FMT-11.28) | empty | all | always |
 | 7 | `Tags` | text, normalized (FMT-11.26) | empty | all | always |
 | 8 | `Times` | times block (FMT-11.12) | defaults | all | always |
-| 9 | `QualityCheck` | boolean (FMT-11.29) | included in reports | 4.1 | only when V ≥ 4.1 and the entry is excluded from reports; then always `False`. In App, V is then always 4.1, history items included (FMT-11.29) |
-| 10 | `PreviousParentGroup` | id (FMT-11.30) | none | 4.1 | only when V ≥ 4.1 and set. In App, V is then always 4.1, history items included (FMT-11.30) |
+| 9 | `QualityCheck` | boolean (FMT-11.29) | included in reports | 4.1 | only when V ≥ 4.1 and the entry is excluded from reports; then always `False`. In Larsal, V is then always 4.1, history items included (FMT-11.29) |
+| 10 | `PreviousParentGroup` | id (FMT-11.30) | none | 4.1 | only when V ≥ 4.1 and set. In Larsal, V is then always 4.1, history items included (FMT-11.30) |
 | 11 | `String`, repeated | one field (FMT-11.16 to FMT-11.22) | the five standard fields, empty | all | one per field, sorted |
 | 12 | `Binary`, repeated | one attachment reference (FMT-11.23) | none | all | one per attachment, sorted |
 | 13 | `AutoType` | auto-type block (FMT-11.24) | defaults | all | always |
-| 14 | `CustomData` | custom data block (FMT-14) | empty | 4.0 | only when not empty (V ≥ 4.0 always holds for App) |
+| 14 | `CustomData` | custom data block (FMT-14) | empty | 4.0 | only when not empty (V ≥ 4.0 always holds for Larsal) |
 | 15 | `History` | history items (FMT-11.31) | empty | all | live entries only, always (an empty element when there are no items); never inside a history item |
 
 The reader accepts the children of an entry in any order. When a single-value child appears more than once, the last one wins. Repeated blocks each behave differently:
@@ -231,13 +231,13 @@ FMT-11.28 **Override URL.** `OverrideURL` is text, kept as is. It may hold a `cm
 
 FMT-11.29 **Quality check.** `QualityCheck` is a boolean that means "include this entry in password reports".
 - **Read.** The entry is excluded from reports when the value is false. So `False` means excluded and `True` means included. An empty element reads as false, so it means excluded. A missing element means included.
-- **Write.** Written only when V ≥ 4.1 and the entry is excluded, and then always as `False`. An excluded live entry makes V 4.1 (FMT-16.8). An excluded history item also makes V 4.1 in App, so the flag is never dropped (decided: spec/decisions.md LD-08). The reference does not raise V for a history item and drops its flag at 4.0 and 3.1 (FMT-16.11, FMT-16.13; observed, see FMT-16).
+- **Write.** Written only when V ≥ 4.1 and the entry is excluded, and then always as `False`. An excluded live entry makes V 4.1 (FMT-16.8). An excluded history item also makes V 4.1 in Larsal, so the flag is never dropped (decided: spec/decisions.md LD-08). The reference does not raise V for a history item and drops its flag at 4.0 and 3.1 (FMT-16.11, FMT-16.13; observed, see FMT-16).
 - **Legacy flag.** An older exclude flag, kept in entry custom data, is converted on read (FMT-14.19).
 
 FMT-11.30 **Previous parent group.** `PreviousParentGroup`, on groups and on entries, is the id of the group the item sat in before its last move inside the vault. The recycle bin's restore uses it (MOD-04).
 - **Read.** Read in any version. A zero, empty or wrong-length id means none.
 - **Write.** Written only when V ≥ 4.1 and set.
-- **App: never dropped.** Any set previous parent makes V 4.1 in App: on a group or a live entry, on a history item, and also when the id names no existing group (decided: spec/decisions.md LD-08, the lossless choice of FMT-16.19). So App always writes it and it survives a round trip. An id that names no existing group is kept in memory and written back unchanged (FMT-11.38).
+- **Larsal: never dropped.** Any set previous parent makes V 4.1 in Larsal: on a group or a live entry, on a history item, and also when the id names no existing group (decided: spec/decisions.md LD-08, the lossless choice of FMT-16.19). So Larsal always writes it and it survives a round trip. An id that names no existing group is kept in memory and written back unchanged (FMT-11.38).
 - **The reference.** Only a previous parent of a group or live entry whose group exists raises V to 4.1 (FMT-16.7, FMT-16.9). One on a history item, or one that names no existing group, does not raise V (FMT-16.11): it is written only when V is 4.1 for some other reason, and at 4.0 or 3.1 it is not written, so it is gone once the saved file is read again (FMT-16.13).
 
 FMT-11.31 **History.** `History` holds `Entry` elements, the history items, oldest first, in stored order. A history item uses the entry elements of FMT-11.15 except `History`. A `History` inside a history item fails the open. The writer writes `History` for every live entry, as an empty element when there are no items, and never writes it inside a history item. Apart from the reading limits of FMT-11.48, the reader applies no count or size limit to history: the vault's history settings are not applied on read. MOD-03 limits apply when the app edits an entry.
@@ -250,7 +250,7 @@ FMT-11.32 **History item ids.** History items are not entered in the id registry
 
 FMT-11.33 **Two id spaces.** Group ids and entry ids are kept apart. A group and an entry may carry the same id. This is accepted and both are kept.
 
-FMT-11.34 **Missing or bad id.** A group or live entry gets a fresh random id from app-crypto random, without error, when any of these is true:
+FMT-11.34 **Missing or bad id.** A group or live entry gets a fresh random id from larsal-crypto random, without error, when any of these is true:
 - it has no `UUID` element,
 - its `UUID` is empty,
 - its `UUID` is the zero id,
@@ -326,7 +326,7 @@ FMT-11.45 **Unknown elements: what we do (SD-06).** We keep each unknown child e
 - A child element inside `Key`, `Value` or any other value element is not an unknown element: it fails the open (FMT-12.23).
 - We never interpret its content. A `Protected="True"` value inside a kept unknown element takes no keystream bytes on read, as in the reference, and is kept and written back as read, with its attribute and its text unchanged, so it takes no keystream on write either (decided: spec/decisions.md LD-24; FMT-09.14, FMT-10.20).
 - Unknown attributes on known elements are dropped, as the reference drops them.
-- **Version (decided: spec/decisions.md LD-09).** When the vault holds kept unknown elements (from this card, FMT-10.20, FMT-14 or FMT-15), App writes at least the version the file was read as (FMT-16.24), even when no known content needs it: a file read as 4.1 is written as 4.1, a file read as 4.2 as 4.2. FMT-16 owns the version choice. The reference drops the elements and chooses V from known content only (FMT-16.2).
+- **Version (decided: spec/decisions.md LD-09).** When the vault holds kept unknown elements (from this card, FMT-10.20, FMT-14 or FMT-15), Larsal writes at least the version the file was read as (FMT-16.24), even when no known content needs it: a file read as 4.1 is written as 4.1, a file read as 4.2 as 4.2. FMT-16 owns the version choice. The reference drops the elements and chooses V from known content only (FMT-16.2).
 - FMT-10 covers unknown children of Meta. FMT-14 covers those of `CustomIcons`, `Icon`, `CustomData` and `Item`. FMT-15 covers those of `DeletedObjects` and `DeletedObject`.
 
 These rules are decided as written (spec/decisions.md LD-27).
@@ -436,7 +436,7 @@ Notation: id(xx) as defined under What it does. "Write at V" means: run the docu
 | 11-11 icon numbers | Entry A `IconID` -3; entry B `IconID` 2147483647; group `IconID` 9999; group G2 with no `IconID`; entry C `<IconID/>` | Read (C in its own file) | A → 0; B → 2147483647; group → 9999; G2 → 48. File with C fails. FMT-11.10 |
 | 11-12 icon order | Meta icon id(A1). Entry id(10) `<IconID>5</IconID><CustomIconUUID>oaGhoaGhoaGhoaGhoaGhoQ==</CustomIconUUID>`. Entry id(11) `<CustomIconUUID>oaGhoaGhoaGhoaGhoaGhoQ==</CustomIconUUID><IconID>7</IconID>`. Entry id(12) `<CustomIconUUID>7u7u7u7u7u7u7u7u7u7u7g==</CustomIconUUID>` (id(EE) is not in Meta) | Read, write at 4.0 | id(10): `IconID` 0 + `CustomIconUUID` id(A1). id(11): `IconID` 7, no `CustomIconUUID`. id(12): `IconID` 0 + `CustomIconUUID` `7u7u7u7u7u7u7u7u7u7u7g==`. FMT-11.11, 11.38 |
 | 11-13 times defaults | Group with no `Times`; open time 2026-10-24T19:19:32Z (63928466372 s) | Read, write at 4.0 | `LastModificationTime`, `CreationTime`, `LastAccessTime`, `ExpiryTime` and `LocationChanged` = `xPtu4g4AAAA=` (bytes `c4 fb 6e e2 0e 00 00 00`); `Expires` `False`; `UsageCount` `0`. FMT-11.12 |
-| 11-14 time encodings | App write: entry `LastModificationTime` 2020-07-07T07:07:07Z. Reference read: a 3.1 file (written by the reference, text times) whose entry has `<LastModificationTime>2020-07-07T07:07:07Z</LastModificationTime>` | App writes at 4.0; App reads the 3.1 file, then writes | Write: `GxaW1g4AAAA=` (bytes `1b 16 96 d6 0e 00 00 00` = 63729702427 s); App never writes the text form. Read: the same time, written back as `GxaW1g4AAAA=`. FMT-11.12 |
+| 11-14 time encodings | Larsal write: entry `LastModificationTime` 2020-07-07T07:07:07Z. Reference read: a 3.1 file (written by the reference, text times) whose entry has `<LastModificationTime>2020-07-07T07:07:07Z</LastModificationTime>` | Larsal writes at 4.0; Larsal reads the 3.1 file, then writes | Write: `GxaW1g4AAAA=` (bytes `1b 16 96 d6 0e 00 00 00` = 63729702427 s); Larsal never writes the text form. Read: the same time, written back as `GxaW1g4AAAA=`. FMT-11.12 |
 | 11-15 lenient times | `<Times><CreationTime>yesterday</CreationTime><LastModificationTime>AAAA</LastModificationTime><LastAccessTime/></Times>` | Read, write at 4.0 | `CreationTime` = open time. `LastModificationTime` = 0001-01-01 → `AAAAAAAAAAA=`. `LastAccessTime` → `AAAAAAAAAAA=`. FMT-11.13 |
 | 11-16 empty usage count | `<Times><UsageCount/></Times>` | Read | Fail: invalid number. FMT-11.13 |
 | 11-16b negative counts kept | Entry: `<Times><UsageCount>-5</UsageCount></Times>` and `<AutoType><DataTransferObfuscation>-7</DataTransferObfuscation></AutoType>` | Read, write at 4.0 | Opens. Written `<UsageCount>-5</UsageCount>` and `<DataTransferObfuscation>-7</DataTransferObfuscation>`; neither becomes 0 (observed with the installed CLI in review round 3). FMT-11.13, 11.24 |
@@ -454,13 +454,13 @@ Notation: id(xx) as defined under What it does. "Write at V" means: run the docu
 | 11-28 broken binary | File A: `<Binary><Key>f.txt</Key></Binary>`. File B: pool items with keys `0` = "AAA" and `1` = "BBB"; entry has `<Value Ref="1"/>` under the name `g.txt` | Read | A fails. B: attachment `g.txt` = "BBB". FMT-11.23 |
 | 11-29 auto-type | `<AutoType><Enabled>False</Enabled><DataTransferObfuscation>1</DataTransferObfuscation><DefaultSequence>{PASSWORD}</DefaultSequence><Association><Window>Win B</Window><KeystrokeSequence>seqB</KeystrokeSequence></Association><Association><Window>Win A</Window><KeystrokeSequence/></Association></AutoType>` | Read, write | Written in the same order, with `<KeystrokeSequence/>` for Win A. FMT-11.24 |
 | 11-30 auto-type errors and defaults | File A: `<Association><Window>w</Window></Association>`. File B: entry without `AutoType` | Read, write B | A fails. B written `<AutoType><Enabled>True</Enabled><DataTransferObfuscation>0</DataTransferObfuscation><DefaultSequence/></AutoType>`. FMT-11.24 |
-| 11-31 colors | `<ForegroundColor>red</ForegroundColor><BackgroundColor>#GG0000</BackgroundColor>`; another entry `<BackgroundColor>#00ff00</BackgroundColor>` | Read, write | All kept byte for byte. No error. A color the user picks in App is written per FMT-12.18. FMT-11.25 |
+| 11-31 colors | `<ForegroundColor>red</ForegroundColor><BackgroundColor>#GG0000</BackgroundColor>`; another entry `<BackgroundColor>#00ff00</BackgroundColor>` | Read, write | All kept byte for byte. No error. A color the user picks in Larsal is written per FMT-12.18. FMT-11.25 |
 | 11-32 entry tags | `<Tags>zeta; alpha,beta&#9;alpha ,Alpha</Tags>`; second entry `<Tags>a, ,b;;c</Tags>` | Read, write | First: `<Tags>Alpha,alpha,beta,zeta</Tags>`. Second: `<Tags>a,b,c</Tags>` (the reference writes `,a,b,c`). FMT-11.26 |
 | 11-33 group tags | Group `<Tags>gt2;gt1</Tags>` | Read, write at 4.1 | `<Tags>gt2;gt1</Tags>` between `Notes` and `IconID`. FMT-16 picks 4.1. FMT-11.27 |
 | 11-34 override URL | `<OverrideURL>cmd://demo</OverrideURL>` | Read, write | Kept byte for byte. Nothing runs. FMT-11.28 |
 | 11-35 quality check | Entry A `<QualityCheck>False</QualityCheck>`; B `<QualityCheck>True</QualityCheck>`; C `<QualityCheck/>`; D none | Read; write at 4.1 and at 4.0 | A and C excluded; B and D included. At 4.1: A and C have `<QualityCheck>False</QualityCheck>` right after `Times`; B and D have no `QualityCheck`. At 4.0: no `QualityCheck` at all. FMT-11.29 |
-| 11-36 previous parent | First file: entry `PreviousParentGroup` id(02), where group id(02) exists. Second file: entry `PreviousParentGroup` id(98) (no such group) and nothing else that needs 4.1 (FMT-16.6 to FMT-16.10) | App lets FMT-16 choose V for each, writes, then reads its output back | First: V is 4.1 (FMT-16.9); `<PreviousParentGroup>AgICAgICAgICAgICAgICAg==</PreviousParentGroup>` after the `QualityCheck` position and before the first `String`. Second: V is 4.1 (LD-08); `<PreviousParentGroup>mJiYmJiYmJiYmJiYmJiYmA==</PreviousParentGroup>` is written at the same position, and after the read-back the entry still has previous parent id(98). The reference saves the second file at 4.0 (or 3.1 with the legacy AES-KDF) without the element, so its read-back has no previous parent (FMT-16.13). FMT-11.30, 11.38 |
-| 11-36b history flags need 4.1 | Live entry id(10) "T1", not excluded, no previous parent, holding one history item (Title "T0") with `<QualityCheck>False</QualityCheck>` and `PreviousParentGroup` id(02), where group id(02) exists. Nothing else in the vault needs 4.1 | App lets FMT-16 choose V, writes, then reads its output back | V is 4.1. The history item is written with `<QualityCheck>False</QualityCheck>` right after its `Times`, then `<PreviousParentGroup>AgICAgICAgICAgICAgICAg==</PreviousParentGroup>`. After the read-back the history item is still excluded and still has previous parent id(02); the live entry is still included and has none. The reference does not raise V for these and drops both (FMT-16.11, FMT-16.13). FMT-11.29, 11.30 |
+| 11-36 previous parent | First file: entry `PreviousParentGroup` id(02), where group id(02) exists. Second file: entry `PreviousParentGroup` id(98) (no such group) and nothing else that needs 4.1 (FMT-16.6 to FMT-16.10) | Larsal lets FMT-16 choose V for each, writes, then reads its output back | First: V is 4.1 (FMT-16.9); `<PreviousParentGroup>AgICAgICAgICAgICAgICAg==</PreviousParentGroup>` after the `QualityCheck` position and before the first `String`. Second: V is 4.1 (LD-08); `<PreviousParentGroup>mJiYmJiYmJiYmJiYmJiYmA==</PreviousParentGroup>` is written at the same position, and after the read-back the entry still has previous parent id(98). The reference saves the second file at 4.0 (or 3.1 with the legacy AES-KDF) without the element, so its read-back has no previous parent (FMT-16.13). FMT-11.30, 11.38 |
+| 11-36b history flags need 4.1 | Live entry id(10) "T1", not excluded, no previous parent, holding one history item (Title "T0") with `<QualityCheck>False</QualityCheck>` and `PreviousParentGroup` id(02), where group id(02) exists. Nothing else in the vault needs 4.1 | Larsal lets FMT-16 choose V, writes, then reads its output back | V is 4.1. The history item is written with `<QualityCheck>False</QualityCheck>` right after its `Times`, then `<PreviousParentGroup>AgICAgICAgICAgICAgICAg==</PreviousParentGroup>`. After the read-back the history item is still excluded and still has previous parent id(02); the live entry is still included and has none. The reference does not raise V for these and drops both (FMT-16.11, FMT-16.13). FMT-11.29, 11.30 |
 | 11-37 history shape | Live entry id(10) with one history item (Title "T0"); live entry id(11) with no history | Write | id(10) ends with `<History><Entry>…</Entry></History>`, and the item has its own `Times` and no `History`. id(11) ends with `<History/>`. FMT-11.15, 11.31 |
 | 11-38 nested history | History item holding `<History/>` | Read | Fail. FMT-11.31 |
 | 11-39 history ids | Entry id(10) with history items: one with `UUID` id(20), one with no `UUID` | Read, write | Both items written with `UUID` `EBAQEBAQEBAQEBAQEBAQEA==`. FMT-11.32 |
@@ -528,12 +528,12 @@ Notation: id(xx) as defined under What it does. "Write at V" means: run the docu
   - the duplicate-id attachment and history union, including the lost inline attachment of an earlier occurrence, and the U+00A0 and U+3000 tag trim (FMT-11.26), observed again in `/tmp/spec-fmt11-14-15/r2/`,
   - in review round 3 (`/tmp/spec-review-r3-fmt11-14-15/`): a negative `UsageCount` and `DataTransferObfuscation` kept (test 11-16b), and stray text, a comment and a processing instruction inside containers ignored (test 11-50b),
   - a root element with a declared namespace prefix read on its local name (test 11-50b), in `/tmp/spec-fmt11-14-15/r4/`.
-- **App's own rules.** The limits of FMT-11.48 are App's own; the reference has no limits to observe (its source sets none for the document). The numbers are those of FMT-08.12 (decided: spec/decisions.md LD-22).
+- **Larsal's own rules.** The limits of FMT-11.48 are Larsal's own; the reference has no limits to observe (its source sets none for the document). The numbers are those of FMT-08.12 (decided: spec/decisions.md LD-22).
 - **Installed version against the source.** For the rules in this card, no difference was found between the source and the installed 2.7.11. One unrelated difference (FEA-09): the installed CLI's XML export always writes the version 3.1 form (text times, no group or entry custom data), while the source exports in the vault's version.
 - **Checked by Verify (Sprint 2):**
-  - FMT-11.5: trailing text was first observed only through the import path. Observed by Verify through the vault open path too: a version 4 demo vault whose document is followed by `\n<junk>not closed\n` after the root end tag opened in the installed CLI (`show` printed the entry with its protected password) and in App's reader.
-  - FMT-11.36: the source does hang, in the change check that runs after each group move (read from the source). Observed by Verify on five more self-nested documents inside valid version 4 demo vaults: a group four levels down carrying an ancestor's id; a group three levels down carrying the root group's id; a self-nested pair after an earlier sibling with the same id; a self-nested pair with entries and other child groups around it; a self-nested pair followed by later siblings. The installed CLI hung on every one (no output, stopped after 15 s) and App's reader failed each with `Corrupt`. A document with a duplicate id but no cycle opened in both.
-  - Protected values in unknown elements: observed by Verify with rebuilt demo vaults of FMT-09 T09-14 and T09-37 (version 4, ChaCha20 stream). When the writer took no keystream for `<FooBar Protected="True">`, the installed CLI showed the password "pw-one"; when the writer did take keystream for it, the password came out garbled; a `Value Protected="True"` nested inside an unknown element took no keystream either. App's reader gave the same three results.
+  - FMT-11.5: trailing text was first observed only through the import path. Observed by Verify through the vault open path too: a version 4 demo vault whose document is followed by `\n<junk>not closed\n` after the root end tag opened in the installed CLI (`show` printed the entry with its protected password) and in Larsal's reader.
+  - FMT-11.36: the source does hang, in the change check that runs after each group move (read from the source). Observed by Verify on five more self-nested documents inside valid version 4 demo vaults: a group four levels down carrying an ancestor's id; a group three levels down carrying the root group's id; a self-nested pair after an earlier sibling with the same id; a self-nested pair with entries and other child groups around it; a self-nested pair followed by later siblings. The installed CLI hung on every one (no output, stopped after 15 s) and Larsal's reader failed each with `Corrupt`. A document with a duplicate id but no cycle opened in both.
+  - Protected values in unknown elements: observed by Verify with rebuilt demo vaults of FMT-09 T09-14 and T09-37 (version 4, ChaCha20 stream). When the writer took no keystream for `<FooBar Protected="True">`, the installed CLI showed the password "pw-one"; when the writer did take keystream for it, the password came out garbled; a `Value Protected="True"` nested inside an unknown element took no keystream either. Larsal's reader gave the same three results.
 - **Lead decisions (all decided, spec/decisions.md):**
   - L11-1 duplicate ids: LD-26, mirror the reference merge; a placement that would put a group inside itself is `Corrupt` (FMT-11.35, FMT-11.36). Not chosen: fail on any duplicate, or give later duplicates fresh ids.
   - L11-2 unknown elements: LD-27, the rules of FMT-11.45 as written.

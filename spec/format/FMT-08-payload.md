@@ -27,7 +27,7 @@ Version 3 (and the older version 2, read the same way, decided: spec/decisions.m
 
 The integrity layer is outside the cipher in version 4 (the MAC covers ciphertext) and inside the cipher in version 3 (hashes cover plaintext).
 
-App reads versions 4 and 3 and writes only version 4 (plan/architecture.md, FMT-16).
+Larsal reads versions 4 and 3 and writes only version 4 (plan/architecture.md, FMT-16).
 
 ## Inputs and outputs
 
@@ -41,7 +41,7 @@ Reading:
 | Stream start bytes (version 3 only) | 32 bytes | Outer header field 9 |
 | Final key | 32 bytes, secret | FMT-04 |
 | Ciphertext | bytes | Version 4: output of FMT-06. Version 3: the bytes after the outer header end field, read only up to the end of the final hashed block (FMT-08.2). |
-| Limits | numbers | `app-format/limits.rs` (FMT-08.12) |
+| Limits | numbers | `larsal-format/limits.rs` (FMT-08.12) |
 
 Output: the decompressed payload as bytes. Version 4: inner header followed by the document. Version 3: the document. Or one error kind from FMT-08.13.
 
@@ -65,11 +65,11 @@ FMT-08.1 Version 4 read order. Take the ciphertext C from the block integrity st
 
 FMT-08.2 Version 3 read order. The ciphertext starts right after the outer header end field. Decrypt it from the start, in order, with the same cipher table (FMT-08.4) to get P. The first 32 bytes of P must equal header field 9. A mismatch means the wrong key (FMT-05; decided: spec/decisions.md LD-12) and nothing else is decoded. Compare in constant time. The rest of P is a hashed block stream (FMT-07), read up to and including its final block. Its data, joined, is H. If the compression flag is 1, gunzip H to get the document. If it is 0, the document is H. There is no inner header.
 
-The logical end of a version 3 file is the last byte of the final hashed block. Everything after it is ignored and never read as content: the CBC padding, any plaintext a writer put between the final block and the padding, and any bytes a longer file holds after the padded end (decided: spec/decisions.md LD-01; FMT-07.11, FMT-17.15 and FMT-01.20 own the details). So App decrypts no further than the cipher block that holds the last byte of the final hashed block. A file that ends before that byte, or for a CBC cipher before the end of the 16-byte block that holds it, is `Corrupt` (FMT-07). Observed: version 3.1 demo vaults with 1, 16 and 4,096 random bytes appended open in the installed reference 2.7.11, and so do vaults with trailing plaintext or a bad all-padding last block (FMT-07.11).
+The logical end of a version 3 file is the last byte of the final hashed block. Everything after it is ignored and never read as content: the CBC padding, any plaintext a writer put between the final block and the padding, and any bytes a longer file holds after the padded end (decided: spec/decisions.md LD-01; FMT-07.11, FMT-17.15 and FMT-01.20 own the details). So Larsal decrypts no further than the cipher block that holds the last byte of the final hashed block. A file that ends before that byte, or for a CBC cipher before the end of the 16-byte block that holds it, is `Corrupt` (FMT-07). Observed: version 3.1 demo vaults with 1, 16 and 4,096 random bytes appended open in the installed reference 2.7.11, and so do vaults with trailing plaintext or a bad all-padding last block (FMT-07.11).
 
 ### Compression flag
 
-FMT-08.3 The compression flag is header field 3. It is a 4-byte little-endian unsigned integer. The values are 0 = no compression and 1 = gzip. Any other value is `Unsupported`. A field length other than 4 is `Corrupt`. A missing field 3 is `Corrupt` (FMT-02.23, FMT-17.7): App never assumes a compression the file did not state. Reference difference: the reference keeps its model default, gzip, when the field is missing (source), so such a file opens there when the payload is gzip and fails when it is plain (observed in 2.7.11). When App writes, the field is always present: `00 00 00 00` or `01 00 00 00`. New vaults use gzip. A vault keeps the setting it was opened with until the user changes it.
+FMT-08.3 The compression flag is header field 3. It is a 4-byte little-endian unsigned integer. The values are 0 = no compression and 1 = gzip. Any other value is `Unsupported`. A field length other than 4 is `Corrupt`. A missing field 3 is `Corrupt` (FMT-02.23, FMT-17.7): Larsal never assumes a compression the file did not state. Reference difference: the reference keeps its model default, gzip, when the field is missing (source), so such a file opens there when the payload is gzip and fails when it is plain (observed in 2.7.11). When Larsal writes, the field is always present: `00 00 00 00` or `01 00 00 00`. New vaults use gzip. A vault keeps the setting it was opened with until the user changes it.
 
 ### Cipher modes as used here
 
@@ -81,11 +81,11 @@ FMT-08.4 Cipher table. CRY-01 owns the primitive details. The key is always the 
 | `AD 68 F2 9F 57 6F 4B B9 A3 6A D4 7A F9 65 34 6C` | Twofish-256-CBC | 16 bytes | PKCS#7 |
 | `D6 03 8A 2B 8B 6F 4C B5 A5 24 33 9A 31 DB B5 9A` | ChaCha20, RFC 8439 block function, 96-bit nonce, 32-bit block counter starting at 0 | 12 bytes | none: ciphertext length = plaintext length |
 
-The ChaCha20 counter starts at 0, not at 1 as in the RFC 8439 AEAD construction. A field 7 length that does not match the table is `Unsupported`, detected while the outer header is parsed, before any key derivation (FMT-02.11, CRY-01.9). Reference difference: the reference also accepts 8-byte nonces (the original ChaCha20 layout) and 24-byte nonces (XChaCha20) for the ChaCha20 id; CRY-01 edge cases describe both. App rejects them. Unknown cipher ids are handled in FMT-02 and CRY-01.
+The ChaCha20 counter starts at 0, not at 1 as in the RFC 8439 AEAD construction. A field 7 length that does not match the table is `Unsupported`, detected while the outer header is parsed, before any key derivation (FMT-02.11, CRY-01.9). Reference difference: the reference also accepts 8-byte nonces (the original ChaCha20 layout) and 24-byte nonces (XChaCha20) for the ChaCha20 id; CRY-01 edge cases describe both. Larsal rejects them. Unknown cipher ids are handled in FMT-02 and CRY-01.
 
-FMT-08.5 CBC padding. On write, the plaintext is padded once, at the very end, with PKCS#7. Add n bytes, each of value n, where n = 16 − (length mod 16), so n is 1 to 16. A plaintext whose length is a multiple of 16 gets a full block of `10` bytes. On read, version 4: the ciphertext (the joined block data of FMT-06) must have a non-zero length that is a multiple of 16, or the result is `Corrupt`. After decryption the last byte n must be 1 to 16, and the last n bytes must all equal n. Otherwise the result is `Corrupt` (decided: spec/decisions.md LD-03). Strip the padding. The padding is checked only after every block MAC has passed (FMT-06), and the cipher layer returns one error for any decrypt failure (CRY-01; decided: spec/decisions.md LD-04), so nothing about the padding is visible without the key and a padding failure cannot be an oracle (AT-B07). Reference difference: the reference does not check the padding in practice. Version 4 demo vaults with padding `00`×16, with mixed padding bytes, and with a last byte of `11` all opened in the installed version. App is stricter: only the key holder can make such a file.
+FMT-08.5 CBC padding. On write, the plaintext is padded once, at the very end, with PKCS#7. Add n bytes, each of value n, where n = 16 − (length mod 16), so n is 1 to 16. A plaintext whose length is a multiple of 16 gets a full block of `10` bytes. On read, version 4: the ciphertext (the joined block data of FMT-06) must have a non-zero length that is a multiple of 16, or the result is `Corrupt`. After decryption the last byte n must be 1 to 16, and the last n bytes must all equal n. Otherwise the result is `Corrupt` (decided: spec/decisions.md LD-03). Strip the padding. The padding is checked only after every block MAC has passed (FMT-06), and the cipher layer returns one error for any decrypt failure (CRY-01; decided: spec/decisions.md LD-04), so nothing about the padding is visible without the key and a padding failure cannot be an oracle (AT-B07). Reference difference: the reference does not check the padding in practice. Version 4 demo vaults with padding `00`×16, with mixed padding bytes, and with a last byte of `11` all opened in the installed version. Larsal is stricter: only the key holder can make such a file.
 
-On read, version 3: the padding lies after the final hashed block, so it is never checked (FMT-08.2, LD-01). Reference: it checks the padding only when the file's last cipher block also holds the end of the final hashed block, and then a bad padding fails the open (FMT-07.11, observed). App opens that file: an expected AT-A11 difference, which only the key holder can cause.
+On read, version 3: the padding lies after the final hashed block, so it is never checked (FMT-08.2, LD-01). Reference: it checks the padding only when the file's last cipher block also holds the end of the final hashed block, and then a bad padding fails the open (FMT-07.11, observed). Larsal opens that file: an expected AT-A11 difference, which only the key holder can cause.
 
 ### Gzip
 
@@ -100,18 +100,18 @@ FMT-08.6 Reading gzip. The compressed payload must be exactly one gzip member as
 
 Any failure is `Corrupt`. A zlib-wrapped stream (RFC 1950, for example starting `78 9C`) and raw deflate are `Corrupt`. The reference rejected every one of these cases in the installed version. Its message varies with the size of the document: small documents fail while the inner header is read, large ones fail as a premature end of the document.
 
-FMT-08.7 Nothing may follow the gzip member. App reports `Corrupt` if any byte follows the end of the member's trailer in the decrypted plaintext, and that includes a second gzip member. Reference difference: the reference stops reading at the end of the first member and ignores everything after it. Observed: 20 junk bytes after the member, inside valid encryption, opened fine. A document split over two members failed only because the first member held an incomplete document. Decided: spec/decisions.md LD-02. These bytes lie inside the checked payload, so only the key holder can put them there. This is not the LD-01 case, which covers bytes outside the checked data (FMT-08.1, FMT-08.2).
+FMT-08.7 Nothing may follow the gzip member. Larsal reports `Corrupt` if any byte follows the end of the member's trailer in the decrypted plaintext, and that includes a second gzip member. Reference difference: the reference stops reading at the end of the first member and ignores everything after it. Observed: 20 junk bytes after the member, inside valid encryption, opened fine. A document split over two members failed only because the first member held an incomplete document. Decided: spec/decisions.md LD-02. These bytes lie inside the checked payload, so only the key holder can put them there. This is not the LD-01 case, which covers bytes outside the checked data (FMT-08.1, FMT-08.2).
 
-FMT-08.8 The flag is trusted, never guessed. If the flag is 1 and the plaintext is not gzip, the result is `Corrupt`. If the flag is 0 and the plaintext is gzip, the inner header parse fails, so the result is `Corrupt` (FMT-09). App never sniffs the payload to pick a mode.
+FMT-08.8 The flag is trusted, never guessed. If the flag is 1 and the plaintext is not gzip, the result is `Corrupt`. If the flag is 0 and the plaintext is gzip, the inner header parse fails, so the result is `Corrupt` (FMT-09). Larsal never sniffs the payload to pick a mode.
 
-FMT-08.9 Writing gzip. App writes exactly one member:
+FMT-08.9 Writing gzip. Larsal writes exactly one member:
 
 - the 10-byte header `1F 8B 08 00 00 00 00 00 00 13` (FLG 0, MTIME 0, XFL 0, OS `13`, which is what the reference's macOS build writes),
 - deflate data at the default level 6,
 - CRC32 (little-endian),
 - ISIZE (little-endian).
 
-App's deflate output does not have to match the reference byte for byte. Any valid deflate stream is correct. The reference uses zlib-style settings: level 6, a 15-bit window, memory level 8, default strategy, a single finishing flush at the end. Other writers produce other header bytes (for example XFL `04`, OS `00`, as seen in the reference's older test vaults), and FMT-08.6 accepts them.
+Larsal's deflate output does not have to match the reference byte for byte. Any valid deflate stream is correct. The reference uses zlib-style settings: level 6, a 15-bit window, memory level 8, default strategy, a single finishing flush at the end. Other writers produce other header bytes (for example XFL `04`, OS `00`, as seen in the reference's older test vaults), and FMT-08.6 accepts them.
 
 ### Writing the payload
 
@@ -122,7 +122,7 @@ FMT-08.10 Version 4 write order:
 3. Encrypt P as one stream with the vault's cipher, the final key and a fresh IV or nonce (CRY-03), which is also written to header field 7. CBC pads once at the end (FMT-08.5).
 4. Hand the ciphertext to FMT-06.
 
-App writes cipher ids from the FMT-08.4 table only.
+Larsal writes cipher ids from the FMT-08.4 table only.
 
 ### What is checked, and when data may be used
 
@@ -146,7 +146,7 @@ Order for version 3:
 
 ### Size limits
 
-FMT-08.12 Size limits. This is the one table of reading limits for the payload and the document, and the only place that gives their numbers. The numbers are decided (spec/decisions.md LD-22, which accepted this card's L08-1 values and the earlier per-card limits L11-4, L13-6, L14-4 and L15-4 that it takes in). Revisit a value only if a demo vault, or a vault a user reports, passes it. FMT-09, FMT-10, FMT-11, FMT-12, FMT-13, FMT-14 and FMT-15 set no numbers. FMT-11.48, FMT-13.20, FMT-14.25 and FMT-15.14 say only how their rows are counted, and FMT-12 says how a text value is decoded before it is measured. If any of those cards still shows a number or a decision ID of its own, this table wins. The values live in `app-format/limits.rs`. (Edit caps that keep a save within these limits: decided: spec/decisions.md LD-56, MOD-01.9.)
+FMT-08.12 Size limits. This is the one table of reading limits for the payload and the document, and the only place that gives their numbers. The numbers are decided (spec/decisions.md LD-22, which accepted this card's L08-1 values and the earlier per-card limits L11-4, L13-6, L14-4 and L15-4 that it takes in). Revisit a value only if a demo vault, or a vault a user reports, passes it. FMT-09, FMT-10, FMT-11, FMT-12, FMT-13, FMT-14 and FMT-15 set no numbers. FMT-11.48, FMT-13.20, FMT-14.25 and FMT-15.14 say only how their rows are counted, and FMT-12 says how a text value is decoded before it is measured. If any of those cards still shows a number or a decision ID of its own, this table wins. The values live in `larsal-format/limits.rs`. (Edit caps that keep a save within these limits: decided: spec/decisions.md LD-56, MOD-01.9.)
 
 How the limits apply:
 
@@ -156,7 +156,7 @@ How the limits apply:
 - The payload limits apply to the plaintext when the compression flag is 0, the same as to gunzipped data.
 - Tests must be able to lower every limit.
 - At these values, every count limit can be reached before the elements limit is passed (for example 10,000,000 custom data items of 3 elements each).
-- App never writes a vault it would refuse to read. Before a save, App checks what it is about to write against the same limits. If a limit would be passed, the save fails with `TooLarge` and the old file is left as it was.
+- Larsal never writes a vault it would refuse to read. Before a save, Larsal checks what it is about to write against the same limits. If a limit would be passed, the save fails with `TooLarge` and the old file is left as it was.
 
 | Limit (name) | Value | What is counted |
 |---|---|---|
@@ -191,7 +191,7 @@ Reference: no limit of any kind. Observed: a 0.5 MB demo vault holding a 512 MiB
 
 ### Errors
 
-FMT-08.13 Error kinds (`app-format/error.rs`). Messages come from APP-06. No error, log line or `Debug` output may contain key bytes, IV, decrypted bytes or decompressed bytes.
+FMT-08.13 Error kinds (`larsal-format/error.rs`). Messages come from APP-06. No error, log line or `Debug` output may contain key bytes, IV, decrypted bytes or decompressed bytes.
 
 | Case | Kind |
 |---|---|
@@ -218,17 +218,17 @@ FMT-08.14 An empty plaintext (no data at all, or only CBC padding) is `Corrupt`,
 - Version 3, bad padding or extra plaintext after the final hashed block: opens (FMT-08.2, FMT-08.5, LD-01). The reference opens it too, except a bad padding in a last cipher block that also holds the end of the final hashed block, which fails there (FMT-07.11).
 - 16 extra ciphertext bytes inside valid blocks: the old padding block becomes data, and the result is `Corrupt` either from the padding check or from the trailing bytes (FMT-08.7). The reference opens it when the payload is gzip (trailing bytes ignored) and fails when it is plain.
 - A gzip header carrying FEXTRA, FNAME, FCOMMENT and a correct FHCRC: accepted. A wrong FHCRC, a reserved flag bit set, or CM other than 8: `Corrupt`. The installed reference behaves the same.
-- Gzip trailer CRC32 or ISIZE wrong, or the trailer missing: `Corrupt`, always. The installed reference rejects these through read side effects, but not at every buffer boundary (observed, Sprint 2 Verify): it reads in 16 KiB pieces and stops at the root end tag, so when the unpacked length is at or just past a 16,384-byte boundary it accepts a wrong CRC, a wrong length or no trailer. App stays strict (LD-84); differential fuzzing (AT-A11) lists this as a known difference.
+- Gzip trailer CRC32 or ISIZE wrong, or the trailer missing: `Corrupt`, always. The installed reference rejects these through read side effects, but not at every buffer boundary (observed, Sprint 2 Verify): it reads in 16 KiB pieces and stops at the root end tag, so when the unpacked length is at or just past a 16,384-byte boundary it accepts a wrong CRC, a wrong length or no trailer. Larsal stays strict (LD-84); differential fuzzing (AT-A11) lists this as a known difference.
 - Junk after the gzip member, or two members: `Corrupt` (FMT-08.7, LD-02). The reference ignores the junk.
 - Plaintext larger than a limit: `TooLarge`. Memory stays near the limit, never above it plus a small working buffer (AT-A06).
-- Twofish payloads: same layering as AES-256-CBC (observed by Verify in Sprint 2: a scratch copy of a demo version 4.1 vault, encrypted with Twofish-256-CBC through libgcrypt 1.12.1 with `K_enc`, the 16-byte IV of field 7 and PKCS#7 padding, cipher id `AD 68 F2 9F ...` and a re-signed header, opened in the installed CLI, which reported Twofish 256-bit; the CLI's own re-save of it decrypted with libgcrypt the same way, and both files opened in App's reader). The Twofish known-answer vectors belong to CRY-01.
+- Twofish payloads: same layering as AES-256-CBC (observed by Verify in Sprint 2: a scratch copy of a demo version 4.1 vault, encrypted with Twofish-256-CBC through libgcrypt 1.12.1 with `K_enc`, the 16-byte IV of field 7 and PKCS#7 padding, cipher id `AD 68 F2 9F ...` and a re-signed header, opened in the installed CLI, which reported Twofish 256-bit; the CLI's own re-save of it decrypted with libgcrypt the same way, and both files opened in Larsal's reader). The Twofish known-answer vectors belong to CRY-01.
 
 ## Security notes
 
-- Integrity comes from FMT-05, FMT-06 and FMT-07, not from this layer. Gzip CRC32 and CBC padding are not security checks. Still, App never uses data before every layer has been checked (FMT-08.11). The promise to tamperers in plan/security.md is never to show half-checked data (SF-06, AT-A03, AT-A04).
+- Integrity comes from FMT-05, FMT-06 and FMT-07, not from this layer. Gzip CRC32 and CBC padding are not security checks. Still, Larsal never uses data before every layer has been checked (FMT-08.11). The promise to tamperers in plan/security.md is never to show half-checked data (SF-06, AT-A03, AT-A04).
 - Padding oracle: in version 4 the padding is checked only after all MACs pass, with one error for any decrypt failure (LD-04). In version 3 the padding is never checked (LD-01), and every hashed block failure after the start bytes maps to the same `Corrupt` (AT-B07).
-- Bytes after the logical end (FMT-08.1, FMT-08.2, LD-01) lie outside the checked data. App never reads them as content, so they cannot change what App shows, and never writes them: a save writes the whole file fresh (SF-06, AT-A03). Cuts and swaps inside the block stream still fail (FMT-06, FMT-07).
-- Decompression bomb: streaming counts with hard limits. No allocation from declared sizes (AT-A06, SF-11). The reference has no limit, so App is stricter here.
+- Bytes after the logical end (FMT-08.1, FMT-08.2, LD-01) lie outside the checked data. Larsal never reads them as content, so they cannot change what Larsal shows, and never writes them: a save writes the whole file fresh (SF-06, AT-A03). Cuts and swaps inside the block stream still fail (FMT-06, FMT-07).
+- Decompression bomb: streaming counts with hard limits. No allocation from declared sizes (AT-A06, SF-11). The reference has no limit, so Larsal is stricter here.
 - The compression flag, cipher id and IV are public header data. They hold no secret (SF-12). The final key and all plaintext are secrets. Keep them in `SecretBytes`, wipe working buffers (decrypt buffers, inflate output buffers) after use, and never log them (AT-C06).
 - Fresh IV or nonce on every save (SF-07, AT-B03). Reusing a ChaCha20 nonce with the same key would expose the XOR of two payloads.
 - Hostile documents inside valid encryption are possible for anyone holding a demo key: AT-A08 and AT-A11 cover them. The stricter rules in FMT-08.5 (version 4) and FMT-08.7 change differential results only for such crafted files.
@@ -257,8 +257,8 @@ All hex is shown byte by byte. K = `00 01 02 … 1F` (32 bytes). Payload vector 
 | T08-15 (FMT-08.7) | Valid gzip member followed by 20 bytes "GARBAGE-AFTER-MEMBER" inside valid encryption | Open | `Corrupt` (LD-02). The reference opens it. |
 | T08-16 (FMT-08.7) | Payload as two gzip members, split at decompressed byte 200 | Open | `Corrupt` |
 | T08-17 (FMT-08.8) | Flag 1 with a plain payload; separately flag 0 with a gzip payload | Open | `Corrupt` each time. The second fails in the inner header parse. |
-| T08-18 (FMT-08.9) | Any vault | App saves with compression on | The plaintext starts `1F 8B 08 00 00 00 00 00 00 13`. Gunzip returns exactly U. The reference CLI `ls` opens the file. |
-| T08-19 (FMT-08.10, FMT-08.3) | Vault with compression off | App saves | Field 3 = `00 00 00 00`. The plaintext starts with inner header byte `01` (FMT-09). The reference CLI opens it. |
+| T08-18 (FMT-08.9) | Any vault | Larsal saves with compression on | The plaintext starts `1F 8B 08 00 00 00 00 00 00 13`. Gunzip returns exactly U. The reference CLI `ls` opens the file. |
+| T08-19 (FMT-08.10, FMT-08.3) | Vault with compression off | Larsal saves | Field 3 = `00 00 00 00`. The plaintext starts with inner header byte `01` (FMT-09). The reference CLI opens it. |
 | T08-20 (FMT-08.11) | Valid vault whose last data block MAC is changed | Open with a streaming reader | `Corrupt`. No entry, attachment or field value reached the caller. |
 | T08-21 (FMT-08.12) | 0.5 MB demo vault whose payload inflates to 512 MiB plus a few bytes (one zero-filled attachment); test limit total set to 64 MiB | Open | `TooLarge` naming total. Peak memory under 64 MiB plus 8 MiB. |
 | T08-22 (FMT-08.12) | Decompressed payload of exactly the test limit total; then that limit + 1 | Open | First opens; second `TooLarge` |
@@ -274,7 +274,7 @@ All hex is shown byte by byte. K = `00 01 02 … 1F` (32 bytes). Payload vector 
 | T08-32 (FMT-08.12) | Test limits: document 4 MiB, total 64 MiB, text 1 MiB. Version 3 demo vault holding one 2 MiB attachment of random bytes (base64 text about 2.7 MiB) | Open | Opens: the base64 pool item is not held to the text limit. The same vault with a 4 MiB attachment (base64 text about 5.3 MiB): `TooLarge` (document limit). |
 | T08-33 (FMT-08.12) | Test limits: depth 8, text 1,048,576 bytes, document 8 MiB. Doc A: the deepest element is at depth 8 as FMT-10.2 counts it (9 elements open, root included). Doc B: the deepest element is at depth 9 (10 open). Doc C: one Notes value of 1,048,576 "a" characters, each written as the character reference `&#97;` (about 5 MiB of raw text). Doc D: the same with 1,048,577 characters. | Open each | A opens. B: `TooLarge` naming depth. C opens, because text is counted after references are replaced. D: `TooLarge` naming text. |
 | T08-34 (FMT-08.12) | Test limits lowered one at a time, the others left at their defaults: elements 100; then 3 for each of groups, entries, entry elements, history, strings, attachments, associations, kept unknown elements, pool items, icons, custom data items, custom data items in all and deleted objects | Open, for each limit, a demo vault with exactly the limit, then one with one more | Exactly the limit opens. One more gives `TooLarge` naming that limit. A history item's strings count toward strings. History items do not count toward entries, but they count toward entry elements. |
-| T08-35 (FMT-08.12) | Test limit total 1 MiB. Open vault, then App adds a 2 MiB attachment to an entry | App saves | `TooLarge`. The old file is byte for byte unchanged. |
+| T08-35 (FMT-08.12) | Test limit total 1 MiB. Open vault, then Larsal adds a 2 MiB attachment to an entry | Larsal saves | `TooLarge`. The old file is byte for byte unchanged. |
 | T08-36 (FMT-08.2, FMT-08.11) | Version 3.1 demo vault made by the reference CLI `db-create -p` with password "demo-pass-1" (file bytes 8 to 11 = `01 00 03 00`). Three copies with 1, 16 and 4,096 random bytes appended to the file | Open each | Each opens with the same groups and entries as the untouched vault, and the appended bytes are never decrypted as content (LD-01). The installed reference CLI `ls` opened all three (observed 2026-10-25). The untouched file with its last 17 bytes removed: `Corrupt`, because the 40-byte final hashed block always reaches into the cipher block before the last one, so it is no longer complete. |
 | T08-37 (FMT-08.2, FMT-08.5) | Version 3 AES-256 demo vault whose hashed block data is laid out so that the plaintext before the padding is a multiple of 16, re-encrypted with its own key and IV: (a) with its last block `00`×16 instead of `10`×16; (b) with the 8 bytes "TRAILING" between the final hashed block and a valid padding | Open each | Both open with the same content as the untouched vault (LD-01). The reference opens both (observed, FMT-07.11). Compare T08-04: in version 4 a bad padding is `Corrupt`. |
 

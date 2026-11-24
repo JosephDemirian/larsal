@@ -25,7 +25,7 @@ import driver  # noqa: E402
 
 DEMO = os.path.join(driver.HERE, "demo-extension")
 CONNECT_ECHO = """new Promise((resolve) => {
-  const port = chrome.runtime.connectNative('com.app.test.echo');
+  const port = chrome.runtime.connectNative('app.larsal.test.echo');
   port.onMessage.addListener((message) => { resolve(message); port.disconnect(); });
   port.onDisconnect.addListener(() => resolve({ error: chrome.runtime.lastError && chrome.runtime.lastError.message }));
   port.postMessage({ hello: 'echo' });
@@ -54,7 +54,7 @@ def tearDownModule():
 
 
 def temp_folder(case):
-    folder = tempfile.mkdtemp(prefix="app-driver-test-", dir="/tmp")
+    folder = tempfile.mkdtemp(prefix="larsal-driver-test-", dir="/tmp")
     case.addCleanup(shutil.rmtree, folder, True)
     return folder
 
@@ -64,7 +64,7 @@ class HeadlessChromeTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.folder = tempfile.mkdtemp(prefix="app-driver-test-", dir="/tmp")
+        cls.folder = tempfile.mkdtemp(prefix="larsal-driver-test-", dir="/tmp")
         cls.addClassCleanup(shutil.rmtree, cls.folder, True)
         cls.sites = driver.TestSites(cls.folder)
         cls.addClassCleanup(cls.sites.close)
@@ -160,10 +160,10 @@ class HeadlessChromeTests(unittest.TestCase):
         self.assertEqual([p for p in ours - set(found) if driver._alive(p)], [])  # one that exited meanwhile is gone
 
     def test_pids_leave_out_a_program_that_shares_the_test_home_but_not_the_profile(self):
-        # E7-S7c starts App with Chrome's test HOME; a sibling run's HOME or another browser's profile
+        # E7-S7c starts Larsal with Chrome's test HOME; a sibling run's HOME or another browser's profile
         # may start with this profile's text.
         profile = self.chrome.profile[len("/private"):]
-        paths = (os.path.join(self.chrome.home, "Library/Application Support/App/settings.json"),
+        paths = (os.path.join(self.chrome.home, "Library/Application Support/Larsal/settings.json"),
                  self.chrome.home + "2/" + driver.PROFILE + "/Crashpad", self.chrome.profile + " Beta/Crashpad",
                  profile + "/Crashpad")
         waiting = [subprocess.Popen(["/bin/sh", "-c", "read line", "sh", path], stdin=subprocess.PIPE)
@@ -179,7 +179,7 @@ class HeadlessChromeTests(unittest.TestCase):
     def test_echo_host_answers_connect_native_from_the_int_01_8_folder(self):
         manifest = driver.install_echo_host(self.chrome.home, self.extension)
         self.assertEqual(manifest, os.path.join(
-            self.chrome.home, "Library/Application Support/Google/Chrome/NativeMessagingHosts/com.app.test.echo.json"))
+            self.chrome.home, "Library/Application Support/Google/Chrome/NativeMessagingHosts/app.larsal.test.echo.json"))
         answer = self.chrome.worker(self.extension).eval(CONNECT_ECHO)
         self.assertEqual(answer, {"echo": {"hello": "echo"}, "caller": ["chrome-extension://%s/" % self.extension]})
 
@@ -478,7 +478,7 @@ class GuardTests(unittest.TestCase):
         homes = {}
         for name, part, to in (("library", "Library", outside), ("default", driver.PROFILE + "/Default", outside),
                                ("program", "echo.py", target),
-                               ("manifest", driver.NATIVE_HOSTS + "/com.app.test.echo.json", target)):
+                               ("manifest", driver.NATIVE_HOSTS + "/app.larsal.test.echo.json", target)):
             homes[name] = os.path.join(folder, name)
             link = os.path.join(homes[name], part)
             os.makedirs(os.path.dirname(link))
