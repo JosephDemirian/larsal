@@ -875,8 +875,9 @@ impl Session {
         let (path, measures) = self
             .with_share(vault, |slot| {
                 let v = slot.vault?;
-                (!sync_busy(slot.edit, slot.share))
-                    .then(|| (slot.path.to_path_buf(), crate::sync::measures(v)))
+                (!sync_busy(slot.edit, slot.share)
+                    && !v.read_version.is_some_and(|version| version.major < 4))
+                .then(|| (slot.path.to_path_buf(), crate::sync::measures(v)))
             })
             .ok()??;
         let bytes = larsal_platform::macos::open_regular(&storage::real_path(&path))
@@ -928,14 +929,29 @@ impl Session {
         if copy.root.uuid != root {
             return Merge::OtherVault;
         }
+        #[cfg(test)]
+        crate::sync::tests::server_opened();
         let measured = crate::sync::measures(&copy);
         let mut sv = locked(&saver);
+        // A copy opened with credentials retired meanwhile needs a fresh run.
+        let same_key = sv.password == kept.0
+            && sv.hardware == kept.2
+            && match (&sv.key_file, &kept.1) {
+                (Some(a), Some(b)) => a.key() == b.key(),
+                (a, b) => a.is_none() && b.is_none(),
+            };
+        if !same_key {
+            return Merge::Busy;
+        }
         let staged = self.with_share(vault, |slot| -> Result<_, LarsalError> {
             let (Some(v), s) = (slot.vault, &mut *slot.edit) else {
                 return Ok(None);
             };
             same(s, &saver)?;
-            if sync_busy(s, slot.share) {
+            if sync_busy(s, slot.share)
+                || (!s.disk.notice_confirmed
+                    && v.read_version.is_some_and(|version| version.major < 4))
+            {
                 return Ok(None);
             }
             // A change of the vault, as `with_edit` counts one (F-165).

@@ -324,3 +324,31 @@ fn syn04_6_t08_debug_output_never_shows_the_token() {
     assert!(!shown.contains(&token), "{shown}");
     assert!(shown.contains("signed_in: true"));
 }
+
+/// F-285 / SYN-01.8: inspect the real requests for all three JSON POSTs.
+#[test]
+fn f285_all_three_posts_send_json_content_type() {
+    let app = larsal_server();
+    let proxy = Scripted::proxy(&app);
+    let mut c = Server::new(&proxy.address(), proxy.pin).unwrap();
+    c.sign_for_port(app.port);
+    c.sign_up(DeviceKey::test_seam().unwrap()).unwrap();
+    c.sign_in().unwrap();
+    let posts: Vec<Request> = proxy
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == "POST")
+        .collect();
+    assert_eq!(
+        posts.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        ["/v1/accounts", "/v1/signin/challenge", "/v1/signin"]
+    );
+    for r in posts {
+        assert_eq!(
+            r.header("content-type"),
+            Some("application/json"),
+            "{}",
+            r.path
+        );
+    }
+}
